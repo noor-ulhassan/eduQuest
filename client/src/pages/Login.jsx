@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import {
-  useLoginUserMutation, // FIXED (capital L)
+  useLoginUserMutation,
   useRegisterUserMutation,
 } from "@/features/api/authApi";
 import { toast } from "sonner";
@@ -93,7 +93,6 @@ const Login = () => {
     registerError,
   ]);
 
-  // Optional: helps you debug responses
   console.log({ registerData, loginData, registerError, loginError });
 
   return (

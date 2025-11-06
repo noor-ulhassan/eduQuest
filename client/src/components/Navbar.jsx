@@ -15,7 +15,7 @@ import {
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // ✅ fixed import
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; //
 import { DarkMode } from "@/DarkMode";
 import { Link } from "react-router-dom";
 
