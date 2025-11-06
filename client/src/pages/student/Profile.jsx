@@ -13,9 +13,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React from "react";
 import { Label } from "@radix-ui/react-dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
+import Course from "./Course";
 
 const Profile = () => {
-  const isLoading = true;
+  const isLoading = false;
+  const enrolledCourses = [1, 2, 3];
   return (
     <div className="max-w-4xl mx-auto px-4 pt-24 sm:pt-28 md:pt-32 pb-12">
       <h1 className="font-bold text-2xl text-center md:text-left mb-6 md:mb-8">
@@ -55,7 +58,7 @@ const Profile = () => {
             <form className="w-full">
               <DialogTrigger asChild>
                 <Button
-                  className="mt-4 w-full sm:w-auto px-3 py-2 text-sm sm:px-4 sm:py-2 sm:text-base"
+                  className="bg-black text-white mt-4 w-full sm:w-auto px-3 py-2 text-sm sm:px-4 sm:py-2 sm:text-base"
                   variant="outline"
                 >
                   Edit
@@ -89,15 +92,33 @@ const Profile = () => {
                     </Button>
                   </DialogClose>
                   <Button
+                    disabled={isLoading}
                     type="submit"
                     className="w-full sm:w-auto order-1 sm:order-2"
                   >
-                    Save changes
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Please wait
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </form>
           </Dialog>
+        </div>
+      </div>
+      <div>
+        <h1 className="font-medium text-lg mt-7">Courses you're Enrolled in</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-5">
+          {enrolledCourses.length === 0 ? (
+            <h1>You haven't Enrolled yet</h1>
+          ) : (
+            enrolledCourses.map((course, index) => <Course key={index} />)
+          )}
         </div>
       </div>
     </div>
