@@ -17,7 +17,7 @@ const appRouter = createBrowserRouter([
       { path: "profile", element: <Profile /> },
     ],
   },
-  // ✅ Fallback route for 404s
+  // Fallback route for 404s
   {
     path: "*",
     element: (
