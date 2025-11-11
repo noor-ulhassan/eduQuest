@@ -15,10 +15,16 @@ import { Label } from "@radix-ui/react-dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import Course from "./Course";
+import { useLoadUserQuery } from "@/features/api/authApi";
 
 const Profile = () => {
-  const isLoading = false;
+  const { data, isLoading } = useLoadUserQuery();
+
   const enrolledCourses = [1, 2, 3];
+  if (isLoading) return <h1>Profile Loading...</h1>;
+
+  const { user } = data;
+
   return (
     <div className="max-w-4xl mx-auto px-4 pt-24 sm:pt-28 md:pt-32 pb-12">
       <h1 className="font-bold text-2xl text-center md:text-left mb-6 md:mb-8">
@@ -29,7 +35,7 @@ const Profile = () => {
         <div className="flex flex-col items-center">
           <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 mb-4 rounded-full">
             <AvatarImage
-              src="https://github.com/shadcn.png"
+              src={user.photoUrl || "https://github.com/shadcn.png"}
               alt="@shadcn"
               className="h-full w-full rounded-full object-cover"
             />
@@ -40,17 +46,17 @@ const Profile = () => {
         <div className="flex flex-col items-center md:items-start w-full max-w-sm sm:max-w-md">
           <div className="flex items-center mb-2 justify-center md:justify-start">
             <h1 className="font-semibold text-gray-900 ml-0 md:ml-2 text-base sm:text-lg whitespace-normal sm:whitespace-nowrap">
-              Noor ul Hassan
+              {user.name}
             </h1>
           </div>
           <div className="flex items-center mb-2 justify-center md:justify-start">
             <h1 className="font-normal text-gray-800 ml-0 md:ml-2 text-sm sm:text-base whitespace-normal sm:whitespace-nowrap">
-              noor@gmail.com
+              {user.email}
             </h1>
           </div>
           <div className="flex items-center justify-center md:justify-start">
             <h1 className="font-normal text-gray-800 ml-0 md:ml-2 text-sm sm:text-base whitespace-normal sm:whitespace-nowrap">
-              Student
+              {user.role.toUpperCaser()}
             </h1>
           </div>
 
@@ -114,10 +120,12 @@ const Profile = () => {
       <div>
         <h1 className="font-medium text-lg mt-7">Courses you're Enrolled in</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-5">
-          {enrolledCourses.length === 0 ? (
+          {user.enrolledCourses.length === 0 ? (
             <h1>You haven't Enrolled yet</h1>
           ) : (
-            enrolledCourses.map((course, index) => <Course key={index} />)
+            user.enrolledCourses.map((course, index) => (
+              <Course course={course} key={course._id} />
+            ))
           )}
         </div>
       </div>

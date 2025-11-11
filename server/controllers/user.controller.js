@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/generateToken.js";
+import { use } from "react";
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -81,6 +82,68 @@ export const login = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to Register",
+    });
+  }
+};
+
+export const logout = async (_, res) => {
+  try {
+    return res.status(200).cookie("tokes", "", { maxAge: 0 }).json({
+      message: "Logged out Successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to Logout",
+    });
+  }
+};
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.id;
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({
+        message: "Profile not found",
+        success: false,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to Load User",
+    });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.id;
+    const { name } = req.body;
+    const profilePhoto = req.file;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    const updatedData = { name, photoUrl };
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to Update Profile",
     });
   }
 };

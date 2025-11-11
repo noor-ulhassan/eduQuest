@@ -43,7 +43,7 @@ const Navbar = () => {
           </h1>
         </div>
 
-        {/* ✅ Added Nav Links (safe addition) */}
+        {/* Added Nav Links (safe addition) */}
         <div className="flex items-center gap-6">
           <Link
             to="/Problems"
