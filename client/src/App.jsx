@@ -3,6 +3,7 @@ import MainLayout from "./layout/MainLayout";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
 import ProblemsPage from "./pages/student/ProblemsPage";
+import ProblemPage from "./pages/student/ProblemPage";
 
 const appRouter = createBrowserRouter([
   {
@@ -11,6 +12,7 @@ const appRouter = createBrowserRouter([
     children: [
       { index: true, element: <ProblemsPage /> }, // default page
       { path: "problems", element: <ProblemsPage /> },
+      { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
       { path: "profile", element: <Profile /> },
     ],
