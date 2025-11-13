@@ -43,6 +43,28 @@ const Navbar = () => {
           </h1>
         </div>
 
+        {/* ✅ Added Nav Links (safe addition) */}
+        <div className="flex items-center gap-6">
+          <Link
+            to="/Problems"
+            className="text-gray-700 dark:text-gray-200 hover:text-blue-700 transition"
+          >
+            Problems
+          </Link>
+          <Link
+            to="/my-learning"
+            className="text-gray-700 dark:text-gray-200 hover:text-blue-700 transition"
+          >
+            My Learning
+          </Link>
+          <Link
+            to="/profile"
+            className="text-gray-700 dark:text-gray-200 hover:text-blue-700 transition"
+          >
+            Profile
+          </Link>
+        </div>
+
         {/* User or Auth Buttons */}
         <div className="flex items-center gap-4">
           {user ? (
