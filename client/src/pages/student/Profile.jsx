@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import UserStats from "@/components/profile/UserStats";
@@ -10,7 +9,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
 
   return (
-    <div className="bg-[#fdfbf7] min-h-screen py-6">
+    <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-6xl mx-auto px-4">
         {/* Profile Header */}
         <ProfileHeader

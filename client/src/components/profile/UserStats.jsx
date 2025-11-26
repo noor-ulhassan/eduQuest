@@ -1,94 +1,5 @@
-
-// import React from "react";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-// const UserStats = ({
-//   username = "arishaaa",
-//   level = 2,
-//   totalXP = 100,
-//   rank = "Bronze",
-//   badges = 1,
-//   dayStreak = 3,
-// }) => {
-//   return (
-//     <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-//       {/* Username & Level */}
-//       <div className="flex items-center gap-3 mb-5">
-//         <Avatar className="h-10 w-10 rounded-md">
-//           <AvatarImage
-//             src="/client/public/Profile Avatar.png"
-//             alt={`${username}'s Avatar`}
-//             className="rounded-md object-cover"
-//           />
-//           <AvatarFallback className="bg-purple-100 text-purple-700 rounded-md flex items-center justify-center text-sm font-semibold">
-//             {username.charAt(0).toUpperCase()}
-//           </AvatarFallback>
-//         </Avatar>
-//         <div>
-//           <h3 className="font-semibold text-gray-800">{username}</h3>
-//           <div className="flex items-center gap-1.5 mt-0.5">
-//             <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
-//               Level {level}
-//             </span>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Stats Grid - 2x2 */}
-//       <div className="grid grid-cols-2 gap-4">
-//         {/* Total XP */}
-//         <div className="flex items-center gap-3 p-2 rounded-lg bg-yellow-50">
-//           <div className="bg-yellow-100 p-2 rounded-lg">
-//             <span className="text-yellow-600 text-lg">⭐</span>
-//           </div>
-//           <div>
-//             <p className="font-bold text-gray-800">{totalXP}</p>
-//             <p className="text-xs text-gray-500">Total XP</p>
-//           </div>
-//         </div>
-
-//         {/* Rank */}
-//         <div className="flex items-center gap-3 p-2 rounded-lg bg-orange-50">
-//           <div className="bg-orange-100 p-2 rounded-lg">
-//             <span className="text-orange-600 text-lg">🏆</span>
-//           </div>
-//           <div>
-//             <p className="font-bold text-gray-800">{rank}</p>
-//             <p className="text-xs text-gray-500">Rank</p>
-//           </div>
-//         </div>
-
-//         {/* Badges */}
-//         <div className="flex items-center gap-3 p-2 rounded-lg bg-blue-50">
-//           <div className="bg-blue-100 p-2 rounded-lg">
-//             <span className="text-blue-600 text-lg">🎖️</span>
-//           </div>
-//           <div>
-//             <p className="font-bold text-gray-800">{badges}</p>
-//             <p className="text-xs text-gray-500">Badges</p>
-//           </div>
-//         </div>
-
-//         {/* Day Streak */}
-//         <div className="flex items-center gap-3 p-2 rounded-lg bg-red-50">
-//           <div className="bg-red-100 p-2 rounded-lg">
-//             <span className="text-red-600 text-lg">🔥</span>
-//           </div>
-//           <div>
-//             <p className="font-bold text-gray-800">{dayStreak}</p>
-//             <p className="text-xs text-gray-500">Day streak</p>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default UserStats;
-// src/components/profile/UserStats.jsx
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 
 const UserStats = ({
   username = "arishaaa",
@@ -98,7 +9,6 @@ const UserStats = ({
   badges = 1,
   dayStreak = 3,
 }) => {
-  // Helper for consistent initials
   const getInitials = (name) => {
     return name
       .split(" ")
@@ -108,24 +18,57 @@ const UserStats = ({
       .toUpperCase();
   };
 
+  // Stat items with icon, color, and label
+  const stats = [
+    {
+      label: "Total XP",
+      value: totalXP,
+      icon: "⭐",
+      bg: "bg-purple-50",
+      iconColor: "text-purple-600",
+    },
+    {
+      label: "Rank",
+      value: rank,
+      icon: "🏆",
+      bg: "bg-amber-50",
+      iconColor: "text-amber-600",
+    },
+    {
+      label: "Badges",
+      value: badges,
+      icon: "🎖️",
+      bg: "bg-blue-50",
+      iconColor: "text-blue-600",
+    },
+    {
+      label: "Day streak",
+      value: dayStreak,
+      icon: "🔥",
+      bg: "bg-orange-50",
+      iconColor: "text-orange-500",
+    },
+  ];
+
   return (
-    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-shadow duration-200">
       {/* Username & Level */}
-      <div className="flex items-center gap-3 mb-5">
-        <Avatar className="h-10 w-10 rounded-md">
+      <div className="flex items-center gap-3 mb-6">
+        <Avatar className="h-12 w-12 rounded-lg">
           <AvatarImage
-            src="/client/public/Profile Avatar.png"
+            src="/Avatar.png"
             alt={`${username}'s Avatar`}
-            className="rounded-md object-cover"
+            className="rounded-lg object-cover"
           />
-          <AvatarFallback className="bg-purple-100 text-purple-700 rounded-md flex items-center justify-center text-sm font-semibold">
+          <AvatarFallback className="bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center text-sm font-semibold">
             {getInitials(username)}
           </AvatarFallback>
         </Avatar>
+
         <div>
           <h3 className="font-semibold text-gray-800">{username}</h3>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+          <div className="mt-1">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
               Level {level}
             </span>
           </div>
@@ -133,50 +76,21 @@ const UserStats = ({
       </div>
 
       {/* Stats Grid - 2x2 */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Total XP */}
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-yellow-50">
-          <div className="bg-yellow-100 p-2 rounded-lg">
-            <span className="text-yellow-600 text-lg">⭐</span>
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((stat, index) => (
+          <div
+            key={index}
+            className={`flex items-center gap-3 p-3 rounded-lg ${stat.bg} transition-transform hover:scale-[1.02]`}
+          >
+            <div className={`p-2 rounded-lg ${stat.bg} ${stat.iconColor}`}>
+              <span className="text-lg">{stat.icon}</span>
+            </div>
+            <div>
+              <p className="font-bold text-gray-800">{stat.value}</p>
+              <p className="text-xs text-gray-500">{stat.label}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-gray-800">{totalXP}</p>
-            <p className="text-xs text-gray-500">Total XP</p>
-          </div>
-        </div>
-
-        {/* Rank */}
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-orange-50">
-          <div className="bg-orange-100 p-2 rounded-lg">
-            <span className="text-orange-600 text-lg">🏆</span>
-          </div>
-          <div>
-            <p className="font-bold text-gray-800">{rank}</p>
-            <p className="text-xs text-gray-500">Rank</p>
-          </div>
-        </div>
-
-        {/* Badges */}
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-blue-50">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <span className="text-blue-600 text-lg">🎖️</span>
-          </div>
-          <div>
-            <p className="font-bold text-gray-800">{badges}</p>
-            <p className="text-xs text-gray-500">Badges</p>
-          </div>
-        </div>
-
-        {/* Day Streak */}
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-red-50">
-          <div className="bg-red-100 p-2 rounded-lg">
-            <span className="text-red-600 text-lg">🔥</span>
-          </div>
-          <div>
-            <p className="font-bold text-gray-800">{dayStreak}</p>
-            <p className="text-xs text-gray-500">Day streak</p>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
