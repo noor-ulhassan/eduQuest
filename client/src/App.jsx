@@ -4,17 +4,24 @@ import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
 import ProblemsPage from "./pages/student/ProblemsPage";
 import ProblemPage from "./pages/student/ProblemPage";
+import Courses from "./pages/student/Courses";
+import HeroSection from "./pages/student/HeroSection";
+import HomePage from "./pages/student/HomePage";
+import QuizPage from "./pages/student/QuizPage";
+import Login from "./pages/Login";
 
 const appRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
     children: [
-      { index: true, element: <ProblemsPage /> }, // default page
+      { index: true, element: <HomePage />, path: "/home" }, // default page
       { path: "problems", element: <ProblemsPage /> },
       { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
       { path: "profile", element: <Profile /> },
+      { path: "quiz", element: <QuizPage /> },
+      { path: "Login", element: <Login /> },
     ],
   },
   // Fallback route for 404s

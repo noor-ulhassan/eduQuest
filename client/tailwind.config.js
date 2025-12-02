@@ -4,6 +4,10 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        inter: ["Inter", "sans-serif"],
+        jersey: ['"Jersey 10"', "sans-serif"],
+      },
       colors: {
         background: "hsl(0 0% 100%)",
         foreground: "hsl(222.2 84% 4.9%)",

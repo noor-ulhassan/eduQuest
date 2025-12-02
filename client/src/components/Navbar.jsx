@@ -32,18 +32,17 @@ const Navbar = () => {
       {/* Desktop */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <School
-            size={28}
-            className="text-blue-700 transition-transform duration-300 hover:rotate-6"
-          />
-          <h1 className="hidden md:block font-extrabold text-2xl tracking-tight">
-            <span className="text-blue-700">Edu</span>
-            <span className="dark:text-white text-gray-800">Quest</span>
-          </h1>
+        <div className="flex items-center gap-2 font-jersey">
+          <Link to="/home" className="flex items-center gap-3">
+            <img src="logo.png" alt="logo" height={40} width={40} />
+            <h1 className="hidden md:block font-bold text-3xl tracking-tight">
+              <span className="text-blue-700">Edu</span>
+              <span className="dark:text-white text-gray-800">Quest</span>
+            </h1>
+          </Link>
         </div>
 
-        {/* ✅ Added Nav Links (safe addition) */}
+        {/*  Added Nav Links (safe addition) */}
         <div className="flex items-center gap-6">
           <Link
             to="/Problems"
@@ -55,7 +54,7 @@ const Navbar = () => {
             to="/my-learning"
             className="text-gray-700 dark:text-gray-200 hover:text-blue-700 transition"
           >
-            My Learning
+            Dashboard
           </Link>
           <Link
             to="/profile"

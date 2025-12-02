@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import React from "react";
+import downloadGif from "../../assets/download.gif";
 
 const HeroSection = () => {
   return (
@@ -36,6 +37,13 @@ const HeroSection = () => {
           <Button className="bg-white text-blue-600 font-semibold px-8 py-3 rounded-full hover:bg-gray-100 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800 transition">
             Explore Courses
           </Button>
+          <div className="w-full overflow-hidden relative mt-10 ">
+            <img
+              src={downloadGif}
+              alt="Hero section graphic"
+              className="w-full h-full object-cover absolute inset-0 "
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ function CodeEditorPanel({
   onRunCode,
 }) {
   return (
-    <div className="h-full bg-base-300 flex flex-col mt-24">
+    <div className="h-full bg-base-300 flex flex-col mt-20">
       <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-t border-base-300">
         <div className="flex items-center gap-3">
           <img

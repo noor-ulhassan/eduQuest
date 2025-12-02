@@ -1,41 +1,24 @@
-import { Skeleton } from "@/components/ui/skeleton";
 import React from "react";
-import Course from "./Course";
+import WelcomeBanner from "../../components/WelcomeBanner";
+import EnrolledCourses from "@/components/EnrolledCourses";
+import ExploreMore from "@/components/ExploreMore";
+import UserStatus from "@/components/UserStatus";
 
 const MyLearning = () => {
-  const isLoading = false;
-  const myLearningCourses = [1, 2];
-
   return (
-    <div className="max-w-4xl mx-auto my-24 px-4 md:px-0">
-      <h1 className="font-bold text-2xl">My Learning</h1>
-      <div className="my-5">
-        {isLoading ? (
-          <MyLearningSkeleton />
-        ) : myLearningCourses.length === 0 ? (
-          <p>You are not enrolled in any course</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2].map((course, index) => (
-              <Course key={index} />
-            ))}
-          </div>
-        )}
+    <div className="p-10 md:px-20 lg:px-32 xl:px-48 mt-24">
+      <div className="grid grid-cols-3 gap-7">
+        <div className="col-span-2">
+          <WelcomeBanner />
+          <EnrolledCourses />
+          <ExploreMore />
+        </div>
+        <div>
+          <UserStatus />
+        </div>
       </div>
     </div>
   );
 };
 
 export default MyLearning;
-
-// My learning Skeleton
-const MyLearningSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-    {[...Array(3)].map((_, index) => (
-      <div
-        key={index}
-        className="bg-gray-300 rounded-lg h-40 animate-pulse"
-      ></div>
-    ))}
-  </div>
-);

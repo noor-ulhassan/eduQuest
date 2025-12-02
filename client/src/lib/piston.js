@@ -50,7 +50,7 @@ export async function executeCode(language, code) {
 
     const data = await response.json();
 
-    const output = data.run.output || "";
+    const output = data.run.stdout || "";
     const stderr = data.run.stderr || "";
 
     if (stderr) {
