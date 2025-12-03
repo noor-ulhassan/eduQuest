@@ -3,6 +3,7 @@ import WelcomeBanner from "../../components/WelcomeBanner";
 import EnrolledCourses from "@/components/EnrolledCourses";
 import ExploreMore from "@/components/ExploreMore";
 import UserStatus from "@/components/UserStatus";
+import InviteFriend from "@/components/InviteFriend";
 
 const MyLearning = () => {
   return (
@@ -12,6 +13,7 @@ const MyLearning = () => {
           <WelcomeBanner />
           <EnrolledCourses />
           <ExploreMore />
+          <InviteFriend />
         </div>
         <div>
           <UserStatus />

@@ -1,4 +1,8 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
@@ -15,16 +19,16 @@ const appRouter = createBrowserRouter([
     path: "/",
     element: <MainLayout />,
     children: [
-      { index: true, element: <HomePage />, path: "/home" }, // default page
+      { index: true, element: <HomePage /> }, // renders at "/"
+      { path: "home", element: <Navigate to="/" replace /> }, // optional: redirect /home to /
       { path: "problems", element: <ProblemsPage /> },
       { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
       { path: "profile", element: <Profile /> },
       { path: "quiz", element: <QuizPage /> },
-      { path: "Login", element: <Login /> },
+      { path: "login", element: <Login /> },
     ],
   },
-  // Fallback route for 404s
   {
     path: "*",
     element: (
