@@ -1,8 +1,18 @@
 import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/clerk-react";
+
+import ProtectedRoute from "./ProtectedRoute";
+
+import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
 } from "react-router-dom";
+
 import MainLayout from "./layout/MainLayout";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
@@ -19,16 +29,56 @@ const appRouter = createBrowserRouter([
     path: "/",
     element: <MainLayout />,
     children: [
-      { index: true, element: <HomePage /> }, // renders at "/"
-      { path: "home", element: <Navigate to="/" replace /> }, // optional: redirect /home to /
-      { path: "problems", element: <ProblemsPage /> },
-      { path: "problem/:id", element: <ProblemPage /> },
-      { path: "my-learning", element: <MyLearning /> },
-      { path: "profile", element: <Profile /> },
-      { path: "quiz", element: <QuizPage /> },
+      { index: true, element: <HomePage /> },
+      { path: "home", element: <Navigate to="/" replace /> },
+
+      // protected pages
+      {
+        path: "problems",
+        element: (
+          <ProtectedRoute>
+            <ProblemsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "problem/:id",
+        element: (
+          <ProtectedRoute>
+            <ProblemPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "my-learning",
+        element: (
+          <ProtectedRoute>
+            <MyLearning />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "profile",
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "quiz",
+        element: (
+          <ProtectedRoute>
+            <QuizPage />
+          </ProtectedRoute>
+        ),
+      },
+
+      // public
       { path: "login", element: <Login /> },
     ],
   },
+
   {
     path: "*",
     element: (

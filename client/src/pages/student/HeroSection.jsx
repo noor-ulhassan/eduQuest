@@ -5,7 +5,7 @@ const HeroSection = () => {
   return (
     <div className="w-full relative h-screen overflow-hidden mt-18 pt-16">
       <img
-        src="gif0.gif"
+        src="gif7.gif"
         alt="hero"
         height={1000}
         width={1000}

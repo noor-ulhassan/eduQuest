@@ -6,11 +6,18 @@ import "./index.css";
 import { appStore } from "./app/store.js";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "next-themes";
+import { ClerkProvider } from "@clerk/clerk-react";
+// Import your Publishable Key
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Publishable Key");
+}
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Provider store={appStore}>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <App />
       <Toaster />
-    </Provider>
+    </ClerkProvider>
   </React.StrictMode>
 );
