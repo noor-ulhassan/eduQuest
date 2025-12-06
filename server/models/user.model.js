@@ -1,34 +1,14 @@
 import mongoose from "mongoose";
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["Student", "student"],
-      default: "student",
-    },
-    enrolledCourses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-      },
-    ],
-    photoUrl: {
-      type: String,
-      default: "",
-    },
-  },
-  { timestamps: true }
-);
+
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true },
+  password: { type: String, default: null },
+  googleId: { type: String, default: null },
+  avatar: String,
+  provider: { type: String, enum: ["local", "google"], default: "local" },
+
+  refreshToken: { type: String, default: null }
+}, { timestamps: true });
 
 export const User = mongoose.model("User", userSchema);

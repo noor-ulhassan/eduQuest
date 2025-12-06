@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./database/dbConnect.js";
 import userRoute from "./routes/user.route.js";
+import authRoutes from "./routes/auth.routes.js";
 
 dotenv.config({});
 
@@ -26,6 +27,7 @@ app.use(
 //apis
 
 app.use("/api/v1/user", userRoute);
+app.use("/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server listen at port ${PORT}`);

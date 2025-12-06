@@ -3,13 +3,18 @@ import MainLayout from "./layout/MainLayout";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
 import ProblemsPage from "./pages/student/ProblemsPage";
-
+import Signup from "./pages/Signup";
+import Login from "./pages/Login";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const appRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
     children: [
       { index: true, element: <ProblemsPage /> }, // default page
+      { path: "/signup", element: <Signup /> },
+      { path: "/login", element: <Login /> },
       { path: "problems", element: <ProblemsPage /> },
       { path: "my-learning", element: <MyLearning /> },
       { path: "profile", element: <Profile /> },
@@ -30,7 +35,12 @@ const appRouter = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={appRouter} />;
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <RouterProvider router={appRouter} />;
+    </GoogleOAuthProvider>
+  );
 }
 
 export default App;
