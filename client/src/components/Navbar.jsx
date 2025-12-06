@@ -72,8 +72,6 @@ const courses = [
 ];
 
 const Navbar = () => {
-  const { isSignedIn } = useUser();
-
   return (
     <motion.div className="h-16 dark:bg-[#0A0A0A]/80 bg-white/80 backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-10 shadow-sm">
       {/* Desktop */}
@@ -134,19 +132,7 @@ const Navbar = () => {
         </div>
 
         {/* User or Auth Buttons */}
-        <div className="flex items-center gap-4">
-          {isSignedIn ? (
-            //  Show user profile icon, redirect to /home on logout
-            <UserButton afterSignOutUrl="/home" />
-          ) : (
-            //  Not logged in → Show single "Get Started" button
-            <Link to="/sign-in">
-              <Button variant={"pixel"} className="font-jersey text-xl">
-                Get Started
-              </Button>
-            </Link>
-          )}
-        </div>
+        <div className="flex items-center gap-4"></div>
       </div>
 
       {/* Mobile */}

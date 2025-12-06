@@ -1,13 +1,4 @@
 import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  UserButton,
-} from "@clerk/clerk-react";
-
-import ProtectedRoute from "./ProtectedRoute";
-
-import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
@@ -33,54 +24,29 @@ const appRouter = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "home", element: <Navigate to="/" replace /> },
 
-      // protected pages
       {
         path: "problems",
-        element: (
-          <ProtectedRoute>
-            <ProblemsPage />
-          </ProtectedRoute>
-        ),
+        element: <ProblemsPage />,
       },
       {
         path: "problem/:id",
-        element: (
-          <ProtectedRoute>
-            <ProblemPage />
-          </ProtectedRoute>
-        ),
+        element: <ProblemPage />,
       },
       {
         path: "my-learning",
-        element: (
-          <ProtectedRoute>
-            <MyLearning />
-          </ProtectedRoute>
-        ),
+        element: <MyLearning />,
       },
       {
         path: "profile",
-        element: (
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        ),
+        element: <Profile />,
       },
       {
         path: "quiz",
-        element: (
-          <ProtectedRoute>
-            <QuizPage />
-          </ProtectedRoute>
-        ),
+        element: <QuizPage />,
       },
       {
         path: "learn",
-        element: (
-          <ProtectedRoute>
-            <LearnPage />
-          </ProtectedRoute>
-        ),
+        element: <LearnPage />,
       },
 
       // public
