@@ -23,6 +23,7 @@ import HeroSection from "./pages/student/HeroSection";
 import HomePage from "./pages/student/HomePage";
 import QuizPage from "./pages/student/QuizPage";
 import Login from "./pages/Login";
+import LearnPage from "./pages/Learn/LearnPage";
 
 const appRouter = createBrowserRouter([
   {
@@ -70,6 +71,14 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <QuizPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "learn",
+        element: (
+          <ProtectedRoute>
+            <LearnPage />
           </ProtectedRoute>
         ),
       },
