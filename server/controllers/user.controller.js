@@ -1,6 +1,6 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import { generateToken } from "../utils/generateToken.js";
+import { createTokens } from "../utils/createTokens.js";
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -75,7 +75,13 @@ export const login = async (req, res) => {
       });
     }
 
-    generateToken(res, user, `Welcome back ${user.name}`);
+    const { accessToken, refreshToken } = createTokens(user);
+    // Send tokens in response
+    return res.status(200).json({
+      success: true,
+      message: `Welcome back ${user.name}`,
+      refreshToken,
+    });
   } catch (error) {
     console.log(error);
     return res.status(500).json({

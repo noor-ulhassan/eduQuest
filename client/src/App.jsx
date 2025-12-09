@@ -8,52 +8,24 @@ import MainLayout from "./layout/MainLayout";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
 import ProblemsPage from "./pages/student/ProblemsPage";
-import ProblemPage from "./pages/student/ProblemPage";
-import Courses from "./pages/student/Courses";
-import HeroSection from "./pages/student/HeroSection";
-import HomePage from "./pages/student/HomePage";
-import QuizPage from "./pages/student/QuizPage";
+import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import LearnPage from "./pages/Learn/LearnPage";
-
+import { GoogleOAuthProvider } from "@react-oauth/google";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const appRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "home", element: <Navigate to="/" replace /> },
-
-      {
-        path: "problems",
-        element: <ProblemsPage />,
-      },
-      {
-        path: "problem/:id",
-        element: <ProblemPage />,
-      },
-      {
-        path: "my-learning",
-        element: <MyLearning />,
-      },
-      {
-        path: "profile",
-        element: <Profile />,
-      },
-      {
-        path: "quiz",
-        element: <QuizPage />,
-      },
-      {
-        path: "learn",
-        element: <LearnPage />,
-      },
-
-      // public
-      { path: "login", element: <Login /> },
+      { index: true, element: <ProblemsPage /> }, // default page
+      { path: "/signup", element: <Signup /> },
+      { path: "/login", element: <Login /> },
+      { path: "problems", element: <ProblemsPage /> },
+      { path: "my-learning", element: <MyLearning /> },
+      { path: "profile", element: <Profile /> },
     ],
   },
-
+  // ✅ Fallback route for 404s
   {
     path: "*",
     element: (
@@ -68,7 +40,12 @@ const appRouter = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={appRouter} />;
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <RouterProvider router={appRouter} />;
+    </GoogleOAuthProvider>
+  );
 }
 
 export default App;

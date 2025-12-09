@@ -4,9 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./database/dbConnect.js";
 import userRoute from "./routes/user.route.js";
-import path from "path";
-import { fileURLToPath } from "url";
-import errorHandler from "./middleware/errorHandler.js";
+import authRoutes from "./routes/auth.routes.js";
 
 // 1. Load Environment Variables First
 dotenv.config({});
@@ -42,18 +40,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // 7. API Routes
 app.use("/api/v1/user", userRoute);
-app.use(errorHandler);
+app.use("/auth", authRoutes);
 
-// 8. 404 Handler (MUST come after all routes)
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: "Route not found",
-    statusCode: 404,
-  });
-});
-
-// 9. Start Server
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);
 });
