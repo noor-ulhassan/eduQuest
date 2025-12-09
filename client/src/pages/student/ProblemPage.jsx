@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PROBLEMS } from "../../data/problems.js";
-import Navbar from "../../components/Navbar.jsx";
 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import ProblemDescription from "../../components/ProblemDescription.jsx";
@@ -111,8 +110,6 @@ function ProblemPage() {
 
   return (
     <div className="h-screen bg-base-100 flex flex-col">
-      <Navbar />
-
       <div className="flex-1">
         <PanelGroup direction="horizontal">
           {/* left panel- problem desc */}
