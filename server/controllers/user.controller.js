@@ -67,6 +67,11 @@ export const login = async (req, res) => {
         message: "Incorrect email or password",
       });
     }
+    if(user.provider === "google"){
+      return res.status(400).json({
+        success: false,
+        message: "Registered via google",
+      })}
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
       return res.status(400).json({
@@ -77,16 +82,25 @@ export const login = async (req, res) => {
 
     const { accessToken, refreshToken } = createTokens(user);
     // Send tokens in response
-    return res.status(200).json({
-      success: true,
-      message: `Welcome back ${user.name}`,
-      refreshToken,
-    });
+    return res
+      .status(200)
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: true, // true in production (HTTPS)
+        sameSite: "strict", // protects against CSRF
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
+      .json({
+        success: true,
+        message: `Welcome back ${user.name}`,
+        accessToken,
+      });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to Register",
+      message: "Failed to Login",
     });
   }
 };

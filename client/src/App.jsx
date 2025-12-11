@@ -17,6 +17,8 @@ import Profile from "./pages/student/Profile";
 import QuizPage from "./pages/student/QuizPage"; // Restored
 import LearnPage from "./pages/Learn/LearnPage"; // Restored
 import Login from "./pages/Login";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup"; // New Feature
 
 // Environment Variables
@@ -34,6 +36,14 @@ const appRouter = createBrowserRouter([
       { path: "problems", element: <ProblemsPage /> },
       { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
+      {
+        path: "profile",
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        ),
+      },
       { path: "profile", element: <Profile /> },
       { path: "quiz", element: <QuizPage /> },
       { path: "learn", element: <LearnPage /> },

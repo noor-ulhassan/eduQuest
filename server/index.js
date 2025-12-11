@@ -40,7 +40,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // 7. API Routes
 app.use("/api/v1/user", userRoute);
-app.use("/auth", authRoutes);
+// app.use("/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);
