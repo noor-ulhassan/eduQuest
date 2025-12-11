@@ -1,6 +1,7 @@
 import Editor from "@monaco-editor/react";
 import { Loader2Icon, PlayIcon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
+import { Button } from "@/components/ui/button"; //
 
 function CodeEditorPanel({
   selectedLanguage,
@@ -11,7 +12,7 @@ function CodeEditorPanel({
   onRunCode,
 }) {
   return (
-    <div className="h-full bg-base-300 flex flex-col mt-24">
+    <div className="h-full bg-base-300 flex flex-col mt-24 font-jersey text-xl">
       <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-t border-base-300">
         <div className="flex items-center gap-3">
           <img
@@ -32,8 +33,10 @@ function CodeEditorPanel({
           </select>
         </div>
 
-        <button
-          className="btn btn-primary btn-sm gap-2"
+        <Button
+          variant={"pixel"}
+          className="gap-2 font-jersey text-xl"
+          size="sm"
           disabled={isRunning}
           onClick={onRunCode}
         >
@@ -48,7 +51,7 @@ function CodeEditorPanel({
               Run Code
             </>
           )}
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-hidden">

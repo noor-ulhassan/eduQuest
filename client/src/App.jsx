@@ -3,29 +3,48 @@ import {
   RouterProvider,
   Navigate,
 } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
+// Layouts and Pages
 import MainLayout from "./layout/MainLayout";
+import HomePage from "./pages/student/HomePage"; // Restored
+import HeroSection from "./pages/student/HeroSection"; // Restored
+import Courses from "./pages/student/Courses"; // Restored
+import ProblemsPage from "./pages/student/ProblemsPage";
+import ProblemPage from "./pages/student/ProblemPage"; // Restored
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
-import ProblemsPage from "./pages/student/ProblemsPage";
-import Signup from "./pages/Signup";
+import QuizPage from "./pages/student/QuizPage"; // Restored
+import LearnPage from "./pages/Learn/LearnPage"; // Restored
 import Login from "./pages/Login";
-import { GoogleOAuthProvider } from "@react-oauth/google";
+import Signup from "./pages/Signup"; // New Feature
+
+// Environment Variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 const appRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
     children: [
-      { index: true, element: <ProblemsPage /> }, // default page
-      { path: "/signup", element: <Signup /> },
-      { path: "/login", element: <Login /> },
+      // --- Original Routes Preserved ---
+      { index: true, element: <HomePage /> },
+      { path: "home", element: <Navigate to="/" replace /> },
+
       { path: "problems", element: <ProblemsPage /> },
+      { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
       { path: "profile", element: <Profile /> },
+      { path: "quiz", element: <QuizPage /> },
+      { path: "learn", element: <LearnPage /> },
+
+      // --- New & Auth Routes ---
+      { path: "signup", element: <Signup /> },
+      { path: "login", element: <Login /> },
     ],
   },
-  // ✅ Fallback route for 404s
+
+  // Fallback for 404
   {
     path: "*",
     element: (
@@ -40,10 +59,10 @@ const appRouter = createBrowserRouter([
 ]);
 
 function App() {
-
   return (
+    // Wrapped in GoogleOAuthProvider (New Feature)
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <RouterProvider router={appRouter} />;
+      <RouterProvider router={appRouter} />
     </GoogleOAuthProvider>
   );
 }
