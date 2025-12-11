@@ -6,6 +6,7 @@ import ProblemsPage from "./pages/student/ProblemsPage";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import ProtectedRoute from "./components/ProtectedRoute";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const appRouter = createBrowserRouter([
   {
@@ -17,7 +18,7 @@ const appRouter = createBrowserRouter([
       { path: "/login", element: <Login /> },
       { path: "problems", element: <ProblemsPage /> },
       { path: "my-learning", element: <MyLearning /> },
-      { path: "profile", element: <Profile /> },
+      { path: "profile", element: <ProtectedRoute><Profile /></ProtectedRoute> },
     ],
   },
   // ✅ Fallback route for 404s

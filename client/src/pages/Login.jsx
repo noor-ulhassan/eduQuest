@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { useDispatch } from "react-redux";
+import { loginSuccess } from "../features/auth/authSlice";
+import api from "../features/api/authApi";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 
@@ -7,6 +9,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -15,11 +18,14 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const { email, password } = formData;
     try {
-      const res = await axios.post(
-        "http://localhost:8080/api/v1/user/login",
-        formData,
-        { withCredentials: true }
+      const res = await api.post("/login", { email, password });
+      dispatch(
+        loginSuccess({
+          user: res.data.user,
+          accessToken: res.data.accessToken,
+        })
       );
       // alert(res.data.message);
       console.log(res.data);
@@ -31,11 +37,17 @@ export default function Login() {
 
   const handleGoogleLogin = async (credentialResponse) => {
     try {
-      const res = await axios.post(
-        "http://localhost:8080/auth/google",
-        { idToken: credentialResponse.credential },
-        { withCredentials: true }
+      const res = await api.post("/google", {
+        idToken: credentialResponse.credential,
+      });
+
+      dispatch(
+        loginSuccess({
+          user: res.data.user,
+          accessToken: res.data.accessToken,
+        })
       );
+
       alert(res.data.message);
       navigate("/");
     } catch (err) {
