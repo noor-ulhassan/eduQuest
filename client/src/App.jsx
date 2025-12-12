@@ -17,7 +17,6 @@ import Profile from "./pages/student/Profile";
 import QuizPage from "./pages/student/QuizPage"; // Restored
 import LearnPage from "./pages/Learn/LearnPage"; // Restored
 import Login from "./pages/Login";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup"; // New Feature
 
@@ -44,7 +43,7 @@ const appRouter = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "profile", element: <Profile /> },
+
       { path: "quiz", element: <QuizPage /> },
       { path: "learn", element: <LearnPage /> },
 
