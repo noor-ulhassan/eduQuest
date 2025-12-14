@@ -9,17 +9,17 @@ export const getUser = async (req, res) => {
   });
 };
 
-
 //i donut know what to do here
-
 
 export const getMe = async (req, res) => {
   try {
-    const userId = req.user.id; 
-    const user = await User.findById(userId).select("-password").lean(); 
+    const userId = req.user.id;
+    const user = await User.findById(userId).select("-password").lean();
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     return res.status(200).json({ success: true, user });
