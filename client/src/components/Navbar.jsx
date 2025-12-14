@@ -1,5 +1,4 @@
 import React from "react";
-import { School } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   NavigationMenu,
@@ -79,8 +78,7 @@ const Navbar = () => {
         {/* Logo */}
         <div className="flex items-center gap-2 font-jersey">
           <Link to="/home" className="flex items-center gap-3">
-            <img src="logo.png" alt="logo" height={40} width={40} />
-            <h1 className="hidden md:block text-3xl tracking-tight">
+            <h1 className="hidden md:block text-4xl tracking-tight">
               <span className="text-yellow-600">Edu</span>
               <span className="dark:text-white text-gray-800">Quest</span>
             </h1>
@@ -112,19 +110,18 @@ const Navbar = () => {
 
               <NavigationMenuItem>
                 <NavigationMenuLink>
-                  <Link to={"/profile"}>Profile</Link>
+                  <Link to={"/#"}>Home</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink>
+                  <Link to={"/workspace"}>Assistant</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
                 <NavigationMenuLink>
-                  <Link to={"my-learning"}>Dashboard</Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink>
-                  <Link to={"/Problems"}>Problems</Link>
+                  <Link to={"/Problems"}>Programming</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
@@ -138,7 +135,6 @@ const Navbar = () => {
       {/* Mobile */}
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
-          <School size={26} className="text-blue-700" />
           <h1 className="font-bold text-xl">
             <span className="text-blue-700">Edu</span>
             <span className="dark:text-white text-gray-800">Quest</span>

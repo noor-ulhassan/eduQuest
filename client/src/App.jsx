@@ -19,6 +19,7 @@ import LearnPage from "./pages/Learn/LearnPage"; // Restored
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup"; // New Feature
+import Workspace from "./pages/Workspace/Page";
 
 // Environment Variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -35,6 +36,7 @@ const appRouter = createBrowserRouter([
       { path: "problems", element: <ProblemsPage /> },
       { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
+      { path: "workspace", element: <Workspace /> },
       {
         path: "profile",
         element: (

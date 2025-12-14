@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import React from "react";
+import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
@@ -39,9 +40,11 @@ const HeroSection = () => {
         >
           Beginner friendly courses and projects
         </h2>
-        <Button className="mt-7 font-jersey text-3xl p-6" variant={"pixel"}>
-          Get Started
-        </Button>
+        <Link to="/login">
+          <Button className="mt-7 font-jersey text-3xl p-6" variant={"pixel"}>
+            Get Started
+          </Button>
+        </Link>
       </div>
     </div>
   );

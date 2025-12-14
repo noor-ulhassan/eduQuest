@@ -9,6 +9,7 @@ export default {
         jersey: ['"Jersey 10"', "sans-serif"],
       },
       colors: {
+        border: "hsl(var(--border))",
         background: "hsl(0 0% 100%)",
         foreground: "hsl(222.2 84% 4.9%)",
         primary: {
@@ -18,6 +19,16 @@ export default {
         secondary: {
           DEFAULT: "hsl(210 40% 96.1%)",
           foreground: "hsl(222.2 47.4% 11.2%)",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
         },
       },
     },
