@@ -7,7 +7,22 @@ const api = axios.create({
   baseURL: "http://localhost:8080/api/v1/user",
   withCredentials: true, // needed for refresh token in cookie
 });
+api.interceptors.request.use(
+  (config) => {
+    // Access Redux store directly
+    const state = store.getState();
+    const token = state.auth.accessToken;
 
+    // If token exists, attach it to headers
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 // Add interceptor to handle expired access token
 api.interceptors.response.use(
   response => response, // if success, just return

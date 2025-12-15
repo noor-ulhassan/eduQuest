@@ -5,6 +5,7 @@ import AddCourseDialog from "./AddCourseDialog";
 
 function CourseList() {
   const [courseList, setCourseList] = React.useState([]);
+  console.log("Current Course List: ", courseList);
   return (
     <div className="w-full mt-10">
       <h2 className="font-jersey text-3xl mb-5">Course List</h2>
@@ -14,14 +15,25 @@ function CourseList() {
           <h2 className="my-2 text-lg font-bold text-center">
             Looks like you have'nt Enrolled in any Course yet
           </h2>
-          <AddCourseDialog>
+          <AddCourseDialog setCourseList={setCourseList}>
             <Button variant={"pixel"} className="mt-5 text-xl font-jersey">
               Create your first Course
             </Button>
           </AddCourseDialog>
         </div>
       ) : (
-        <div>List of Courses</div>
+        courseList.map((course, index) => (
+          <div
+            key={index}
+            className="border rounded-lg p-4 shadow hover:shadow-lg transition"
+          >
+            <h2 className="text-xl font-bold mb-2">{course.name}</h2>
+            <p className="text-gray-600 mb-2">{course.description}</p>
+            <p className="text-sm text-gray-500">
+              Level: {course.level} | Chapters: {course.noOfChapters}
+            </p>
+          </div>
+        ))
       )}
     </div>
   );
