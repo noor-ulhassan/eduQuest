@@ -81,7 +81,7 @@ const Navbar = () => {
         <div className="flex items-center gap-2 font-jersey">
           <Link to="/home" className="flex items-center gap-3">
             <h1 className="hidden md:block text-4xl tracking-tight">
-              <span className="text-yellow-600">Edu</span>
+              <span className="text-yellow-500">Edu</span>
               <span className="dark:text-white text-gray-800">Quest</span>
             </h1>
           </Link>
@@ -111,18 +111,18 @@ const Navbar = () => {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuLink>
+                <NavigationMenuLink className="hover:text-yellow-600">
                   <Link to={"/#"}>Home</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink>
+                <NavigationMenuLink className="hover:text-yellow-600">
                   <Link to={"/workspace"}>Assistant</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuLink>
+                <NavigationMenuLink className="hover:text-yellow-600">
                   <Link to={"/Problems"}>Programming</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
