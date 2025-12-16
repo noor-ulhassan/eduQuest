@@ -1,10 +1,155 @@
-import React from "react";
+// import React from "react";
+// import { useState } from "react";
+// import {
+//   Dialog,
+//   DialogClose,
+//   DialogContent,
+//   DialogDescription,
+//   DialogFooter,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "@/components/ui/select";
+// import { Input } from "@/components/ui/input";
+// import { Textarea } from "@/components/ui/textarea";
+// import { Switch } from "@/components/ui/switch";
+// import { Button } from "@/components/ui/button";
+// import { Sparkle } from "lucide-react";
+// import axios from "axios";
+
+// function AddCourseDialog({ children }) {
+//   const [open, setOpen] = useState(false);
+//   const [formData, setFormData] = React.useState({
+//     name: "",
+//     description: "",
+//     noOfChapters: 5,
+//     includeVideo: false,
+//     level: "beginner",
+//     category: "",
+//   });
+
+//   const onHandleInputChange = (field, value) => {
+//     setFormData((prev) => ({
+//       ...prev,
+//       [field]: value,
+//     }));
+//   };
+
+//   const onGenerate = async() => {
+//     const res = await axios.post("http://localhost:8080/api/v1/ai/generate-course",formData)
+
+//     if(res?.data){
+//       setOpen(false);
+//     }
+//     console.log("Generated Course:", res.data)
+//   };
+//   return (
+//     {open && <Dialog>
+//       <DialogTrigger asChild>{children}</DialogTrigger>
+//       <DialogContent>
+//         <DialogHeader>
+//           <DialogTitle>Create new Course using AI</DialogTitle>
+//           <DialogDescription asChild>
+//             <div className="flex flex-col gap-4 mt-3">
+//               <div>
+//                 <label>Course Name</label>
+//                 <Input
+//                   placeholder="Name"
+//                   onChange={(event) =>
+//                     onHandleInputChange("name", event?.target.value)
+//                   }
+//                 />
+//               </div>
+//               <div>
+//                 <label>Course Description (Optional)</label>
+//                 <Textarea
+//                   placeholder="Description"
+//                   onChange={(event) =>
+//                     onHandleInputChange("description", event?.target.value)
+//                   }
+//                 />
+//               </div>
+//               <div>
+//                 <label>No. of Chapters</label>
+//                 <Input
+//                   placeholder="No. of Chapters"
+//                   type="number"
+//                   onChange={(event) =>
+//                     onHandleInputChange("noOfChapters", event?.target.value)
+//                   }
+//                 />
+//               </div>
+//               <div className="flex gap-3 items-center">
+//                 <label>Include Video</label>
+//                 <Switch
+//                   onCheckedChange={() =>
+//                     onHandleInputChange("includeVideo", !formData?.includeVideo)
+//                   }
+//                 />
+//               </div>
+//               <div className="">
+//                 <label>Difficulty Level</label>
+//                 <Select
+//                   onValueChange={(value) => onHandleInputChange("level", value)}
+//                   className="mt-2"
+//                 >
+//                   <SelectTrigger className="w-full">
+//                     <SelectValue placeholder="Difficulty" />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     <SelectItem value="beginner">Beginner</SelectItem>
+//                     <SelectItem value="intermediate">Intermediate</SelectItem>
+//                     <SelectItem value="advanced">Advanced</SelectItem>
+//                   </SelectContent>
+//                 </Select>
+//               </div>
+//               <div>
+//                 <label>Category</label>
+//                 <Input
+//                   placeholder="Category (Separated by comma)"
+//                   onChange={(event) =>
+//                     onHandleInputChange("category", event?.target.value)
+//                   }
+//                 />
+//               </div>
+//               <div className="mt-5">
+//                 <Button
+//                   variant={"pixel"}
+//                   className="w-full font-jersey text-xl"
+//                   onClick={onGenerate}
+//                 >
+//                   {" "}
+//                   <Sparkle />
+//                   Generate
+//                 </Button>
+//               </div>
+//             </div>
+//           </DialogDescription>
+//         </DialogHeader>
+//       </DialogContent>
+//     </Dialog>
+//                 }
+
+//   );
+// }
+
+// export default AddCourseDialog;
+
+//  --------------------`---------------
+//  Yeh phateek noor bhai ke zimmey
+
+import React, { useState } from "react";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -21,9 +166,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Sparkle } from "lucide-react";
+import axios from "axios";
 
-function AddCourseDialog({ children }) {
-  const [formData, setFormData] = React.useState({
+function AddCourseDialog({ children, setCourseList }) {
+  const [open, setOpen] = useState(false);
+
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     noOfChapters: 5,
@@ -39,58 +187,81 @@ function AddCourseDialog({ children }) {
     }));
   };
 
-  const onGenerate = () => {
-    console.log("Generating course with data:", formData);
+  const onGenerate = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:8080/api/v1/ai/generate-course",
+        formData
+      );
+
+      console.log("Generated Course:", res.data.data.course);
+
+      if (res?.data) {
+        setOpen(false); // ✅ dialog close
+        setCourseList((prev) => [...prev, res.data.data.course]); // ✅ update course list
+        console.log("Course added to the list.");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {/* 🔹 Trigger */}
       <DialogTrigger asChild>{children}</DialogTrigger>
+
+      {/* 🔹 Dialog Content */}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create new Course using AI</DialogTitle>
+
           <DialogDescription asChild>
             <div className="flex flex-col gap-4 mt-3">
               <div>
                 <label>Course Name</label>
                 <Input
                   placeholder="Name"
-                  onChange={(event) =>
-                    onHandleInputChange("name", event?.target.value)
-                  }
+                  onChange={(e) => onHandleInputChange("name", e.target.value)}
                 />
               </div>
+
               <div>
                 <label>Course Description (Optional)</label>
                 <Textarea
                   placeholder="Description"
-                  onChange={(event) =>
-                    onHandleInputChange("description", event?.target.value)
+                  onChange={(e) =>
+                    onHandleInputChange("description", e.target.value)
                   }
                 />
               </div>
+
               <div>
                 <label>No. of Chapters</label>
                 <Input
-                  placeholder="No. of Chapters"
                   type="number"
-                  onChange={(event) =>
-                    onHandleInputChange("noOfChapters", event?.target.value)
+                  placeholder="No. of Chapters"
+                  onChange={(e) =>
+                    onHandleInputChange("noOfChapters", Number(e.target.value))
                   }
                 />
               </div>
+
               <div className="flex gap-3 items-center">
                 <label>Include Video</label>
                 <Switch
+                  checked={formData.includeVideo}
                   onCheckedChange={() =>
-                    onHandleInputChange("includeVideo", !formData?.includeVideo)
+                    onHandleInputChange("includeVideo", !formData.includeVideo)
                   }
                 />
               </div>
-              <div className="">
+
+              <div>
                 <label>Difficulty Level</label>
                 <Select
+                  defaultValue="beginner"
                   onValueChange={(value) => onHandleInputChange("level", value)}
-                  className="mt-2"
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Difficulty" />
@@ -102,23 +273,24 @@ function AddCourseDialog({ children }) {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <label>Category</label>
                 <Input
-                  placeholder="Category (Separated by comma)"
-                  onChange={(event) =>
-                    onHandleInputChange("category", event?.target.value)
+                  placeholder="Category (comma separated)"
+                  onChange={(e) =>
+                    onHandleInputChange("category", e.target.value)
                   }
                 />
               </div>
+
               <div className="mt-5">
                 <Button
-                  variant={"pixel"}
+                  variant="pixel"
                   className="w-full font-jersey text-xl"
                   onClick={onGenerate}
                 >
-                  {" "}
-                  <Sparkle />
+                  <Sparkle className="mr-2" />
                   Generate
                 </Button>
               </div>
