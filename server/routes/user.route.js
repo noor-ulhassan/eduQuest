@@ -11,7 +11,6 @@ const router = express.Router();
 router.route("/register").post(register);
 router.route("/login").post(login);
 router.post("/google", googleAuth);
-router.route("/me").get(getUserProfile);
 router.post("/refresh-token", async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) return res.status(401).json({ message: "No token" });
