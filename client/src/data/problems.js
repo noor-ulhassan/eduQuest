@@ -346,6 +346,214 @@ print(maxArea([1,1]))  # Expected: 1`,
       java: "49\n1",
     },
   },
+  "median-of-two-sorted-arrays": {
+    id: "median-of-two-sorted-arrays",
+    title: "Median of Two Sorted Arrays",
+    difficulty: "Hard",
+    category: "Array • Binary Search",
+    description: {
+      text: "Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.",
+      notes: ["The overall run time complexity should be O(log (m+n))."],
+    },
+    examples: [
+      {
+        input: "nums1 = [1,3], nums2 = [2]",
+        output: "2.0",
+      },
+      {
+        input: "nums1 = [1,2], nums2 = [3,4]",
+        output: "2.5",
+      },
+    ],
+    constraints: [
+      "0 ≤ m ≤ 1000",
+      "0 ≤ n ≤ 1000",
+      "-10⁶ ≤ nums1[i], nums2[i] ≤ 10⁶",
+    ],
+    starterCode: {
+      javascript: `function findMedianSortedArrays(nums1, nums2) {
+  // Write your solution here
+}`,
+      python: `def findMedianSortedArrays(nums1, nums2):
+    # Write your solution here
+    pass`,
+      java: `class Solution {
+    public static double findMedianSortedArrays(int[] nums1, int[] nums2) {
+        // Write your solution here
+        return 0.0;
+    }
+}`,
+    },
+    expectedOutput: {
+      javascript: "2.0\n2.5",
+      python: "2.0\n2.5",
+      java: "2.0\n2.5",
+    },
+  },
+
+  "trapping-rain-water": {
+    id: "trapping-rain-water",
+    title: "Trapping Rain Water",
+    difficulty: "Hard",
+    category: "Array • Two Pointers • Stack",
+    description: {
+      text: "Given n non-negative integers representing an elevation map, compute how much water it can trap after raining.",
+      notes: ["Water is trapped between higher bars."],
+    },
+    examples: [
+      {
+        input: "height = [0,1,0,2,1,0,1,3,2,1,2,1]",
+        output: "6",
+      },
+    ],
+    constraints: [
+      "n == height.length",
+      "1 ≤ n ≤ 2 * 10⁴",
+      "0 ≤ height[i] ≤ 10⁵",
+    ],
+    starterCode: {
+      javascript: `function trap(height) {
+  // Write your solution here
+}`,
+      python: `def trap(height):
+    # Write your solution here
+    pass`,
+      java: `class Solution {
+    public static int trap(int[] height) {
+        // Write your solution here
+        return 0;
+    }
+}`,
+    },
+    expectedOutput: {
+      javascript: "6",
+      python: "6",
+      java: "6",
+    },
+  },
+
+  "merge-k-sorted-lists": {
+    id: "merge-k-sorted-lists",
+    title: "Merge k Sorted Lists",
+    difficulty: "Hard",
+    category: "Linked List • Heap",
+    description: {
+      text: "You are given an array of k linked-lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list.",
+      notes: ["Return the merged linked list."],
+    },
+    examples: [
+      {
+        input: "lists = [[1,4,5],[1,3,4],[2,6]]",
+        output: "[1,1,2,3,4,4,5,6]",
+      },
+    ],
+    constraints: [
+      "k == lists.length",
+      "0 ≤ k ≤ 10⁴",
+      "0 ≤ lists[i].length ≤ 500",
+    ],
+    starterCode: {
+      javascript: `function mergeKLists(lists) {
+  // Write your solution here
+}`,
+      python: `def mergeKLists(lists):
+    # Write your solution here
+    pass`,
+      java: `class Solution {
+    public ListNode mergeKLists(ListNode[] lists) {
+        // Write your solution here
+        return null;
+    }
+}`,
+    },
+    expectedOutput: {
+      javascript: "[1,1,2,3,4,4,5,6]",
+      python: "[1, 1, 2, 3, 4, 4, 5, 6]",
+      java: "[1, 1, 2, 3, 4, 4, 5, 6]",
+    },
+  },
+
+  "largest-rectangle-in-histogram": {
+    id: "largest-rectangle-in-histogram",
+    title: "Largest Rectangle in Histogram",
+    difficulty: "Hard",
+    category: "Stack • Array",
+    description: {
+      text: "Given an array of integers heights representing the histogram's bar height, return the area of the largest rectangle.",
+      notes: ["Each bar has width 1."],
+    },
+    examples: [
+      {
+        input: "heights = [2,1,5,6,2,3]",
+        output: "10",
+      },
+    ],
+    constraints: ["1 ≤ heights.length ≤ 10⁵", "0 ≤ heights[i] ≤ 10⁴"],
+    starterCode: {
+      javascript: `function largestRectangleArea(heights) {
+  // Write your solution here
+}`,
+      python: `def largestRectangleArea(heights):
+    # Write your solution here
+    pass`,
+      java: `class Solution {
+    public static int largestRectangleArea(int[] heights) {
+        // Write your solution here
+        return 0;
+    }
+}`,
+    },
+    expectedOutput: {
+      javascript: "10",
+      python: "10",
+      java: "10",
+    },
+  },
+
+  "word-ladder": {
+    id: "word-ladder",
+    title: "Word Ladder",
+    difficulty: "Hard",
+    category: "Graph • BFS",
+    description: {
+      text: "Given two words (beginWord and endWord), and a dictionary wordList, return the length of the shortest transformation sequence.",
+      notes: [
+        "Only one letter can be changed at a time.",
+        "Each transformed word must exist in the word list.",
+      ],
+    },
+    examples: [
+      {
+        input:
+          'beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"]',
+        output: "5",
+      },
+    ],
+    constraints: [
+      "1 ≤ beginWord.length ≤ 10",
+      "wordList.length ≤ 5000",
+      "All words have the same length",
+    ],
+    starterCode: {
+      javascript: `function ladderLength(beginWord, endWord, wordList) {
+  // Write your solution here
+}`,
+      python: `def ladderLength(beginWord, endWord, wordList):
+    # Write your solution here
+    pass`,
+      java: `class Solution {
+    public static int ladderLength(String beginWord, String endWord, List<String> wordList) {
+        // Write your solution here
+        return 0;
+    }
+}`,
+    },
+    expectedOutput: {
+      javascript: "5",
+      python: "5",
+      java: "5",
+    },
+  },
 };
 
 export const LANGUAGE_CONFIG = {
