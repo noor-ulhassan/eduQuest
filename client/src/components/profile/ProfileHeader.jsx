@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux"; 
 import EditProfileModal from "@/components/profile/EditProfileModal";
 
 const ProfileHeader = ({
@@ -11,11 +12,24 @@ const ProfileHeader = ({
   bannerUrl = "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const { user } = useSelector((state) => state.auth);
   const [profile, setProfile] = useState({
     displayName: initialDisplayName,
     username: initialUsername,
     avatarUrl,
+    bannerUrl,
   });
+
+   React.useEffect(() => {
+    if (user) {
+      setProfile({
+        displayName: user.name || initialDisplayName,
+        username: user.username || initialUsername,
+        avatarUrl: user.avatarUrl || avatarUrl,
+        bannerUrl: user.bannerUrl || bannerUrl, // 🔹 dynamic banner
+      });
+    }
+  }, [user]);
 
   const handleSave = (updatedData) => {
     setProfile(updatedData);
@@ -38,7 +52,7 @@ const ProfileHeader = ({
         {/* Banner */}
         <div className="relative h-48 sm:h-60 md:h-72 w-full">
           <img
-            src={bannerUrl}
+            src={profile.bannerUrl}
             alt="Banner"
             className="w-full h-full object-cover"
           />
@@ -48,8 +62,7 @@ const ProfileHeader = ({
         {/* Content */}
         <div className="relative px-6 pb-6 pt-4">
           {" "}
-          {/* 👈 Reduced pt from 20 to 4 */}
-          {/* Avatar */}
+         
           <div className="absolute -top-16 left-6">
             <div className="h-28 w-28 border-4 border-white rounded-full shadow-md overflow-hidden">
               <img

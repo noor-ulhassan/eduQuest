@@ -1,29 +1,32 @@
-
 import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux"; // 🔹 Added to dispatch updates
+import { loginSuccess } from "@/features/auth/authSlice"; // 🔹 Added to update Redux
 
 const EditProfileModal = ({ isOpen, onClose, onSave, initialData }) => {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
+   const [bannerPreview, setBannerPreview] = useState("");
+
+  const dispatch = useDispatch(); // 🔹 Added dispatch hook
 
   // Sync form with initialData when modal opens
-  // Inside EditProfileModal.jsx
-useEffect(() => {
-  if (isOpen) {
-    setDisplayName(initialData.displayName || "");
-    setUsername(initialData.username || "");
-    setAvatarPreview(initialData.avatarUrl || "");
-    document.body.style.overflow = "hidden"; // 🔒 lock scroll
-  } else {
-    document.body.style.overflow = ""; // 🔓 unlock scroll
-  }
+  useEffect(() => {
+    if (isOpen) {
+      setDisplayName(initialData.displayName || "");
+      setUsername(initialData.username || "");
+      setAvatarPreview(initialData.avatarUrl || "");
+      setBannerPreview(initialData.bannerUrl || "");
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = ""; 
+    }
 
-  return () => {
-    document.body.style.overflow = "";
-  };
-}, [isOpen, initialData]);
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, initialData]);
 
-   
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -31,9 +34,34 @@ useEffect(() => {
       setAvatarPreview(url);
     }
   };
-
+  // 🔹 Handle banner change
+  const handleBannerChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setBannerPreview(url);
+    }
+  };
   const handleSave = () => {
-    onSave({ displayName, username, avatarUrl: avatarPreview });
+    const updatedData = { displayName, username, avatarUrl: avatarPreview };
+
+    // 🔹 Update Redux immediately for Profile page to reflect changes
+    dispatch(
+      loginSuccess({
+        user: {
+          ...initialData, // keep other fields intact
+          name: displayName,
+          username,
+          avatarUrl: avatarPreview,
+           bannerUrl: bannerPreview,
+        },
+        accessToken: localStorage.getItem("accessToken") || "mock-token",
+      })
+    );
+
+    // 🔹 Call parent onSave if needed (optional, e.g., backend API call)
+    if (onSave) onSave(updatedData);
+
     onClose();
   };
 
@@ -52,6 +80,25 @@ useEffect(() => {
 
         {/* Body */}
         <div className="p-6 space-y-5">
+           {/* 🔹 Banner Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Header / Banner
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleBannerChange}
+              className="text-sm text-gray-600 file:mr-2 file:px-3 file:py-1 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+            />
+            {bannerPreview && (
+              <img
+                src={bannerPreview}
+                alt="Banner Preview"
+                className="mt-2 h-24 w-full object-cover rounded-md"
+              />
+            )}
+          </div>
           {/* Avatar Upload */}
           <div className="flex flex-col items-center gap-3">
             <div className="relative">
