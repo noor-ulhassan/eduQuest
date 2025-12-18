@@ -1,4 +1,3 @@
-
 import React from "react";
 
 const SectionCard = ({
@@ -9,11 +8,9 @@ const SectionCard = ({
 }) => {
   const baseClasses = "rounded-xl p-6";
 
-  // Light mode with purple accent
   const lightClasses =
     "bg-white " +
-    "border border-purple-200 " + // very soft purple border
-    "shadow-sm hover:shadow-[0_4px_12px_rgba(147,51,234,0.1)] " + // purple-tinted shadow
+    "shadow-sm hover:shadow-[0_4px_12px_rgba(234,179,8,0.15)] " + 
     "transition-shadow duration-200";
 
   const darkClasses = "bg-gray-800 border border-gray-700";

@@ -6,10 +6,8 @@ const ProfileHeader = ({
   displayName: initialDisplayName = "Arisha Akbar",
   username: initialUsername = "arishaaa",
   joinedDate = "July 2025",
-  followers = 0,
-  following = 0,
   avatarUrl = "/Avatar.png",
-  bannerUrl = "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
+  bannerUrl = "/banner.png",
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { user } = useSelector((state) => state.auth);
@@ -26,7 +24,7 @@ const ProfileHeader = ({
         displayName: user.name || initialDisplayName,
         username: user.username || initialUsername,
         avatarUrl: user.avatarUrl || avatarUrl,
-        bannerUrl: user.bannerUrl || bannerUrl, // 🔹 dynamic banner
+        bannerUrl: user.bannerUrl || bannerUrl, 
       });
     }
   }, [user]);
@@ -75,7 +73,7 @@ const ProfileHeader = ({
                 }}
               />
               <div
-                className="h-full w-full bg-purple-600 text-white text-xl flex items-center justify-center"
+                className="h-full w-full bg-yellow-600 text-white text-xl flex items-center justify-center"
                 style={{ display: "none" }}
               >
                 {getInitials(profile.displayName)}
@@ -95,19 +93,12 @@ const ProfileHeader = ({
                 <p className="text-gray-500 text-xs mt-1">
                   Joined {joinedDate}
                 </p>
-                <div className="flex gap-6 mt-3 text-sm">
-                  <span className="text-purple-600 font-semibold">
-                    {followers} Followers
-                  </span>
-                  <span className="text-purple-600 font-semibold">
-                    {following} Following
-                  </span>
-                </div>
+              
               </div>
 
               <button
                 onClick={() => setIsEditOpen(true)}
-                className="border border-purple-600 text-purple-700 hover:bg-purple-100 font-medium px-4 py-2 rounded-md"
+                className="border border-yellow-600 text-yellow-700 hover:bg-yellow-100 font-medium px-4 py-2 rounded-md"
               >
                 Edit Profile
               </button>
