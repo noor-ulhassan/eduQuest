@@ -40,18 +40,22 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">TRAINING</h3>
+            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
+              TRAINING
+            </h3>
             <ul className="space-y-2">
-              {["Workspace", "my-learning", "UploadPdf", "Problems"].map((item) => (
-                <li key={item}>
-                  <a
-                    href={`/${item.toLowerCase()}`}
-                    className="text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
+              {["Workspace", "my-learning", "UploadPdf", "Problems"].map(
+                (item) => (
+                  <li key={item}>
+                    <a
+                      href={`/${item.toLowerCase()}`}
+                      className="text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
+                    >
+                      {item}
+                    </a>
+                  </li>
+                )
+              )}
             </ul>
           </div>
 
