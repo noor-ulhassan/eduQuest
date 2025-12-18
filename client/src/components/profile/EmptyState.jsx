@@ -10,7 +10,7 @@ const EmptyState = ({ message, actionText, onAction, icon = "👋" }) => {
       {actionText && (
         <Button
           onClick={onAction}
-          className="w-full sm:w-auto bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300"
+          className="w-full sm:w-auto bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-300"
         >
           {actionText}
         </Button>

@@ -12,7 +12,7 @@ import EditProfileModal from "@/components/profile/EditProfileModal";
 //code to be removed later
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
-import { loginSuccess } from "@/features/auth/authSlice";
+import { authSuccess } from "@/features/auth/authSlice";
 //code to be removed later
 
 const Profile = () => {
@@ -23,10 +23,10 @@ const Profile = () => {
   useEffect(() => {
     //  TEMPORARY MOCK USER FOR TESTING
     dispatch(
-      loginSuccess({
+      authSuccess({
         user: {
-          name: "zoyaan",
-          username: "zoinnnaa",
+          name: "arisha",
+          username: "arisha123",
           createdAt: "2025-07-01T00:00:00Z",
           followers: [],
           following: [],
