@@ -1,5 +1,6 @@
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useSelector } from "react-redux";
 
 const UserStats = ({
   username = "arishaaa",
@@ -9,6 +10,7 @@ const UserStats = ({
   badges = 1,
   dayStreak = 3,
 }) => {
+  const user = useSelector((state) => state.auth.user);
   const getInitials = (name) => {
     return name
       .split(" ")
@@ -61,7 +63,8 @@ const UserStats = ({
             className="rounded-lg object-cover"
           />
           <AvatarFallback className="bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center text-sm font-semibold">
-            {getInitials(username)}
+            {/* {getInitials(username)} */}
+            {user.name}
           </AvatarFallback>
         </Avatar>
 

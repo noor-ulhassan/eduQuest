@@ -165,10 +165,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Sparkle } from "lucide-react";
+import { Loader, Loader2Icon, Sparkle } from "lucide-react";
 import axios from "axios";
+import { useRoutes } from "react-router-dom";
 
-function AddCourseDialog({ children, setCourseList }) {
+function AddCourseDialog({ children, setCourseList, user }) {
   const [open, setOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -179,6 +180,7 @@ function AddCourseDialog({ children, setCourseList }) {
     level: "beginner",
     category: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const onHandleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -188,21 +190,35 @@ function AddCourseDialog({ children, setCourseList }) {
   };
 
   const onGenerate = async () => {
+    setLoading(true);
     try {
+      // 2. Construct Payload: Combine Form Data with User Data
+      // Mapping: User Model -> Course Schema
+      const payload = {
+        ...formData,
+        userEmail: user?.email, // Required by Course Schema
+        userName: user?.name, // Optional in Schema, but good to have
+        userProfileImage: user?.avatar, // Maps 'avatar' from User model to 'userProfileImage' in Course
+      };
+
       const res = await axios.post(
         "http://localhost:8080/api/v1/ai/generate-course",
-        formData
+        payload
       );
 
       console.log("Generated Course:", res.data.data.course);
+      setLoading(false);
+
+      // Navigate to edit page
+      router.push("/workspace/edit-course/" + res.data.data.course._id);
 
       if (res?.data) {
-        setOpen(false); // ✅ dialog close
-        setCourseList((prev) => [...prev, res.data.data.course]); // ✅ update course list
-        console.log("Course added to the list.");
+        setOpen(false);
+        setCourseList((prev) => [...prev, res.data.data.course]);
       }
     } catch (error) {
       console.error(error);
+      setLoading(false); // Ensure loading stops on error
     }
   };
 
@@ -289,9 +305,19 @@ function AddCourseDialog({ children, setCourseList }) {
                   variant="pixel"
                   className="w-full font-jersey text-xl"
                   onClick={onGenerate}
+                  disabled={loading}
                 >
-                  <Sparkle className="mr-2" />
-                  Generate
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2Icon className="animate-spin" />
+                      Generating...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Sparkle />
+                      Generate
+                    </span>
+                  )}
                 </Button>
               </div>
             </div>

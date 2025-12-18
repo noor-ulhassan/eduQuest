@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "@/features/auth/authApi";
 import { useNavigate, Link } from "react-router-dom";
+import GoogleAuthButton from "./GoogleLogin";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -20,11 +21,7 @@ export default function Signup() {
     e.preventDefault();
     setError("");
     try {
-      const res = await axios.post(
-        "http://localhost:8080/api/v1/user/register",
-        formData,
-        { withCredentials: true }
-      );
+      const res = await api.post("/auth/register", formData);
       setSuccess(res.data.message);
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
@@ -76,6 +73,9 @@ export default function Signup() {
         >
           Sign Up
         </button>
+
+        <div className="my-4 text-center text-gray-500">OR</div>
+        <GoogleAuthButton setError={setError}></GoogleAuthButton>
         <p className="text-center mt-4 text-gray-600">
           Already have an account?{" "}
           <Link to="/login" className="text-blue-500">

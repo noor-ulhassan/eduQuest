@@ -66,7 +66,7 @@ function Workspace() {
         <Sidebar className="h-[calc(100vh-64px)] mt-16">
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
-              <img src="work2.svg" alt="work" width={30} height={30} />
+              <img src="pc.jpeg" alt="work" width={30} height={30} />
               <h2 className="text-3xl font-jersey">Workspace</h2>
             </div>
           </SidebarHeader>
