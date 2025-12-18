@@ -43,9 +43,10 @@ const appRouter = createBrowserRouter([
       {
         path: "profile",
         element: (
-          <ProtectedRoute>
+        <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
+          
         ),
       },
 
@@ -83,11 +84,13 @@ function App() {
   }
 
   return (
+
     // Wrapped in GoogleOAuthProvider (New Feature)
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <RouterProvider router={appRouter} />
     </GoogleOAuthProvider>
   );
 }
+
 
 export default App;
