@@ -219,6 +219,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
     } catch (error) {
       setLoading(false);
       console.error(error);
+      setLoading(false); // Ensure loading stops on error
     }
   };
 
