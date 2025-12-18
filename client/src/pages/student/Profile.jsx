@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 
@@ -9,11 +8,10 @@ import TabNav from "@/components/profile/TabNav";
 import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 
-
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
- 
+
   const { user } = useSelector((state) => state.auth);
 
   // If user is not loaded yet
@@ -96,7 +94,7 @@ const Profile = () => {
             </SectionCard>
           </div>
         </div>
-         {/* 🔹 Edit Profile Modal */}
+        {/* 🔹 Edit Profile Modal */}
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
