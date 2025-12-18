@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux"; 
+import { useSelector } from "react-redux";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 
 const ProfileHeader = ({
@@ -18,13 +18,13 @@ const ProfileHeader = ({
     bannerUrl,
   });
 
-   React.useEffect(() => {
+  React.useEffect(() => {
     if (user) {
       setProfile({
         displayName: user.name || initialDisplayName,
         username: user.username || initialUsername,
         avatarUrl: user.avatarUrl || avatarUrl,
-        bannerUrl: user.bannerUrl || bannerUrl, 
+        bannerUrl: user.bannerUrl || bannerUrl,
       });
     }
   }, [user]);
@@ -60,7 +60,6 @@ const ProfileHeader = ({
         {/* Content */}
         <div className="relative px-6 pb-6 pt-4">
           {" "}
-         
           <div className="absolute -top-16 left-6">
             <div className="h-28 w-28 border-4 border-white rounded-full shadow-md overflow-hidden">
               <img
@@ -93,7 +92,6 @@ const ProfileHeader = ({
                 <p className="text-gray-500 text-xs mt-1">
                   Joined {joinedDate}
                 </p>
-              
               </div>
 
               <button

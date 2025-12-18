@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 
@@ -125,7 +124,7 @@ const Profile = () => {
             </SectionCard>
           </div>
         </div>
-         {/* 🔹 Edit Profile Modal */}
+        {/* 🔹 Edit Profile Modal */}
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
