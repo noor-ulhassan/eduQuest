@@ -3,8 +3,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./database/dbConnect.js";
-import userRoute from "./routes/user.route.js";
+import userRoute from "./routes/user.routes.js";
 import aiRoute from "./routes/aiRoutes.js";
+import authRoute from "./routes/auth.routes.js";
 
 // 1. Load Environment Variables First
 dotenv.config({});
@@ -19,16 +20,16 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 // 5. Apply Middlewares
 
-// app.use(
-//   cors({
-//     // origin: process.env.CLIENT_URL || "http://localhost:5173", // Best practice: use env var
-//     methods: ["GET", "POST", "PUT", "DELETE"],
-//     // allowedHeaders: ["Content-Type", "Authorization"], // Fixed typo: 'Authorized' -> 'Authorization'
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173", // Best practice: use env var
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"], // Fixed typo: 'Authorized' -> 'Authorization'
+    credentials: true,
+  })
+);
 
-app.use(cors());
+// app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -38,8 +39,9 @@ app.use(cookieParser());
 
 // 7. API Routes
 app.use("/api/v1/user", userRoute);
+app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/ai", aiRoute);
-// app.use("/auth", authRoutes);
+
 
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);

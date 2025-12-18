@@ -4,7 +4,9 @@ import {
   Navigate,
 } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { initializeAuth } from "./features/auth/authThunks";
 // Layouts and Pages
 import MainLayout from "./layout/MainLayout";
 import HomePage from "./pages/student/HomePage"; // Restored
@@ -20,6 +22,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup"; // New Feature
 import Workspace from "./pages/Workspace/Page";
+import { useSelector } from "react-redux";
 
 // Environment Variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -70,6 +73,15 @@ const appRouter = createBrowserRouter([
 ]);
 
 function App() {
+  const dispatch = useDispatch();
+  const { status } = useSelector((state) => state.auth);
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+  if (status === "loading" || status === "idle") {
+    return <p>Loading...</p>; // show spinner or skeleton until auth is ready
+  }
+
   return (
     // Wrapped in GoogleOAuthProvider (New Feature)
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
