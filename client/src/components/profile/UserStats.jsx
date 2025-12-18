@@ -32,7 +32,9 @@ const UserStats = () => {
       currentStep++;
       setAnimatedXP(Math.min(totalXP, Math.floor(xpStep * currentStep)));
       setAnimatedBadges(Math.min(badges, Math.floor(badgesStep * currentStep)));
-      setAnimatedStreak(Math.min(dayStreak, Math.floor(streakStep * currentStep)));
+      setAnimatedStreak(
+        Math.min(dayStreak, Math.floor(streakStep * currentStep))
+      );
 
       if (currentStep >= steps) clearInterval(interval);
     }, stepTime);
@@ -72,11 +74,11 @@ const UserStats = () => {
   ];
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800
- rounded-2xl p-6 shadow-2xl max-w-md mx-auto text-white">
-
+    <div
+      className="bg-zinc-900 border border-zinc-800
+ rounded-2xl p-6 shadow-2xl max-w-md mx-auto text-white"
+    >
       <div className="flex items-center gap-4 mb-6 relative">
-       
         <div className="relative">
           <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-pink-500 via-yellow-500 to-yellow-400 blur-xl animate-pulse"></div>
           <img
@@ -87,14 +89,16 @@ const UserStats = () => {
           <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 border-2 border-gray-900 rounded-full animate-pulse"></span>
         </div>
         <div>
-          <h3 className="text-2xl font-bold font-jersey tracking-wider">{name}</h3>
+          <h3 className="text-2xl font-bold font-jersey tracking-wider">
+            {name}
+          </h3>
           <div className="mt-1">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-600 text-white">
               Level {level}
             </span>
           </div>
           <div className="mt-2 h-2 w-40 bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-2 bg-yellow-500 w-3/4 animate-pulse"></div> 
+            <div className="h-2 bg-yellow-500 w-3/4 animate-pulse"></div>
           </div>
         </div>
       </div>
@@ -107,7 +111,7 @@ const UserStats = () => {
           >
             <div className="w-10 h-10 flex items-center justify-center relative">
               <img src={stat.icon} alt={stat.label} className="w-full h-full" />
-             
+
               <div className="absolute inset-0 pointer-events-none">
                 <span className="block w-1 h-1 bg-white rounded-full animate-ping absolute top-0 left-0"></span>
                 <span className="block w-1 h-1 bg-white rounded-full animate-ping absolute bottom-0 right-0"></span>
