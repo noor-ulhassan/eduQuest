@@ -6,9 +6,9 @@ import { GoogleGenAI } from "@google/genai";
 //   level,
 //   chapterNumber
 // ) => {
-  // To run this code you need to install the following dependencies:
-  // npm install @google/genai mime
-  // npm install -D @types/node
+// To run this code you need to install the following dependencies:
+// npm install @google/genai mime
+// npm install -D @types/node
 
 //   async function main() {
 //     const ai = new GoogleGenAI({
@@ -51,13 +51,13 @@ import { GoogleGenAI } from "@google/genai";
 //         "topics": [
 //           "string"
 //         ],
-     
+
 //       }
 //     ]
 //   }
 // }
 
-// , User Input: 
+// , User Input:
 
 // `,
 //           },
@@ -77,30 +77,38 @@ import { GoogleGenAI } from "@google/genai";
 //   }
 
 //   main();
-// } 
-
-
+// }
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-
-
-// 1. Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const model = genAI.getGenerativeModel({
-  model: "gemini-flash-latest"
-});
+import { v4 as uuidv4 } from "uuid";
+import { Course } from "../models/AiCourse.js"; // Ensure the path to your model is correct
 
 // 2. Controller
 export const geminiCourseGenerator = async (req, res) => {
   try {
-    const { name, description, category, level, noOfChapters } = req.body;
+    // 1. Initialize Gemini inside the function to ensure API Key is loaded from process.env
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest", // or "gemini-flash-latest"
+    });
 
+    // 2. Destructure data from req.body (Including user info from OAuth)
+    const {
+      name,
+      description,
+      category,
+      level,
+      noOfChapters,
+      userEmail,
+      userName,
+      userProfileImage,
+    } = req.body;
+
+    // Validation
     if (!name || !description || !category || !level || !noOfChapters) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required"
+        message: "All fields are required",
       });
     }
 
@@ -114,24 +122,17 @@ Create a course with:
 - Description: ${description}
 - Category: ${category}
 
-Generate a VALID JSON object with a "chapters" array.
+Generate a VALID JSON object with:
+1. "description": A high-level, professional overview of what this course covers (3-4 sentences).
+2. "chapters": An array where each chapter contains "title" and "content".
 
-Each chapter must contain:
-- "title"
-- "content" (at least 3 paragraphs, Markdown allowed)
-
-Return ONLY raw JSON.
-No markdown.
-No backticks.
+Return ONLY raw JSON. No markdown. No backticks.
 `;
 
     // 3. Gemini Call
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
-    // Debug (optional)
-    // console.log("RAW GEMINI RESPONSE:\n", text);
 
     // 4. Clean & Parse
     const cleanedText = text
@@ -140,22 +141,62 @@ No backticks.
       .trim();
 
     const courseData = JSON.parse(cleanedText);
+    const courseId = uuidv4();
 
-    // 5. Send Response
-    return res.status(200).json({
-      success: true,
-      generatedCourse: courseData
+    // 5. Save to MongoDB (Replacing the Neon DB SQL logic)
+    const newCourse = await Course.create({
+      courseId: courseId,
+      name: name,
+      description: description,
+      noOfChapters: noOfChapters,
+      level: level,
+      category: category,
+      courseOutput: courseData, // Matches your Schema name
+      userEmail: userEmail || "noor@gmail.com",
+      userName: userName || "Noor",
+      userProfileImage: userProfileImage,
     });
 
+    // 6. Send Response
+    return res.status(200).json({
+      success: true,
+      courseId: newCourse.courseId,
+      data: newCourse,
+    });
   } catch (error) {
     console.error("Gemini Error:", error);
 
     return res.status(500).json({
       success: false,
       message: "Failed to generate course",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
+export const getCourseById = async (req, res) => {
+  try {
+    const { courseId } = req.params;
 
+    const course = await Course.findOne({ courseId: courseId });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      course: course,
+    });
+  } catch (error) {
+    console.error("Fetch Course Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};

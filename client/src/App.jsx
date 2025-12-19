@@ -9,19 +9,20 @@ import { useDispatch } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
 // Layouts and Pages
 import MainLayout from "./layout/MainLayout";
-import HomePage from "./pages/student/HomePage"; // Restored
-import HeroSection from "./pages/student/HeroSection"; // Restored
-import Courses from "./pages/student/Courses"; // Restored
+import HomePage from "./pages/student/HomePage";
+import HeroSection from "./pages/student/HeroSection";
+import Courses from "./pages/student/Courses";
 import ProblemsPage from "./pages/student/ProblemsPage";
-import ProblemPage from "./pages/student/ProblemPage"; // Restored
+import ProblemPage from "./pages/student/ProblemPage";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
-import QuizPage from "./pages/student/QuizPage"; // Restored
-import LearnPage from "./pages/Learn/LearnPage"; // Restored
+import QuizPage from "./pages/student/QuizPage";
+import LearnPage from "./pages/Learn/LearnPage";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Signup from "./pages/Signup"; // New Feature
+import Signup from "./pages/Signup";
 import Workspace from "./pages/Workspace/Page";
+import EditCourse from "./pages/Workspace/EditCourse";
 import { useSelector } from "react-redux";
 import AuthLoading from "./components/AuthLoading";
 import UploadPdfPage from "./pages/UploadPdfPage";
@@ -46,10 +47,9 @@ const appRouter = createBrowserRouter([
       {
         path: "profile",
         element: (
-        <ProtectedRoute>
+          <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
-          
         ),
       },
 
@@ -83,17 +83,15 @@ function App() {
     dispatch(initializeAuth());
   }, [dispatch]);
   if (status === "loading" || status === "idle") {
-    return <AuthLoading/> 
+    return <AuthLoading />;
   }
 
   return (
-
     // Wrapped in GoogleOAuthProvider (New Feature)
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <RouterProvider router={appRouter} />
     </GoogleOAuthProvider>
   );
 }
-
 
 export default App;

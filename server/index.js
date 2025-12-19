@@ -12,7 +12,7 @@ dotenv.config({});
 
 // 2. Initialize Express App (MUST be done before app.use)
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 // 3. Setup Directory Paths (ES6 Fix)
 
@@ -41,7 +41,6 @@ app.use(cookieParser());
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/ai", aiRoute);
-
 
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);
