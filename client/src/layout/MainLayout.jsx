@@ -1,17 +1,20 @@
 import Navbar from "@/components/Navbar";
 import React from "react";
 import Footer from "@/components/Footer";
-import { Outlet } from "react-router-dom";
 import ChatBotFloating from "@/components/ChatBotFloating";
+import { Outlet, useLocation } from "react-router-dom";
 
 const MainLayout = () => {
+   const location = useLocation(); 
+  const hideFooter = location.pathname.startsWith("/problem/") ||
+  location.pathname === "/workspace";
   return (
     <div>
       <Navbar />
       <div>
         <Outlet />
       </div>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 };
