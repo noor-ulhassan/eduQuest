@@ -9,11 +9,11 @@ import {
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-yellow-200 pt-10 pb-8 mt-12">
+    <footer className="bg-white border-t border-yellow-200 pt-10 pb-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
-            <h3 className="font-bold text-lg mb-4 text-yellow-700">
+            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
               QUEST HUB
             </h3>
             <ul className="space-y-2">
@@ -38,9 +38,9 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-bold text-lg mb-4 text-yellow-700">TRAINING</h3>
+            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">TRAINING</h3>
             <ul className="space-y-2">
-              {["Challenges", "Projects"].map((item) => (
+              {["Challenges", "Projects", "my-learning"].map((item) => (
                 <li key={item}>
                   <a
                     href={`/${item.toLowerCase()}`}
@@ -54,7 +54,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-bold text-lg mb-4 text-yellow-700">
+            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
               SKILL TREE
             </h3>
             <ul className="space-y-2">
@@ -81,7 +81,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-bold text-lg mb-4 text-yellow-700">
+            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
               TOOLS & GEAR
             </h3>
             <ul className="space-y-2">
