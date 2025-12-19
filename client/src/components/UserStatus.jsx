@@ -122,7 +122,8 @@ const UserStats = () => {
   ];
 
   return (
-    <div className="bg-gray-800 rounded-2xl p-6 shadow-2xl max-w-md mx-auto text-white">
+    <div className="bg-zinc-900 border border-zinc-800
+ rounded-2xl p-6 shadow-2xl max-w-md mx-auto text-white">
 
       <div className="flex items-center gap-4 mb-6 relative">
        
