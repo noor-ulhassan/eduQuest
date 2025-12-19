@@ -163,10 +163,11 @@ export const geminiCourseGenerator = async (req, res) => {
       category: category,
       // CHANGE HERE: Since the prompt uses a "course" wrapper, we save aiResponse.course
       courseOutput: aiResponse.course,
-      userEmail: userEmail || "noor@gmail.com",
-      userName: userName || "Noor",
-      userProfileImage: userProfileImage,
+      userEmail: req.user.email,
+      userName: req.user.name,
     });
+
+    console.log("New Course Created: ", newCourse);
 
     // 6. Send Response
     return res.status(200).json({
