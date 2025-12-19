@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import CourseInfo from "./components/CourseInfo";
 import ChapterTopicList from "./components/ChapterTopicList";
+import api from "@/features/auth/authApi";
 
 function EditCourse() {
   const { courseId } = useParams();
@@ -19,7 +20,8 @@ function EditCourse() {
   const GetCourseInfo = async () => {
     setLoading(true);
     try {
-      const result = await axios.get(
+      console.log("Fetching course with ID:", courseId);
+      const result = await api.get(
         `http://localhost:8080/api/v1/ai/get-course/${courseId}`
       );
       setCourse(result.data.course);
