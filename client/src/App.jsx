@@ -44,7 +44,7 @@ const appRouter = createBrowserRouter([
       { path: "workspace", element: <Workspace /> },
       { path: "/workspace/edit-course/:courseId", element: <EditCourse /> },
       { path: "/About", element: <About /> },
-      {path: "/uploadpdf", element: <UploadPdfPage/>},
+      { path: "/uploadpdf", element: <UploadPdfPage /> },
       {
         path: "profile",
         element: (
