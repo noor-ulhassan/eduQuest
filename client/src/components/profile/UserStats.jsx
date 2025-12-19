@@ -86,7 +86,7 @@ const UserStats = () => {
           <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 border-2 border-gray-900 rounded-full animate-pulse"></span>
         </div>
         <div>
-          <h3 className="text-lg font-bold">{name}</h3>
+          <h3 className="text-2xl font-bold font-jersey tracking-wider">{name}</h3>
           <div className="mt-1">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-600 text-white">
               Level {level}
