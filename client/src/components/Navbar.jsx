@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { DarkMode } from "@/DarkMode";
 import { Link } from "react-router-dom";
-import { useUser, UserButton } from "@clerk/clerk-react";
 import AuthButtons from "../pages/AuthButtons";
 
 const courses = [
@@ -139,8 +138,10 @@ const Navbar = () => {
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
           <h1 className="font-bold text-xl">
-            <span className="text-blue-700">Edu</span>
-            <span className="dark:text-white text-gray-800">Quest</span>
+            <span className="text-yellow-500 font-jersey text-xl">Edu</span>
+            <span className="dark:text-white text-gray-800 font-jersey text-xl">
+              Quest
+            </span>
           </h1>
         </div>
       </div>

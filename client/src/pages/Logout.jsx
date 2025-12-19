@@ -1,6 +1,7 @@
 import { useDispatch } from "react-redux";
 import { authLogout } from "../features/auth/authSlice";
 import api from "../features/auth/authApi";
+import { Button } from "@/components/ui/button";
 
 export default function LogoutButton() {
   const dispatch = useDispatch();
@@ -14,5 +15,5 @@ export default function LogoutButton() {
     }
   };
 
-  return <button onClick={handleLogout}>Logout</button>;
+  return <Button onClick={handleLogout}>Logout</Button>;
 }
