@@ -63,14 +63,14 @@ const UserStats = () => {
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  // Animated numbers
+
   const [animatedXP, setAnimatedXP] = useState(0);
   const [animatedBadges, setAnimatedBadges] = useState(0);
   const [animatedStreak, setAnimatedStreak] = useState(0);
 
   useEffect(() => {
-    const duration = 1000; // animation duration in ms
-    const stepTime = 30; // update interval
+    const duration = 1000; 
+    const stepTime = 30;
     const steps = Math.ceil(duration / stepTime);
 
     const xpStep = totalXP / steps;
@@ -95,8 +95,8 @@ const UserStats = () => {
       label: "Total XP",
       value: animatedXP,
       icon: "/star.png",
-      bg: "bg-purple-900",
-      glow: "shadow-purple-500/50",
+      bg: "bg-yellow-900",
+      glow: "shadow-yellow-500/50",
     },
     {
       label: "Rank",
@@ -127,7 +127,7 @@ const UserStats = () => {
       <div className="flex items-center gap-4 mb-6 relative">
        
         <div className="relative">
-          <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-yellow-400 blur-xl animate-pulse"></div>
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-pink-500 via-yellow-500 to-yellow-400 blur-xl animate-pulse"></div>
           <img
             src={avatarUrl}
             alt={`${name}'s Avatar`}
@@ -138,12 +138,12 @@ const UserStats = () => {
         <div>
           <h3 className="text-lg font-bold">{name}</h3>
           <div className="mt-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-600 text-white">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-600 text-white">
               Level {level}
             </span>
           </div>
           <div className="mt-2 h-2 w-40 bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-2 bg-purple-500 w-3/4 animate-pulse"></div> 
+            <div className="h-2 bg-yellow-500 w-3/4 animate-pulse"></div> 
           </div>
         </div>
       </div>
