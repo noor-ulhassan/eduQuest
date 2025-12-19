@@ -23,6 +23,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup"; // New Feature
 import Workspace from "./pages/Workspace/Page";
 import { useSelector } from "react-redux";
+import AuthLoading from "./components/AuthLoading";
 
 // Environment Variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -80,7 +81,7 @@ function App() {
     dispatch(initializeAuth());
   }, [dispatch]);
   if (status === "loading" || status === "idle") {
-    return <p>Loading...</p>; // show spinner or skeleton until auth is ready
+    return <AuthLoading/> 
   }
 
   return (
