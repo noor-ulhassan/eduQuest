@@ -8,8 +8,8 @@ export default function CourseInfo({ course }) {
   return (
     <div className="md:flex gap-5 justify-between p-5 rounded-2xl shadow">
       <div className="flex flex-col gap-3">
-        <h2 className="font-bold text-3xl">{course?.name}</h2>
-        <p className="line-clamp-2 text-gray-700">
+        <h2 className="font-bold text-3xl">{courseLayout?.name}</h2>
+        <p className="line-clamp-4 text-gray-500">
           {courseLayout?.description}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
@@ -24,7 +24,7 @@ export default function CourseInfo({ course }) {
             <Book className="text-green-400" />
             <section>
               <h2 className="font-bold">Chapters</h2>
-              <h2>2 Hours</h2>
+              <h2>{courseLayout?.noOfChapters}</h2>
             </section>
           </div>
           <div className="flex gap-4 items-center p-3 rounded-lg shadow">

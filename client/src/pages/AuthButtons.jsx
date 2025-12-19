@@ -5,7 +5,6 @@ import LogoutButton from "./Logout";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-
 export default function AuthButtons() {
   const { user, status } = useSelector((state) => state.auth);
   const navigate = useNavigate();
@@ -21,8 +20,14 @@ export default function AuthButtons() {
 
   if (user) {
     return (
-      <div className="flex gap-2">
-        <Button onClick={() => navigate("/profile")}>Profile</Button>
+      <div className="flex gap-4">
+        <Button
+          variant={"pixel"}
+          className="font-jersey text-xl"
+          onClick={() => navigate("/profile")}
+        >
+          Profile
+        </Button>
         <LogoutButton />
       </div>
     );
@@ -30,8 +35,20 @@ export default function AuthButtons() {
 
   return (
     <div className="flex gap-2">
-      <Button onClick={() => navigate("/login")}>Login</Button>
-      <Button onClick={() => navigate("/signup")}>Sign Up</Button>
+      <Button
+        variant={"pixel"}
+        className="font-jersey text-xl"
+        onClick={() => navigate("/login")}
+      >
+        Login
+      </Button>
+      <Button
+        variant={"pixel"}
+        className="font-jersey text-xl"
+        onClick={() => navigate("/signup")}
+      >
+        Sign Up
+      </Button>
     </div>
   );
 }
