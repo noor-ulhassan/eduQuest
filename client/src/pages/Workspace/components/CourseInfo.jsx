@@ -6,7 +6,7 @@ export default function CourseInfo({ course }) {
   const courseLayout = course?.courseOutput;
 
   return (
-    <div className="md:flex gap-5 justify-between p-5 rounded-2xl shadow">
+    <div className="md:flex gap-5 justify-between p-5 rounded-2xl shadow-2xl">
       <div className="flex flex-col gap-3">
         <h2 className="font-bold text-3xl">{courseLayout?.name}</h2>
         <p className="line-clamp-4 text-gray-500">

@@ -5,7 +5,7 @@ function ChapterTopicList({ course }) {
   const courseLayout = course?.courseOutput;
 
   return (
-    <div className="flex flex-col items-center justify-center mt-10">
+    <div className="flex flex-col items-center justify-center mt-20">
       {courseLayout?.chapters.map((chapter, index) => (
         <div key={index} className="flex flex-col items-center">
           <div className="p-4 border shadow rounded-xl bg-primary text-white">
