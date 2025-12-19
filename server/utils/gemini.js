@@ -112,23 +112,33 @@ export const geminiCourseGenerator = async (req, res) => {
       });
     }
 
-    const prompt = `
-You are an expert curriculum designer.
+    const prompt = `Generate Learning Course depends on following details:
+    - Topic: ${name}
+    - Description: ${description}
+    - Category: ${category}
+    - Level: ${level}
+    - No of Chapters: ${noOfChapters}
 
-Create a course with:
-- Topic: ${name}
-- Level: ${level}
-- Total Chapters: ${noOfChapters}
-- Description: ${description}
-- Category: ${category}
+    In which Make sure to add Course Name, Description. Include UI/UX elements such as mockup screens, text blocks, icons, buttons, and creative workspace tools. Add symbolic elements related to user Course, like sticky notes, design components, and visual aids. Use a vibrant color palette (blues, purples, oranges) with a clean, professional look. The illustration should feel creative, tech-savvy, and educational, ideal for visualizing concepts in user Course) for Course Banner in 3d format Chapter Name, Topic under each chapters, Duration for each chapters etc, in JSON format only.
 
-Generate a VALID JSON object with:
-1. "description": A high-level, professional overview of what this course covers (3-4 sentences).
-2. "chapters": An array where each chapter contains "title" and "content".
-
-Return ONLY raw JSON. No markdown. No backticks.
-`;
-
+    Schema:
+    {
+      "course": {
+        "name": "string",
+        "description": "string",
+        "category": "string",
+        "level": "string",
+        "noOfChapters": "number",
+        "chapters": [
+          {
+            "chapterName": "string",
+            "duration": "string",
+            "topics": ["string"]
+          }
+        ]
+      }
+    }
+    Return ONLY raw JSON. No markdown. No backticks.`;
     // 3. Gemini Call
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -140,10 +150,10 @@ Return ONLY raw JSON. No markdown. No backticks.
       .replace(/```/g, "")
       .trim();
 
-    const courseData = JSON.parse(cleanedText);
+    const aiResponse = JSON.parse(cleanedText);
     const courseId = uuidv4();
 
-    // 5. Save to MongoDB (Replacing the Neon DB SQL logic)
+    // 5. Save to MongoDB
     const newCourse = await Course.create({
       courseId: courseId,
       name: name,
@@ -151,7 +161,8 @@ Return ONLY raw JSON. No markdown. No backticks.
       noOfChapters: noOfChapters,
       level: level,
       category: category,
-      courseOutput: courseData, // Matches your Schema name
+      // CHANGE HERE: Since the prompt uses a "course" wrapper, we save aiResponse.course
+      courseOutput: aiResponse.course,
       userEmail: userEmail || "noor@gmail.com",
       userName: userName || "Noor",
       userProfileImage: userProfileImage,
