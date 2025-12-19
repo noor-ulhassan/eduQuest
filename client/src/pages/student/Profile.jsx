@@ -10,40 +10,39 @@ import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 
 //code to be removed later
-import { useDispatch } from "react-redux";
-import { useEffect } from "react";
-import { authSuccess } from "@/features/auth/authSlice";
+//import { useDispatch } from "react-redux";
+//import { useEffect } from "react";
+//import { authSuccess } from "@/features/auth/authSlice";
 //code to be removed later
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   //code to be removed later
-  const dispatch = useDispatch();
-  useEffect(() => {
-    //  TEMPORARY MOCK USER FOR TESTING
-    dispatch(
-      authSuccess({
-        user: {
-          name: "arisha",
-          username: "arisha123",
-          createdAt: "2025-07-01T00:00:00Z",
-          followers: [],
-          following: [],
-          level: 2,
-          xp: 100,
-          rank: "Bronze",
-          badges: [1],
-          dayStreak: 3,
-        },
-        accessToken: "mock-token",
-      })
-    );
-  }, [dispatch]);
+  //const dispatch = useDispatch();
+  // useEffect(() => {
+  //   //  TEMPORARY MOCK USER FOR TESTING
+  //   dispatch(
+  //     authSuccess({
+  //       user: {
+  //         name: "arisha",
+  //         username: "arisha123",
+  //         createdAt: "2025-07-01T00:00:00Z",
+  //         followers: [],
+  //         following: [],
+  //         level: 2,
+  //         xp: 100,
+  //         rank: "Bronze",
+  //         badges: [1],
+  //         dayStreak: 3,
+  //       },
+  //       accessToken: "mock-token",
+  //     })
+  //   );
+  // }, [dispatch]);
 
   //code to be removed later
 
-  // 🔑 Get logged-in user from Redux
   const { user } = useSelector((state) => state.auth);
 
   // If user is not loaded yet
