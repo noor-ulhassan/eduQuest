@@ -167,7 +167,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader, Loader2Icon, Sparkle } from "lucide-react";
 import axios from "axios";
-import { useRoutes } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
 
 function AddCourseDialog({ children, setCourseList, user }) {
   const [open, setOpen] = useState(false);
@@ -180,6 +180,8 @@ function AddCourseDialog({ children, setCourseList, user }) {
     level: "beginner",
     category: "",
   });
+
+  const navigate = useNavigate(); // Change 2: Initialize navigate
   const [loading, setLoading] = useState(false);
 
   const onHandleInputChange = (field, value) => {
@@ -192,42 +194,39 @@ function AddCourseDialog({ children, setCourseList, user }) {
   const onGenerate = async () => {
     setLoading(true);
     try {
-      // 2. Construct Payload: Combine Form Data with User Data
-      // Mapping: User Model -> Course Schema
-      const payload = {
-        ...formData,
-        userEmail: user?.email, // Required by Course Schema
-        userName: user?.name, // Optional in Schema, but good to have
-        userProfileImage: user?.avatar, // Maps 'avatar' from User model to 'userProfileImage' in Course
-      };
-
+      // Change 3: Include user data in the request body
       const res = await axios.post(
         "http://localhost:8080/api/v1/ai/generate-course",
-        payload
+        {
+          ...formData,
+          userEmail: user?.email,
+          userName: user?.name,
+          userProfileImage: user?.avatar,
+        }
       );
 
-      console.log("Generated Course:", res.data.data.course);
+      console.log("Generated Course ID:", res.data.courseId);
       setLoading(false);
 
-      // Navigate to edit page
-      router.push("/workspace/edit-course/" + res.data.data.course._id);
+      if (res.data.success) {
+        setOpen(false); // ✅ dialog close
+        // Change 4: Use navigate() instead of router.push()
+        navigate("/workspace/edit-course/" + res.data.courseId);
 
-      if (res?.data) {
-        setOpen(false);
-        setCourseList((prev) => [...prev, res.data.data.course]);
+        if (setCourseList) {
+          setCourseList((prev) => [...prev, res.data.data]);
+        }
       }
     } catch (error) {
+      setLoading(false);
       console.error(error);
-      setLoading(false); // Ensure loading stops on error
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* 🔹 Trigger */}
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      {/* 🔹 Dialog Content */}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create new Course using AI</DialogTitle>
