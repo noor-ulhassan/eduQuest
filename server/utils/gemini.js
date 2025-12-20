@@ -81,18 +81,15 @@ import { GoogleGenAI } from "@google/genai";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v4 as uuidv4 } from "uuid";
-import { Course } from "../models/AiCourse.js"; // Ensure the path to your model is correct
+import { Course } from "../models/AiCourse.js";
 
-// 2. Controller
 export const geminiCourseGenerator = async (req, res) => {
   try {
-    // 1. Initialize Gemini inside the function to ensure API Key is loaded from process.env
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest", // or "gemini-flash-latest"
+      model: "gemini-flash-latest",
     });
 
-    // 2. Destructure data from req.body (Including user info from OAuth)
     const {
       name,
       description,
@@ -104,7 +101,6 @@ export const geminiCourseGenerator = async (req, res) => {
       userProfileImage,
     } = req.body;
 
-    // Validation
     if (!name || !description || !category || !level || !noOfChapters) {
       return res.status(400).json({
         success: false,
@@ -139,12 +135,11 @@ export const geminiCourseGenerator = async (req, res) => {
       }
     }
     Return ONLY raw JSON. No markdown. No backticks.`;
-    // 3. Gemini Call
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    // 4. Clean & Parse
     const cleanedText = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -153,7 +148,6 @@ export const geminiCourseGenerator = async (req, res) => {
     const aiResponse = JSON.parse(cleanedText);
     const courseId = uuidv4();
 
-    // 5. Save to MongoDB
     const newCourse = await Course.create({
       courseId: courseId,
       name: name,
@@ -161,7 +155,7 @@ export const geminiCourseGenerator = async (req, res) => {
       noOfChapters: noOfChapters,
       level: level,
       category: category,
-      // CHANGE HERE: Since the prompt uses a "course" wrapper, we save aiResponse.course
+
       courseOutput: aiResponse.course,
       userEmail: req.user.email,
       userName: req.user.name,
@@ -169,7 +163,6 @@ export const geminiCourseGenerator = async (req, res) => {
 
     console.log("New Course Created: ", newCourse);
 
-    // 6. Send Response
     return res.status(200).json({
       success: true,
       courseId: newCourse.courseId,
@@ -220,7 +213,6 @@ export const generateChapterContent = async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    // Using your EXACT prompt as requested
     const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML 
     and give response in JSON format. 
     Schema:{
@@ -236,15 +228,12 @@ export const generateChapterContent = async (req, res) => {
     const response = await result.response;
     const text = response.text();
 
-    // Clean and Parse JSON
     const cleanedText = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
     const chapterContentData = JSON.parse(cleanedText);
 
-    // Update the specific chapter in your MongoDB Course document
-    // We update the specific index in the chapters array
     await Course.findOneAndUpdate(
       { courseId: courseId },
       {
