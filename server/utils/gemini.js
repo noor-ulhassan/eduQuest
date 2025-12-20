@@ -101,7 +101,6 @@ export const geminiCourseGenerator = async (req, res) => {
       userProfileImage,
     } = req.body;
 
-    // Validation
     if (!name || !description || !category || !level || !noOfChapters) {
       return res.status(400).json({
         success: false,
