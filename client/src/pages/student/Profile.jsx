@@ -1,23 +1,73 @@
+
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import UserStats from "@/components/profile/UserStats";
 import SectionCard from "@/components/profile/SectionCard";
 import TabNav from "@/components/profile/TabNav";
 import EmptyState from "@/components/profile/EmptyState";
+import EditProfileModal from "@/components/profile/EditProfileModal";
+
+//code to be removed later
+//import { useDispatch } from "react-redux";
+//import { useEffect } from "react";
+//import { authSuccess } from "@/features/auth/authSlice";
+//code to be removed later
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  //code to be removed later
+  //const dispatch = useDispatch();
+  // useEffect(() => {
+  //   //  TEMPORARY MOCK USER FOR TESTING
+  //   dispatch(
+  //     authSuccess({
+  //       user: {
+  //         name: "arisha",
+  //         username: "arisha123",
+  //         createdAt: "2025-07-01T00:00:00Z",
+  //         followers: [],
+  //         following: [],
+  //         level: 2,
+  //         xp: 100,
+  //         rank: "Bronze",
+  //         badges: [1],
+  //         dayStreak: 3,
+  //       },
+  //       accessToken: "mock-token",
+  //     })
+  //   );
+  // }, [dispatch]);
+
+  //code to be removed later
+
+  const { user } = useSelector((state) => state.auth);
+
+  // If user is not loaded yet
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <EmptyState message="Loading profile..." />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-6xl mx-auto px-4">
         {/* Profile Header */}
         <ProfileHeader
-          displayName="Arisha Akbar"
-          username="arishaaa"
-          joinedDate="July 2025"
-          followers={0}
-          following={0}
+          displayName={user.name}
+          username={user.username || user.email?.split("@")[0]}
+          joinedDate={new Date(user.createdAt).toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}
+          followers={user.followers?.length || 0}
+          following={user.following?.length || 0}
+          onEdit={() => setIsEditModalOpen(true)}
         />
 
         {/* Main Grid */}
@@ -50,12 +100,12 @@ const Profile = () => {
           {/* RIGHT SIDE */}
           <div className="space-y-8">
             <UserStats
-              username="arishaaa"
-              level={2}
-              totalXP={100}
-              rank="Bronze"
-              badges={1}
-              dayStreak={3}
+              username={user.username || "newbie"}
+              level={user.level || 1}
+              totalXP={user.xp || 0}
+              rank={user.rank || "Bronze"}
+              badges={user.badges?.length || 0}
+              dayStreak={user.dayStreak || 0}
             />
 
             <SectionCard title="Achievements">
@@ -75,6 +125,16 @@ const Profile = () => {
             </SectionCard>
           </div>
         </div>
+         {/* 🔹 Edit Profile Modal */}
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          initialData={{
+            displayName: user.name,
+            username: user.username,
+            avatarUrl: user.avatarUrl,
+          }}
+        />
       </div>
     </div>
   );

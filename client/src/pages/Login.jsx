@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { loginSuccess } from "../features/auth/authSlice";
-import api from "../features/api/authApi";
+import { authSuccess } from "@/features/auth/authSlice";
+import api from "@/features/auth/authApi";
 import { useNavigate, Link } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import GoogleAuthButton from "./GoogleLogin";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -20,38 +20,18 @@ export default function Login() {
     setError("");
     const { email, password } = formData;
     try {
-      const res = await api.post("/login", { email, password });
+      const res = await api.post("/auth/login", { email, password });
+      localStorage.setItem("accessToken", res.data.accessToken);
       dispatch(
-        loginSuccess({
+        authSuccess({
           user: res.data.user,
-          accessToken: res.data.accessToken,
         })
       );
       // alert(res.data.message);
-      console.log(res.data);
+      // console.log(res.data);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
-    }
-  };
-
-  const handleGoogleLogin = async (credentialResponse) => {
-    try {
-      const res = await api.post("/google", {
-        idToken: credentialResponse.credential,
-      });
-
-      dispatch(
-        loginSuccess({
-          user: res.data.user,
-          accessToken: res.data.accessToken,
-        })
-      );
-
-      alert(res.data.message);
-      navigate("/");
-    } catch (err) {
-      setError(err.response?.data?.message || "Google login failed");
+      setError(err.response?.data?.message || "Somethingg went wrong");
     }
   };
 
@@ -90,10 +70,7 @@ export default function Login() {
 
         <div className="my-4 text-center text-gray-500">OR</div>
 
-        <GoogleLogin
-          onSuccess={handleGoogleLogin}
-          onError={() => setError("Google login failed")}
-        />
+        <GoogleAuthButton setError={setError}>Continue with Google</GoogleAuthButton>
 
         <p className="text-center mt-4 text-gray-600">
           Don't have an account?{" "}

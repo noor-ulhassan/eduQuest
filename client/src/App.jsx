@@ -4,24 +4,28 @@ import {
   Navigate,
 } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { initializeAuth } from "./features/auth/authThunks";
 
-// Layouts and Pages
 import MainLayout from "./layout/MainLayout";
-import HomePage from "./pages/student/HomePage"; // Restored
-import HeroSection from "./pages/student/HeroSection"; // Restored
-import Courses from "./pages/student/Courses"; // Restored
+import HomePage from "./pages/Homepage/HomePage";
+import HeroSection from "./components/home/HeroSection";
+import Courses from "./components/home/Courses";
 import ProblemsPage from "./pages/student/ProblemsPage";
-import ProblemPage from "./pages/student/ProblemPage"; // Restored
+import ProblemPage from "./pages/student/ProblemPage";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
-import QuizPage from "./pages/student/QuizPage"; // Restored
-import LearnPage from "./pages/Learn/LearnPage"; // Restored
+import QuizPage from "./pages/student/QuizPage";
+import LearnPage from "./pages/Learn/LearnPage";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Signup from "./pages/Signup"; // New Feature
+import Signup from "./pages/Signup";
 import Workspace from "./pages/Workspace/Page";
+import EditCourse from "./pages/Workspace/EditCourse";
+import { useSelector } from "react-redux";
+import AuthLoading from "./components/AuthLoading";
 
-// Environment Variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const appRouter = createBrowserRouter([
@@ -29,7 +33,6 @@ const appRouter = createBrowserRouter([
     path: "/",
     element: <MainLayout />,
     children: [
-      // --- Original Routes Preserved ---
       { index: true, element: <HomePage /> },
       { path: "home", element: <Navigate to="/" replace /> },
 
@@ -37,6 +40,7 @@ const appRouter = createBrowserRouter([
       { path: "problem/:id", element: <ProblemPage /> },
       { path: "my-learning", element: <MyLearning /> },
       { path: "workspace", element: <Workspace /> },
+      { path: "/workspace/edit-course/:courseId", element: <EditCourse /> },
       {
         path: "profile",
         element: (
@@ -49,13 +53,11 @@ const appRouter = createBrowserRouter([
       { path: "quiz", element: <QuizPage /> },
       { path: "learn", element: <LearnPage /> },
 
-      // --- New & Auth Routes ---
       { path: "signup", element: <Signup /> },
       { path: "login", element: <Login /> },
     ],
   },
 
-  // Fallback for 404
   {
     path: "*",
     element: (
@@ -70,8 +72,16 @@ const appRouter = createBrowserRouter([
 ]);
 
 function App() {
+  const dispatch = useDispatch();
+  const { status } = useSelector((state) => state.auth);
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+  if (status === "loading" || status === "idle") {
+    return <AuthLoading />;
+  }
+
   return (
-    // Wrapped in GoogleOAuthProvider (New Feature)
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <RouterProvider router={appRouter} />
     </GoogleOAuthProvider>

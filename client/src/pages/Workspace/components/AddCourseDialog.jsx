@@ -165,10 +165,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Sparkle } from "lucide-react";
+import { Loader, Loader2Icon, Sparkle } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
+import api from "@/features/auth/authApi";
 
-function AddCourseDialog({ children, setCourseList }) {
+function AddCourseDialog({ children, setCourseList, user }) {
   const [open, setOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -180,6 +182,9 @@ function AddCourseDialog({ children, setCourseList }) {
     category: "",
   });
 
+  const navigate = useNavigate(); // Change 2: Initialize navigate
+  const [loading, setLoading] = useState(false);
+
   const onHandleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -188,30 +193,39 @@ function AddCourseDialog({ children, setCourseList }) {
   };
 
   const onGenerate = async () => {
+    setLoading(true);
     try {
-      const res = await axios.post(
+      // Change 3: Include user data in the request body
+      const res = await api.post(
         "http://localhost:8080/api/v1/ai/generate-course",
-        formData
+        {
+          ...formData,
+        }
       );
 
-      console.log("Generated Course:", res.data.data.course);
+      console.log("Generated Course ID:", res.data.courseId);
 
-      if (res?.data) {
+      setLoading(false);
+
+      if (res.data.success) {
         setOpen(false); // ✅ dialog close
-        setCourseList((prev) => [...prev, res.data.data.course]); // ✅ update course list
-        console.log("Course added to the list.");
+        // Change 4: Use navigate() instead of router.push()
+        navigate("/workspace/edit-course/" + res.data.courseId);
+
+        if (setCourseList) {
+          setCourseList((prev) => [...prev, res.data.data]);
+        }
       }
     } catch (error) {
+      setLoading(false);
       console.error(error);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* 🔹 Trigger */}
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      {/* 🔹 Dialog Content */}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create new Course using AI</DialogTitle>
@@ -289,9 +303,19 @@ function AddCourseDialog({ children, setCourseList }) {
                   variant="pixel"
                   className="w-full font-jersey text-xl"
                   onClick={onGenerate}
+                  disabled={loading}
                 >
-                  <Sparkle className="mr-2" />
-                  Generate
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2Icon className="animate-spin" />
+                      Generating...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Sparkle />
+                      Generate
+                    </span>
+                  )}
                 </Button>
               </div>
             </div>

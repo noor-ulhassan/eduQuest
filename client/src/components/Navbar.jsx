@@ -11,8 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DarkMode } from "@/DarkMode";
 import { Link } from "react-router-dom";
-import { useUser, UserButton } from "@clerk/clerk-react";
-import { useSelector } from "react-redux";
+import AuthButtons from "../pages/AuthButtons";
 
 const courses = [
   {
@@ -72,7 +71,6 @@ const courses = [
 ];
 
 const Navbar = () => {
-  const isAuthenticated = useSelector((state) => state.auth.accessToken);
   return (
     <motion.div className="h-16 dark:bg-[#0A0A0A]/80 bg-white/80 backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-10 shadow-sm">
       {/* Desktop */}
@@ -132,8 +130,7 @@ const Navbar = () => {
 
         {/* User or Auth Buttons */}
         <div className="flex items-center gap-4">
-          {isAuthenticated?<Button>Profile</Button>:<Button>Login</Button>}
-          
+          <AuthButtons />
         </div>
       </div>
 
@@ -141,8 +138,10 @@ const Navbar = () => {
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
           <h1 className="font-bold text-xl">
-            <span className="text-blue-700">Edu</span>
-            <span className="dark:text-white text-gray-800">Quest</span>
+            <span className="text-yellow-500 font-jersey text-xl">Edu</span>
+            <span className="dark:text-white text-gray-800 font-jersey text-xl">
+              Quest
+            </span>
           </h1>
         </div>
       </div>
