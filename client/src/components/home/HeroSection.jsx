@@ -40,7 +40,7 @@ const HeroSection = () => {
         >
           Beginner friendly courses and projects
         </h2>
-        <Link to="/login">
+        <Link to="/workspace">
           <Button className="mt-7 font-jersey text-3xl p-6" variant={"pixel"}>
             Get Started
           </Button>
