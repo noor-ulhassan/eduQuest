@@ -13,7 +13,6 @@ const UserStats = () => {
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  // Animated numbers
   const [animatedXP, setAnimatedXP] = useState(0);
   const [animatedBadges, setAnimatedBadges] = useState(0);
   const [animatedStreak, setAnimatedStreak] = useState(0);
