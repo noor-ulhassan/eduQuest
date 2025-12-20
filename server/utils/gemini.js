@@ -212,3 +212,69 @@ export const getCourseById = async (req, res) => {
     });
   }
 };
+
+export const generateChapterContent = async (req, res) => {
+  try {
+    const { courseId, chapter, index } = req.body;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    // Using your EXACT prompt as requested
+    const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML 
+    and give response in JSON format. 
+    Schema:{
+    chapterName:<>,
+    {
+    topic:<>,
+    content:<>
+    }
+    }
+    : User Input: ${JSON.stringify(chapter)}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Clean and Parse JSON
+    const cleanedText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    const chapterContentData = JSON.parse(cleanedText);
+
+    // Update the specific chapter in your MongoDB Course document
+    // We update the specific index in the chapters array
+    await Course.findOneAndUpdate(
+      { courseId: courseId },
+      {
+        $set: { [`courseOutput.chapters.${index}`]: chapterContentData },
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: chapterContentData,
+    });
+  } catch (error) {
+    console.error("Chapter Generation Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getAllCourses = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    const courses = await Course.find({ userEmail: email }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      courses: courses,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
