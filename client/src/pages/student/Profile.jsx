@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 
@@ -8,6 +7,8 @@ import SectionCard from "@/components/profile/SectionCard";
 import TabNav from "@/components/profile/TabNav";
 import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
+import SkillsDialog from "@/components/profile/SkillsDialog";
+import api from "@/features/auth/authApi";
 
 //code to be removed later
 //import { useDispatch } from "react-redux";
@@ -18,32 +19,34 @@ import EditProfileModal from "@/components/profile/EditProfileModal";
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  //code to be removed later
-  //const dispatch = useDispatch();
-  // useEffect(() => {
-  //   //  TEMPORARY MOCK USER FOR TESTING
-  //   dispatch(
-  //     authSuccess({
-  //       user: {
-  //         name: "arisha",
-  //         username: "arisha123",
-  //         createdAt: "2025-07-01T00:00:00Z",
-  //         followers: [],
-  //         following: [],
-  //         level: 2,
-  //         xp: 100,
-  //         rank: "Bronze",
-  //         badges: [1],
-  //         dayStreak: 3,
-  //       },
-  //       accessToken: "mock-token",
-  //     })
-  //   );
-  // }, [dispatch]);
 
-  //code to be removed later
+  const [isSkillsDialogOpen, setIsSkillsDialogOpen] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
+
+  const [skills, setSkills] = useState(user?.skills || []);
+
+  const addSkillsToBackend = async (newSkills) => {
+    if (!user) return;
+    try {
+      // We send the array of skills. Axios handles the JSON conversion.
+      const res = await api.post("http://localhost:8080/api/skills", {
+        skills: newSkills,
+      });
+
+      // Update local state and the Redux state (if you have a sync action)
+      setSkills(res.data.skills);
+    } catch (err) {
+      console.error("Error saving skills:", err);
+    }
+  };
+
+  // 2. Keep local skills state in sync with Redux user object on load/refresh
+  React.useEffect(() => {
+    if (user?.skills) {
+      setSkills(user.skills);
+    }
+  }, [user]);
 
   // If user is not loaded yet
   if (!user) {
@@ -107,6 +110,36 @@ const Profile = () => {
               badges={user.badges?.length || 0}
               dayStreak={user.dayStreak || 0}
             />
+            <SectionCard title="Skills">
+              {(skills || []).length === 0 ? (
+                <EmptyState
+                  message="You haven't added any skills yet."
+                  actionText="Add skills"
+                  onAction={() => setIsSkillsDialogOpen(true)}
+                />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {(skills || []).map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Add Skill button always visible */}
+                  <button
+                    onClick={() => setIsSkillsDialogOpen(true)}
+                    className="mt-8 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium hover:bg-yellow-200 transition"
+                  >
+                    + Add Skill
+                  </button>
+                </div>
+              )}
+            </SectionCard>
 
             <SectionCard title="Achievements">
               <EmptyState
@@ -115,17 +148,9 @@ const Profile = () => {
                 onAction={() => alert("Navigate to courses")}
               />
             </SectionCard>
-
-            <SectionCard title="Skills">
-              <EmptyState
-                message="You haven't added any skills yet."
-                actionText="Add skills"
-                onAction={() => alert("Open skill editor")}
-              />
-            </SectionCard>
           </div>
         </div>
-         {/* 🔹 Edit Profile Modal */}
+
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
@@ -134,6 +159,12 @@ const Profile = () => {
             username: user.username,
             avatarUrl: user.avatarUrl,
           }}
+        />
+
+        <SkillsDialog
+          open={isSkillsDialogOpen}
+          onOpenChange={setIsSkillsDialogOpen}
+          onAddSkill={(skillsArray) => addSkillsToBackend(skillsArray)}
         />
       </div>
     </div>
