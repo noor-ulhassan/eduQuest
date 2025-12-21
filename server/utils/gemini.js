@@ -82,6 +82,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v4 as uuidv4 } from "uuid";
 import { Course } from "../models/AiCourse.js";
+import Enrollment from "../models/EnrollmentModel.js";
 
 export const geminiCourseGenerator = async (req, res) => {
   try {
@@ -265,5 +266,51 @@ export const getAllCourses = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ------------------------------------------------------------------------------------------//
+
+export const enrollToCourse = async (req, res) => {
+  try {
+    const { courseId, userEmail } = req.body;
+
+    if (!courseId || !userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID and User Email are required",
+      });
+    }
+
+    const existingEnrollment = await Enrollment.findOne({
+      courseId,
+      userEmail,
+    });
+
+    if (existingEnrollment) {
+      return res.status(200).json({
+        success: true,
+        message: "User is already enrolled",
+        enrollment: existingEnrollment,
+      });
+    }
+
+    const newEnrollment = await Enrollment.create({
+      courseId,
+      userEmail,
+      completedChapters: [],
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Enrolled successfully",
+      enrollment: newEnrollment,
+    });
+  } catch (error) {
+    console.error("Enrollment Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };

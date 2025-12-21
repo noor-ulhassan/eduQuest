@@ -4,6 +4,6 @@ import { getUser } from "../controllers/user.controller.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/getUser",authenticate, getUser)
-export default router;
+router.post("/getUser", authenticate, getUser);
 
+export default router;

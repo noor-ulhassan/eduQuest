@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
+import api from "@/features/auth/authApi";
 import { Book, PlayCircle, Settings } from "lucide-react";
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const bannerImages = [
   "/gif5.gif",
@@ -13,6 +15,10 @@ const bannerImages = [
 ];
 
 function CourseCard({ course }) {
+  // ADDED: Initialize user from Redux and navigate for routing
+  const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+
   const courseLayout = course?.courseOutput;
 
   const bannerImage =
@@ -23,6 +29,28 @@ function CourseCard({ course }) {
           .reduce((acc, char) => acc + char.charCodeAt(0), 0)
       ) % bannerImages.length
     ];
+
+  const onEnrollClick = async (e) => {
+    // Prevent the Link tag from triggering if we are handling the click manually
+    e.preventDefault();
+
+    try {
+      const response = await api.post(
+        "http://localhost:8080/api/v1/ai/enroll-course",
+        {
+          courseId: course?.courseId,
+          userEmail: user?.email,
+        }
+      );
+
+      if (response.data.success) {
+        console.log("Enrollment successful");
+        navigate(`/course/${course?.courseId}`);
+      }
+    } catch (error) {
+      console.error("Enrollment failed:", error);
+    }
+  };
 
   return (
     <div className="shadow-md rounded-xl border flex flex-col h-full bg-white hover:shadow-lg transition-all cursor-pointer">
@@ -48,6 +76,7 @@ function CourseCard({ course }) {
           <Link to={`/course/${course?.courseId}`}>
             {course?.courseOutput ? (
               <Button
+                onClick={onEnrollClick}
                 variant={"pixel"}
                 className="flex items-center gap-2 h-9 font-jersey text-xl"
               >
@@ -55,10 +84,11 @@ function CourseCard({ course }) {
               </Button>
             ) : (
               <Button
+                onClick={() => navigate(`/course/${course?.courseId}`)}
                 variant={"pixel"}
                 className="flex items-center gap-2 h-9 font-jersey text-xl"
               >
-                <Settings /> Generate Course
+                Generate Course
               </Button>
             )}
           </Link>

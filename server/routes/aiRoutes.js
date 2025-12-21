@@ -1,6 +1,7 @@
 import express from "express";
 // Ensure the naming matches the export in your controller file
 import {
+  enrollToCourse,
   geminiCourseGenerator,
   generateChapterContent,
   getAllCourses,
@@ -18,5 +19,6 @@ router
   .route("/generate-chapter-content")
   .post(authenticate, generateChapterContent);
 router.route("/courses").get(authenticate, getAllCourses);
+router.route("/enroll-course").post(authenticate, enrollToCourse);
 
 export default router;
