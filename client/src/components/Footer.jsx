@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+
 import {
   FaGithub,
   FaLinkedin,
@@ -18,7 +20,7 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {[
-                "About",
+                "about",
                 "Blog",
                 "Shop",
                 "Community",
@@ -27,7 +29,7 @@ const Footer = () => {
               ].map((item) => (
                 <li key={item}>
                   <a
-                    href={`/${item.toLowerCase().replace(" ", "-")}`}
+                    href={`/${item.toLowerCase()}`}
                     className="text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
                   >
                     {item}

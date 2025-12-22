@@ -261,7 +261,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
                 />
               </div>
 
-              <div className="flex gap-3 items-center">
+              {/* <div className="flex gap-3 items-center">
                 <label>Include Video</label>
                 <Switch
                   checked={formData.includeVideo}
@@ -269,7 +269,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
                     onHandleInputChange("includeVideo", !formData.includeVideo)
                   }
                 />
-              </div>
+              </div> */}
 
               <div>
                 <label>Difficulty Level</label>
