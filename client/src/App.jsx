@@ -23,6 +23,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
+import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 import { useSelector } from "react-redux";
 import AuthLoading from "./components/AuthLoading";
 import UploadPdfPage from "./pages/UploadPdfPage";
