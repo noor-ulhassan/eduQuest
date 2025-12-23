@@ -9,4 +9,5 @@ const router = express.Router();
 router.route("/generate-course").post(geminiCourseGenerator);
 router.route("/get-course/:courseId").get(getCourseById);
 
+
 export default router;

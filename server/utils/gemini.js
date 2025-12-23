@@ -81,7 +81,9 @@ import { GoogleGenAI } from "@google/genai";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v4 as uuidv4 } from "uuid";
-import { Course } from "../models/AiCourse.js"; // Ensure the path to your model is correct
+import { Course } from "../models/AiCourse.js"; 
+import Document from "../models/Document.js";
+import Quiz from "../models/Quiz.js";
 
 // 2. Controller
 export const geminiCourseGenerator = async (req, res) => {
@@ -211,3 +213,90 @@ export const getCourseById = async (req, res) => {
     });
   }
 };
+
+export const geminiPdfSummarizer = async (req, res) => {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+    });
+  } catch (error) {
+    console.error("Gemini PDF Summarizer Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate course",
+      error: error.message,
+    });
+  }
+};
+
+
+// utils/geminiQuizGenerator.js
+
+export const generateQuizFromGemini = async ({
+  context,
+  numberOfQuestions = 5,
+  difficulty = "medium",
+}) => {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const MAX_CHARS = 15000;
+    context = context.slice(0, MAX_CHARS);
+
+    const prompt = `
+You are an AI quiz generator.
+
+STRICT RULES:
+- Use ONLY the information provided in the CONTEXT.
+- Do NOT use outside knowledge.
+- Output ONLY valid JSON.
+- No markdown. No backticks. No extra text.
+
+CONTEXT:
+${context}
+
+TASK:
+Generate ${numberOfQuestions} multiple-choice questions.
+Difficulty level: ${difficulty}
+
+Each question must include:
+- question (string)
+- options (array of EXACTLY 4 strings)
+- correctAnswer (must match one option exactly)
+- explanation (short, based only on context)
+- difficulty ("easy" | "medium" | "hard")
+
+JSON SCHEMA:
+{
+  "questions": [
+    {
+      "question": "",
+      "options": ["", "", "", ""],
+      "correctAnswer": "",
+      "explanation": "",
+      "difficulty": "${difficulty}"
+    }
+  ]
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const text = (await result.response).text();
+
+    const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const aiResponse = JSON.parse(cleanedText);
+
+    if (!aiResponse.questions || !Array.isArray(aiResponse.questions)) {
+      throw new Error("Invalid quiz format returned by AI");
+    }
+
+    return aiResponse; // Return quiz JSON
+  } catch (error) {
+    console.error("Gemini Quiz Error:", error);
+    throw error;
+  }
+};
+
