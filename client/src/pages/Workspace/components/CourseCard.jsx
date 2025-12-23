@@ -9,7 +9,7 @@ const bannerImages = [
   "/gif4.gif",
   "/gif7.gif",
   "/gif8.gif",
-  "/gif9.gif",
+  "/gif3.gif",
 ];
 
 function CourseCard({ course }) {
