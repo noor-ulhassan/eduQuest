@@ -23,6 +23,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Signup from "./pages/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
+import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 import { useSelector } from "react-redux";
 
 // Environment Variables
@@ -42,6 +43,8 @@ const appRouter = createBrowserRouter([
       { path: "my-learning", element: <MyLearning /> },
       { path: "workspace", element: <Workspace /> },
       { path: "/workspace/edit-course/:courseId", element: <EditCourse /> },
+      { path: "/document", element: <DocumentDetailPage /> },
+
       {
         path: "profile",
         element: (
