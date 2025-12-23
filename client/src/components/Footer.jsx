@@ -20,8 +20,8 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {[
-                "about",
-                "Blog",
+                "About",
+                "Profile",
                 "Shop",
                 "Community",
                 "Help Center",
@@ -67,8 +67,6 @@ const Footer = () => {
               {[
                 "All Courses",
                 "Python",
-                "Intermediate Python",
-                "SQL",
                 "HTML",
                 "CSS",
                 "JavaScript",
@@ -97,7 +95,6 @@ const Footer = () => {
                 "Git & GitHub",
                 "C++",
                 "Java",
-                "Pandas",
                 "Machine Learning",
                 "GitHub Copilot",
               ].map((item) => (
