@@ -241,7 +241,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
               </div>
 
               <div>
-                <label>Course Description (Optional)</label>
+                <label>Course Description *</label>
                 <Textarea
                   placeholder="Description"
                   onChange={(e) =>
@@ -257,16 +257,6 @@ function AddCourseDialog({ children, setCourseList, user }) {
                   placeholder="No. of Chapters"
                   onChange={(e) =>
                     onHandleInputChange("noOfChapters", Number(e.target.value))
-                  }
-                />
-              </div>
-
-              <div className="flex gap-3 items-center">
-                <label>Include Video</label>
-                <Switch
-                  checked={formData.includeVideo}
-                  onCheckedChange={() =>
-                    onHandleInputChange("includeVideo", !formData.includeVideo)
                   }
                 />
               </div>

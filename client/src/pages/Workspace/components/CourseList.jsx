@@ -41,7 +41,6 @@ function CourseList() {
           </AddCourseDialog>
         </div>
       ) : (
-        /* Necessary Change: Use only one grid container and ensure it is w-full */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
           {courseList.map((course, index) => (
             <CourseCard course={course} key={index} />

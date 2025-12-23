@@ -45,7 +45,6 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
 
     if (allSkills.length === 0) return;
 
-    // FIX: Send the entire array at once, not individual skills
     onAddSkill(allSkills);
 
     setSelectedSkills([]);
@@ -65,7 +64,6 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
           onChange={(e) => setValue(e.target.value)}
         />
 
-        {/* Selected skills as chips */}
         {selectedSkills.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {selectedSkills.map((skill) => (
@@ -85,7 +83,6 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
           </div>
         )}
 
-        {/* Suggestions */}
         <div className="flex flex-wrap gap-2 mt-3">
           {SUGGESTED_SKILLS.map((skill) => (
             <button

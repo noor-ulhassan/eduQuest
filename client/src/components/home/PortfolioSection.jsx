@@ -2,7 +2,7 @@ import React from "react";
 
 const PortfolioSection = () => {
   return (
-    <section className="relative z-0 bg-[#0b0f1a] text-white py-20 px-6 md:px-12 overflow-hidden">
+    <section className="relative z-0 bg-[#0b0f1a] text-white py-20 px-6 md:px-12 overflow-hidden mb-5">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div className="relative mb-10 lg:mb-0">
           <div className="rounded-lg overflow-hidden shadow-2xl relative z-0">
@@ -17,16 +17,6 @@ const PortfolioSection = () => {
               alt="Minesweepers pixel game screenshot showing title and buttons"
               className="w-full h-auto object-cover bg-[#bbf770] min-h-[300px]"
             />
-          </div>
-
-          <div className="mt-3 text-sm text-gray-400">
-            <a href="#" className="underline hover:text-white transition">
-              Minesweepers Dupe
-            </a>{" "}
-            by{" "}
-            <a href="#" className="underline hover:text-white transition">
-              @vickydavinci
-            </a>
           </div>
 
           <img

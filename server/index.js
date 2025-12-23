@@ -15,17 +15,15 @@ dotenv.config({});
 const app = express();
 const PORT = process.env.PORT;
 
-// 3. Setup Directory Paths (ES6 Fix)
-
 // 4. Connect to Database
 connectDB();
 // 5. Apply Middlewares
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173", // Best practice: use env var
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"], // Fixed typo: 'Authorized' -> 'Authorization'
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );

@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DarkMode } from "@/DarkMode";
 import { Link } from "react-router-dom";
-import AuthButtons from "../pages/AuthButtons";
+import AuthButtons from "../pages/Auth/AuthButtons";
 
 const courses = [
   {
@@ -115,13 +115,13 @@ const Navbar = () => {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink className="hover:text-yellow-600">
-                  <Link to={"/workspace"}>Assistant</Link>
+                  <Link to={"/workspace"}>Create & Learn</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
                 <NavigationMenuLink className="hover:text-yellow-600">
-                  <Link to={"/Problems"}>Programming</Link>
+                  <Link to={"/Problems"}>Problems</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>

@@ -12,19 +12,17 @@ function ChapterTopicList({ course }) {
             <h2 className="text-center ">Chapter {index + 1}</h2>
 
             <h2 className="font-bold text-lg text-center">
-              {/* Handles both chapterName and title depending on AI response */}
               {chapter.chapterName || chapter.title}
             </h2>
 
             <h2 className="text-xs flex justify-between gap-16">
               <span>Duration: {chapter?.duration}</span>
-              {/* Safe check for topics length */}
+
               <span>No. Of Chapters: {chapter?.topics?.length || 0}</span>
             </h2>
           </div>
 
           <div>
-            {/* Logic Fix 1: Added ? to prevent crash if topics is loading */}
             {chapter?.topics?.map((topic, topicIndex) => (
               <div className="flex flex-col items-center" key={topicIndex}>
                 <div className="h-10 bg-gray-300 w-1"></div>
@@ -35,7 +33,6 @@ function ChapterTopicList({ course }) {
                       topicIndex % 2 == 0 && "text-transparent"
                     } max-w-xs`}
                   >
-                    {/* Logic Fix 2: Handles both String (Layout) and Object (Content) */}
                     {typeof topic === "object" ? topic?.topic : topic}
                   </span>
 
@@ -48,7 +45,6 @@ function ChapterTopicList({ course }) {
                       topicIndex % 2 != 0 && "text-transparent"
                     } max-w-xs`}
                   >
-                    {/* Logic Fix 2: Handles both String (Layout) and Object (Content) */}
                     {typeof topic === "object" ? topic?.topic : topic}
                   </span>
                 </div>

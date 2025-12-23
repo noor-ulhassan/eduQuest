@@ -19,7 +19,7 @@
 //       setBannerPreview(initialData.bannerUrl || "");
 //       document.body.style.overflow = "hidden";
 //     } else {
-//       document.body.style.overflow = ""; 
+//       document.body.style.overflow = "";
 //     }
 
 //     return () => {
@@ -180,10 +180,9 @@
 //   );
 // };
 
-// export default EditProfileModal;
 import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux"; // 🔹 Added to dispatch updates
-import { authSuccess } from "@/features/auth/authSlice"; // 🔹 Added to update Redux
+import { useDispatch } from "react-redux";
+import { authSuccess } from "@/features/auth/authSlice";
 
 const EditProfileModal = ({ isOpen, onClose, initialData }) => {
   const [displayName, setDisplayName] = useState("");
@@ -191,9 +190,8 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [bannerPreview, setBannerPreview] = useState("");
 
-  const dispatch = useDispatch(); // 🔹 Added dispatch hook
+  const dispatch = useDispatch();
 
-  // 🔹 Sync form with initialData when modal opens
   useEffect(() => {
     if (isOpen) {
       setDisplayName(initialData.name || "");
@@ -228,17 +226,14 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
 
   const handleSave = () => {
     const updatedData = {
-      ...initialData, // 🔹 Keep other fields intact
+      ...initialData,
       name: displayName,
       username,
       avatarUrl: avatarPreview,
-      bannerUrl: bannerPreview, // 🔹 Added bannerUrl update
+      bannerUrl: bannerPreview,
     };
 
-    // 🔹 Update Redux immediately for dynamic profile
-    dispatch(authSuccess({ user: updatedData }));
-
-    onClose(); // 🔹 Close modal
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -249,14 +244,11 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
         className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">Edit Profile</h2>
         </div>
 
-        {/* Body */}
         <div className="p-6 space-y-5">
-          {/* Banner Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Header / Banner
@@ -264,7 +256,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
             <input
               type="file"
               accept="image/*"
-              onChange={handleBannerChange} // 🔹 Handle banner change
+              onChange={handleBannerChange}
               className="text-sm text-gray-600 file:mr-2 file:px-3 file:py-1 file:text-sm file:font-medium file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
             />
             {bannerPreview && (
@@ -276,7 +268,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
             )}
           </div>
 
-          {/* Avatar Upload */}
           <div className="flex flex-col items-center gap-3">
             <div className="relative">
               <img
@@ -308,7 +299,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
             />
           </div>
 
-          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Name
@@ -321,7 +311,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
             />
           </div>
 
-          {/* Username */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Username
@@ -335,7 +324,6 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
           <button
             type="button"
@@ -346,7 +334,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
           </button>
           <button
             type="button"
-            onClick={handleSave} // 🔹 Save updates Redux directly
+            onClick={handleSave}
             className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md"
           >
             Save Changes

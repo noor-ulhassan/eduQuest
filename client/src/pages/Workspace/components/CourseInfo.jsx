@@ -4,8 +4,6 @@ import { Book, Clock, TrendingUp } from "lucide-react";
 import React, { use } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ... keep imports the same
-
 export default function CourseInfo({ course }) {
   const courseLayout = course?.courseOutput;
   const [loading, setLoading] = React.useState(false);
@@ -14,7 +12,7 @@ export default function CourseInfo({ course }) {
   const GenerateCourseContent = async () => {
     setLoading(true);
     try {
-      const chapters = courseLayout?.chapters; // access chapters from courseLayout
+      const chapters = courseLayout?.chapters;
 
       for (let index = 0; index < chapters.length; index++) {
         console.log(`Generating content for chapter: ${index + 1}`);
@@ -41,10 +39,8 @@ export default function CourseInfo({ course }) {
   return (
     <div className="md:flex gap-5 justify-between p-5 rounded-2xl shadow-2xl">
       <div className="flex flex-col gap-3">
-        {/* Necessary Change: Use course?.name as per your DB log */}
         <h2 className="font-bold text-3xl">{course?.name}</h2>
 
-        {/* Necessary Change: Use courseLayout?.description for AI version */}
         <p className="line-clamp-4 text-gray-500">
           {courseLayout?.description}
         </p>
@@ -54,7 +50,7 @@ export default function CourseInfo({ course }) {
             <Clock className="text-yellow-400" />
             <section>
               <h2 className="font-bold">Duration</h2>
-              {/* Optional: map from your new prompt's duration if available */}
+
               <h2>{courseLayout?.chapters?.[0]?.duration || "2 Hours"}</h2>
             </section>
           </div>

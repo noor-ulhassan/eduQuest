@@ -24,7 +24,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import WelcomeBanner from "./components/WelcomeBanner";
 import CourseList from "./components/CourseList";
-import UserStatus from "@/components/UserStatus";
+import UserStatus from "@/components/user/UserStatus";
 import AddCourseDialog from "./components/AddCourseDialog";
 
 const SidebarOptions = [

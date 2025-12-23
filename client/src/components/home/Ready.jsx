@@ -36,7 +36,7 @@ const LowerImage = () => {
     <section className="relative z-0 w-full min-h-[600px] flex flex-col items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
         <img
-          src="/gif6.gif"
+          src="/gif4.gif"
           alt="Pixel art landscape"
           className="w-full h-full object-cover object-center"
         />
