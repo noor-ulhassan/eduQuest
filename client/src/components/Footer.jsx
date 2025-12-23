@@ -11,7 +11,7 @@ import {
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-yellow-200 pt-10 pb-8">
+    <footer className="bg-white border-t border-yellow-200 pt-16 pb-12">
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
@@ -20,8 +20,8 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {[
-                "about",
-                "Blog",
+                "About",
+                "Profile",
                 "Shop",
                 "Community",
                 "Help Center",
@@ -42,7 +42,7 @@ const Footer = () => {
           <div>
             <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">TRAINING</h3>
             <ul className="space-y-2">
-              {["Challenges", "Projects", "my-learning", "uploadpdf"].map((item) => (
+              {["Workspace", "my-learning", "UploadPdf", "Problems"].map((item) => (
                 <li key={item}>
                   <a
                     href={`/${item.toLowerCase()}`}
@@ -63,8 +63,6 @@ const Footer = () => {
               {[
                 "All Courses",
                 "Python",
-                "Intermediate Python",
-                "SQL",
                 "HTML",
                 "CSS",
                 "JavaScript",
@@ -93,7 +91,6 @@ const Footer = () => {
                 "Git & GitHub",
                 "C++",
                 "Java",
-                "Pandas",
                 "Machine Learning",
                 "GitHub Copilot",
               ].map((item) => (
