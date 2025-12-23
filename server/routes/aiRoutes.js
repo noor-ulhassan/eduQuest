@@ -19,4 +19,5 @@ router
   .post(authenticate, generateChapterContent);
 router.route("/courses").get(authenticate, getAllCourses);
 
+
 export default router;

@@ -6,6 +6,9 @@ import connectDB from "./database/dbConnect.js";
 import userRoute from "./routes/user.routes.js";
 import aiRoute from "./routes/aiRoutes.js";
 import authRoute from "./routes/auth.routes.js";
+import documentRoute from "./routes/documentRoutes.js";
+import quizRoute from "./routes/quizRoutes.js";
+import { auth } from "google-auth-library";
 
 // 1. Load Environment Variables First
 dotenv.config({});
@@ -41,6 +44,8 @@ app.use(cookieParser());
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/ai", aiRoute);
+app.use("/api/v1/documents", documentRoute);
+app.use("/api/v1/quiz", quizRoute);
 
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);
