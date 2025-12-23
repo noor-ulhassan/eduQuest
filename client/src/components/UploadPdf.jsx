@@ -35,7 +35,9 @@ const UploadPdf = () => {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-8 bg-white rounded-xl shadow-lg text-center">
-      <h2 className="text-2xl font-semibold mb-6 text-gray-800">Upload Your PDF</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+        Upload Your PDF
+      </h2>
 
       <label className="block border-2 border-dashed border-yellow-500 rounded-lg p-12 cursor-pointer hover:bg-yellow-50 transition">
         {pdf ? pdf.name : "Click or drag your PDF here"}
@@ -51,8 +53,12 @@ const UploadPdf = () => {
 
       {pdf && (
         <div className="text-left mt-4 text-gray-700">
-          <p><strong>File name:</strong> {pdf.name}</p>
-          <p><strong>File size:</strong> {(pdf.size / 1024).toFixed(2)} KB</p>
+          <p>
+            <strong>File name:</strong> {pdf.name}
+          </p>
+          <p>
+            <strong>File size:</strong> {(pdf.size / 1024).toFixed(2)} KB
+          </p>
         </div>
       )}
 

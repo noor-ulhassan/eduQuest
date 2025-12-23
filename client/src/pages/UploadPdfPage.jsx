@@ -11,8 +11,6 @@ const UploadPdfPage = () => {
           Upload PDFs and level up your workspace!
         </p>
         <UploadPdf />
-
-    
       </div>
     </div>
   );
