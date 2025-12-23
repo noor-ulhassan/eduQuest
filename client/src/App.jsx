@@ -26,6 +26,7 @@ import EditCourse from "./pages/Workspace/EditCourse";
 import { useSelector } from "react-redux";
 import AuthLoading from "./components/AuthLoading";
 import About from "./pages/about/About";
+import UploadPdfPage from "./pages/UploadPdfPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -43,6 +44,7 @@ const appRouter = createBrowserRouter([
       { path: "workspace", element: <Workspace /> },
       { path: "/workspace/edit-course/:courseId", element: <EditCourse /> },
       { path: "/about", element: <About /> },
+      {path: "/uploadpdf", element: <UploadPdfPage/>},
       {
         path: "profile",
         element: (
