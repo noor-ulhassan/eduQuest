@@ -4,6 +4,7 @@ import { authSuccess } from "@/features/auth/authSlice";
 import api from "@/features/auth/authApi";
 import { useNavigate, Link } from "react-router-dom";
 import GoogleAuthButton from "./GoogleLogin";
+import { Button } from "@/components/ui/button";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -34,47 +35,46 @@ export default function Login() {
       setError(err.response?.data?.message || "Somethingg went wrong");
     }
   };
-
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+    <div className="flex justify-center items-center min-h-screen bg-[url('/pixel.jfif')] bg-cover bg-center bg-no-repeat px-4 mt-5">
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm text-center">
+        <h2 className="text-4xl font-jersey mb-6">EduQuest</h2>
 
-        <form onSubmit={handleSubmit}>
+        {/* Google Login */}
+        <GoogleAuthButton setError={setError} className="w-full mb-4" />
+
+        {/* OR separator */}
+        <div className="flex items-center text-gray-400 text-sm my-4">
+          <div className="flex-1 h-px bg-gray-300"></div>
+          <span className="mx-2">OR</span>
+          <div className="flex-1 h-px bg-gray-300"></div>
+        </div>
+
+        {/* Email & Password inputs (optional) */}
+        <form className="space-y-4">
           <input
             type="email"
-            name="email"
             placeholder="Email"
-            className="w-full p-2 mb-4 border rounded"
-            value={formData.email}
-            onChange={handleChange}
-            required
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           />
           <input
             type="password"
-            name="password"
             placeholder="Password"
-            className="w-full p-2 mb-4 border rounded"
-            value={formData.password}
-            onChange={handleChange}
-            required
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           />
-          <button
+          <Button
+            variant={"pixel"}
             type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
+            className="w-full font-jersey text-xl p-3 rounded-md font-medium transition mt-5"
           >
             Login
-          </button>
+          </Button>
         </form>
 
-        <div className="my-4 text-center text-gray-500">OR</div>
-
-        <GoogleAuthButton setError={setError}>Continue with Google</GoogleAuthButton>
-
-        <p className="text-center mt-4 text-gray-600">
+        {/* Sign up link */}
+        <p className="text-gray-500 text-sm mt-6">
           Don't have an account?{" "}
-          <Link to="/signup" className="text-blue-500">
+          <Link to="/signup" className="text-yellow-600 hover:underline ">
             Sign Up
           </Link>
         </p>

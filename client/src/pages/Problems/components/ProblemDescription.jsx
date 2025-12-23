@@ -1,4 +1,4 @@
-import { getDifficultyBadgeClass } from "../lib/utils.js";
+import { getDifficultyBadgeClass } from "../../../lib/utils.js";
 function ProblemDescription({
   problem,
   currentProblemId,

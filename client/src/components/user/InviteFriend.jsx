@@ -1,10 +1,12 @@
 import React from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 function InviteFriend() {
   return (
-    <div className="mx-auto mt-10 max-w-xl rounded-2xl border-1 border-black/80 bg-zinc-900 border border-zinc-800
- p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+    <div
+      className="mx-auto mt-10 max-w-xl rounded-2xl border-1 border-black/80 border border-zinc-800
+ p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+    >
       <div className="flex justify-center">
         <img
           src="mail.png"

@@ -133,7 +133,7 @@ const UserStats = () => {
           <img
             src={avatarUrl}
             alt={`${name}'s Avatar`}
-            className="w-20 h-20 rounded-full border-2 border-gray-800 relative z-10 object-cover"
+            className="w-20 h-20 rounded-full border-2 border-gray-800 relative z-0 object-cover aspect-square"
           />
           <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 border-2 border-gray-900 rounded-full animate-pulse"></span>
         </div>

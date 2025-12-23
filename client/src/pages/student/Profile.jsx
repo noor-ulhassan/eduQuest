@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import UserStats from "@/components/profile/UserStats";
 import SectionCard from "@/components/profile/SectionCard";
@@ -9,12 +8,6 @@ import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 import SkillsDialog from "@/components/profile/SkillsDialog";
 import api from "@/features/auth/authApi";
-
-//code to be removed later
-//import { useDispatch } from "react-redux";
-//import { useEffect } from "react";
-//import { authSuccess } from "@/features/auth/authSlice";
-//code to be removed later
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
@@ -29,26 +22,22 @@ const Profile = () => {
   const addSkillsToBackend = async (newSkills) => {
     if (!user) return;
     try {
-      // We send the array of skills. Axios handles the JSON conversion.
       const res = await api.post("http://localhost:8080/api/skills", {
         skills: newSkills,
       });
 
-      // Update local state and the Redux state (if you have a sync action)
       setSkills(res.data.skills);
     } catch (err) {
       console.error("Error saving skills:", err);
     }
   };
 
-  // 2. Keep local skills state in sync with Redux user object on load/refresh
   React.useEffect(() => {
     if (user?.skills) {
       setSkills(user.skills);
     }
   }, [user]);
 
-  // If user is not loaded yet
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -60,7 +49,6 @@ const Profile = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Profile Header */}
         <ProfileHeader
           displayName={user.name}
           username={user.username || user.email?.split("@")[0]}
@@ -73,9 +61,7 @@ const Profile = () => {
           onEdit={() => setIsEditModalOpen(true)}
         />
 
-        {/* Main Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-8 mt-16">
-          {/* LEFT SIDE */}
           <div className="space-y-10">
             <TabNav
               tabs={["Overview", "Projects", "Posts"]}
@@ -100,7 +86,6 @@ const Profile = () => {
             </SectionCard>
           </div>
 
-          {/* RIGHT SIDE */}
           <div className="space-y-8">
             <UserStats
               username={user.username || "newbie"}
@@ -130,7 +115,6 @@ const Profile = () => {
                     ))}
                   </div>
 
-                  {/* Add Skill button always visible */}
                   <button
                     onClick={() => setIsSkillsDialogOpen(true)}
                     className="mt-8 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium hover:bg-yellow-200 transition"

@@ -241,7 +241,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
               </div>
 
               <div>
-                <label>Course Description (Optional)</label>
+                <label>Course Description *</label>
                 <Textarea
                   placeholder="Description"
                   onChange={(e) =>

@@ -35,7 +35,7 @@ function ExploreMore() {
         {ExplorMoreOptions.map((option, index) => (
           <div
             key={index}
-            className="flex items-center gap-4 mb-4 p-3 rounded-xl bg-zinc-900 border border-zinc-800
+            className="flex items-center gap-4 mb-4 p-3 rounded-xl border border-zinc-800
 "
           >
             <img src={option.icon} alt={option.title} width={80} height={80} />

@@ -1,9 +1,9 @@
 import React from "react";
-import WelcomeBanner from "../../components/WelcomeBanner";
-import EnrolledCourses from "@/components/EnrolledCourses";
-import ExploreMore from "@/components/ExploreMore";
-import UserStatus from "@/components/UserStatus";
-import InviteFriend from "@/components/InviteFriend";
+import WelcomeBanner from "../../components/user/WelcomeBanner";
+import EnrolledCourses from "@/components/user/EnrolledCourses";
+import ExploreMore from "@/components/user/ExploreMore";
+import UserStatus from "@/components/user/UserStatus";
+import InviteFriend from "@/components/user/InviteFriend";
 
 const MyLearning = () => {
   return (

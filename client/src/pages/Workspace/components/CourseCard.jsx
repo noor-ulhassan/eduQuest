@@ -15,7 +15,6 @@ const bannerImages = [
 ];
 
 function CourseCard({ course }) {
-  // ADDED: Initialize user from Redux and navigate for routing
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
@@ -31,7 +30,6 @@ function CourseCard({ course }) {
     ];
 
   const onEnrollClick = async (e) => {
-    // Prevent the Link tag from triggering if we are handling the click manually
     e.preventDefault();
 
     try {
