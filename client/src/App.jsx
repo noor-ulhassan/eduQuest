@@ -21,9 +21,10 @@ import Signup from "./pages/Auth/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
 import { useSelector } from "react-redux";
-import AuthLoading from "./components/AuthLoading";
+import AuthLoading from "./components/auth/AuthLoading";
 import About from "./pages/about/About";
 import UploadPdfPage from "./pages/UploadPdfPage";
+import CourseView from "./pages/Workspace/CourseView";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -56,6 +57,14 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <MyLearning />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "course/:courseId",
+        element: (
+          <ProtectedRoute>
+            <CourseView />
           </ProtectedRoute>
         ),
       },

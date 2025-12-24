@@ -124,6 +124,11 @@ const Navbar = () => {
                   <Link to={"/Problems"}>Problems</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink className="hover:text-yellow-600">
+                  <Link to={"/about"}>About</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
         </div>
