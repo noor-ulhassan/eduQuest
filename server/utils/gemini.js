@@ -1,88 +1,10 @@
-import { GoogleGenAI } from "@google/genai";
-// export const geminiCourseGenerator = async (
-//   topic,
-//   description,
-//   category,
-//   level,
-//   chapterNumber
-// ) => {
-// To run this code you need to install the following dependencies:
-// npm install @google/genai mime
-// npm install -D @types/node
-
-//   async function main() {
-//     const ai = new GoogleGenAI({
-//       apiKey: process.env.GEMINI_API_KEY,
-//     });
-//     const tools = [
-//       {
-//         googleSearch: {},
-//       },
-//     ];
-//     const config = {
-//       thinkingConfig: {
-//         thinkingBudget: -1,
-//       },
-//       tools,
-//     };
-//     const model = "gemini-flash-latest";
-//     const contents = [
-//       {
-//         role: "user",
-//         parts: [
-//           {
-//             text: `Genrate Learning Course depends on following details. In which Make sure to add ${topic}, ${description}. Include UI/UX elements such as mockup screens, text blocks, icons, buttons, and creative workspace tools. Add symbolic elements related to user Course, like sticky notes, design components, and visual aids. Use a vibrant color palette (blues, purples, oranges) with a clean, professional look. The illustration should feel creative, tech-savvy, and educational, ideal for visualizing concepts in user Course) for Course Banner in 3d format Chapter Name, , Topic under each chapters , Duration for each chapters etc, in JSON format only
-
-// Schema:
-
-// {
-//   "course": {
-//     "name": "string",
-//     "description": "string",
-//     "category": "string",
-//     "level": "string",
-//     "includeVideo": "boolean",
-//     "noOfChapters": "number",
-
-//     "chapters": [
-//       {
-//         "chapterName": "string",
-//         "duration": "string",
-//         "topics": [
-//           "string"
-//         ],
-
-//       }
-//     ]
-//   }
-// }
-
-// , User Input:
-
-// `,
-//           },
-//         ],
-//       },
-//     ];
-
-//     const response = await ai.models.generateContentStream({
-//       model,
-//       config,
-//       contents,
-//     });
-//     let fileIndex = 0;
-//     for await (const chunk of response) {
-//       console.log(chunk.text);
-//     }
-//   }
-
-//   main();
-// }
+//// hi from old version
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v4 as uuidv4 } from "uuid";
 import { Course } from "../models/AiCourse.js";
 import Enrollment from "../models/EnrollmentModel.js";
+import { User } from "../models/user.model.js";
 
 export const geminiCourseGenerator = async (req, res) => {
   try {
@@ -312,5 +234,136 @@ export const enrollToCourse = async (req, res) => {
       success: false,
       message: "Internal Server Error",
     });
+  }
+};
+
+// ===========================================================================//
+
+// 1. Get Enrollment Status (Fixes the 404)
+export const getEnrollmentStatus = async (req, res) => {
+  try {
+    const { courseId, email } = req.query;
+    const enrollment = await Enrollment.findOne({ courseId, userEmail: email });
+
+    if (!enrollment) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Enrollment not found" });
+    }
+
+    return res.status(200).json({ success: true, enrollment });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 2. Mark Chapter Completed (Fixes the progress logic)
+export const markChapterCompleted = async (req, res) => {
+  try {
+    const { enrollmentId, chapterName } = req.body;
+
+    const updatedEnrollment = await Enrollment.findByIdAndUpdate(
+      enrollmentId,
+      {
+        $addToSet: { completedChapters: chapterName }, // Adds only if not already exists
+      },
+      { new: true }
+    );
+
+    return res
+      .status(200)
+      .json({ success: true, enrollment: updatedEnrollment });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+//-----------------------------------------------------------------------------------.//
+
+export const getUserEnrollments = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    const enrollments = await Enrollment.find({ userEmail: email });
+
+    // 2. For each enrollment, get the course details
+    const enrolledCourses = await Promise.all(
+      enrollments.map(async (enroll) => {
+        const course = await Course.findOne({ courseId: enroll.courseId });
+        if (!course) return null;
+
+        // Calculate progress percentage
+        const totalChapters = course.noOfChapters || 0;
+        const completedChaptersCount = enroll.completedChapters?.length || 0;
+        const progress =
+          totalChapters > 0
+            ? Math.round((completedChaptersCount / totalChapters) * 100)
+            : 0;
+
+        return {
+          ...course._doc,
+          completedChapters: enroll.completedChapters,
+          progress: progress,
+          enrollmentId: enroll._id,
+        };
+      })
+    );
+
+    // Filter out any nulls if a course was deleted
+    const filteredCourses = enrolledCourses.filter((course) => course !== null);
+
+    return res.status(200).json({
+      success: true,
+      enrolledCourses: filteredCourses,
+    });
+  } catch (error) {
+    console.error("Fetch Enrollments Error:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+//------------------------------------------//
+
+export const updateUserXP = async (req, res) => {
+  try {
+    const { xpAmount } = req.body; // Frontend decides the amount
+    const userEmail = req.user.email; // Securely get email from token
+
+    const user = await User.findOne({ email: userEmail });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // 1. Add the XP
+    user.xp = (user.xp || 0) + Number(xpAmount);
+
+    // 2. Calculate Level (e.g., every 1000 XP is a level)
+    const newLevel = Math.floor(user.xp / 1000) + 1;
+
+    // Check if user leveled up to trigger a special response later
+    const leveledUp = newLevel > user.level;
+    user.level = newLevel;
+
+    // 3. Update Rank
+    if (user.level >= 10) user.rank = "Silver";
+    if (user.level >= 20) user.rank = "Gold";
+    if (user.level >= 50) user.rank = "Grandmaster";
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: leveledUp ? "Level Up!" : "XP Updated",
+      user: {
+        xp: user.xp,
+        level: user.level,
+        rank: user.rank,
+        badges: user.badges,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
