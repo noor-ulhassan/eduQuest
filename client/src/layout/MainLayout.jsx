@@ -7,7 +7,8 @@ const MainLayout = () => {
   const location = useLocation();
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
-    location.pathname === "/workspace";
+    location.pathname === "/workspace" ||
+    location.pathname.startsWith("/course/");
   return (
     <div>
       <Navbar />

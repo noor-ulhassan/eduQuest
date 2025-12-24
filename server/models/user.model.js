@@ -14,6 +14,26 @@ const userSchema = new mongoose.Schema(
 
     refreshToken: { type: String, default: null },
     skills: [{ type: String, default: [] }],
+
+    xp: {
+      type: Number,
+      default: 0,
+    },
+    level: {
+      type: Number,
+      default: 1,
+    },
+    rank: {
+      type: String,
+      default: "Novice",
+    },
+    badges: [
+      {
+        title: { type: String },
+        icon: { type: String }, // e.g., "Zap", "Award", "Flame"
+        earnedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
