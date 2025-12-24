@@ -268,3 +268,91 @@ export const getAllCourses = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
+export const geminiPdfSummarizer = async (req, res) => {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+    });
+  } catch (error) {
+    console.error("Gemini PDF Summarizer Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate course",
+      error: error.message,
+    });
+  }
+};
+
+// utils/geminiQuizGenerator.js
+
+export const generateQuizFromGemini = async ({
+  context,
+  numberOfQuestions = 5,
+  difficulty = "medium",
+}) => {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const MAX_CHARS = 15000;
+    context = context.slice(0, MAX_CHARS);
+
+    const prompt = `
+You are an AI quiz generator.
+
+STRICT RULES:
+- Use ONLY the information provided in the CONTEXT.
+- Do NOT use outside knowledge.
+- Output ONLY valid JSON.
+- No markdown. No backticks. No extra text.
+
+CONTEXT:
+${context}
+
+TASK:
+Generate ${numberOfQuestions} multiple-choice questions.
+Difficulty level: ${difficulty}
+
+Each question must include:
+- question (string)
+- options (array of EXACTLY 4 strings)
+- correctAnswer (must match one option exactly)
+- explanation (short, based only on context)
+- difficulty ("easy" | "medium" | "hard")
+
+JSON SCHEMA:
+{
+  "questions": [
+    {
+      "question": "",
+      "options": ["", "", "", ""],
+      "correctAnswer": "",
+      "explanation": "",
+      "difficulty": "${difficulty}"
+    }
+  ]
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const text = (await result.response).text();
+
+    const cleanedText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    const aiResponse = JSON.parse(cleanedText);
+
+    if (!aiResponse.questions || !Array.isArray(aiResponse.questions)) {
+      throw new Error("Invalid quiz format returned by AI");
+    }
+
+    return aiResponse; // Return quiz JSON
+  } catch (error) {
+    console.error("Gemini Quiz Error:", error);
+    throw error;
+  }
+};

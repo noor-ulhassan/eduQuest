@@ -27,6 +27,7 @@ import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 import { useSelector } from "react-redux";
 import AuthLoading from "./components/AuthLoading";
 import UploadPdfPage from "./pages/UploadPdfPage";
+import AboutPage from "./pages/about/About";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -54,6 +55,7 @@ const appRouter = createBrowserRouter([
 
       { path: "quiz", element: <QuizPage /> },
       { path: "learn", element: <LearnPage /> },
+      { path: "about", element: <AboutPage /> },
 
       { path: "signup", element: <Signup /> },
       { path: "login", element: <Login /> },

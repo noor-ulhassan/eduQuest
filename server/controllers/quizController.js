@@ -2,19 +2,15 @@ import Quiz from "../models/Quiz.js";
 import Document from "../models/Document.js";
 import { generateQuizFromGemini } from "../utils/gemini.js";
 
-
-
 export const generateQuiz = async (req, res, next) => {
   try {
     const {
       documentId,
-      title="Untitled Quiz",
+      title = "Untitled Quiz",
       numberOfQuestions = 5,
       difficulty = "medium",
     } = req.body;
 
-    
-    
     const document = await Document.findById(documentId);
 
     if (!document || document.status !== "ready") {
@@ -27,7 +23,7 @@ export const generateQuiz = async (req, res, next) => {
     // 1️⃣ Merge all chunks into one context
     const context = document.chunks
       .sort((a, b) => a.chunkIndex - b.chunkIndex)
-      .map(chunk => chunk.content)
+      .map((chunk) => chunk.content)
       .join("\n\n");
 
     // Optional: safety length guard (Gemini token limit)
