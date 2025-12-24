@@ -20,6 +20,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Signup from "./pages/Auth/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
+import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 import { useSelector } from "react-redux";
 import AuthLoading from "./components/auth/AuthLoading";
 import About from "./pages/about/About";
@@ -77,8 +78,8 @@ const appRouter = createBrowserRouter([
         ),
       },
       { path: "/workspace/edit-course/:courseId", element: <EditCourse /> },
-      { path: "/About", element: <About /> },
-      { path: "/uploadpdf", element: <UploadPdfPage /> },
+      { path: "/document", element: <DocumentDetailPage /> },
+
       {
         path: "profile",
         element: (

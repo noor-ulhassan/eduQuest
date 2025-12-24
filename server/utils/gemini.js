@@ -3,8 +3,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v4 as uuidv4 } from "uuid";
 import { Course } from "../models/AiCourse.js";
-import Enrollment from "../models/EnrollmentModel.js";
-import { User } from "../models/user.model.js";
+import Document from "../models/Document.js";
+import Quiz from "../models/Quiz.js";
 
 export const geminiCourseGenerator = async (req, res) => {
   try {
@@ -129,241 +129,90 @@ export const getCourseById = async (req, res) => {
   }
 };
 
-export const generateChapterContent = async (req, res) => {
+export const geminiPdfSummarizer = async (req, res) => {
   try {
-    const { courseId, chapter, index } = req.body;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+    });
+  } catch (error) {
+    console.error("Gemini PDF Summarizer Error:", error);
 
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate course",
+      error: error.message,
+    });
+  }
+};
+
+// utils/geminiQuizGenerator.js
+
+export const generateQuizFromGemini = async ({
+  context,
+  numberOfQuestions = 5,
+  difficulty = "medium",
+}) => {
+  try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML 
-    and give response in JSON format. 
-    Schema:{
-    chapterName:<>,
+    const MAX_CHARS = 15000;
+    context = context.slice(0, MAX_CHARS);
+
+    const prompt = `
+You are an AI quiz generator.
+
+STRICT RULES:
+- Use ONLY the information provided in the CONTEXT.
+- Do NOT use outside knowledge.
+- Output ONLY valid JSON.
+- No markdown. No backticks. No extra text.
+
+CONTEXT:
+${context}
+
+TASK:
+Generate ${numberOfQuestions} multiple-choice questions.
+Difficulty level: ${difficulty}
+
+Each question must include:
+- question (string)
+- options (array of EXACTLY 4 strings)
+- correctAnswer (must match one option exactly)
+- explanation (short, based only on context)
+- difficulty ("easy" | "medium" | "hard")
+
+JSON SCHEMA:
+{
+  "questions": [
     {
-    topic:<>,
-    content:<>
+      "question": "",
+      "options": ["", "", "", ""],
+      "correctAnswer": "",
+      "explanation": "",
+      "difficulty": "${difficulty}"
     }
-    }
-    : User Input: ${JSON.stringify(chapter)}`;
+  ]
+}
+`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = (await result.response).text();
 
     const cleanedText = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
-    const chapterContentData = JSON.parse(cleanedText);
+    const aiResponse = JSON.parse(cleanedText);
 
-    await Course.findOneAndUpdate(
-      { courseId: courseId },
-      {
-        $set: { [`courseOutput.chapters.${index}`]: chapterContentData },
-      }
-    );
-
-    return res.status(200).json({
-      success: true,
-      data: chapterContentData,
-    });
-  } catch (error) {
-    console.error("Chapter Generation Error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-export const getAllCourses = async (req, res) => {
-  try {
-    const { email } = req.query;
-
-    const courses = await Course.find({ userEmail: email }).sort({
-      createdAt: -1,
-    });
-
-    return res.status(200).json({
-      success: true,
-      courses: courses,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
-
-// ------------------------------------------------------------------------------------------//
-
-export const enrollToCourse = async (req, res) => {
-  try {
-    const { courseId, userEmail } = req.body;
-
-    if (!courseId || !userEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Course ID and User Email are required",
-      });
+    if (!aiResponse.questions || !Array.isArray(aiResponse.questions)) {
+      throw new Error("Invalid quiz format returned by AI");
     }
 
-    const existingEnrollment = await Enrollment.findOne({
-      courseId,
-      userEmail,
-    });
-
-    if (existingEnrollment) {
-      return res.status(200).json({
-        success: true,
-        message: "User is already enrolled",
-        enrollment: existingEnrollment,
-      });
-    }
-
-    const newEnrollment = await Enrollment.create({
-      courseId,
-      userEmail,
-      completedChapters: [],
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Enrolled successfully",
-      enrollment: newEnrollment,
-    });
+    return aiResponse; // Return quiz JSON
   } catch (error) {
-    console.error("Enrollment Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
-};
-
-// ===========================================================================//
-
-// 1. Get Enrollment Status (Fixes the 404)
-export const getEnrollmentStatus = async (req, res) => {
-  try {
-    const { courseId, email } = req.query;
-    const enrollment = await Enrollment.findOne({ courseId, userEmail: email });
-
-    if (!enrollment) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Enrollment not found" });
-    }
-
-    return res.status(200).json({ success: true, enrollment });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// 2. Mark Chapter Completed (Fixes the progress logic)
-export const markChapterCompleted = async (req, res) => {
-  try {
-    const { enrollmentId, chapterName } = req.body;
-
-    const updatedEnrollment = await Enrollment.findByIdAndUpdate(
-      enrollmentId,
-      {
-        $addToSet: { completedChapters: chapterName }, // Adds only if not already exists
-      },
-      { new: true }
-    );
-
-    return res
-      .status(200)
-      .json({ success: true, enrollment: updatedEnrollment });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-//-----------------------------------------------------------------------------------.//
-
-export const getUserEnrollments = async (req, res) => {
-  try {
-    const { email } = req.query;
-
-    const enrollments = await Enrollment.find({ userEmail: email });
-
-    // 2. For each enrollment, get the course details
-    const enrolledCourses = await Promise.all(
-      enrollments.map(async (enroll) => {
-        const course = await Course.findOne({ courseId: enroll.courseId });
-        if (!course) return null;
-
-        // Calculate progress percentage
-        const totalChapters = course.noOfChapters || 0;
-        const completedChaptersCount = enroll.completedChapters?.length || 0;
-        const progress =
-          totalChapters > 0
-            ? Math.round((completedChaptersCount / totalChapters) * 100)
-            : 0;
-
-        return {
-          ...course._doc,
-          completedChapters: enroll.completedChapters,
-          progress: progress,
-          enrollmentId: enroll._id,
-        };
-      })
-    );
-
-    // Filter out any nulls if a course was deleted
-    const filteredCourses = enrolledCourses.filter((course) => course !== null);
-
-    return res.status(200).json({
-      success: true,
-      enrolledCourses: filteredCourses,
-    });
-  } catch (error) {
-    console.error("Fetch Enrollments Error:", error);
-    return res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
-
-//------------------------------------------//
-
-export const updateUserXP = async (req, res) => {
-  try {
-    const { xpAmount } = req.body; // Frontend decides the amount
-    const userEmail = req.user.email; // Securely get email from token
-
-    const user = await User.findOne({ email: userEmail });
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    // 1. Add the XP
-    user.xp = (user.xp || 0) + Number(xpAmount);
-
-    // 2. Calculate Level (e.g., every 1000 XP is a level)
-    const newLevel = Math.floor(user.xp / 1000) + 1;
-
-    // Check if user leveled up to trigger a special response later
-    const leveledUp = newLevel > user.level;
-    user.level = newLevel;
-
-    // 3. Update Rank
-    if (user.level >= 10) user.rank = "Silver";
-    if (user.level >= 20) user.rank = "Gold";
-    if (user.level >= 50) user.rank = "Grandmaster";
-
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: leveledUp ? "Level Up!" : "XP Updated",
-      user: {
-        xp: user.xp,
-        level: user.level,
-        rank: user.rank,
-        badges: user.badges,
-      },
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error("Gemini Quiz Error:", error);
+    throw error;
   }
 };

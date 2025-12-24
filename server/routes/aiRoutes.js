@@ -27,4 +27,5 @@ router.post("/mark-chapter-completed", authenticate, markChapterCompleted);
 router.get("/user-enrollments", authenticate, getUserEnrollments);
 router.post("/update-user-xp", authenticate, updateUserXP);
 
+
 export default router;
