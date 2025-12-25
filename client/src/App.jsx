@@ -5,7 +5,7 @@ import {
 } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
 import MainLayout from "./layout/MainLayout";
 import HomePage from "./pages/Homepage/HomePage";
@@ -21,11 +21,11 @@ import Signup from "./pages/Auth/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
 import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
-import { useSelector } from "react-redux";
+
 import AuthLoading from "./components/auth/AuthLoading";
-import About from "./pages/about/About";
 import UploadPdfPage from "./pages/UploadPdfPage";
 import CourseView from "./pages/Workspace/CourseView";
+import AboutPage from "./pages/about/About";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -49,7 +49,7 @@ const appRouter = createBrowserRouter([
         path: "problem/:id",
         element: (
           <ProtectedRoute>
-            <ProblemPage />{" "}
+            <ProblemPage />
           </ProtectedRoute>
         ),
       },
@@ -77,8 +77,18 @@ const appRouter = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/workspace/edit-course/:courseId", element: <EditCourse /> },
-      { path: "/document", element: <DocumentDetailPage /> },
+      // 2. ADDED THE DOCUMENTS ROUTE HERE
+      {
+        path: "documents",
+        element: (
+          <ProtectedRoute>
+            <DocumentDetailPage />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "workspace/edit-course/:courseId", element: <EditCourse /> },
+      { path: "document", element: <DocumentDetailPage /> },
+      { path: "upload-pdf", element: <UploadPdfPage /> },
 
       {
         path: "profile",
@@ -91,9 +101,9 @@ const appRouter = createBrowserRouter([
 
       { path: "quiz", element: <QuizPage /> },
       { path: "learn", element: <LearnPage /> },
-
       { path: "signup", element: <Signup /> },
       { path: "login", element: <Login /> },
+      { path: "about", element: <AboutPage /> },
     ],
   },
 
@@ -113,9 +123,11 @@ const appRouter = createBrowserRouter([
 function App() {
   const dispatch = useDispatch();
   const { status } = useSelector((state) => state.auth);
+
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
+
   if (status === "loading" || status === "idle") {
     return <AuthLoading />;
   }

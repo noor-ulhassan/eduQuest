@@ -38,7 +38,6 @@ const UploadPdf = () => {
 
     setError("");
 
-   
     const formData = new FormData();
     formData.append("title", title);
     formData.append("pdf", pdf);
@@ -55,7 +54,6 @@ const UploadPdf = () => {
         Upload Your PDF
       </h2>
 
-   
       <input
         type="text"
         placeholder="Enter PDF title"
@@ -64,8 +62,7 @@ const UploadPdf = () => {
         className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
       />
 
-  
-      <label className="block border-2 border border-yellow-500 rounded-lg p-12 cursor-pointer hover:bg-yellow-50 transition">
+      <label className="block border-2 border-yellow-500 rounded-lg p-12 cursor-pointer hover:bg-yellow-50 transition">
         {pdf ? pdf.name : "Click or drag your PDF here"}
         <input
           type="file"
@@ -79,9 +76,15 @@ const UploadPdf = () => {
 
       {pdf && (
         <div className="text-left mt-4 text-gray-700 text-sm">
-          <p><strong>Title:</strong> {title}</p>
-          <p><strong>File name:</strong> {pdf.name}</p>
-          <p><strong>File size:</strong> {(pdf.size / 1024).toFixed(2)} KB</p>
+          <p>
+            <strong>Title:</strong> {title}
+          </p>
+          <p>
+            <strong>File name:</strong> {pdf.name}
+          </p>
+          <p>
+            <strong>File size:</strong> {(pdf.size / 1024).toFixed(2)} KB
+          </p>
         </div>
       )}
 
