@@ -166,11 +166,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader, Loader2Icon, Sparkle } from "lucide-react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
 import api from "@/features/auth/authApi";
 
-function AddCourseDialog({ children, setCourseList, user }) {
+function AddCourseDialog({ children, setCourseList }) {
   const [open, setOpen] = useState(false);
 
   const [formData, setFormData] = useState({
