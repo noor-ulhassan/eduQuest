@@ -26,6 +26,11 @@ const Playground = () => {
         <SkillCard title="Css" img="/css.png" />
         <SkillCard title="React" img="/react.png" />
         <SkillCard title="Python" img="/python1.png" />
+        <SkillCard
+          title="Data Structures & Algorithms"
+          img="/dsa.png"
+          href="/Problems"
+        />
       </div>
     </div>
   );
