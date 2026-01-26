@@ -38,7 +38,7 @@ function Workspace() {
 
   return (
     <SidebarProvider>
-      <div className="mt-8 flex w-full">
+      <div className="mt-2 flex w-full">
         <Sidebar collapsible="icon" className="h-[calc(100vh-64px)] mt-16">
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ function Workspace() {
               <EnrollCourseList userEmail={user?.email} />
               <CourseList />
             </div>
-            <div className="mt-4">
+            <div className="mt-2">
               <UserStatus />
             </div>
           </div>

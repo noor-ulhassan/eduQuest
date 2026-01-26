@@ -26,6 +26,7 @@ import AuthLoading from "./components/auth/AuthLoading";
 import UploadPdfPage from "./pages/UploadPdfPage";
 import CourseView from "./pages/Workspace/CourseView";
 import AboutPage from "./pages/about/About";
+import Playground from "./pages/Playgrounds/Page";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -104,6 +105,7 @@ const appRouter = createBrowserRouter([
       { path: "signup", element: <Signup /> },
       { path: "login", element: <Login /> },
       { path: "about", element: <AboutPage /> },
+      { path: "playground", element: <Playground /> },
     ],
   },
 
