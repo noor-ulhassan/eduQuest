@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2 } from "lucide-react";
+import { Highlighter } from "@/components/ui/highlighter";
 
 export function DraggableCards() {
   const [cards, setCards] = useState([
@@ -8,28 +9,35 @@ export function DraggableCards() {
       id: 1,
       title: "Python",
       level: "Beginner",
-      img: "/cards.png",
+      img: "/python1.png",
       lessons: ["Writing Programs", "Using Variables"],
     },
     {
       id: 2,
       title: "React",
       level: "Level 2",
-      img: "/code.png",
+      img: "/react.png",
       lessons: ["Warm Up", "Sequencing Commands"],
     },
     {
       id: 3,
-      title: "DSA",
+      title: "Algorithms",
       level: "Level 1",
-      img: "/js.png",
+      img: "/code.png",
       lessons: ["Conditional Logic", "Looping"],
     },
     {
       id: 4,
       title: "Html",
       level: "Level 3",
-      img: "/js.png",
+      img: "/html5.png",
+      lessons: ["Advanced Logic", "Final Challenge"],
+    },
+    {
+      id: 5,
+      title: "Cascading Style Sheets",
+      level: "Level 3",
+      img: "/csss.png",
       lessons: ["Advanced Logic", "Final Challenge"],
     },
   ]);
@@ -44,7 +52,7 @@ export function DraggableCards() {
 
   return (
     <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent">
-      <div className="relative w-[580px] h-[530px]">
+      <div className="relative w-[560px] h-[520px]">
         <AnimatePresence>
           {cards.map((card, index) => {
             const isTop = index === cards.length - 1;
@@ -72,12 +80,20 @@ export function DraggableCards() {
                 className="absolute inset-0 cursor-default active:cursor-pointer"
                 style={{ zIndex: index }}
               >
-                <div className="w-full h-full bg-white rounded-2xl p-8 flex flex-col border-[2px] border-zinc-300 shadow-sm">
+                <div
+                  className="w-full h-full bg-white rounded-2xl p-8 flex flex-col border-[2px] border-zinc-300 border-t-2  
+                border-r-4 shadow-sm"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-white uppercase bg-purple-700 tracking-tight border border-purple-400 rounded-full p-1">
+                      Recommended
+                    </span>
+                  </div>
                   <div className="text-center mb-4">
-                    <h3 className="text-3xl font-black text-zinc-900 leading-tight tracking-tight">
+                    <h3 className="text-2xl font-black text-zinc-900 leading-tight tracking-tight">
                       {card.title}
                     </h3>
-                    <p className="text-indigo-500 font-bold text-sm uppercase mt-1">
+                    <p className="text-indigo-500 font-medium text-sm mt-2">
                       {card.level}
                     </p>
                   </div>
@@ -85,7 +101,7 @@ export function DraggableCards() {
                     <img
                       src={card.img}
                       alt="Course Illustration"
-                      className="max-h-40 w-40 object-cover rounded-2xl drop-shadow-lg"
+                      className="max-h-40 w-40 object-cover rounded-4xl "
                     />
                   </div>
                   <div className="space-y-3 mb-6">
@@ -116,9 +132,8 @@ export function DraggableCards() {
                       </div>
                     ))}
                   </div>
-                  <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-black mt-4 py-5 rounded-2xl shadow-xl shadow-yellow-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 text-xl group">
-                    Start{" "}
-                    <Play className="w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
+                  <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold mt-4 py-5 rounded-2xl border-b-4 border-yellow-600 flex items-center justify-center gap-3 text-sm group">
+                    Start <Play className="w-5 h-5 fill-current " />
                   </button>
                 </div>
               </motion.div>

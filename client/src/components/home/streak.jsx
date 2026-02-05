@@ -5,12 +5,10 @@ const Streak = () => {
   const days = ["Th", "F", "S", "Su", "M"];
 
   return (
-    <div className="bg-white rounded-[2rem] p-6 border border-zinc-200 shadow-sm w-full max-w-[340px] mt-12">
+    <div className="bg-white rounded-[2rem] p-6 border border-zinc-400 border-b-4 shadow-sm w-full max-w-[340px] mt-16">
       <div className="flex justify-between items-start mb-1">
         <div className="flex items-center gap-1">
-          <span className="text-4xl font-bold text-zinc-900 leading-tight">
-            0
-          </span>
+          <span className="text-4xl font-bold text-black leading-tight">0</span>
           <Zap className="w-6 h-6 text-zinc-200 fill-zinc-200" />
         </div>
         <div className="flex gap-1.5 pt-1">

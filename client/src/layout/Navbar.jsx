@@ -8,8 +8,6 @@ import {
   NavigationMenuContent,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
-import { DarkMode } from "@/DarkMode";
 import { Link } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
 

@@ -2,7 +2,7 @@ import React from "react";
 
 const ExplorePremium = () => {
   return (
-    <div className="bg-[#f4f7ff] rounded-[2rem] p-6 border border-blue-50 relative overflow-hidden w-full max-w-[340px]">
+    <div className="bg-[#f4f7ff] rounded-[2rem] p-6 border border-zinc-300 border-b-4 relative overflow-hidden w-full max-w-[340px]">
       <div className="flex items-start gap-4 mb-5">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
           <div className="w-6 h-6 border-4 border-white/30 rounded-full" />
