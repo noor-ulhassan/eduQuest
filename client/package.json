@@ -32,6 +32,7 @@
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cobe": "^0.6.5",
     "env": "^0.0.2",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.552.0",
