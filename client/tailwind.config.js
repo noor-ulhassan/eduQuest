@@ -7,6 +7,7 @@ export default {
       fontFamily: {
         inter: ["Inter", "sans-serif"],
         jersey: ['"Jersey 10"', "sans-serif"],
+        hand: ["Patrick Hand"],
       },
       colors: {
         border: "hsl(var(--border))",

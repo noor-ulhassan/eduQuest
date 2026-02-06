@@ -51,8 +51,8 @@ export function DraggableCards() {
   };
 
   return (
-    <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent">
-      <div className="relative w-[560px] h-[520px]">
+    <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent ">
+      <div className="relative w-[560px] h-[520px] ">
         <AnimatePresence>
           {cards.map((card, index) => {
             const isTop = index === cards.length - 1;
@@ -77,11 +77,11 @@ export function DraggableCards() {
                   rotate: isTop ? 0 : index % 2 === 0 ? 2 : -2,
                 }}
                 transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                className="absolute inset-0 cursor-default active:cursor-pointer"
+                className="absolute inset-0 cursor-pointer active:cursor-pointer"
                 style={{ zIndex: index }}
               >
                 <div
-                  className="w-full h-full bg-white rounded-2xl p-8 flex flex-col border-[2px] border-zinc-300 border-t-2  
+                  className="w-full h-full bg-zinc-50 rounded-2xl p-8 flex flex-col border-[2px] border-zinc-300 border-t-2  
                 border-r-4 shadow-sm"
                 >
                   <div>

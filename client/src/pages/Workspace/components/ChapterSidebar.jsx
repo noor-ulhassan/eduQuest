@@ -54,8 +54,8 @@ function ChapterSidebar({
                   completed
                     ? "text-green-700"
                     : active
-                    ? "text-yellow-600"
-                    : "text-gray-600"
+                      ? "text-yellow-600"
+                      : "text-gray-600"
                 }`}
               >
                 <div className="flex items-center justify-between w-full pr-2">
@@ -95,8 +95,8 @@ function ChapterSidebar({
                               ? "bg-green-200 text-green-900 font-bold"
                               : "bg-yellow-100 text-yellow-700 font-bold"
                             : completed
-                            ? "text-green-600 hover:bg-green-100"
-                            : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                              ? "text-green-600 hover:bg-green-100"
+                              : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -107,8 +107,8 @@ function ChapterSidebar({
                                   ? "text-green-700"
                                   : "text-yellow-600"
                                 : completed
-                                ? "text-green-400"
-                                : "text-zinc-400"
+                                  ? "text-green-400"
+                                  : "text-zinc-400"
                             }`}
                           />
                           <span>

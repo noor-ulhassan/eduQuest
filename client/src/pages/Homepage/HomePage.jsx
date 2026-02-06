@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import HeroSection from "../../components/home/HeroSection";
 import LearningSection from "../../components/home/LearningSection";
@@ -12,9 +12,21 @@ import Streak from "../../components/home/streak";
 import ExplorePremium from "../../components/home/explorePremium";
 import Leaderboard from "../../components/home/leaderboard";
 import DraggableCards from "../../components/home/draggableCards";
+import ExploreMore from "@/components/user/ExploreMore";
+import { Highlighter } from "@/components/ui/highlighter";
 
 const HomePage = () => {
   const { user } = useSelector((state) => state.auth);
+
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (user && audioRef.current) {
+      audioRef.current.play().catch((error) => {
+        console.log("Autoplay blocked until user interaction:", error);
+      });
+    }
+  }, [user]);
 
   return (
     <div className="bg-white min-h-screen">
@@ -23,10 +35,8 @@ const HomePage = () => {
           <MascotTweet />
           <main className="flex-grow w-full py-16 px-4">
             <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row items-start justify-center gap-12">
-              {/* SIDEBAR: 
-                - Uses w-full and max-w to match the component size.
-                - lg:sticky keeps it in view while scrolling.
-              */}
+              <audio ref={audioRef} src="/ui2.mp3"></audio>
+
               <div className="w-full lg:w-auto flex flex-col gap-8 items-center lg:items-end">
                 <div className="w-full max-w-[340px] space-y-8 mt-16">
                   <UserStats />
@@ -34,12 +44,19 @@ const HomePage = () => {
                 </div>
               </div>
 
-              {/* MAIN CONTENT: 
-                - Centered relative to the remaining space.
-              */}
               <div className="w-full lg:w-auto flex justify-center lg:justify-start">
                 <DraggableCards />
               </div>
+            </div>
+            <div className="ml-32 flex ">
+              <h1 className="font-hand font-bold text-4xl ">
+                <Highlighter action="underline" color="orange">
+                  Wisdom from{" "}
+                  <Highlighter action="highlight" color="skyblue">
+                    Homies
+                  </Highlighter>{" "}
+                </Highlighter>
+              </h1>
             </div>
           </main>
         </div>
