@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { PLAYGROUND_DATA } from "../../data/playgroundData";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Editor from "@monaco-editor/react";
@@ -19,10 +20,18 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { updateUserStats } from "../../features/auth/authSlice";
+import {
+  getPlaygroundProgress,
+  enrollInPlayground,
+  completeProblem as completeProb,
+} from "../../features/playground/playgroundApi";
 
 const LanguagePlayground = () => {
   const { language } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
   const [currentProblem, setCurrentProblem] = useState(null);
   const [code, setCode] = useState("");
   const [output, setOutput] = useState(null);
@@ -31,10 +40,38 @@ const LanguagePlayground = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [completedProblems, setCompletedProblems] = useState(new Set());
   const [showHints, setShowHints] = useState(false);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const iframeRef = useRef(null);
 
   const data = PLAYGROUND_DATA[language?.toLowerCase()];
   const isLivePreview = data?.livePreview === true;
+
+  // Fetch progress and auto-enroll on mount
+  useEffect(() => {
+    const initProgress = async () => {
+      if (!user || !language) return;
+
+      try {
+        setIsLoadingProgress(true);
+        // Fetch all progress
+        const { progress } = await getPlaygroundProgress();
+        const currentProgress = progress.find((p) => p.language === language);
+
+        if (currentProgress) {
+          setCompletedProblems(new Set(currentProgress.completedProblems));
+        } else {
+          // Auto-enroll if not enrolled
+          await enrollInPlayground(language);
+        }
+      } catch (error) {
+        console.error("Error loading progress:", error);
+      } finally {
+        setIsLoadingProgress(false);
+      }
+    };
+
+    initProgress();
+  }, [user, language]);
 
   useEffect(() => {
     if (data) {
@@ -45,7 +82,7 @@ const LanguagePlayground = () => {
       setTestResult(null);
       setShowHints(false);
     }
-  }, [language]);
+  }, [language, data]);
 
   const selectProblem = useCallback((prob) => {
     setCurrentProblem(prob);
@@ -100,11 +137,34 @@ const LanguagePlayground = () => {
           const result = testFn(doc);
           setTestResult(result);
           if (result.success) {
-            toast.success(result.message || "All tests passed!");
-            confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
-            setCompletedProblems(
-              (prev) => new Set([...prev, currentProblem.id]),
-            );
+            // Call backend to save progress and update XP
+            try {
+              const response = await completeProb(
+                language,
+                currentProblem.id,
+                currentProblem.xp,
+              );
+
+              if (!response.alreadyCompleted) {
+                // Update Redux with new user stats
+                dispatch(updateUserStats(response.user));
+                toast.success(`${result.message} +${currentProblem.xp} XP!`);
+                confetti({
+                  particleCount: 120,
+                  spread: 80,
+                  origin: { y: 0.7 },
+                });
+              } else {
+                toast.success(result.message || "All tests passed!");
+              }
+
+              setCompletedProblems(
+                (prev) => new Set([...prev, currentProblem.id]),
+              );
+            } catch (error) {
+              console.error("Error saving progress:", error);
+              toast.error("Tests passed but failed to save progress");
+            }
           } else {
             toast.error(result.message || "Tests failed");
           }
@@ -159,9 +219,30 @@ const LanguagePlayground = () => {
       if (parsedTest) {
         setTestResult(parsedTest);
         if (parsedTest.success) {
-          toast.success(parsedTest.message || "All tests passed!");
-          confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
-          setCompletedProblems((prev) => new Set([...prev, currentProblem.id]));
+          // Call backend to save progress and update XP
+          try {
+            const response = await completeProb(
+              language,
+              currentProblem.id,
+              currentProblem.xp,
+            );
+
+            if (!response.alreadyCompleted) {
+              // Update Redux with new user stats
+              dispatch(updateUserStats(response.user));
+              toast.success(`${parsedTest.message} +${currentProblem.xp} XP!`);
+              confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
+            } else {
+              toast.success(parsedTest.message || "All tests passed!");
+            }
+
+            setCompletedProblems(
+              (prev) => new Set([...prev, currentProblem.id]),
+            );
+          } catch (error) {
+            console.error("Error saving progress:", error);
+            toast.error("Tests passed but failed to save progress");
+          }
         } else {
           toast.error(parsedTest.message || "Tests failed");
         }

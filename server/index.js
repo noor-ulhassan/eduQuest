@@ -8,6 +8,7 @@ import aiRoute from "./routes/aiRoutes.js";
 import authRoute from "./routes/auth.routes.js";
 import documentRoute from "./routes/documentRoutes.js";
 import quizRoute from "./routes/quizRoutes.js";
+import playgroundRoute from "./routes/playgroundRoutes.js";
 import { auth } from "google-auth-library";
 
 // 1. Load Environment Variables First
@@ -27,7 +28,7 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  })
+  }),
 );
 
 // app.use(cors());
@@ -44,6 +45,7 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/ai", aiRoute);
 app.use("/api/v1/documents", documentRoute);
 app.use("/api/v1/quiz", quizRoute);
+app.use("/api/v1/playground", playgroundRoute);
 
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);
