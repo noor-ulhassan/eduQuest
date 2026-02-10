@@ -9,6 +9,7 @@ import authRoute from "./routes/auth.routes.js";
 import documentRoute from "./routes/documentRoutes.js";
 import quizRoute from "./routes/quizRoutes.js";
 import playgroundRoute from "./routes/playgroundRoutes.js";
+import leaderboardRoute from "./routes/leaderboardRoutes.js";
 import { auth } from "google-auth-library";
 
 // 1. Load Environment Variables First
@@ -46,6 +47,7 @@ app.use("/api/v1/ai", aiRoute);
 app.use("/api/v1/documents", documentRoute);
 app.use("/api/v1/quiz", quizRoute);
 app.use("/api/v1/playground", playgroundRoute);
+app.use("/api/v1/leaderboard", leaderboardRoute);
 
 app.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);

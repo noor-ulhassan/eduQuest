@@ -59,6 +59,10 @@ const HomePage = () => {
               </h1>
               <div></div>
             </div>
+
+            <div className="max-w-[1200px] mx-auto mt-10 mb-20 px-4">
+              <Leaderboard />
+            </div>
           </main>
         </div>
       ) : (

@@ -63,7 +63,7 @@ const Playground = () => {
           Strengthen your fundamentals
         </p>
       </div>
-      <div className="mt-18 flex bg-zinc-100 border rounded-3xl px-12 py-12 mx-6 my-6 gap-4 items-center">
+      <div className="mt-18 flex bg-zinc-100 border rounded-3xl px-12 py-12 mx-6 my-6 gap-6 items-start overflow-x-auto pb-8 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
         <SkillCard
           title="Html"
           img="/html5.png"
