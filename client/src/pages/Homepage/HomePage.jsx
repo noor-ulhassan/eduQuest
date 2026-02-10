@@ -61,19 +61,20 @@ const HomePage = () => {
               <div></div>
             </div>
 
-            <div className="max-w-[1200px] mx-auto mt-10 mb-20 px-4">
+            <div className="max-w-[1200px] mx-auto mt-16 mb-20 px-4 space-y-16">
               <Leaderboard />
-              <div className="mt-16 ml-28">
-                <h1 className="font-hand font-bold text-4xl">
-                  <Highlighter action="underline" color="orange">
-                    Community{" "}
-                    <Highlighter action="highlight" color="skyblue">
-                      Posts
-                    </Highlighter>{" "}
-                  </Highlighter>
-                </h1>
-              </div>
-              <TopCommunityPosts />
+
+              <section>
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold text-gray-900 font-hand">
+                    Community <span className="text-blue-500">Posts</span>
+                  </h2>
+                  <p className="text-gray-500 mt-2">
+                    See what others are sharing
+                  </p>
+                </div>
+                <TopCommunityPosts />
+              </section>
             </div>
           </main>
         </div>

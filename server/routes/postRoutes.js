@@ -6,6 +6,8 @@ import {
   getUserPosts,
   likePost,
   commentOnPost,
+  deletePost,
+  deleteComment,
 } from "../controllers/postController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 
@@ -17,5 +19,7 @@ router.get("/user/:userId", authenticate, getUserPosts);
 router.post("/", authenticate, createPost);
 router.put("/:id/like", authenticate, likePost);
 router.post("/:id/comment", authenticate, commentOnPost);
+router.delete("/:id", authenticate, deletePost);
+router.delete("/:id/comment/:commentId", authenticate, deleteComment);
 
 export default router;

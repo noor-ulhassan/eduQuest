@@ -15,10 +15,11 @@ import {
   acceptFriendRequest,
 } from "@/features/social/socialApi";
 import CreatePost from "@/components/social/CreatePost";
-import PostCard from "@/components/social/PostCard";
+import TweetCard from "@/components/social/TweetCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Check, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("Overview");
@@ -26,6 +27,7 @@ const Profile = () => {
   const [isSkillsDialogOpen, setIsSkillsDialogOpen] = useState(false);
   const { user } = useSelector((state) => state.auth);
   const [skills, setSkills] = useState(user?.skills || []);
+  const navigate = useNavigate();
 
   // Posts State
   const [posts, setPosts] = useState([]);
@@ -182,7 +184,15 @@ const Profile = () => {
                       <div className="h-40 bg-zinc-100 rounded-xl animate-pulse" />
                     </div>
                   ) : posts.length > 0 ? (
-                    posts.map((post) => <PostCard key={post._id} post={post} />)
+                    posts.map((post) => (
+                      <TweetCard
+                        key={post._id}
+                        post={post}
+                        onDelete={(id) =>
+                          setPosts((prev) => prev.filter((p) => p._id !== id))
+                        }
+                      />
+                    ))
                   ) : (
                     <SectionCard title="Posts">
                       <EmptyState
@@ -243,14 +253,15 @@ const Profile = () => {
                       {friends.map((friend) => (
                         <div
                           key={friend._id}
-                          className="flex items-center gap-3 bg-zinc-50 p-3 rounded-lg border border-zinc-100"
+                          className="flex items-center gap-3 bg-zinc-50 p-3 rounded-lg border border-zinc-100 cursor-pointer hover:bg-zinc-100 transition-colors"
+                          onClick={() => navigate(`/profile/${friend._id}`)}
                         >
                           <Avatar>
                             <AvatarImage src={friend.avatarUrl} />
                             <AvatarFallback>{friend.name?.[0]}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold text-sm">
+                            <p className="font-semibold text-sm hover:underline">
                               {friend.name}
                             </p>
                             <p className="text-xs text-zinc-500">

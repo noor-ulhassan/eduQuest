@@ -4,7 +4,6 @@ import { Post } from "../models/Post.js";
 export const getUser = async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-  // console.log("getUser:", req.user);
   return res.json({
     user: req.user,
   });
@@ -33,7 +32,7 @@ export const getPublicProfile = async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId)
-      .select("name username avatarUrl xp level dayStreak friends")
+      .select("name username avatarUrl xp level dayStreak friends rank")
       .lean();
 
     if (!user) {
@@ -116,20 +115,16 @@ export const sendFriendRequest = async (req, res) => {
 
 export const acceptFriendRequest = async (req, res) => {
   try {
-    const { requestId } = req.body; // or from param
+    const { requestId } = req.body;
     const userId = req.user._id;
 
     const user = await User.findById(userId);
-    const request = user.friendRequests.id(requestId); // Mongoose subdoc logic
-
-    // Or if passed senderId instead of requestId
-    // const request = user.friendRequests.find(r => r.from.toString() === senderId && r.status === 'pending');
+    const request = user.friendRequests.id(requestId);
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    // Safety check status
     if (request.status !== "pending") {
       return res.status(400).json({ message: "Request already handled" });
     }
@@ -138,18 +133,13 @@ export const acceptFriendRequest = async (req, res) => {
     const sender = await User.findById(senderId);
 
     if (sender) {
-      // Add to both friend lists
       user.friends.push(senderId);
       sender.friends.push(userId);
       await sender.save();
     }
 
-    // Remove request or mark accepted
-    // user.friendRequests.pull(requestId); // Remove
-    // OR mark accepted
     request.status = "accepted";
-    // Clean up request: often UI prefers removing accepted requests from the pending list
-    // Let's remove it to keep array small
+
     user.friendRequests.pull(requestId);
 
     await user.save();
@@ -187,6 +177,36 @@ export const getFriendRequests = async (req, res) => {
     );
 
     res.status(200).json({ success: true, requests: pendingRequests });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+export const unfriend = async (req, res) => {
+  try {
+    const { targetUserId } = req.body;
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!user || !targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.friends.includes(targetUserId)) {
+      return res.status(400).json({ message: "Not friends" });
+    }
+
+    // Remove from both
+    user.friends = user.friends.filter((id) => id.toString() !== targetUserId);
+    targetUser.friends = targetUser.friends.filter(
+      (id) => id.toString() !== userId.toString(),
+    );
+
+    await user.save();
+    await targetUser.save();
+
+    res.status(200).json({ success: true, message: "Unfriended successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

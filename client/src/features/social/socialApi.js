@@ -54,3 +54,18 @@ export const commentOnPost = async (postId, text) => {
   const response = await api.post(`/posts/${postId}/comment`, { text });
   return response.data;
 };
+
+export const deletePost = async (postId) => {
+  const response = await api.delete(`/posts/${postId}`);
+  return response.data;
+};
+
+export const deleteComment = async (postId, commentId) => {
+  const response = await api.delete(`/posts/${postId}/comment/${commentId}`);
+  return response.data;
+};
+
+export const unfriend = async (targetUserId) => {
+  const response = await api.post("/user/unfriend", { targetUserId });
+  return response.data;
+};

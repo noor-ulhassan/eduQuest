@@ -4,19 +4,41 @@ import { useSelector } from "react-redux";
 const UserStats = () => {
   const user = useSelector((state) => state.auth.user);
 
+  const xp = user?.xp || 0;
+  // Calculate level based on XP (assuming 1000 XP per level)
+  const calculatedLevel = Math.floor(xp / 1000) + 1;
+  const level = user?.level || calculatedLevel;
+
+  const xpInCurrentLevel = xp % 1000;
+  const nextLevelXp = 1000;
+  const progressPercentage = (xpInCurrentLevel / nextLevelXp) * 100;
+
   const name = user?.name || "Guest User";
-  const level = user?.level || 1;
-  const xp = user?.xp;
-  const rank = user?.rank || "Bronze";
-  const badges = user?.badges?.length || 0;
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  const xpInCurrentLevel = xp % 1000;
-  const progressPercentage = (xpInCurrentLevel / 1000) * 100;
+  const getLeague = (xp) => {
+    if (xp >= 20000) return "Diamond";
+    if (xp >= 10000) return "Platinum";
+    if (xp >= 5000) return "Gold";
+    if (xp >= 1000) return "Silver";
+    return "Bronze";
+  };
+
+  const getRankTitle = (level) => {
+    if (level >= 100) return "GOAT";
+    if (level >= 50) return "Grandmaster";
+    if (level >= 40) return "Master";
+    if (level >= 30) return "Skilled";
+    if (level >= 3) return "";
+    if (level >= 1) return "Amateur";
+    return "Learner";
+  };
+
+  const league = getLeague(xp);
+  const rankTitle = getRankTitle(level);
 
   const [animatedXP, setAnimatedXP] = useState(0);
-  const [animatedBadges, setAnimatedBadges] = useState(0);
   const [animatedStreak, setAnimatedStreak] = useState(0);
 
   useEffect(() => {
@@ -25,14 +47,12 @@ const UserStats = () => {
     const steps = Math.ceil(duration / stepTime);
 
     const xpStep = xp / steps;
-    const badgesStep = badges / steps;
     const streakStep = dayStreak / steps;
 
     let currentStep = 0;
     const interval = setInterval(() => {
       currentStep++;
       setAnimatedXP(Math.min(xp, Math.floor(xpStep * currentStep)));
-      setAnimatedBadges(Math.min(badges, Math.floor(badgesStep * currentStep)));
       setAnimatedStreak(
         Math.min(dayStreak, Math.floor(streakStep * currentStep)),
       );
@@ -41,32 +61,36 @@ const UserStats = () => {
     }, stepTime);
 
     return () => clearInterval(interval);
-  }, [xp, badges, dayStreak]);
+  }, [xp, dayStreak]);
 
   const stats = [
     {
-      label: "Total XP",
-      value: animatedXP,
-      icon: "/star.png",
-      bg: "bg-yellow-900",
-    },
-    {
       label: "Rank",
-      value: rank,
+      value: rankTitle,
       icon: "/level_1.png",
       bg: "bg-gray-800",
+      glow: "hover:shadow-indigo-500/20",
     },
     {
-      label: "Badges",
-      value: animatedBadges,
+      label: "League",
+      value: league,
       icon: "/badge.png",
+      bg: "bg-yellow-900",
+      glow: "hover:shadow-yellow-500/20",
+    },
+    {
+      label: "Total XP",
+      value: animatedXP.toLocaleString(),
+      icon: "/star.png",
       bg: "bg-gray-800",
+      glow: "hover:shadow-green-500/20",
     },
     {
       label: "Day Streak",
-      value: animatedStreak,
+      value: `${animatedStreak} Days`,
       icon: "/fire.png",
       bg: "bg-gray-800",
+      glow: "hover:shadow-orange-500/20",
     },
   ];
 
@@ -97,7 +121,7 @@ const UserStats = () => {
             ></div>
           </div>
           <p className="text-[10px] text-gray-400 mt-1">
-            {1000 - xpInCurrentLevel} XP to Level {level + 1}
+            {nextLevelXp - xpInCurrentLevel} XP to Level {level + 1}
           </p>
         </div>
       </div>

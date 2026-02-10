@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import {
-  getPublicProfile,
-  sendFriendRequest,
-  getUserPosts,
-} from "@/features/social/socialApi";
-import PostCard from "@/components/social/PostCard";
+
+import TweetCard from "@/components/social/TweetCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   UserPlus,
   Check,
@@ -18,8 +15,17 @@ import {
   Zap,
   ArrowLeft,
   Users,
-  FileText,
+  MessageSquare,
+  MapPin,
+  Calendar,
+  UserMinus,
 } from "lucide-react";
+import {
+  getPublicProfile,
+  sendFriendRequest,
+  getUserPosts,
+  unfriend,
+} from "@/features/social/socialApi";
 
 const PublicProfile = () => {
   const { userId } = useParams();
@@ -78,6 +84,23 @@ const PublicProfile = () => {
     }
   };
 
+  const handleUnfriend = async () => {
+    if (!window.confirm("Are you sure you want to unfriend this user?")) return;
+    try {
+      const res = await unfriend(userId);
+      if (res.success) {
+        setFriendStatus("none");
+        setProfile((prev) => ({
+          ...prev,
+          friendsCount: Math.max(0, (prev.friendsCount || 1) - 1),
+          friends: prev.friends.filter((f) => f._id !== currentUser._id), // unlikely to be needed as profile re-fetch might be cleaner, but works for immediate feedback
+        }));
+      }
+    } catch (error) {
+      console.error("Error unfriending", error);
+    }
+  };
+
   const getLeagueInfo = (xp) => {
     if (xp >= 20000)
       return { name: "Diamond", color: "text-cyan-400", bg: "bg-cyan-50" };
@@ -121,128 +144,211 @@ const PublicProfile = () => {
   const league = getLeagueInfo(profile.xp || 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-800 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
+    <div className="min-h-screen bg-gray-50/50 mt-12">
+      {/* Hero / Banner Section */}
+      <div className="relative h-80 overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+        </div>
 
-        {/* Profile Card */}
-        <Card className="overflow-hidden border-zinc-200">
-          {/* Banner */}
-          <div className="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+        {/* Navbar-like overlay */}
+        <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-20">
+          <Button
+            variant="ghost"
+            className="text-white hover:bg-white/10 hover:text-white backdrop-blur-md border border-white/10 rounded-full px-4 gap-2"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </Button>
+        </div>
+      </div>
 
-          <CardContent className="relative px-8 pb-8">
-            {/* Avatar */}
-            <div className="-mt-16 mb-4 flex items-end justify-between">
-              <Avatar className="h-28 w-28 border-4 border-white shadow-lg">
-                <AvatarImage src={profile.avatarUrl} />
-                <AvatarFallback className="text-3xl bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600">
-                  {profile.name?.[0] || "?"}
-                </AvatarFallback>
-              </Avatar>
+      <div className="max-w-5xl mx-auto px-4 -mt-32 relative z-10 pb-20">
+        <div className="bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden mb-10">
+          <div className="p-8 pb-0 flex flex-col md:flex-row items-end gap-8">
+            <div className="relative -mt-24 md:-mt-32 mx-auto md:mx-0">
+              <div className="p-1.5 rounded-full bg-white/30 backdrop-blur-sm border border-white/50 shadow-xl">
+                <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-white shadow-2xl">
+                  <AvatarImage
+                    src={profile.avatarUrl}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-4xl bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 font-black">
+                    {profile.name?.[0] || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="absolute bottom-4 right-4 bg-green-500 w-6 h-6 rounded-full border-[3px] border-white shadow-md ring-1 ring-black/5" />
+            </div>
 
-              {/* Friend Actions */}
-              <div className="pb-2">
-                {friendStatus === "friends" ? (
-                  <Button
-                    variant="outline"
-                    className="gap-2 border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
-                    disabled
-                  >
-                    <Check className="w-4 h-4" /> Friends
-                  </Button>
-                ) : friendStatus === "sent" ? (
-                  <Button
-                    variant="outline"
-                    className="gap-2 border-indigo-200 text-indigo-600 bg-indigo-50"
-                    disabled
-                  >
-                    <Check className="w-4 h-4" /> Request Sent
-                  </Button>
-                ) : (
-                  <Button
-                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={handleAddFriend}
-                  >
-                    <UserPlus className="w-4 h-4" /> Add Friend
-                  </Button>
-                )}
+            <div className="flex-1 min-w-0 pb-8 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+                  {profile.name}
+                </h1>
+                <Badge
+                  variant="secondary"
+                  className={`${league.bg} ${league.color} border-0 px-3 py-1 font-bold shadow-sm`}
+                >
+                  {league.name} League
+                </Badge>
+              </div>
+              <p className="text-gray-500 font-medium text-lg mb-6">
+                @{profile.username || "username"}
+              </p>
+
+              <div className="flex flex-wrap justify-center md:justify-start gap-6 text-sm text-gray-600 font-medium">
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                  <MapPin className="w-4 h-4 text-pink-500" />
+                  <span>Earth</span>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                  <Calendar className="w-4 h-4 text-indigo-500" />
+                  <span>
+                    Joined{" "}
+                    {new Date(
+                      profile.createdAt || Date.now(),
+                    ).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Name & Username */}
-            <h1 className="text-2xl font-bold text-zinc-900">{profile.name}</h1>
-            <p className="text-sm text-zinc-500">
-              @
-              {profile.username ||
-                profile.name?.toLowerCase().replace(/\s+/g, "")}
-            </p>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-              <StatCard
-                icon={<Zap className="w-5 h-5 text-yellow-500" />}
-                label="XP"
-                value={(profile.xp || 0).toLocaleString()}
-              />
-              <StatCard
-                icon={<Trophy className={`w-5 h-5 ${league.color}`} />}
-                label="League"
-                value={league.name}
-              />
-              <StatCard
-                icon={<Flame className="w-5 h-5 text-orange-500" />}
-                label="Day Streak"
-                value={profile.dayStreak || 0}
-              />
-              <StatCard
-                icon={<Users className="w-5 h-5 text-indigo-500" />}
-                label="Friends"
-                value={profile.friendsCount || 0}
-              />
+            <div className="w-full md:w-auto pb-8 flex justify-center">
+              {friendStatus === "friends" ? (
+                <Button
+                  className="w-40 gap-2 bg-emerald-500 hover:bg-red-500 hover:text-white text-white shadow-lg shadow-emerald-500/30 rounded-full font-bold transition-all hover:scale-105 group"
+                  onClick={handleUnfriend}
+                >
+                  <span className="group-hover:hidden flex items-center gap-2">
+                    <Check className="w-4 h-4" /> Friends
+                  </span>
+                  <span className="hidden group-hover:flex items-center gap-2">
+                    <UserMinus className="w-4 h-4" /> Unfriend
+                  </span>
+                </Button>
+              ) : friendStatus === "sent" ? (
+                <Button
+                  className="w-40 gap-2 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-full font-bold"
+                  disabled
+                >
+                  <Check className="w-4 h-4" /> Sent
+                </Button>
+              ) : (
+                <Button
+                  className="w-40 gap-2 bg-black text-white hover:bg-zinc-800 shadow-lg shadow-black/20 rounded-full font-bold transition-all hover:scale-105"
+                  onClick={handleAddFriend}
+                >
+                  <UserPlus className="w-4 h-4" /> Connect
+                </Button>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Posts */}
-        <div className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-zinc-400" />
-            <h2 className="text-lg font-bold text-zinc-800">
-              Posts ({posts.length})
-            </h2>
           </div>
 
-          {posts.length > 0 ? (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post._id} post={post} />
-              ))}
+          {/* Glassy Stats Bar */}
+          <div className="grid grid-cols-4 divide-x divide-gray-100 bg-gray-50/50 backdrop-blur-sm border-t border-gray-100 mt-8">
+            <StatBox
+              label="Total XP"
+              value={profile.xp?.toLocaleString()}
+              icon={<Zap className="w-5 h-5 text-yellow-500 mb-2" />}
+            />
+            <StatBox
+              label="Rank"
+              value={`#${profile.rank || "N/A"}`}
+              icon={<Trophy className="w-5 h-5 text-indigo-500 mb-2" />}
+            />
+            <StatBox
+              label="Streak"
+              value={`${profile.dayStreak || 0} Days`}
+              icon={<Flame className="w-5 h-5 text-orange-500 mb-2" />}
+            />
+            <StatBox
+              label="Friends"
+              value={profile.friendsCount || 0}
+              icon={<Users className="w-5 h-5 text-pink-500 mb-2" />}
+            />
+          </div>
+        </div>
+
+        {/* Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8">
+          {/* Left Column: Posts */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-indigo-600" />
+                Posts
+              </h2>
             </div>
-          ) : (
-            <Card className="border-dashed border-zinc-200">
-              <CardContent className="py-12 text-center text-zinc-400">
-                This user hasn't posted anything yet.
-              </CardContent>
-            </Card>
-          )}
+            {posts.length > 0 ? (
+              posts.map((post) => (
+                <TweetCard
+                  key={post._id}
+                  post={post}
+                  onDelete={(id) =>
+                    setPosts((prev) => prev.filter((p) => p._id !== id))
+                  }
+                />
+              ))
+            ) : (
+              <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center text-gray-500">
+                <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                  <MessageSquare className="w-6 h-6 text-gray-400" />
+                </div>
+                <p>No posts yet</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Friends Preview (Clickable) */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-600" />
+                Friends
+              </h3>
+              {profile.friends && profile.friends.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {profile.friends.slice(0, 12).map((friend) => (
+                    <div
+                      key={friend._id}
+                      className="aspect-square cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => navigate(`/profile/${friend._id}`)}
+                      title={friend.name}
+                    >
+                      <Avatar className="w-full h-full rounded-lg border border-gray-100">
+                        <AvatarImage src={friend.avatarUrl} />
+                        <AvatarFallback className="rounded-lg text-xs">
+                          {friend.name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No friends yet</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const StatCard = ({ icon, label, value }) => (
-  <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-100 flex items-center gap-3">
-    <div className="p-2 bg-white rounded-lg shadow-sm">{icon}</div>
-    <div>
-      <p className="text-xs text-zinc-500 font-medium">{label}</p>
-      <p className="text-lg font-bold text-zinc-900">{value}</p>
+const StatBox = ({ label, value, icon }) => (
+  <div className="p-6 text-center hover:bg-white transition-colors cursor-default group">
+    <div className="flex flex-col items-center">
+      <div className="transform group-hover:scale-110 transition-transform duration-300">
+        {icon}
+      </div>
+      <p className="text-2xl font-black text-gray-900 tracking-tight">
+        {value}
+      </p>
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+        {label}
+      </p>
     </div>
   </div>
 );

@@ -72,7 +72,7 @@ const courses = [
 
 const Navbar = () => {
   return (
-    <motion.div className="h-14 dark:bg-black bg-white backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-10 shadow-sm">
+    <motion.div className="h-14 dark:bg-black bg-white backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-50 shadow-sm">
       {/* Desktop */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
