@@ -110,6 +110,30 @@ export const completeProblem = async (req, res) => {
     user.xp = (user.xp || 0) + xp;
     user.level = Math.floor(user.xp / 1000) + 1;
     user.rank = calculateRank(user.level);
+
+    // Calculate and update streak
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastSolved = user.lastSolvedDate
+      ? new Date(user.lastSolvedDate).setHours(0, 0, 0, 0)
+      : null;
+    const daysDiff = lastSolved
+      ? Math.floor((today - lastSolved) / (1000 * 60 * 60 * 24))
+      : null;
+
+    if (daysDiff === 0) {
+      // Same day. Ensure streak is at least 1 (fixes migration issue)
+      if (!user.dayStreak || user.dayStreak < 1) {
+        user.dayStreak = 1;
+      }
+    } else if (daysDiff === 1) {
+      // Yesterday, increment streak
+      user.dayStreak = (user.dayStreak || 0) + 1;
+    } else {
+      // Streak broken or first time, reset to 1
+      user.dayStreak = 1;
+    }
+    user.lastSolvedDate = new Date();
+
     await user.save();
 
     // Return updated user stats (without sensitive fields)
@@ -122,6 +146,7 @@ export const completeProblem = async (req, res) => {
       level: user.level,
       rank: user.rank,
       badges: user.badges,
+      dayStreak: user.dayStreak,
     };
 
     return res.status(200).json({

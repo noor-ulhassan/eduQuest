@@ -58,7 +58,30 @@ const LanguagePlayground = () => {
         const currentProgress = progress.find((p) => p.language === language);
 
         if (currentProgress) {
-          setCompletedProblems(new Set(currentProgress.completedProblems));
+          const completedSet = new Set(currentProgress.completedProblems);
+          setCompletedProblems(completedSet);
+
+          // Auto-open first unsolved problem
+          if (data && data.chapters) {
+            let firstUnsolved = null;
+            for (const chapter of data.chapters) {
+              const found = chapter.problems.find(
+                (p) => !completedSet.has(p.id),
+              );
+              if (found) {
+                firstUnsolved = found;
+                break;
+              }
+            }
+
+            if (firstUnsolved) {
+              setCurrentProblem(firstUnsolved);
+              setCode(firstUnsolved.starterCode);
+              setOutput(null);
+              setTestResult(null);
+              setShowHints(false);
+            }
+          }
         } else {
           // Auto-enroll if not enrolled
           await enrollInPlayground(language);
@@ -74,7 +97,8 @@ const LanguagePlayground = () => {
   }, [user, language]);
 
   useEffect(() => {
-    if (data) {
+    // Only set default if no problem selected yet
+    if (data && !currentProblem) {
       const firstProblem = data.chapters[0].problems[0];
       setCurrentProblem(firstProblem);
       setCode(firstProblem.starterCode);
@@ -82,7 +106,7 @@ const LanguagePlayground = () => {
       setTestResult(null);
       setShowHints(false);
     }
-  }, [language, data]);
+  }, [language, data, currentProblem]);
 
   const selectProblem = useCallback((prob) => {
     setCurrentProblem(prob);
@@ -146,7 +170,6 @@ const LanguagePlayground = () => {
               );
 
               if (!response.alreadyCompleted) {
-                // Update Redux with new user stats
                 dispatch(updateUserStats(response.user));
                 toast.success(`${result.message} +${currentProblem.xp} XP!`);
                 confetti({
@@ -155,7 +178,7 @@ const LanguagePlayground = () => {
                   origin: { y: 0.7 },
                 });
               } else {
-                toast.success(result.message || "All tests passed!");
+                toast.success("Problem solved! (XP already earned)");
               }
 
               setCompletedProblems(
@@ -233,7 +256,7 @@ const LanguagePlayground = () => {
               toast.success(`${parsedTest.message} +${currentProblem.xp} XP!`);
               confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
             } else {
-              toast.success(parsedTest.message || "All tests passed!");
+              toast.success("Problem solved! (XP already earned)");
             }
 
             setCompletedProblems(
@@ -482,9 +505,36 @@ const LanguagePlayground = () => {
               {/* LEFT: Description */}
               <Panel defaultSize={35} minSize={20}>
                 <div className="h-full bg-zinc-900 flex flex-col">
-                  <div className="px-4 py-2.5 border-b border-zinc-800 flex items-center gap-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider shrink-0">
-                    <BookOpen size={13} />
-                    Instructions
+                  <div className="px-4 py-2.5 border-b border-zinc-800 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                      <BookOpen size={13} />
+                      Instructions
+                    </div>
+
+                    {/* Next Problem Button */}
+                    {completedProblems.has(currentProblem.id) && (
+                      <button
+                        onClick={() => {
+                          const allProblems = data.chapters.flatMap(
+                            (ch) => ch.problems,
+                          );
+                          const currentIdx = allProblems.findIndex(
+                            (p) => p.id === currentProblem.id,
+                          );
+                          const nextProblem = allProblems[currentIdx + 1];
+                          if (nextProblem) {
+                            selectProblem(nextProblem);
+                          } else {
+                            toast.success(
+                              "You've completed all problems in this course!",
+                            );
+                          }
+                        }}
+                        className="flex items-center gap-1 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded transition-colors"
+                      >
+                        Next <ChevronRight size={10} />
+                      </button>
+                    )}
                   </div>
                   <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin scrollbar-thumb-zinc-700">
                     {/* Description */}

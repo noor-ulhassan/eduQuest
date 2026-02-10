@@ -1,44 +1,73 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2 } from "lucide-react";
+import { getPlaygroundProgress } from "../../features/playground/playgroundApi";
+import { PLAYGROUND_DATA } from "../../data/playgroundData";
+
 export function DraggableCards() {
-  const [cards, setCards] = useState([
-    {
-      id: 1,
-      title: "Python",
-      level: "Beginner",
-      img: "/python1.png",
-      lessons: ["Writing Programs", "Using Variables"],
-    },
-    {
-      id: 2,
-      title: "React",
-      level: "Level 2",
-      img: "/react.png",
-      lessons: ["Warm Up", "Sequencing Commands"],
-    },
-    {
-      id: 3,
-      title: "Algorithms",
-      level: "Level 1",
-      img: "/code.png",
-      lessons: ["Conditional Logic", "Looping"],
-    },
-    {
-      id: 4,
-      title: "Html",
-      level: "Level 3",
-      img: "/html5.png",
-      lessons: ["Advanced Logic", "Final Challenge"],
-    },
-    {
-      id: 5,
-      title: "Cascading Style Sheets",
-      level: "Level 3",
-      img: "/csss.png",
-      lessons: ["Advanced Logic", "Final Challenge"],
-    },
-  ]);
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+  const [cards, setCards] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Language to display name and image mapping
+  const languageMap = {
+    html: { title: "HTML", img: "/html5.png" },
+    css: { title: "CSS", img: "/csss.png" },
+    javascript: { title: "JavaScript", img: "/javascript.png" },
+  };
+
+  useEffect(() => {
+    const fetchEnrolledPlaygrounds = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { progress } = await getPlaygroundProgress();
+
+        // Transform enrolled playgrounds into card format
+        const enrolledCards = progress
+          .map((p, index) => {
+            const langData = PLAYGROUND_DATA[p.language];
+            const langInfo = languageMap[p.language];
+
+            if (!langData || !langInfo) return null;
+
+            const totalChapters = langData.chapters.length;
+            const completedChapters = langData.chapters.filter((ch) =>
+              ch.problems.every((prob) =>
+                p.completedProblems.includes(prob.id),
+              ),
+            ).length;
+
+            // Get first 2 chapter names
+            const lessons = langData.chapters.slice(0, 2).map((ch) => ch.title);
+
+            return {
+              id: index + 1,
+              language: p.language,
+              title: langInfo.title,
+              level: `Chapter ${completedChapters}/${totalChapters}`,
+              img: langInfo.img,
+              lessons,
+            };
+          })
+          .filter(Boolean);
+
+        setCards(enrolledCards);
+      } catch (error) {
+        console.error("Error fetching enrolled playgrounds:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEnrolledPlaygrounds();
+  }, [user]);
 
   const sendToBack = (id) => {
     setCards((prev) => {
@@ -47,6 +76,32 @@ export function DraggableCards() {
       return [cardToMove, ...remaining];
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent">
+        <div className="text-zinc-400 text-sm">Loading your playgrounds...</div>
+      </div>
+    );
+  }
+
+  if (cards.length === 0) {
+    return (
+      <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent">
+        <div className="text-center">
+          <p className="text-zinc-600 text-lg mb-4">
+            No enrolled playgrounds yet
+          </p>
+          <button
+            onClick={() => navigate("/playgrounds")}
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-3 rounded-xl border-b-4 border-yellow-600"
+          >
+            Explore Playgrounds
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent ">
@@ -130,7 +185,10 @@ export function DraggableCards() {
                       </div>
                     ))}
                   </div>
-                  <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold mt-4 py-5 rounded-2xl border-b-4 border-yellow-600 flex items-center justify-center gap-3 text-sm group">
+                  <button
+                    onClick={() => navigate(`/playground/${card.language}`)}
+                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold mt-4 py-5 rounded-2xl border-b-4 border-yellow-600 flex items-center justify-center gap-3 text-sm group"
+                  >
                     Start <Play className="w-5 h-5 fill-current " />
                   </button>
                 </div>

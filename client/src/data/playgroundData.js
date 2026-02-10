@@ -996,7 +996,7 @@ try {
   },
 
   html: {
-    title: "The ChaiHTML Codex",
+    title: "The EduQuestHTML Codex",
     subtitle: "Begin your journey as a Digital Architect",
     livePreview: true,
     chapters: [
@@ -1285,7 +1285,7 @@ try {
   },
 
   css: {
-    title: "The ChaiCSS Codex",
+    title: "The EduQuestCSS Codex",
     subtitle: "Begin your journey as a Digital Stylist",
     livePreview: true,
     chapters: [

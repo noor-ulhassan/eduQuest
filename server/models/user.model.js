@@ -34,8 +34,16 @@ const userSchema = new mongoose.Schema(
         earnedAt: { type: Date, default: Date.now },
       },
     ],
+    lastSolvedDate: {
+      type: Date,
+      default: null,
+    },
+    dayStreak: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const User = mongoose.model("User", userSchema);
