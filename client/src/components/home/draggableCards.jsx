@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2 } from "lucide-react";
-import { Highlighter } from "@/components/ui/highlighter";
-
 export function DraggableCards() {
   const [cards, setCards] = useState([
     {

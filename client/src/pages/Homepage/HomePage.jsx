@@ -51,12 +51,13 @@ const HomePage = () => {
             <div className="ml-32 flex ">
               <h1 className="font-hand font-bold text-4xl ">
                 <Highlighter action="underline" color="orange">
-                  Wisdom from{" "}
+                  EduQuest{" "}
                   <Highlighter action="highlight" color="skyblue">
-                    Homies
+                    Community
                   </Highlighter>{" "}
                 </Highlighter>
               </h1>
+              <div></div>
             </div>
           </main>
         </div>

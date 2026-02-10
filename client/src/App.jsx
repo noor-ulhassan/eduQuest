@@ -27,6 +27,7 @@ import UploadPdfPage from "./pages/UploadPdfPage";
 import CourseView from "./pages/Workspace/CourseView";
 import AboutPage from "./pages/about/About";
 import Playground from "./pages/Playgrounds/Page";
+import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
 import Home from "./pages/Community/components/Home";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -102,6 +103,14 @@ const appRouter = createBrowserRouter([
       },
 
       { path: "quiz", element: <QuizPage /> },
+      {
+        path: "playground/:language",
+        element: (
+          <ProtectedRoute>
+            <LanguagePlayground />
+          </ProtectedRoute>
+        ),
+      },
       { path: "learn", element: <LearnPage /> },
       { path: "signup", element: <Signup /> },
       { path: "login", element: <Login /> },

@@ -5,13 +5,17 @@ import { Outlet, useLocation } from "react-router-dom";
 
 const MainLayout = () => {
   const location = useLocation();
+  const isPlaygroundRoute =
+    location.pathname.startsWith("/playground/") &&
+    location.pathname !== "/playground";
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||
-    location.pathname.startsWith("/course/");
+    location.pathname.startsWith("/course/") ||
+    isPlaygroundRoute;
   return (
     <div>
-      <Navbar />
+      {!isPlaygroundRoute && <Navbar />}
       <div>
         <Outlet />
       </div>

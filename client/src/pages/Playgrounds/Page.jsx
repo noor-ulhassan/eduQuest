@@ -22,10 +22,14 @@ const Playground = () => {
         </p>
       </div>
       <div className="mt-18 flex bg-zinc-100 border rounded-3xl px-12 py-12 mx-6 my-6 gap-4 items-center">
-        <SkillCard title="Html" img="/html5.png" />
-        <SkillCard title="Css" img="/css.png" />
+        <SkillCard title="Html" img="/html5.png" href="/playground/html" />
+        <SkillCard title="Css" img="/css.png" href="/playground/css" />
         <SkillCard title="React" img="/react.png" />
-        <SkillCard title="Python" img="/python1.png" />
+        <SkillCard
+          title="JavaScript"
+          img="/javascript.png"
+          href="/playground/javascript"
+        />
         <SkillCard
           title="Data Structures & Algorithms"
           img="/dsa.png"
