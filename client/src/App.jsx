@@ -13,6 +13,7 @@ import ProblemsPage from "./pages/Problems/ProblemsPage";
 import ProblemPage from "./pages/Problems/ProblemPage";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
+import PublicProfile from "./pages/student/PublicProfile";
 import QuizPage from "./pages/student/QuizPage";
 import LearnPage from "./pages/Learn/LearnPage";
 import Login from "./pages/Auth/Login";
@@ -98,6 +99,14 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "profile/:userId",
+        element: (
+          <ProtectedRoute>
+            <PublicProfile />
           </ProtectedRoute>
         ),
       },

@@ -1,5 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
+import NotificationBell from "@/components/social/NotificationBell";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -74,7 +76,7 @@ const Navbar = () => {
       {/* Desktop */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
-        <div className="flex items-center gap-2 font-jersey">
+        <div className="flex items-center gap-2 font-hand font-bold text-xl">
           <Link to="/home" className="flex items-center gap-3">
             <h1 className="hidden md:block text-4xl tracking-tight">
               <span className="text-yellow-500">Edu</span>
@@ -132,8 +134,9 @@ const Navbar = () => {
           </NavigationMenu>
         </div>
 
-        {/* User or Auth Buttons */}
-        <div className="flex items-center gap-4">
+        {/* Notification Bell + Auth Buttons */}
+        <div className="flex items-center gap-3">
+          <NotificationBellConditional />
           <AuthButtons />
         </div>
       </div>
@@ -142,8 +145,8 @@ const Navbar = () => {
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
           <h1 className="font-bold text-xl">
-            <span className="text-yellow-500 font-jersey text-xl">Edu</span>
-            <span className="dark:text-white text-gray-800 font-jersey text-xl">
+            <span className="text-yellow-500 font-hand text-xl">Edu</span>
+            <span className="dark:text-white text-gray-800 font-hand text-xl">
               Quest
             </span>
           </h1>
@@ -151,6 +154,13 @@ const Navbar = () => {
       </div>
     </motion.div>
   );
+};
+
+// Only render NotificationBell when user is logged in
+const NotificationBellConditional = () => {
+  const { user } = useSelector((state) => state.auth);
+  if (!user) return null;
+  return <NotificationBell />;
 };
 
 export default Navbar;

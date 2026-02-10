@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { getGlobalLeaderboard } from "../../features/leaderboard/leaderboardApi";
 import {
   Trophy,
@@ -15,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 
 const Leaderboard = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -235,7 +237,14 @@ const Leaderboard = () => {
                       return (
                         <div
                           key={user._id}
-                          className={`flex items-center px-6 py-4 transition-colors hover:bg-zinc-50 ${isCurrentUser ? "bg-blue-50/50 hover:bg-blue-50" : ""}`}
+                          onClick={() =>
+                            navigate(
+                              isCurrentUser
+                                ? "/profile"
+                                : `/profile/${user._id}`,
+                            )
+                          }
+                          className={`flex items-center px-6 py-4 transition-colors hover:bg-zinc-50 cursor-pointer ${isCurrentUser ? "bg-blue-50/50 hover:bg-blue-50" : ""}`}
                         >
                           {/* Rank */}
                           <div className="w-20 flex justify-center items-center gap-1">

@@ -11,6 +11,7 @@ import UserStats from "@/components/user/UserStatus";
 import Streak from "../../components/home/streak";
 import ExplorePremium from "../../components/home/explorePremium";
 import Leaderboard from "../../components/home/leaderboard";
+import TopCommunityPosts from "../../components/social/TopCommunityPosts";
 import DraggableCards from "../../components/home/draggableCards";
 import ExploreMore from "@/components/user/ExploreMore";
 import { Highlighter } from "@/components/ui/highlighter";
@@ -62,6 +63,17 @@ const HomePage = () => {
 
             <div className="max-w-[1200px] mx-auto mt-10 mb-20 px-4">
               <Leaderboard />
+              <div className="mt-16 ml-28">
+                <h1 className="font-hand font-bold text-4xl">
+                  <Highlighter action="underline" color="orange">
+                    Community{" "}
+                    <Highlighter action="highlight" color="skyblue">
+                      Posts
+                    </Highlighter>{" "}
+                  </Highlighter>
+                </h1>
+              </div>
+              <TopCommunityPosts />
             </div>
           </main>
         </div>

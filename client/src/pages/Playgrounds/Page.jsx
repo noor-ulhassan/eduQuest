@@ -78,7 +78,7 @@ const Playground = () => {
           progress={progressData.css}
           isLoading={isLoading}
         />
-        <SkillCard title="React" img="/react.png" />
+
         <SkillCard
           title="JavaScript"
           img="/javascript.png"
@@ -98,6 +98,7 @@ const Playground = () => {
           img="/dsa.png"
           href="/Problems"
         />
+        <SkillCard title="React" img="/react.png" />
       </div>
     </div>
   );
