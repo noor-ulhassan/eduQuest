@@ -1663,4 +1663,1047 @@ try {
       },
     ],
   },
+  python: {
+    title: "Python 3 Fundamentals",
+    subtitle: "Learn the language of data science and AI",
+    chapters: [
+      // ─── CHAPTER 1: VARIABLES & DATA TYPES ────────────────
+      {
+        id: "py-variables",
+        title: "Variables & Data Types",
+        description:
+          "Master the fundamentals of Python variables and data types",
+        totalXp: 300,
+        problems: [
+          {
+            id: "py-var-1",
+            title: "Your First Variable",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Create a variable named \`message\` and assign it the string value "Hello World".`,
+            hints: [
+              'Use the assignment operator: message = "Hello World"',
+              "Python does not need const or let — just assign directly.",
+            ],
+            starterCode: `# Create your variable here\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'message' not in dir():
+        errors.append("Variable 'message' is not defined")
+    elif not isinstance(message, str):
+        errors.append("'message' should be a string")
+    elif message != "Hello World":
+        errors.append("Expected 'Hello World' but got '" + str(message) + "'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Great job! You declared your first variable."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-var-2",
+            title: "Multiple Types",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Create three variables:\n- \`name\` (string) with value "eduQuest"\n- \`level\` (integer) with value 42\n- \`is_active\` (boolean) with value True`,
+            hints: [
+              "Strings use quotes, numbers don't, booleans are True/False (capital T/F).",
+              "Python booleans are True and False, not true and false.",
+            ],
+            starterCode: `# Create three variables\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'name' not in dir():
+        errors.append("'name' is not defined")
+    elif not isinstance(name, str) or name != "eduQuest":
+        errors.append("'name' should be the string 'eduQuest'")
+    if 'level' not in dir():
+        errors.append("'level' is not defined")
+    elif not isinstance(level, int) or level != 42:
+        errors.append("'level' should be the integer 42")
+    if 'is_active' not in dir():
+        errors.append("'is_active' is not defined")
+    elif not isinstance(is_active, bool) or is_active != True:
+        errors.append("'is_active' should be True")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "All three variables are correct!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-var-3",
+            title: "F-Strings",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Given \`user_name = "Alex"\`, create a variable \`greeting\` using an f-string with the value "Hello, Alex! Welcome to eduQuest."`,
+            hints: [
+              'F-strings use f"...{variable}..." syntax.',
+              'f"Hello, {user_name}! Welcome to eduQuest."',
+            ],
+            starterCode: `user_name = "Alex"\n# Create greeting using an f-string\n`,
+            testFunction: `
+import json
+try:
+    if 'greeting' not in dir():
+        print(json.dumps({"success": False, "message": "Variable 'greeting' is not defined."}))
+    elif greeting != "Hello, Alex! Welcome to eduQuest.":
+        print(json.dumps({"success": False, "message": "Expected 'Hello, Alex! Welcome to eduQuest.' but got '" + str(greeting) + "'"}))
+    else:
+        print(json.dumps({"success": True, "message": "F-strings mastered!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-var-4",
+            title: "String Methods",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Given \`text = "Python"\`, create:\n- \`upper\` — the text in all uppercase\n- \`length\` — the length of the text\n- \`first_char\` — the first character`,
+            hints: ["Use .upper(), len(), and text[0]."],
+            starterCode: `text = "Python"\n# Create upper, length, and first_char\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'upper' not in dir():
+        errors.append("'upper' is not defined")
+    elif upper != "PYTHON":
+        errors.append("'upper' should be 'PYTHON'")
+    if 'length' not in dir():
+        errors.append("'length' is not defined")
+    elif length != 6:
+        errors.append("'length' should be 6")
+    if 'first_char' not in dir():
+        errors.append("'first_char' is not defined")
+    elif first_char != "P":
+        errors.append("'first_char' should be 'P'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "String methods mastered!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-var-5",
+            title: "Type Conversion",
+            difficulty: "Medium",
+            xp: 50,
+            isCompleted: false,
+            description: `Given \`num_str = "42"\`, create:\n- \`num\` — convert it to an integer\n- \`back_to_str\` — convert num back to a string`,
+            hints: [
+              "Use int() to convert string to integer.",
+              "Use str() to convert back.",
+            ],
+            starterCode: `num_str = "42"\n# Convert to integer, then back to string\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'num' not in dir():
+        errors.append("'num' is not defined")
+    elif not isinstance(num, int) or num != 42:
+        errors.append("'num' should be the integer 42")
+    if 'back_to_str' not in dir():
+        errors.append("'back_to_str' is not defined")
+    elif not isinstance(back_to_str, str) or back_to_str != "42":
+        errors.append("'back_to_str' should be the string '42'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Type conversion mastered!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-var-6",
+            title: "Multiple Assignment",
+            difficulty: "Medium",
+            xp: 50,
+            isCompleted: false,
+            description: `Use Python's multiple assignment to create three variables in a single line:\n- \`x\` = 10\n- \`y\` = 20\n- \`z\` = 30`,
+            hints: ["Python supports: x, y, z = 10, 20, 30"],
+            starterCode: `# Assign x, y, z in one line\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'x' not in dir() or x != 10:
+        errors.append("'x' should be 10")
+    if 'y' not in dir() or y != 20:
+        errors.append("'y' should be 20")
+    if 'z' not in dir() or z != 30:
+        errors.append("'z' should be 30")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Multiple assignment works!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+        ],
+      },
+
+      // ─── CHAPTER 2: CONDITIONALS ──────────────────────────
+      {
+        id: "py-conditionals",
+        title: "Conditionals & Logic",
+        description:
+          "Make decisions with if/elif/else and comparison operators",
+        totalXp: 250,
+        problems: [
+          {
+            id: "py-cond-1",
+            title: "Positive or Negative",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`check_sign(num)\` that returns:\n- "positive" if num > 0\n- "negative" if num < 0\n- "zero" if num == 0`,
+            hints: ["Use if/elif/else.", "Return string values."],
+            starterCode: `def check_sign(num):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    if not callable(check_sign):
+        print(json.dumps({"success": False, "message": "Function 'check_sign' is not defined."}))
+    else:
+        errors = []
+        if check_sign(5) != "positive":
+            errors.append("check_sign(5) should return 'positive'")
+        if check_sign(-3) != "negative":
+            errors.append("check_sign(-3) should return 'negative'")
+        if check_sign(0) != "zero":
+            errors.append("check_sign(0) should return 'zero'")
+        if len(errors) > 0:
+            print(json.dumps({"success": False, "message": ". ".join(errors)}))
+        else:
+            print(json.dumps({"success": True, "message": "All cases handled correctly!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'check_sign' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-cond-2",
+            title: "Grade Calculator",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`get_grade(score)\` that returns:\n- "A" for score >= 90\n- "B" for score >= 80\n- "C" for score >= 70\n- "D" for score >= 60\n- "F" for anything below 60`,
+            hints: [
+              "Use if/elif chain, checking from highest to lowest.",
+              "The order of conditions matters!",
+            ],
+            starterCode: `def get_grade(score):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if get_grade(95) != "A":
+        errors.append("get_grade(95) should return 'A'")
+    if get_grade(85) != "B":
+        errors.append("get_grade(85) should return 'B'")
+    if get_grade(75) != "C":
+        errors.append("get_grade(75) should return 'C'")
+    if get_grade(65) != "D":
+        errors.append("get_grade(65) should return 'D'")
+    if get_grade(50) != "F":
+        errors.append("get_grade(50) should return 'F'")
+    if get_grade(90) != "A":
+        errors.append("get_grade(90) should return 'A' (boundary)")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Grade calculator works perfectly!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'get_grade' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-cond-3",
+            title: "Even or Odd",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`even_or_odd(num)\` that returns "even" if the number is even, otherwise "odd".`,
+            hints: ["Use the modulo operator: num % 2"],
+            starterCode: `def even_or_odd(num):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if even_or_odd(4) != "even":
+        errors.append("even_or_odd(4) should return 'even'")
+    if even_or_odd(7) != "odd":
+        errors.append("even_or_odd(7) should return 'odd'")
+    if even_or_odd(0) != "even":
+        errors.append("even_or_odd(0) should return 'even'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Even/odd check works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'even_or_odd' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-cond-4",
+            title: "Logical Operators",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`can_ride(height, age)\` that returns True only if height >= 120 AND age >= 10.`,
+            hints: ["Use the 'and' keyword.", "Both conditions must be True."],
+            starterCode: `def can_ride(height, age):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if can_ride(130, 12) != True:
+        errors.append("can_ride(130, 12) should return True")
+    if can_ride(110, 12) != False:
+        errors.append("can_ride(110, 12) should return False (too short)")
+    if can_ride(130, 8) != False:
+        errors.append("can_ride(130, 8) should return False (too young)")
+    if can_ride(100, 5) != False:
+        errors.append("can_ride(100, 5) should return False (both fail)")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Logical operators working!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'can_ride' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+        ],
+      },
+
+      // ─── CHAPTER 3: LOOPS ─────────────────────────────────
+      {
+        id: "py-loops",
+        title: "Loops",
+        description: "Repeat actions with for and while loops",
+        totalXp: 350,
+        problems: [
+          {
+            id: "py-loop-1",
+            title: "Sum 1 to N",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`sum_to(n)\` that returns the sum of all numbers from 1 to n (inclusive).`,
+            hints: [
+              "Use a for loop: for i in range(1, n + 1)",
+              "Keep a running total variable.",
+            ],
+            starterCode: `def sum_to(n):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if sum_to(5) != 15:
+        errors.append("sum_to(5) should return 15")
+    if sum_to(10) != 55:
+        errors.append("sum_to(10) should return 55")
+    if sum_to(1) != 1:
+        errors.append("sum_to(1) should return 1")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Loop logic is solid!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'sum_to' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-loop-2",
+            title: "FizzBuzz",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`fizzbuzz(n)\` that returns a list from 1 to n where:\n- Multiples of 3 are replaced with "Fizz"\n- Multiples of 5 are replaced with "Buzz"\n- Multiples of both are replaced with "FizzBuzz"\n- All other numbers stay as integers`,
+            hints: [
+              "Check divisible by 15 first (both 3 and 5).",
+              "Use % (modulo) operator to check divisibility.",
+              "Append results to a list and return it.",
+            ],
+            starterCode: `def fizzbuzz(n):\n    # Return a list\n    pass\n`,
+            testFunction: `
+import json
+try:
+    result = fizzbuzz(15)
+    if not isinstance(result, list):
+        print(json.dumps({"success": False, "message": "fizzbuzz should return a list."}))
+    else:
+        errors = []
+        if result[0] != 1:
+            errors.append("Index 0 should be 1")
+        if result[2] != "Fizz":
+            errors.append("Index 2 should be 'Fizz' (3)")
+        if result[4] != "Buzz":
+            errors.append("Index 4 should be 'Buzz' (5)")
+        if result[14] != "FizzBuzz":
+            errors.append("Index 14 should be 'FizzBuzz' (15)")
+        if len(result) != 15:
+            errors.append("List length should be 15")
+        if len(errors) > 0:
+            print(json.dumps({"success": False, "message": ". ".join(errors)}))
+        else:
+            print(json.dumps({"success": True, "message": "FizzBuzz complete!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'fizzbuzz' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-loop-3",
+            title: "Count Vowels",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`count_vowels(s)\` that returns the number of vowels (a, e, i, o, u) in the string. Case insensitive.`,
+            hints: [
+              "Convert to lowercase first with .lower().",
+              "Check if each character is in 'aeiou'.",
+            ],
+            starterCode: `def count_vowels(s):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if count_vowels("hello") != 2:
+        errors.append("count_vowels('hello') should return 2")
+    if count_vowels("AEIOU") != 5:
+        errors.append("count_vowels('AEIOU') should return 5")
+    if count_vowels("xyz") != 0:
+        errors.append("count_vowels('xyz') should return 0")
+    if count_vowels("Python") != 1:
+        errors.append("count_vowels('Python') should return 1")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Vowel counter works perfectly!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'count_vowels' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-loop-4",
+            title: "Reverse a String",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`reverse_string(s)\` that returns the string reversed. Do NOT use slicing ([::-1]).`,
+            hints: [
+              "Loop from the end of the string to the beginning.",
+              "Build a new string character by character.",
+            ],
+            starterCode: `def reverse_string(s):\n    # Don't use [::-1]\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if reverse_string("hello") != "olleh":
+        errors.append("reverse_string('hello') should return 'olleh'")
+    if reverse_string("abc") != "cba":
+        errors.append("reverse_string('abc') should return 'cba'")
+    if reverse_string("a") != "a":
+        errors.append("reverse_string('a') should return 'a'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "String reversal complete!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'reverse_string' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-loop-5",
+            title: "Find Maximum",
+            difficulty: "Medium",
+            xp: 100,
+            isCompleted: false,
+            description: `Write a function \`find_max(lst)\` that returns the largest number in a list. Do NOT use the built-in max().`,
+            hints: [
+              "Start with the first element as the current max.",
+              "Loop through and compare each element.",
+            ],
+            starterCode: `def find_max(lst):\n    # Don't use max()\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if find_max([1, 5, 3, 9, 2]) != 9:
+        errors.append("find_max([1,5,3,9,2]) should return 9")
+    if find_max([-1, -5, -3]) != -1:
+        errors.append("find_max([-1,-5,-3]) should return -1")
+    if find_max([42]) != 42:
+        errors.append("find_max([42]) should return 42")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Max finder works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'find_max' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+        ],
+      },
+
+      // ─── CHAPTER 4: FUNCTIONS ─────────────────────────────
+      {
+        id: "py-functions",
+        title: "Functions",
+        description: "Learn to create reusable blocks of code",
+        totalXp: 350,
+        problems: [
+          {
+            id: "py-func-1",
+            title: "Add Two Numbers",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`add(a, b)\` that returns the sum of a and b.`,
+            hints: ["Use the return keyword.", "return a + b"],
+            starterCode: `def add(a, b):\n    # Return the sum\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if add(2, 3) != 5:
+        errors.append("add(2, 3) should return 5")
+    if add(-1, 1) != 0:
+        errors.append("add(-1, 1) should return 0")
+    if add(0, 0) != 0:
+        errors.append("add(0, 0) should return 0")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Function works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'add' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-func-2",
+            title: "Default Parameters",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`greet(name, greeting="Hello")\` that returns the string "{greeting}, {name}!" — if greeting is not provided, it should default to "Hello".`,
+            hints: [
+              'Use default parameter: def greet(name, greeting="Hello")',
+              "Use an f-string for the return value.",
+            ],
+            starterCode: `def greet(name, greeting="Hello"):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if greet("Alex") != "Hello, Alex!":
+        errors.append("greet('Alex') should return 'Hello, Alex!'")
+    if greet("Sam", "Hey") != "Hey, Sam!":
+        errors.append("greet('Sam', 'Hey') should return 'Hey, Sam!'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Default parameters work!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'greet' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-func-3",
+            title: "Factorial",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`factorial(n)\` that returns the factorial of n (n!).\n- factorial(0) = 1\n- factorial(5) = 120`,
+            hints: ["Use a loop or recursion.", "Remember: 0! = 1."],
+            starterCode: `def factorial(n):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if factorial(0) != 1:
+        errors.append("factorial(0) should return 1")
+    if factorial(1) != 1:
+        errors.append("factorial(1) should return 1")
+    if factorial(5) != 120:
+        errors.append("factorial(5) should return 120")
+    if factorial(10) != 3628800:
+        errors.append("factorial(10) should return 3628800")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Factorial mastered!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'factorial' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-func-4",
+            title: "Is Palindrome",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`is_palindrome(s)\` that returns True if the string reads the same forwards and backwards (case insensitive), otherwise False.`,
+            hints: [
+              "Convert to lowercase first.",
+              "Compare the string with its reverse.",
+            ],
+            starterCode: `def is_palindrome(s):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if is_palindrome("racecar") != True:
+        errors.append("is_palindrome('racecar') should return True")
+    if is_palindrome("Madam") != True:
+        errors.append("is_palindrome('Madam') should return True")
+    if is_palindrome("hello") != False:
+        errors.append("is_palindrome('hello') should return False")
+    if is_palindrome("A") != True:
+        errors.append("is_palindrome('A') should return True")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Palindrome checker works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'is_palindrome' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-func-5",
+            title: "Lambda & Map",
+            difficulty: "Hard",
+            xp: 75,
+            isCompleted: false,
+            description: `Create a variable \`double\` that is a lambda function taking one argument and returning it doubled. Then create a variable \`doubled_list\` by using \`list(map(...))\` to apply it to [1, 2, 3, 4, 5].`,
+            hints: [
+              "Lambda syntax: double = lambda x: x * 2",
+              "Map: list(map(double, [1, 2, 3, 4, 5]))",
+            ],
+            starterCode: `# Create lambda and use map\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'double' not in dir():
+        errors.append("'double' is not defined")
+    elif not callable(double):
+        errors.append("'double' should be a callable (lambda)")
+    elif double(3) != 6:
+        errors.append("double(3) should return 6")
+    if 'doubled_list' not in dir():
+        errors.append("'doubled_list' is not defined")
+    elif doubled_list != [2, 4, 6, 8, 10]:
+        errors.append("'doubled_list' should be [2, 4, 6, 8, 10]")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Lambda and map mastered!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+        ],
+      },
+
+      // ─── CHAPTER 5: LISTS ─────────────────────────────────
+      {
+        id: "py-lists",
+        title: "Lists",
+        description: "Work with ordered collections of data",
+        totalXp: 350,
+        problems: [
+          {
+            id: "py-list-1",
+            title: "List Basics",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Create a list called \`fruits\` with these values: "apple", "banana", "cherry". Then create a variable \`count\` set to the length of the list.`,
+            hints: [
+              "Use square brackets: ['apple', 'banana', 'cherry']",
+              "Use len() to get the count.",
+            ],
+            starterCode: `# Create fruits list and count variable\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'fruits' not in dir():
+        errors.append("'fruits' is not defined")
+    elif not isinstance(fruits, list):
+        errors.append("'fruits' should be a list")
+    elif len(fruits) != 3:
+        errors.append("'fruits' should have 3 items")
+    elif fruits != ["apple", "banana", "cherry"]:
+        errors.append("fruits should be ['apple', 'banana', 'cherry']")
+    if 'count' not in dir():
+        errors.append("'count' is not defined")
+    elif count != 3:
+        errors.append("'count' should be 3")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "List basics mastered!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-list-2",
+            title: "List Comprehension",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`double_all(lst)\` that uses a list comprehension to return a new list where every number is doubled.`,
+            hints: [
+              "Syntax: [x * 2 for x in lst]",
+              "List comprehension creates a new list.",
+            ],
+            starterCode: `def double_all(lst):\n    # Use list comprehension\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    r1 = double_all([1, 2, 3])
+    r2 = double_all([0, -1, 5])
+    if r1 != [2, 4, 6]:
+        errors.append("double_all([1,2,3]) should return [2,4,6]")
+    if r2 != [0, -2, 10]:
+        errors.append("double_all([0,-1,5]) should return [0,-2,10]")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "List comprehension mastered!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'double_all' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-list-3",
+            title: "Filter Evens",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`get_evens(lst)\` that uses a list comprehension to return only the even numbers.`,
+            hints: [
+              "Syntax: [x for x in lst if x % 2 == 0]",
+              "Even numbers have remainder 0 when divided by 2.",
+            ],
+            starterCode: `def get_evens(lst):\n    # Use list comprehension\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if get_evens([1,2,3,4,5,6]) != [2,4,6]:
+        errors.append("get_evens([1,2,3,4,5,6]) should return [2,4,6]")
+    if get_evens([1,3,5]) != []:
+        errors.append("get_evens([1,3,5]) should return []")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "List filtering mastered!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'get_evens' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-list-4",
+            title: "List Sum",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`list_sum(lst)\` that returns the sum of all numbers in the list. Do NOT use the built-in sum().`,
+            hints: [
+              "Use a for loop with a running total.",
+              "Initialize total to 0 before the loop.",
+            ],
+            starterCode: `def list_sum(lst):\n    # Don't use sum()\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if list_sum([1, 2, 3, 4, 5]) != 15:
+        errors.append("list_sum([1,2,3,4,5]) should return 15")
+    if list_sum([]) != 0:
+        errors.append("list_sum([]) should return 0")
+    if list_sum([-1, 1]) != 0:
+        errors.append("list_sum([-1,1]) should return 0")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "List sum works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'list_sum' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-list-5",
+            title: "Flatten List",
+            difficulty: "Hard",
+            xp: 125,
+            isCompleted: false,
+            description: `Write a function \`flatten(lst)\` that takes a list of lists and returns a single flat list.\n\nExample: flatten([[1,2],[3,4],[5]]) → [1,2,3,4,5]`,
+            hints: [
+              "Loop through each sub-list, then loop through each item.",
+              "You can use a nested list comprehension: [item for sub in lst for item in sub]",
+            ],
+            starterCode: `def flatten(lst):\n    # Flatten the list of lists\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if flatten([[1,2],[3,4],[5]]) != [1,2,3,4,5]:
+        errors.append("flatten([[1,2],[3,4],[5]]) should return [1,2,3,4,5]")
+    if flatten([[], [1], [2,3]]) != [1,2,3]:
+        errors.append("flatten([[], [1], [2,3]]) should return [1,2,3]")
+    if flatten([]) != []:
+        errors.append("flatten([]) should return []")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "List flattening mastered!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'flatten' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+        ],
+      },
+
+      // ─── CHAPTER 6: DICTIONARIES ──────────────────────────
+      {
+        id: "py-dicts",
+        title: "Dictionaries",
+        description: "Store and access key-value pairs",
+        totalXp: 300,
+        problems: [
+          {
+            id: "py-dict-1",
+            title: "Create a Dictionary",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Create a dictionary called \`person\` with these keys and values:\n- "name": "Alice"\n- "age": 25\n- "city": "Lahore"`,
+            hints: [
+              'Use curly braces: {"key": "value"}',
+              "Separate key-value pairs with commas.",
+            ],
+            starterCode: `# Create the person dictionary\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    if 'person' not in dir():
+        errors.append("'person' is not defined")
+    elif not isinstance(person, dict):
+        errors.append("'person' should be a dictionary")
+    else:
+        if person.get("name") != "Alice":
+            errors.append("person['name'] should be 'Alice'")
+        if person.get("age") != 25:
+            errors.append("person['age'] should be 25")
+        if person.get("city") != "Lahore":
+            errors.append("person['city'] should be 'Lahore'")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Dictionary created!"}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-dict-2",
+            title: "Word Counter",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`word_count(sentence)\` that returns a dictionary where keys are words and values are how many times each word appears.\n\nExample: word_count("the cat sat on the mat") → {"the": 2, "cat": 1, "sat": 1, "on": 1, "mat": 1}`,
+            hints: [
+              "Use .split() to get a list of words.",
+              "Loop through words and count with a dictionary.",
+            ],
+            starterCode: `def word_count(sentence):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    r1 = word_count("the cat sat on the mat")
+    if r1.get("the") != 2:
+        errors.append("'the' should appear 2 times")
+    if r1.get("cat") != 1:
+        errors.append("'cat' should appear 1 time")
+    if r1.get("mat") != 1:
+        errors.append("'mat' should appear 1 time")
+    r2 = word_count("a a a")
+    if r2.get("a") != 3:
+        errors.append("'a' in 'a a a' should appear 3 times")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Word counter works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'word_count' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-dict-3",
+            title: "Merge Dictionaries",
+            difficulty: "Easy",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`merge_dicts(d1, d2)\` that returns a new dictionary containing all keys from both dictionaries. If a key exists in both, use the value from d2.`,
+            hints: [
+              "You can use {**d1, **d2} to merge.",
+              "Or loop through and add keys manually.",
+            ],
+            starterCode: `def merge_dicts(d1, d2):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    r1 = merge_dicts({"a": 1}, {"b": 2})
+    if r1 != {"a": 1, "b": 2}:
+        errors.append("merge_dicts({'a':1}, {'b':2}) should return {'a':1, 'b':2}")
+    r2 = merge_dicts({"a": 1}, {"a": 2})
+    if r2 != {"a": 2}:
+        errors.append("merge_dicts({'a':1}, {'a':2}) should return {'a':2}")
+    r3 = merge_dicts({}, {"x": 5})
+    if r3 != {"x": 5}:
+        errors.append("merge_dicts({}, {'x':5}) should return {'x':5}")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Dictionary merge works!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'merge_dicts' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-dict-4",
+            title: "Invert Dictionary",
+            difficulty: "Medium",
+            xp: 75,
+            isCompleted: false,
+            description: `Write a function \`invert_dict(d)\` that swaps keys and values.\n\nExample: invert_dict({"a": 1, "b": 2}) → {1: "a", 2: "b"}`,
+            hints: [
+              "Loop through .items() to get key-value pairs.",
+              "Create a new dict with value as key and key as value.",
+            ],
+            starterCode: `def invert_dict(d):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    r1 = invert_dict({"a": 1, "b": 2})
+    if r1 != {1: "a", 2: "b"}:
+        errors.append("invert_dict({'a':1, 'b':2}) should return {1:'a', 2:'b'}")
+    r2 = invert_dict({})
+    if r2 != {}:
+        errors.append("invert_dict({}) should return {}")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Dictionary inversion mastered!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'invert_dict' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+          {
+            id: "py-dict-5",
+            title: "Group by First Letter",
+            difficulty: "Hard",
+            xp: 50,
+            isCompleted: false,
+            description: `Write a function \`group_by_first(words)\` that takes a list of words and returns a dictionary grouping them by their first letter.\n\nExample: group_by_first(["apple", "ant", "bat"]) → {"a": ["apple", "ant"], "b": ["bat"]}`,
+            hints: [
+              "Use word[0] to get the first letter.",
+              "Use .setdefault(key, []) to initialize lists.",
+            ],
+            starterCode: `def group_by_first(words):\n    # Your code here\n    pass\n`,
+            testFunction: `
+import json
+try:
+    errors = []
+    r1 = group_by_first(["apple", "ant", "bat"])
+    if r1.get("a") != ["apple", "ant"]:
+        errors.append("Words starting with 'a' should be ['apple', 'ant']")
+    if r1.get("b") != ["bat"]:
+        errors.append("Words starting with 'b' should be ['bat']")
+    r2 = group_by_first([])
+    if r2 != {}:
+        errors.append("Empty list should return {}")
+    if len(errors) > 0:
+        print(json.dumps({"success": False, "message": ". ".join(errors)}))
+    else:
+        print(json.dumps({"success": True, "message": "Grouping mastered!"}))
+except NameError:
+    print(json.dumps({"success": False, "message": "Function 'group_by_first' is not defined."}))
+except Exception as e:
+    print(json.dumps({"success": False, "message": str(e)}))
+`,
+          },
+        ],
+      },
+    ],
+  },
 };

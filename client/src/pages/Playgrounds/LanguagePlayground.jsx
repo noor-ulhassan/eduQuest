@@ -50,16 +50,25 @@ const LanguagePlayground = () => {
   useEffect(() => {
     const initProgress = async () => {
       if (!user || !language) return;
+      console.log("[Playground] initProgress called for language:", language);
 
       try {
         setIsLoadingProgress(true);
         // Fetch all progress
         const { progress } = await getPlaygroundProgress();
+        console.log("[Playground] fetched progress:", progress);
         const currentProgress = progress.find((p) => p.language === language);
+        console.log(
+          "[Playground] currentProgress for",
+          language,
+          ":",
+          currentProgress,
+        );
 
         if (currentProgress) {
           const completedSet = new Set(currentProgress.completedProblems);
           setCompletedProblems(completedSet);
+          console.log("[Playground] completedProblems:", [...completedSet]);
 
           // Auto-open first unsolved problem
           if (data && data.chapters) {
@@ -84,10 +93,25 @@ const LanguagePlayground = () => {
           }
         } else {
           // Auto-enroll if not enrolled
-          await enrollInPlayground(language);
+          console.log(
+            "[Playground] Not enrolled, auto-enrolling for:",
+            language,
+          );
+          try {
+            const enrollResult = await enrollInPlayground(language);
+            console.log("[Playground] Enrollment result:", enrollResult);
+          } catch (enrollErr) {
+            console.error(
+              "[Playground] Enrollment FAILED:",
+              enrollErr?.response?.data || enrollErr.message,
+            );
+          }
         }
       } catch (error) {
-        console.error("Error loading progress:", error);
+        console.error(
+          "[Playground] Error loading progress:",
+          error?.response?.data || error.message,
+        );
       } finally {
         setIsLoadingProgress(false);
       }
@@ -201,18 +225,24 @@ const LanguagePlayground = () => {
       return;
     }
 
-    // Piston execution for JS
+    // Piston execution for JS & Python
     let codeToRun = code;
     if (currentProblem.testFunction) {
       codeToRun = code + "\n" + currentProblem.testFunction;
     }
 
     try {
+      console.log("[Playground] Executing code via Piston for:", language);
       const result = await executeCode(language, codeToRun);
+      console.log(
+        "[Playground] Piston result:",
+        JSON.stringify(result).slice(0, 500),
+      );
       let displayOutput = result.output || "";
       let parsedTest = null;
 
-      if (result.success && displayOutput) {
+      // Always try to parse test results from output, even if there were warnings
+      if (displayOutput) {
         const lines = displayOutput.split("\n");
         const jsonLineIdx = lines.findIndex((l) =>
           l.trim().startsWith('{"success":'),
@@ -239,9 +269,11 @@ const LanguagePlayground = () => {
         success: result.success,
       });
 
+      console.log("[Playground] parsedTest:", parsedTest);
       if (parsedTest) {
         setTestResult(parsedTest);
         if (parsedTest.success) {
+          console.log("[Playground] Test PASSED. Saving progress...");
           // Call backend to save progress and update XP
           try {
             const response = await completeProb(
@@ -263,7 +295,10 @@ const LanguagePlayground = () => {
               (prev) => new Set([...prev, currentProblem.id]),
             );
           } catch (error) {
-            console.error("Error saving progress:", error);
+            console.error(
+              "[Playground] Error saving progress:",
+              error?.response?.data || error.message,
+            );
             toast.error("Tests passed but failed to save progress");
           }
         } else {

@@ -50,11 +50,7 @@ const Playground = () => {
 
   return (
     <div>
-      <h1 className="mt-28 font-bold text-3xl px-8">Learning Paths</h1>
-      <p className="px-8 text-zinc-600 text-xl">
-        Step-by-step paths to Mastery
-      </p>
-      <div className="flex gap-10 mt-20 px-12 mb-12">
+      <div className="flex gap-10 mt-28 px-12 mb-12">
         <img
           src="/cs.png"
           alt="cs"
@@ -88,6 +84,13 @@ const Playground = () => {
           img="/javascript.png"
           href="/playground/javascript"
           progress={progressData.javascript}
+          isLoading={isLoading}
+        />
+        <SkillCard
+          title="Python"
+          img="/python.png"
+          href="/playground/python"
+          progress={progressData.python}
           isLoading={isLoading}
         />
         <SkillCard

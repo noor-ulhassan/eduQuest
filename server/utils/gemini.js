@@ -31,6 +31,18 @@ export const geminiCourseGenerator = async (req, res) => {
       });
     }
 
+    // Prefer authenticated user data over body fields for security
+    const resolvedUserEmail = req.user?.email || userEmail;
+    const resolvedUserName = req.user?.name || userName;
+    const resolvedUserProfileImage = req.user?.avatarUrl || userProfileImage;
+
+    if (!resolvedUserEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Authenticated user email is required",
+      });
+    }
+
     const prompt = `Generate Learning Course depends on following details:
     - Topic: ${name}
     - Description: ${description}
@@ -68,20 +80,31 @@ export const geminiCourseGenerator = async (req, res) => {
       .replace(/```/g, "")
       .trim();
 
-    const aiResponse = JSON.parse(cleanedText);
+    let aiResponse;
+    try {
+      aiResponse = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("Failed to parse Gemini course JSON:", parseError, cleanedText);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to parse course data from AI",
+      });
+    }
+
     const courseId = uuidv4();
 
     const newCourse = await Course.create({
       courseId: courseId,
       name: name,
       description: description,
-      noOfChapters: noOfChapters,
+      noOfChapters: Number(noOfChapters),
       level: level,
       category: category,
 
       courseOutput: aiResponse.course,
-      userEmail: req.user.email,
-      userName: req.user.name,
+      userEmail: resolvedUserEmail,
+      userName: resolvedUserName,
+      userProfileImage: resolvedUserProfileImage,
     });
 
     console.log("New Course Created: ", newCourse);
@@ -155,7 +178,16 @@ export const generateChapterContent = async (req, res) => {
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
-    const chapterContentData = JSON.parse(cleanedText);
+    let chapterContentData;
+    try {
+      chapterContentData = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("Failed to parse Gemini chapter JSON:", parseError, cleanedText);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to parse chapter content from AI",
+      });
+    }
 
     await Course.findOneAndUpdate(
       { courseId: courseId },
@@ -262,6 +294,13 @@ export const markChapterCompleted = async (req, res) => {
   try {
     const { enrollmentId, chapterName } = req.body;
 
+    if (!enrollmentId || !chapterName) {
+      return res.status(400).json({
+        success: false,
+        message: "enrollmentId and chapterName are required",
+      });
+    }
+
     const updatedEnrollment = await Enrollment.findByIdAndUpdate(
       enrollmentId,
       {
@@ -269,6 +308,13 @@ export const markChapterCompleted = async (req, res) => {
       },
       { new: true }
     );
+
+    if (!updatedEnrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment not found",
+      });
+    }
 
     return res
       .status(200)
@@ -329,6 +375,14 @@ export const updateUserXP = async (req, res) => {
     const { xpAmount } = req.body; // Frontend decides the amount
     const userEmail = req.user.email; // Securely get email from token
 
+    const parsedXP = Number(xpAmount);
+    if (!Number.isFinite(parsedXP) || parsedXP <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "xpAmount must be a positive number",
+      });
+    }
+
     const user = await User.findOne({ email: userEmail });
     if (!user) {
       return res
@@ -337,7 +391,7 @@ export const updateUserXP = async (req, res) => {
     }
 
     // 1. Add the XP
-    user.xp = (user.xp || 0) + Number(xpAmount);
+    user.xp = (user.xp || 0) + parsedXP;
 
     // 2. Calculate Level (e.g., every 1000 XP is a level)
     const newLevel = Math.floor(user.xp / 1000) + 1;
@@ -372,9 +426,64 @@ export const updateUserXP = async (req, res) => {
 
 export const geminiPdfSummarizer = async (req, res) => {
   try {
+    const { text, maxSentences = 5 } = req.body || {};
+
+    if (!text || typeof text !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Text content is required for summarization",
+      });
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
       model: "gemini-flash-latest",
+    });
+
+    const MAX_CHARS = 15000;
+    const safeText = text.slice(0, MAX_CHARS);
+
+    const prompt = `
+You are an expert educational content summarizer.
+
+TASK:
+- Summarize the following content for a student.
+- Use clear, simple language.
+- Limit the summary to about ${maxSentences} short sentences.
+
+CONTEXT:
+${safeText}
+
+OUTPUT FORMAT (JSON ONLY, no markdown, no backticks):
+{
+  "summary": "overall summary as a single string",
+  "bullets": ["bullet 1", "bullet 2", "bullet 3"]
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const textResponse = response.text();
+
+    const cleanedText = textResponse
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    let aiResponse;
+    try {
+      aiResponse = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("Failed to parse Gemini PDF summary JSON:", parseError, cleanedText);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to parse summary data from AI",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: aiResponse,
     });
   } catch (error) {
     console.error("Gemini PDF Summarizer Error:", error);
@@ -395,6 +504,10 @@ export const generateQuizFromGemini = async ({
   difficulty = "medium",
 }) => {
   try {
+    if (!context || typeof context !== "string") {
+      throw new Error("Context is required to generate a quiz");
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 

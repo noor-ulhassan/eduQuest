@@ -28,7 +28,7 @@ export const enrollPlayground = async (req, res) => {
     const userId = req.user._id;
     const { language } = req.body;
 
-    if (!["html", "css", "javascript"].includes(language)) {
+    if (!["html", "css", "javascript", "python"].includes(language)) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid language" });
