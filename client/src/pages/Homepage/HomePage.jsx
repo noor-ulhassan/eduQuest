@@ -15,6 +15,7 @@ import TopCommunityPosts from "../../components/social/TopCommunityPosts";
 import DraggableCards from "../../components/home/draggableCards";
 import ExploreMore from "@/components/user/ExploreMore";
 import { Highlighter } from "@/components/ui/highlighter";
+import LiveCompetitions from "../../components/home/LiveCompetitions";
 
 const HomePage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -62,13 +63,20 @@ const HomePage = () => {
             </div>
 
             <div className="max-w-[1200px] mx-auto mt-16 mb-20 px-4 space-y-16">
+              <LiveCompetitions />
+
               <Leaderboard />
 
               <section>
                 <div className="mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 font-hand">
-                    Community <span className="text-blue-500">Posts</span>
-                  </h2>
+                  <Highlighter action="underline" color="orange">
+                    <h1 className="text-4xl font-bold font-hand">
+                      Community{" "}
+                      <Highlighter action="highlight" color="skyblue">
+                        Posts
+                      </Highlighter>{" "}
+                    </h1>
+                  </Highlighter>
                   <p className="text-gray-500 mt-2">
                     See what others are sharing
                   </p>

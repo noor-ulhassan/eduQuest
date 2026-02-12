@@ -30,6 +30,7 @@ import AboutPage from "./pages/about/About";
 import Playground from "./pages/Playgrounds/Page";
 import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
 import Home from "./pages/Community/components/Home";
+import CompetitionLobby from "./pages/Competition/CompetitionLobby";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -126,6 +127,22 @@ const appRouter = createBrowserRouter([
       { path: "about", element: <AboutPage /> },
       { path: "playground", element: <Playground /> },
       { path: "community", element: <Home /> },
+      {
+        path: "competition",
+        element: (
+          <ProtectedRoute>
+            <CompetitionLobby />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "competition/:roomCode",
+        element: (
+          <ProtectedRoute>
+            <CompetitionLobby />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
 

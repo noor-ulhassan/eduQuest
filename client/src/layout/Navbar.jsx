@@ -115,6 +115,11 @@ const Navbar = () => {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink className="hover:text-yellow-600 text-sm">
+                  <Link to={"/competition"}>Compete</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
                   <Link to={"/playground"}>Playground</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -122,12 +127,6 @@ const Navbar = () => {
               <NavigationMenuItem>
                 <NavigationMenuLink className="hover:text-yellow-600 text-sm">
                   <Link to={"/community"}>Community</Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
-                  <Link to={"/about"}>About</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
