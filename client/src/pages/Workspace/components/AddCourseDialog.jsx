@@ -166,7 +166,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader, Loader2Icon, Sparkle } from "lucide-react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
 import api from "@/features/auth/authApi";
 
@@ -200,7 +199,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
         "http://localhost:8080/api/v1/ai/generate-course",
         {
           ...formData,
-        }
+        },
       );
 
       console.log("Generated Course ID:", res.data.courseId);
@@ -260,6 +259,16 @@ function AddCourseDialog({ children, setCourseList, user }) {
                   }
                 />
               </div>
+
+              {/* <div className="flex gap-3 items-center">
+                <label>Include Video</label>
+                <Switch
+                  checked={formData.includeVideo}
+                  onCheckedChange={() =>
+                    onHandleInputChange("includeVideo", !formData.includeVideo)
+                  }
+                />
+              </div> */}
 
               <div>
                 <label>Difficulty Level</label>

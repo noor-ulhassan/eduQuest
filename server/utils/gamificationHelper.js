@@ -13,7 +13,7 @@ export const grantXP = async (dispatch, amount) => {
       "http://localhost:8080/api/v1/ai/update-user-xp",
       {
         xpAmount: amount,
-      }
+      },
     );
 
     console.log("XP Update Response:", response.data); // Debug: Check the structure here
@@ -30,7 +30,7 @@ export const grantXP = async (dispatch, amount) => {
           {
             description: "New rank and rewards unlocked!",
             duration: 5000,
-          }
+          },
         );
       } else {
         toast.success(`+${amount} XP Earned!`, {

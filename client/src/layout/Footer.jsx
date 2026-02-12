@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+
 import {
   FaGithub,
   FaLinkedin,
@@ -9,7 +11,7 @@ import {
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-yellow-200 pt-10 pb-8">
+    <footer className="bg-white border-t border-yellow-200 pt-16 pb-12">
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
@@ -19,28 +21,12 @@ const Footer = () => {
             <ul className="space-y-2">
               {[
                 "About",
-                "Blog",
+                "Profile",
                 "Shop",
                 "Community",
                 "Help Center",
                 "Pricing",
               ].map((item) => (
-                <li key={item}>
-                  <a
-                    href={`/${item.toLowerCase().replace(" ", "-")}`}
-                    className="text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">TRAINING</h3>
-            <ul className="space-y-2">
-              {["Challenges", "Projects", "my-learning"].map((item) => (
                 <li key={item}>
                   <a
                     href={`/${item.toLowerCase()}`}
@@ -55,14 +41,32 @@ const Footer = () => {
 
           <div>
             <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
+              TRAINING
+            </h3>
+            <ul className="space-y-2">
+              {["Workspace", "my-learning", "UploadPdf", "Problems"].map(
+                (item) => (
+                  <li key={item}>
+                    <a
+                      href={`/${item.toLowerCase()}`}
+                      className="text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
+                    >
+                      {item}
+                    </a>
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
               SKILL TREE
             </h3>
             <ul className="space-y-2">
               {[
                 "All Courses",
                 "Python",
-                "Intermediate Python",
-                "SQL",
                 "HTML",
                 "CSS",
                 "JavaScript",
@@ -91,7 +95,6 @@ const Footer = () => {
                 "Git & GitHub",
                 "C++",
                 "Java",
-                "Pandas",
                 "Machine Learning",
                 "GitHub Copilot",
               ].map((item) => (

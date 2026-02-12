@@ -67,6 +67,11 @@ export const googleAuth = async (req, res) => {
         email: user.email,
         avatar: user.avatar,
         provider: user.provider,
+        xp: user.xp,
+        level: user.level,
+        rank: user.rank,
+        badges: user.badges,
+        dayStreak: user.dayStreak,
       },
     });
   } catch (err) {
@@ -172,6 +177,11 @@ export const login = async (req, res) => {
           email: user.email,
           avatar: user.avatar,
           provider: user.provider,
+          xp: user.xp,
+          level: user.level,
+          rank: user.rank,
+          badges: user.badges,
+          dayStreak: user.dayStreak,
         },
       });
   } catch (error) {
@@ -214,6 +224,11 @@ export const refreshToken = async (req, res) => {
         email: user.email,
         avatar: user.avatar,
         provider: user.provider,
+        xp: user.xp,
+        level: user.level,
+        rank: user.rank,
+        badges: user.badges,
+        dayStreak: user.dayStreak,
       },
     });
   } catch (err) {

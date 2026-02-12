@@ -11,7 +11,7 @@ const bannerImages = [
   "/gif4.gif",
   "/gif7.gif",
   "/gif8.gif",
-  "/gif9.gif",
+  "/gif3.gif",
 ];
 
 function CourseCard({ course }) {
@@ -30,7 +30,7 @@ function CourseCard({ course }) {
       Math.abs(
         String(identifier)
           .split("")
-          .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+          .reduce((acc, char) => acc + char.charCodeAt(0), 0),
       ) % bannerImages.length
     ];
 
@@ -42,7 +42,7 @@ function CourseCard({ course }) {
         {
           courseId: course?.courseId,
           userEmail: user?.email,
-        }
+        },
       );
 
       if (response.data.success) {

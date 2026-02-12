@@ -4,19 +4,41 @@ import { useSelector } from "react-redux";
 const UserStats = () => {
   const user = useSelector((state) => state.auth.user);
 
+  const xp = user?.xp || 0;
+  // Calculate level based on XP (assuming 1000 XP per level)
+  const calculatedLevel = Math.floor(xp / 1000) + 1;
+  const level = user?.level || calculatedLevel;
+
+  const xpInCurrentLevel = xp % 1000;
+  const nextLevelXp = 1000;
+  const progressPercentage = (xpInCurrentLevel / nextLevelXp) * 100;
+
   const name = user?.name || "Guest User";
-  const level = user?.level || 1;
-  const xp = user?.xp;
-  const rank = user?.rank || "Bronze";
-  const badges = user?.badges?.length || 0;
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  const xpInCurrentLevel = xp % 1000;
-  const progressPercentage = (xpInCurrentLevel / 1000) * 100;
+  const getLeague = (xp) => {
+    if (xp >= 20000) return "Diamond";
+    if (xp >= 10000) return "Platinum";
+    if (xp >= 5000) return "Gold";
+    if (xp >= 1000) return "Silver";
+    return "Bronze";
+  };
+
+  const getRankTitle = (level) => {
+    if (level >= 100) return "GOAT";
+    if (level >= 50) return "Grandmaster";
+    if (level >= 40) return "Master";
+    if (level >= 30) return "Skilled";
+    if (level >= 3) return "";
+    if (level >= 1) return "Amateur";
+    return "Learner";
+  };
+
+  const league = getLeague(xp);
+  const rankTitle = getRankTitle(level);
 
   const [animatedXP, setAnimatedXP] = useState(0);
-  const [animatedBadges, setAnimatedBadges] = useState(0);
   const [animatedStreak, setAnimatedStreak] = useState(0);
 
   useEffect(() => {
@@ -25,71 +47,69 @@ const UserStats = () => {
     const steps = Math.ceil(duration / stepTime);
 
     const xpStep = xp / steps;
-    const badgesStep = badges / steps;
     const streakStep = dayStreak / steps;
 
     let currentStep = 0;
     const interval = setInterval(() => {
       currentStep++;
       setAnimatedXP(Math.min(xp, Math.floor(xpStep * currentStep)));
-      setAnimatedBadges(Math.min(badges, Math.floor(badgesStep * currentStep)));
       setAnimatedStreak(
-        Math.min(dayStreak, Math.floor(streakStep * currentStep))
+        Math.min(dayStreak, Math.floor(streakStep * currentStep)),
       );
 
       if (currentStep >= steps) clearInterval(interval);
     }, stepTime);
 
     return () => clearInterval(interval);
-  }, [xp, badges, dayStreak]);
+  }, [xp, dayStreak]);
 
   const stats = [
     {
-      label: "Total XP",
-      value: animatedXP,
-      icon: "/star.png",
-      bg: "bg-yellow-900",
-      glow: "shadow-yellow-500/50",
-    },
-    {
       label: "Rank",
-      value: rank,
+      value: rankTitle,
       icon: "/level_1.png",
       bg: "bg-gray-800",
-      glow: "shadow-yellow-500/50",
+      glow: "hover:shadow-indigo-500/20",
     },
     {
-      label: "Badges",
-      value: animatedBadges,
+      label: "League",
+      value: league,
       icon: "/badge.png",
+      bg: "bg-yellow-900",
+      glow: "hover:shadow-yellow-500/20",
+    },
+    {
+      label: "Total XP",
+      value: animatedXP.toLocaleString(),
+      icon: "/star.png",
       bg: "bg-gray-800",
-      glow: "shadow-blue-500/50",
+      glow: "hover:shadow-green-500/20",
     },
     {
       label: "Day Streak",
-      value: animatedStreak,
+      value: `${animatedStreak} Days`,
       icon: "/fire.png",
       bg: "bg-gray-800",
-      glow: "shadow-orange-500/50",
+      glow: "hover:shadow-orange-500/20",
     },
   ];
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl max-w-md mx-auto text-white">
+    <div className="bg-zinc-100 border border-zinc-800 rounded-2xl p-6  max-w-md mx-auto text-white">
       <div className="flex items-center gap-4 mb-6 relative">
         <div className="relative">
-          <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-pink-500 via-yellow-500 to-yellow-400 blur-xl animate-pulse"></div>
+          <div className="absolute -inset-1 rounded-full"></div>
           <img
             src={avatarUrl}
             alt={`${name}'s Avatar`}
             className="w-20 h-20 rounded-full border-2 border-gray-800 relative z-0 object-cover aspect-square"
           />
-          <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 border-2 border-gray-900 rounded-full animate-pulse"></span>
+          <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-400  rounded-full"></span>
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold">{name}</h3>
+          <h3 className="text-lg text-black font-bold">{name}</h3>
           <div className="mt-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-600 text-white">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-500 text-white">
               Level {level}
             </span>
           </div>
@@ -101,7 +121,7 @@ const UserStats = () => {
             ></div>
           </div>
           <p className="text-[10px] text-gray-400 mt-1">
-            {1000 - xpInCurrentLevel} XP to Level {level + 1}
+            {nextLevelXp - xpInCurrentLevel} XP to Level {level + 1}
           </p>
         </div>
       </div>
@@ -114,10 +134,6 @@ const UserStats = () => {
           >
             <div className="w-10 h-10 flex items-center justify-center relative">
               <img src={stat.icon} alt={stat.label} className="w-full h-full" />
-              <div className="absolute inset-0 pointer-events-none">
-                <span className="block w-1 h-1 bg-white rounded-full animate-ping absolute top-0 left-0"></span>
-                <span className="block w-1 h-1 bg-white rounded-full animate-ping absolute bottom-0 right-0"></span>
-              </div>
             </div>
             <div>
               <p className="font-bold text-white">{stat.value}</p>

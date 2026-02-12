@@ -10,49 +10,55 @@ function CodeEditorPanel({
   onLanguageChange,
   onCodeChange,
   onRunCode,
+  className = "",
+  hideHeader = false,
 }) {
   return (
-    <div className="h-full bg-base-300 flex flex-col mt-24 font-jersey text-xl">
-      <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-t border-base-300">
-        <div className="flex items-center gap-3">
-          <img
-            src={LANGUAGE_CONFIG[selectedLanguage].icon}
-            alt={LANGUAGE_CONFIG[selectedLanguage].name}
-            className="size-6"
-          />
-          <select
-            className="select select-sm"
-            value={selectedLanguage}
-            onChange={onLanguageChange}
-          >
-            {Object.entries(LANGUAGE_CONFIG).map(([key, lang]) => (
-              <option key={key} value={key}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div
+      className={`h-full bg-base-300 flex flex-col font-jersey text-xl ${className}`}
+    >
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-t border-base-300">
+          <div className="flex items-center gap-3">
+            <img
+              src={LANGUAGE_CONFIG[selectedLanguage].icon}
+              alt={LANGUAGE_CONFIG[selectedLanguage].name}
+              className="size-6"
+            />
+            <select
+              className="select select-sm"
+              value={selectedLanguage}
+              onChange={onLanguageChange}
+            >
+              {Object.entries(LANGUAGE_CONFIG).map(([key, lang]) => (
+                <option key={key} value={key}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <Button
-          variant={"pixel"}
-          className="gap-2 font-jersey text-xl"
-          size="sm"
-          disabled={isRunning}
-          onClick={onRunCode}
-        >
-          {isRunning ? (
-            <>
-              <Loader2Icon className="size-4 animate-spin" />
-              Running...
-            </>
-          ) : (
-            <>
-              <PlayIcon className="size-4" />
-              Run Code
-            </>
-          )}
-        </Button>
-      </div>
+          <Button
+            variant={"pixel"}
+            className="gap-2 font-jersey text-xl"
+            size="sm"
+            disabled={isRunning}
+            onClick={onRunCode}
+          >
+            {isRunning ? (
+              <>
+                <Loader2Icon className="size-4 animate-spin" />
+                Running...
+              </>
+            ) : (
+              <>
+                <PlayIcon className="size-4" />
+                Run Code
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden">
         <Editor

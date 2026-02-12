@@ -22,7 +22,10 @@
     "jsonwebtoken": "^9.0.2",
     "mime": "^4.1.0",
     "mongoose": "^8.20.1",
+    "multer": "^2.0.2",
     "nodemon": "^3.1.10",
+    "pdf-parse": "^2.4.5",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

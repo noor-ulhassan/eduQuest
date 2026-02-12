@@ -1,5 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
+import NotificationBell from "@/components/social/NotificationBell";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -8,8 +10,6 @@ import {
   NavigationMenuContent,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
-import { DarkMode } from "@/DarkMode";
 import { Link } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
 
@@ -72,11 +72,11 @@ const courses = [
 
 const Navbar = () => {
   return (
-    <motion.div className="h-16 dark:bg-[#0A0A0A]/80 bg-white/80 backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-10 shadow-sm">
+    <motion.div className="h-14 dark:bg-black bg-white backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-50 shadow-sm">
       {/* Desktop */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
-        <div className="flex items-center gap-2 font-jersey">
+        <div className="flex items-center gap-2 font-hand font-bold text-xl">
           <Link to="/home" className="flex items-center gap-3">
             <h1 className="hidden md:block text-4xl tracking-tight">
               <span className="text-yellow-500">Edu</span>
@@ -90,10 +90,10 @@ const Navbar = () => {
           <NavigationMenu>
             <NavigationMenuList className="flex gap-8">
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="hover:bg-yellow-300 data-[state=open]">
+                <NavigationMenuTrigger className="hover:bg-yellow-300 data-[state=open] text-sm">
                   Courses
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="bg-white dark:bg-[#0A0A0A] shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
+                <NavigationMenuContent className="bg-white dark:bg-black shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
                   <ul className="grid md:grid-cols-2 gap-2 sm:w-400px md:w-[500px] lg:w-[500px] p-4 max-h-[90vh] overflow-y-auto">
                     {courses.map((course, index) => (
                       <div
@@ -109,27 +109,33 @@ const Navbar = () => {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuLink className="hover:text-yellow-600">
-                  <Link to={"/#"}>Home</Link>
+                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
+                  <Link to={"/workspace"}>Create & Learn</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink className="hover:text-yellow-600">
-                  <Link to={"/workspace"}>Create & Learn</Link>
+                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
+                  <Link to={"/competition"}>Compete</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
+                  <Link to={"/playground"}>Playground</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuLink className="hover:text-yellow-600">
-                  <Link to={"/Problems"}>Problems</Link>
+                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
+                  <Link to={"/community"}>Community</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
         </div>
 
-        {/* User or Auth Buttons */}
-        <div className="flex items-center gap-4">
+        {/* Notification Bell + Auth Buttons */}
+        <div className="flex items-center gap-3">
+          <NotificationBellConditional />
           <AuthButtons />
         </div>
       </div>
@@ -138,8 +144,8 @@ const Navbar = () => {
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <div className="flex items-center gap-2">
           <h1 className="font-bold text-xl">
-            <span className="text-yellow-500 font-jersey text-xl">Edu</span>
-            <span className="dark:text-white text-gray-800 font-jersey text-xl">
+            <span className="text-yellow-500 font-hand text-xl">Edu</span>
+            <span className="dark:text-white text-gray-800 font-hand text-xl">
               Quest
             </span>
           </h1>
@@ -147,6 +153,13 @@ const Navbar = () => {
       </div>
     </motion.div>
   );
+};
+
+// Only render NotificationBell when user is logged in
+const NotificationBellConditional = () => {
+  const { user } = useSelector((state) => state.auth);
+  if (!user) return null;
+  return <NotificationBell />;
 };
 
 export default Navbar;

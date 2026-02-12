@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import api from "@/features/auth/authApi";
-import { useDispatch, useSelector } from "react-redux"; // Added
-import { grantXP } from "./../../../../../server/utils/gamificationHelper"; // Import your new helper
+import { useDispatch, useSelector } from "react-redux";
+import { grantXP } from "./../../../../../server/utils/gamificationHelper";
 
 function ChapterContent({
   chapter,
@@ -12,8 +12,8 @@ function ChapterContent({
   onProgressUpdate,
 }) {
   const topicRefs = useRef([]);
-  const dispatch = useDispatch(); // Initialize dispatch
-  const { user } = useSelector((state) => state.auth); // Get user for email
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (topicRefs.current[selectedTopic]) {
@@ -105,7 +105,7 @@ function ChapterContent({
         <Button
           onClick={handleMarkCompleted}
           disabled={enrollment?.completedChapters?.includes(
-            chapter?.chapterName
+            chapter?.chapterName,
           )}
           variant="pixel"
           className="text-2xl font-jersey px-10 h-14 bg-green-600 hover:bg-green-700 flex items-center gap-2"
