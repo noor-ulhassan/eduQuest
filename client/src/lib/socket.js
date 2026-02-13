@@ -8,11 +8,11 @@ let socket = null;
 
 export const getSocket = () => socket;
 
-export const connectSocket = (token) => {
+export const connectSocket = () => {
   if (socket?.connected) return socket;
 
   socket = io(SOCKET_URL, {
-    auth: { token },
+    withCredentials: true,
     transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: 5,
