@@ -105,14 +105,8 @@ const CompetitionLobby = () => {
 
   // Connect socket on mount
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      toast.error("Please login first");
-      navigate("/login");
-      return;
-    }
-
-    const s = connectSocket(token);
+    if (!user) return;
+    const s = connectSocket();
     setSocket(s);
 
     return () => {
