@@ -14,11 +14,9 @@ export default function GoogleAuthButton({ setError }) {
       const res = await api.post("/auth/google", {
         idToken: credentialResponse.credential,
       });
-      localStorage.setItem("accessToken", res.data.accessToken);
       dispatch(
         authSuccess({
           user: res.data.user,
-          accessToken: res.data.accessToken,
         })
       );
 

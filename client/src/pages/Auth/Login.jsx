@@ -22,7 +22,6 @@ export default function Login() {
     const { email, password } = formData;
     try {
       const res = await api.post("/auth/login", { email, password });
-      localStorage.setItem("accessToken", res.data.accessToken);
       dispatch(
         authSuccess({
           user: res.data.user,
@@ -32,7 +31,7 @@ export default function Login() {
       // console.log(res.data);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Somethingg went wrong");
+      setError(err.response?.data?.message || "Something went wrong");
     }
   };
   return (
@@ -51,14 +50,20 @@ export default function Login() {
         </div>
 
         {/* Email & Password inputs (optional) */}
-        <form className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
+            name="email"
+            onChange={handleChange}
+            value={formData.email}
             placeholder="Email"
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           />
           <input
             type="password"
+            name="password"
+            onChange={handleChange}
+            value={formData.password}
             placeholder="Password"
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           />

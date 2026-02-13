@@ -1,6 +1,6 @@
 import { googleClient } from "../config/googleClient.js";
 import { User } from "../models/user.model.js";
-import { createTokens } from "../utils/createTokens.js";
+import { createToken } from "../utils/createTokens.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -35,7 +35,7 @@ export const googleAuth = async (req, res) => {
       if (!user.googleId) {
         user.googleId = sub;
         user.provider = "google";
-        user.avatar = picture;
+        user.avatarUrl = picture;
         await user.save();
       }
     } else {
@@ -44,28 +44,24 @@ export const googleAuth = async (req, res) => {
         name,
         email,
         googleId: sub,
-        avatar: picture,
+        avatarUrl: picture,
         provider: "google",
       });
     }
 
-    // Create access + refresh tokens
-    const { accessToken, refreshToken } = createTokens(user);
+    // Create token
+    const token = createToken(user);
 
-    // Save refresh token in DB
-    user.refreshToken = refreshToken;
-    await user.save();
 
-    // Set refresh token in HTTP-only cookie
-    res.cookie("refreshToken", refreshToken, cookieOptions);
+    // Set token in HTTP-only cookie
+    res.cookie("token", token, cookieOptions);
 
     return res.json({
       message: "Google login successful",
-      accessToken,
       user: {
         name: user.name,
         email: user.email,
-        avatar: user.avatar,
+        avatar: user.avatarUrl,
         provider: user.provider,
         xp: user.xp,
         level: user.level,
@@ -161,21 +157,18 @@ export const login = async (req, res) => {
       });
     }
 
-    const { accessToken, refreshToken } = createTokens(user);
-    user.refreshToken = refreshToken;
-    await user.save();
+    const token = createToken(user);
     // Send tokens in response
     return res
       .status(200)
-      .cookie("refreshToken", refreshToken, cookieOptions)
+      .cookie("token", token, cookieOptions)
       .json({
         success: true,
         message: `Welcome back ${user.name}`,
-        accessToken,
         user: {
           name: user.name,
           email: user.email,
-          avatar: user.avatar,
+          avatar: user.avatarUrl,
           provider: user.provider,
           xp: user.xp,
           level: user.level,
@@ -193,66 +186,19 @@ export const login = async (req, res) => {
   }
 };
 
-export const refreshToken = async (req, res) => {
-  const token = req.cookies.refreshToken;
-  console.log("Refresh token called:");
-  if (!token) {
-    return res.status(402).json({ message: "No refresh token" });
-  }
-
+export const logout = async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(401).json({ message: "User no longer exists" });
-    }
-
-    // 🔒 IMPORTANT: match refresh token with DB
-    if (user.refreshToken !== token) {
-      return res.status(403).json({ message: "Refresh token mismatch" });
-    }
-
-    // 🔄 Rotate token
-    const { accessToken } = createTokens(user);
+    res.clearCookie("token", cookieOptions);
 
     return res.status(200).json({
-      accessToken,
-      user: {
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        provider: user.provider,
-        xp: user.xp,
-        level: user.level,
-        rank: user.rank,
-        badges: user.badges,
-        dayStreak: user.dayStreak,
-      },
+      success: true,
+      message: "Logged out successfully",
     });
-  } catch (err) {
-    return res.status(403).json({ message: "Invalid refresh token" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to logout",
+    });
   }
-};
-
-export const logout = async (req, res) => {
-  const token = req.cookies.refreshToken;
-
-  if (token) {
-    const user = await User.findOne({ refreshToken: token });
-    if (user) {
-      user.refreshToken = null;
-      await user.save();
-    }
-  }
-
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-  });
-
-  res.json({ success: true, message: "Logged out" });
 };

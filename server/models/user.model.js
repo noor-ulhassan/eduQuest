@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
     bannerUrl: { type: String },
     provider: { type: String, enum: ["local", "google"], default: "local" },
 
-    refreshToken: { type: String, default: null },
     skills: [{ type: String, default: [] }],
 
     xp: {
