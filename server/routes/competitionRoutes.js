@@ -3,9 +3,13 @@ import { authenticate } from "../middleware/authMiddleware.js";
 import {
   getRoomInfo,
   getAllActiveRooms,
+  getUserStats,
 } from "../controllers/competitionController.js";
 
 const router = express.Router();
+
+// Get user competition stats
+router.get("/stats", authenticate, getUserStats);
 
 // List all active competition rooms (for homepage cards)
 router.get("/rooms", authenticate, getAllActiveRooms);

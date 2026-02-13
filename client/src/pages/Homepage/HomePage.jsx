@@ -16,6 +16,7 @@ import DraggableCards from "../../components/home/draggableCards";
 import ExploreMore from "@/components/user/ExploreMore";
 import { Highlighter } from "@/components/ui/highlighter";
 import LiveCompetitions from "../../components/home/LiveCompetitions";
+import CompetitionStats from "../../components/home/CompetitionStats";
 
 const HomePage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -63,9 +64,9 @@ const HomePage = () => {
             </div>
 
             <div className="max-w-[1200px] mx-auto mt-16 mb-20 px-4 space-y-16">
-              <LiveCompetitions />
-
               <Leaderboard />
+              <CompetitionStats />
+              <LiveCompetitions />
 
               <section>
                 <div className="mb-8">

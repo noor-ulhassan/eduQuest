@@ -12,7 +12,9 @@ const MainLayout = () => {
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||
     location.pathname.startsWith("/course/") ||
-    isPlaygroundRoute;
+    isPlaygroundRoute ||
+    location.pathname.startsWith("/competition");
+
   return (
     <div>
       {!isPlaygroundRoute && <Navbar />}

@@ -18,8 +18,15 @@ import {
   Timer,
   Trophy,
   Eye,
+  Home,
+  Target,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import InteractiveQuestion from "../../components/competition/InteractiveQuestion";
 
 const CompetitionLobby = () => {
   const navigate = useNavigate();
@@ -36,6 +43,7 @@ const CompetitionLobby = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [settings, setSettings] = useState({
     category: "general",
+    challengeMode: "classic",
     difficulty: "medium",
     language: "javascript",
     totalQuestions: 5,
@@ -55,7 +63,10 @@ const CompetitionLobby = () => {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [answerResult, setAnswerResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userFinished, setUserFinished] = useState(false);
+  const [finishData, setFinishData] = useState(null);
   const [gameCategory, setGameCategory] = useState(null);
+  const [gameChallengeMode, setGameChallengeMode] = useState("classic");
   const [finalResults, setFinalResults] = useState(null);
 
   // Spectator & join request state
@@ -64,14 +75,6 @@ const CompetitionLobby = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
 
   const isHost = room?.hostId === user?._id;
-
-  console.log("Render Debug:", {
-    isHost,
-    userId: user?._id,
-    hostId: room?.hostId,
-    pendingCount: pendingRequests.length,
-    pendingRequests,
-  });
 
   // Auto-rejoin on reconnection to update socket ID on server
   useEffect(() => {
@@ -174,6 +177,7 @@ const CompetitionLobby = () => {
       question,
       questionIndex: qi,
       category,
+      challengeMode: cm,
       language,
     }) => {
       setGameState("playing");
@@ -182,6 +186,7 @@ const CompetitionLobby = () => {
       setCurrentQuestion(question);
       setQuestionIndex(qi);
       setGameCategory(category);
+      setGameChallengeMode(cm || "classic");
       setSelectedAnswer(null);
       setAnswerResult(null);
       setIsStarting(false);
@@ -203,8 +208,15 @@ const CompetitionLobby = () => {
       setTimeRemaining(remaining);
     };
 
-    const onPlayerFinished = ({ score }) => {
-      toast.success(`You finished! Score: ${score}`);
+    const onPlayerFinished = ({
+      score,
+      rank,
+      timeTaken,
+      correctAnswers,
+      totalQuestions,
+    }) => {
+      setFinishData({ score, rank, timeTaken, correctAnswers, totalQuestions });
+      setUserFinished(true);
     };
 
     const onGameOver = ({ leaderboard: lb }) => {
@@ -354,16 +366,16 @@ const CompetitionLobby = () => {
           setRoom(response.room);
           setRoomCode(response.room.roomCode);
           setPendingRequests(response.room.pendingRequests || []);
-          
+
           let newState = "lobby";
           if (response.room.status === "active") newState = "playing";
           else if (response.room.status === "ready") {
             newState = "ready";
             setReadyQuestionCount(response.room.questions?.length || 0);
           } else if (response.room.status === "generating") {
-             newState = "generating";
+            newState = "generating";
           }
-          
+
           setGameState(newState);
           toast.success("Joined room!");
         } else {
@@ -374,12 +386,48 @@ const CompetitionLobby = () => {
     [socket, joinCode],
   );
 
+  const copyToClipboard = (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          setCopied(true);
+          toast.success("Copied!");
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(() => {
+          fallbackCopy(text);
+        });
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      setCopied(true);
+      toast.success("Copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error("Failed to copy");
+    }
+    document.body.removeChild(textarea);
+  };
+
   const handleCopyCode = () => {
+    copyToClipboard(roomCode);
+  };
+
+  const handleCopyLink = () => {
     const link = `${window.location.origin}/competition/${roomCode}`;
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    toast.success("Link copied!");
-    setTimeout(() => setCopied(false), 2000);
+    copyToClipboard(link);
   };
 
   const handleUpdateSettings = (key, value) => {
@@ -559,7 +607,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: No Room Yet (Create/Join) ──────────────────
   if (!room) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-20">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-28">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -646,7 +694,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Generating ─────────────────────────────────
   if (gameState === "generating") {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -669,7 +717,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Ready (Wait for Host) ──────────────────────
   if (gameState === "ready") {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -723,7 +771,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Game Over ──────────────────────────────────
   if (gameState === "finished" && finalResults) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -741,7 +789,7 @@ const CompetitionLobby = () => {
                 key={player.id}
                 className={`flex items-center gap-4 p-4 border-b border-zinc-800 last:border-0 ${
                   i === 0 ? "bg-yellow-500/5" : ""
-                }`}
+                } ${player.id === user?._id ? "ring-1 ring-orange-500/30" : ""}`}
               >
                 <span
                   className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${
@@ -761,19 +809,38 @@ const CompetitionLobby = () => {
                   alt={player.name}
                   className="w-10 h-10 rounded-full object-cover"
                 />
-                <div className="flex-1">
-                  <p className="font-semibold">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">
                     {player.name}
                     {player.id === user?._id && (
-                      <span className="text-xs text-zinc-500 ml-2">(You)</span>
+                      <span className="text-xs text-orange-400 ml-2">
+                        (You)
+                      </span>
                     )}
                   </p>
-                  <p className="text-xs text-zinc-500">
-                    {player.currentQuestion} questions answered
-                  </p>
+                  <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+                    <span>
+                      {player.correctAnswers || 0}/{player.currentQuestion}{" "}
+                      correct
+                    </span>
+                    {player.timeTaken != null && (
+                      <>
+                        <span className="w-0.5 h-0.5 rounded-full bg-zinc-700" />
+                        <span className="flex items-center gap-1">
+                          <Timer size={10} />
+                          {Math.floor(player.timeTaken / 60)}:
+                          {String(player.timeTaken % 60).padStart(2, "0")}
+                        </span>
+                      </>
+                    )}
+                    {!player.finished && (
+                      <span className="text-red-400">DNF</span>
+                    )}
+                  </div>
                 </div>
                 <span className="font-bold text-lg text-orange-400">
-                  {player.score}
+                  {player.score}{" "}
+                  <span className="text-xs text-zinc-500 font-normal">XP</span>
                 </span>
               </div>
             ))}
@@ -804,43 +871,227 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Generating Questions ───────────────────────
-  if (gameState === "generating") {
+  // ─── RENDER: Individual Results (Player Finished) ──────────────────
+  if (gameState === "playing" && userFinished && finishData) {
+    const accuracy =
+      finishData.totalQuestions > 0
+        ? Math.round(
+            (finishData.correctAnswers / finishData.totalQuestions) * 100,
+          )
+        : 0;
+    const minutes = Math.floor(finishData.timeTaken / 60);
+    const seconds = finishData.timeTaken % 60;
+
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
+        </div>
+
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center space-y-4"
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-md w-full relative z-10 space-y-6"
         >
-          <Loader2 size={48} className="animate-spin text-orange-400 mx-auto" />
-          <h2 className="text-xl font-semibold">Generating Questions...</h2>
-          <p className="text-zinc-400 text-sm">
-            AI is crafting your competition. Hold tight!
-          </p>
+          {/* Trophy / Rank Icon */}
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border-2 border-orange-500/30">
+              {finishData.rank === 1 ? (
+                <Trophy size={40} className="text-yellow-400" />
+              ) : (
+                <Target size={40} className="text-orange-400" />
+              )}
+            </div>
+            <h1 className="text-3xl font-bold">
+              {finishData.rank === 1
+                ? "🏆 1st Place!"
+                : `#${finishData.rank} Place`}
+            </h1>
+            <p className="text-zinc-400 mt-1 text-sm">Challenge Complete</p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
+              <div className="text-2xl font-bold text-orange-400">
+                {finishData.score}
+              </div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
+                Total XP
+              </div>
+            </Card>
+            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
+              <div className="text-2xl font-bold text-green-400">
+                {accuracy}%
+              </div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
+                Accuracy
+              </div>
+            </Card>
+            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">
+                {minutes}:{String(seconds).padStart(2, "0")}
+              </div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
+                Time Taken
+              </div>
+            </Card>
+            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
+              <div className="text-2xl font-bold text-purple-400">
+                {finishData.correctAnswers}/{finishData.totalQuestions}
+              </div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
+                Correct
+              </div>
+            </Card>
+          </div>
+
+          {/* Speed Bonus Callout */}
+          <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20 rounded-xl p-4 flex items-center gap-3">
+            <Zap size={20} className="text-orange-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white">
+                Speed Bonus Applied
+              </p>
+              <p className="text-xs text-zinc-400">
+                Faster answers earned you extra XP per question!
+              </p>
+            </div>
+          </div>
+
+          {/* Live Leaderboard Preview */}
+          <Card className="bg-zinc-900/50 border-zinc-800 p-0 overflow-hidden">
+            <div className="p-3 border-b border-zinc-800 bg-zinc-900/50">
+              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                <Trophy size={12} className="text-yellow-400" /> Live Standings
+              </h3>
+            </div>
+            <div className="p-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+              {leaderboard.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
+                    p.id === user?._id
+                      ? "bg-orange-500/10 border border-orange-500/20"
+                      : ""
+                  }`}
+                >
+                  <span
+                    className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${
+                      i === 0
+                        ? "bg-yellow-500 text-black"
+                        : i === 1
+                          ? "bg-zinc-300 text-black"
+                          : i === 2
+                            ? "bg-orange-700 text-white"
+                            : "bg-zinc-800 text-zinc-500"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    className={`flex-1 truncate ${p.id === user?._id ? "text-orange-400 font-medium" : "text-zinc-300"}`}
+                  >
+                    {p.name} {p.id === user?._id && "(You)"}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    {p.finished ? "✓" : `Q${p.currentQuestion}`}
+                  </span>
+                  <span className="text-xs font-bold text-orange-400">
+                    {p.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button
+              onClick={() => navigate("/")}
+              className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-xl"
+            >
+              <Home size={16} className="mr-2" />
+              Go Home
+            </Button>
+            <Button
+              onClick={() => {
+                setUserFinished(false);
+                setFinishData(null);
+                // Stay in the room listening for gameOver
+                toast(
+                  "Spectating... You'll see the final results when everyone finishes.",
+                  { icon: "👁️" },
+                );
+              }}
+              className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-pink-600 hover:opacity-90 text-white font-semibold rounded-xl"
+            >
+              <Eye size={16} className="mr-2" />
+              Spectate
+            </Button>
+          </div>
         </motion.div>
       </div>
     );
   }
 
-  // ─── RENDER: Playing (Quiz Mode) ───────────────────────
-  if (gameState === "playing" && gameCategory === "general") {
+  // ─── RENDER: Playing (Quiz / Scenario Mode) ───────────────────────
+  if (
+    gameState === "playing" &&
+    (gameCategory === "general" || gameChallengeMode !== "classic")
+  ) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-zinc-950 text-white p-6 mt-12">
+        <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <BookOpen size={20} className="text-orange-400" />
-              <span className="font-semibold">
-                Question {questionIndex + 1}/{totalQuestions}
-              </span>
+              <Button
+                variant="pixel"
+                size="icon"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to leave the ongoing competition?",
+                    )
+                  )
+                    handleLeave();
+                }}
+                className="text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-full h-10 w-10 mr-1"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+              <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                <BookOpen size={20} className="text-orange-400" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">
+                  Challenge {questionIndex + 1}
+                </h2>
+                <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
+                  Question {questionIndex + 1} of {totalQuestions}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2">
-              <Timer size={16} className="text-orange-400" />
+            <div
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 border transition-all ${
+                timeRemaining <= 60
+                  ? "bg-red-500/10 border-red-500/40 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                  : "bg-zinc-900 border-zinc-800"
+              }`}
+            >
+              <Timer
+                size={18}
+                className={
+                  timeRemaining <= 60 ? "text-red-400" : "text-orange-400"
+                }
+              />
               <span
-                className={`font-mono font-bold ${
-                  timeRemaining < 30 ? "text-red-400" : "text-white"
+                className={`font-mono font-bold text-lg ${
+                  timeRemaining <= 60 ? "text-red-400" : "text-white"
                 }`}
               >
                 {Math.floor(timeRemaining / 60)}:
@@ -850,105 +1101,91 @@ const CompetitionLobby = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Question */}
-            <div className="lg:col-span-2 space-y-6">
-              <motion.div
-                key={questionIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8"
-              >
-                <h2 className="text-xl font-semibold mb-6">
-                  {currentQuestion?.question}
-                </h2>
-
-                <div className="space-y-3">
-                  {currentQuestion?.options?.map((option, i) => {
-                    const isSelected = selectedAnswer === option;
-                    const isCorrect = answerResult?.correctAnswer === option;
-                    const showResult = answerResult !== null;
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={() =>
-                          !answerResult && handleSubmitAnswer(option)
-                        }
-                        disabled={!!answerResult || isSubmitting}
-                        className={`w-full text-left p-4 rounded-xl border transition-all ${
-                          showResult && isCorrect
-                            ? "border-green-500 bg-green-500/10 text-green-400"
-                            : showResult && isSelected && !isCorrect
-                              ? "border-red-500 bg-red-500/10 text-red-400"
-                              : isSelected
-                                ? "border-orange-500 bg-orange-500/10"
-                                : "border-zinc-700 bg-zinc-800/50 hover:border-zinc-600 hover:bg-zinc-800"
-                        } disabled:cursor-default`}
-                      >
-                        <span className="font-medium">
-                          {String.fromCharCode(65 + i)}.{" "}
-                        </span>
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {answerResult && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`mt-6 p-4 rounded-xl border ${
-                      answerResult.isCorrect
-                        ? "bg-green-500/5 border-green-500/20 text-green-400"
-                        : "bg-red-500/5 border-red-500/20 text-red-400"
-                    }`}
-                  >
-                    <p className="font-semibold">
-                      {answerResult.isCorrect
-                        ? `✓ Correct! +${answerResult.pointsEarned} pts`
-                        : "✗ Incorrect"}
-                    </p>
-                    {answerResult.explanation && (
-                      <p className="text-sm text-zinc-400 mt-1">
-                        {answerResult.explanation}
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-              </motion.div>
-            </div>
-
-            {/* Live Leaderboard */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-fit">
-              <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Trophy size={14} className="text-yellow-400" /> Live Standings
-              </h3>
-              <div className="space-y-2">
-                {leaderboard.map((p, i) => (
-                  <div
-                    key={p.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${
-                      p.id === user?._id
-                        ? "bg-orange-500/10 border border-orange-500/20"
-                        : "bg-zinc-800/50"
-                    }`}
-                  >
-                    <span className="w-5 text-xs font-bold text-zinc-500">
-                      #{i + 1}
-                    </span>
-                    <img
-                      src={p.avatarUrl || "/Avatar.png"}
-                      className="w-6 h-6 rounded-full"
-                      alt=""
+            {/* Question Panel */}
+            <Card className="lg:col-span-2 bg-zinc-900 border-zinc-800 flex flex-col">
+              <div className="p-6 md:p-8 space-y-6 flex-1 flex flex-col">
+                {currentQuestion ? (
+                  <InteractiveQuestion
+                    question={currentQuestion}
+                    onSubmit={handleSubmitAnswer}
+                    result={answerResult}
+                    isSubmitting={isSubmitting}
+                    selectedAnswer={selectedAnswer}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-zinc-500 gap-4">
+                    <Loader2
+                      className="animate-spin text-orange-500"
+                      size={32}
                     />
-                    <span className="text-sm flex-1 truncate">{p.name}</span>
-                    <span className="text-xs font-bold text-orange-400">
-                      {p.score}
-                    </span>
+                    <p>Loading validation data...</p>
                   </div>
-                ))}
+                )}
               </div>
+            </Card>
+
+            {/* Sidebar (Leaderboard) */}
+            <div className="space-y-6">
+              <Card className="bg-zinc-900 border-zinc-800 p-0 overflow-hidden h-fit sticky top-6 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+                  <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                    <Trophy size={14} className="text-yellow-400" /> Live
+                    Standings
+                  </h3>
+                </div>
+                <div className="p-2 space-y-1">
+                  {leaderboard.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                        p.id === user?._id
+                          ? "bg-orange-500/10 border border-orange-500/20"
+                          : "hover:bg-zinc-800/50"
+                      }`}
+                    >
+                      <div
+                        className={`w-6 h-6 flex shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                          i === 0
+                            ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20"
+                            : i === 1
+                              ? "bg-zinc-300 text-black"
+                              : i === 2
+                                ? "bg-orange-700 text-white"
+                                : "bg-zinc-800 text-zinc-500"
+                        }`}
+                      >
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-sm font-medium truncate ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
+                          >
+                            {p.name}
+                          </span>
+                          {p.id === user?._id && (
+                            <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 rounded">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
+                          <span>{p.score} XP</span>
+                          <span className="w-0.5 h-0.5 rounded-full bg-zinc-600" />
+                          <span>
+                            {p.finished ? "Finished" : `Q${p.currentQuestion}`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {leaderboard.length === 0 && (
+                    <div className="p-4 text-center text-sm text-zinc-500">
+                      Waiting for players to start...
+                    </div>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         </div>
@@ -956,24 +1193,61 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Playing (Programming Mode) ────────────────
-  if (gameState === "playing" && gameCategory === "programming") {
+  // ─── RENDER: Playing (Programming Classic Mode — Code Editor) ────
+  if (
+    gameState === "playing" &&
+    gameCategory === "programming" &&
+    gameChallengeMode === "classic"
+  ) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto space-y-4">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              <Code size={20} className="text-green-400" />
-              <span className="font-semibold">
-                Challenge {questionIndex + 1}/{totalQuestions}
-              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to leave the ongoing competition?",
+                    )
+                  )
+                    handleLeave();
+                }}
+                className="text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-full h-10 w-10 mr-1"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                <Code size={20} className="text-orange-400" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg leading-tight">
+                  Challenge {questionIndex + 1}
+                </h2>
+                <div className="text-xs text-zinc-500 font-mono">
+                  {currentQuestion?.title || "Loading Problem..."}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2">
-              <Timer size={16} className="text-orange-400" />
+            <div
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 border transition-all ${
+                timeRemaining <= 60
+                  ? "bg-red-500/10 border-red-500/40 animate-pulse"
+                  : "bg-zinc-900 border-zinc-800"
+              }`}
+            >
+              <Timer
+                size={16}
+                className={
+                  timeRemaining <= 60 ? "text-red-400" : "text-zinc-400"
+                }
+              />
               <span
-                className={`font-mono font-bold ${
-                  timeRemaining < 60 ? "text-red-400" : "text-white"
+                className={`font-mono font-bold text-lg ${
+                  timeRemaining <= 60 ? "text-red-400" : "text-white"
                 }`}
               >
                 {Math.floor(timeRemaining / 60)}:
@@ -982,19 +1256,26 @@ const CompetitionLobby = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Problem Description */}
-            <div className="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 h-[70vh] overflow-y-auto">
-              <h3 className="font-bold text-lg mb-3">
-                {currentQuestion?.title}
-              </h3>
-              <div className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
-                {currentQuestion?.description}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-140px)]">
+            {/* Problem Description (Left Col) */}
+            <Card className="lg:col-span-1 bg-zinc-900 border-zinc-800 overflow-hidden flex flex-col h-full">
+              <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+                <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                  <BookOpen size={14} /> Problem Statement
+                </h3>
               </div>
-            </div>
+              <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
+                <h3 className="font-bold text-lg mb-4">
+                  {currentQuestion?.title}
+                </h3>
+                <div className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed space-y-4">
+                  {currentQuestion?.description}
+                </div>
+              </div>
+            </Card>
 
-            {/* Code Editor */}
-            <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden h-[70vh] flex flex-col">
+            {/* Code Editor (Middle Cols) */}
+            <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full shadow-2xl">
               <ProgrammingEditor
                 question={currentQuestion}
                 language={settings.language}
@@ -1004,404 +1285,729 @@ const CompetitionLobby = () => {
               />
             </div>
 
-            {/* Leaderboard */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-fit">
-              <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Trophy size={14} className="text-yellow-400" /> Live Standings
-              </h3>
-              <div className="space-y-2">
+            {/* Leaderboard (Right Col) */}
+            <Card className="lg:col-span-1 bg-zinc-900 border-zinc-800 overflow-hidden flex flex-col h-full">
+              <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+                <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                  <Trophy size={14} className="text-yellow-400" /> Live
+                  Standings
+                </h3>
+              </div>
+              <div className="p-2 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
                 {leaderboard.map((p, i) => (
                   <div
                     key={p.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${
+                    className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
                       p.id === user?._id
                         ? "bg-orange-500/10 border border-orange-500/20"
-                        : "bg-zinc-800/50"
+                        : "hover:bg-zinc-800/50"
                     }`}
                   >
-                    <span className="w-5 text-xs font-bold text-zinc-500">
-                      #{i + 1}
-                    </span>
-                    <img
-                      src={p.avatarUrl || "/Avatar.png"}
-                      className="w-6 h-6 rounded-full"
-                      alt=""
-                    />
-                    <span className="text-sm flex-1 truncate">{p.name}</span>
-                    <span className="text-xs font-bold text-orange-400">
-                      {p.score}
-                    </span>
+                    <div
+                      className={`w-6 h-6 flex shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                        i === 0
+                          ? "bg-yellow-500 text-black"
+                          : i === 1
+                            ? "bg-zinc-300 text-black"
+                            : i === 2
+                              ? "bg-orange-700 text-white"
+                              : "bg-zinc-800 text-zinc-500"
+                      }`}
+                    >
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-sm font-medium truncate ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
+                        >
+                          {p.name}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
+                        <span>{p.score} XP</span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-zinc-600" />
+                        <span>
+                          {p.finished ? "Done" : `Q${p.currentQuestion}`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       </div>
     );
   }
 
+  // ─── RENDER: Game Finished (Results) ─────────────────────────────
+  if (gameState === "finished") {
+    // Determine winner and sorted list
+    const sortedLeaderboard = [...leaderboard].sort(
+      (a, b) => b.score - a.score,
+    );
+    const winner = sortedLeaderboard[0];
+    const isHost = room?.host?._id === user?._id;
+
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 flex flex-col items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-2xl w-full space-y-8"
+        >
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-orange-400 to-red-600 bg-clip-text text-transparent">
+              Competition Ended
+            </h1>
+            <p className="text-zinc-400 text-lg">
+              Here are the final standings
+            </p>
+          </div>
+
+          <Card className="bg-zinc-900 border-zinc-800 overflow-hidden shadow-2xl shadow-orange-900/10">
+            {/* Winner Highlight (if any) */}
+            {winner && (
+              <div className="p-8 flex flex-col items-center bg-gradient-to-b from-orange-500/10 to-transparent border-b border-zinc-800 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-orange-500/10 via-transparent to-transparent opacity-50" />
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 rounded-full border-4 border-yellow-500 shadow-[0_0_40px_rgba(234,179,8,0.4)] overflow-hidden bg-zinc-800">
+                    <img
+                      src={winner.avatarUrl || "/Avatar.png"}
+                      className="w-full h-full object-cover"
+                      alt={winner.name}
+                    />
+                  </div>
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shrink-0 w-max mt-1">
+                    <Crown size={12} fill="currentColor" /> WINNER
+                  </div>
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-1">
+                  {winner.name}
+                </h2>
+                <div className="flex items-center gap-2 bg-zinc-900/50 px-3 py-1 rounded-full border border-zinc-700/50">
+                  <Trophy size={14} className="text-orange-400" />
+                  <span className="text-orange-400 font-mono font-bold text-lg">
+                    {winner.score} XP
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Full List */}
+            <div className="max-h-[350px] overflow-y-auto custom-scrollbar bg-zinc-900/50">
+              {sortedLeaderboard.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={`p-4 flex items-center gap-4 hover:bg-zinc-800/40 transition-colors border-b border-zinc-800/50 last:border-0 ${
+                    p.id === user?._id
+                      ? "bg-orange-500/5 hover:bg-orange-500/10"
+                      : ""
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                      i === 0
+                        ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20"
+                        : i === 1
+                          ? "bg-zinc-300 text-black"
+                          : i === 2
+                            ? "bg-orange-700 text-white"
+                            : "bg-zinc-800 text-zinc-500"
+                    }`}
+                  >
+                    {i + 1}
+                  </div>
+                  <img
+                    src={p.avatarUrl || "/Avatar.png"}
+                    className="w-10 h-10 rounded-full bg-zinc-800 object-cover shrink-0"
+                    alt=""
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-zinc-200 flex items-center gap-2 truncate">
+                      {p.name}
+                      {p.id === user?._id && (
+                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700 shrink-0">
+                          YOU
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="font-mono font-bold text-orange-400 shrink-0">
+                    {p.score} XP
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <div className="flex gap-4 justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/")}
+              className="gap-2 border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white h-12 px-6"
+            >
+              <ArrowLeft size={16} /> Return Home
+            </Button>
+            {isHost && (
+              <Button
+                onClick={() => {
+                  // Host can restart or go to lobby (reloading page is simplest to reset state)
+                  window.location.reload();
+                }}
+                className="gap-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white h-12 px-8 shadow-lg shadow-orange-900/20"
+              >
+                <Play size={16} fill="currentColor" /> Play Again
+              </Button>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ─── RENDER: Lobby (Waiting Room) ──────────────────────
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 mt-12">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Top Navigation */}
         <div className="flex items-center justify-between">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleLeave}
-            className="flex items-center gap-1 text-zinc-400 hover:text-white transition text-sm"
+            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
           >
-            <ArrowLeft size={16} /> Leave
-          </button>
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2">
-            <span className="text-sm text-zinc-400">Room:</span>
-            <span className="font-mono font-bold text-orange-400 tracking-wider text-lg">
-              {roomCode}
-            </span>
-            <button
-              onClick={handleCopyCode}
-              className="p-1 hover:bg-zinc-800 rounded transition"
-            >
-              {copied ? (
-                <Check size={14} className="text-green-400" />
-              ) : (
-                <Copy size={14} className="text-zinc-400" />
-              )}
-            </button>
+            <ArrowLeft size={16} /> Exit Lobby
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-medium text-green-500 uppercase tracking-wide">
+                Live
+              </span>
+            </div>
+            <div className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs font-medium text-zinc-400">
+              {isHost ? "Host Mode" : "Player Mode"}
+            </div>
           </div>
         </div>
 
-        {/* Players */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Users size={16} />
-            Players ({room?.players?.length || 0}/20)
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <AnimatePresence>
-              {room?.players?.map((player) => (
-                <motion.div
-                  key={player.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-xl border border-zinc-700/50"
-                >
-                  <div className="relative">
-                    <img
-                      src={player.avatarUrl || "/Avatar.png"}
-                      alt={player.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    {player.id === room.hostId && (
-                      <Crown
-                        size={12}
-                        className="absolute -top-1 -right-1 text-yellow-400"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {player.name}
-                    </p>
-                    {player.id === room.hostId && (
-                      <p className="text-[10px] text-yellow-500">Host</p>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* LEFT COLUMN: Room Info & Players */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Room Header Card */}
+            <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-8 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-orange-500/20 transition-all duration-700" />
 
-        {/* Invite / Share Section */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Copy size={16} />
-            Invite Friends
-          </h3>
-          <div className="flex items-center gap-3 bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-4 mb-3">
-            <span className="text-zinc-500 text-sm">Room Code:</span>
-            <span className="font-mono font-bold text-2xl text-orange-400 tracking-[.4em] flex-1">
-              {roomCode}
-            </span>
-          </div>
-          <button
-            onClick={handleCopyCode}
-            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
-          >
-            {copied ? (
-              <>
-                <Check size={16} className="text-green-400" />
-                <span className="text-green-400">Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy size={16} className="text-zinc-400" />
-                Copy Invite Link
-              </>
-            )}
-          </button>
-        </div>
+              <div className="relative z-10">
+                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+                  Competition Lobby
+                </h1>
+                <p className="text-zinc-400 mb-8 max-w-lg">
+                  Waiting for players to join. Share the codes below to invite
+                  others to this challenge.
+                </p>
 
-        {/* Pending Join Requests (Host Only) */}
-        {isHost && pendingRequests.length > 0 && (
-          <div className="bg-zinc-900 border border-orange-500/30 rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-              🔔 Join Requests ({pendingRequests.length})
-            </h3>
-            <div className="space-y-3">
-              {pendingRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-xl border border-zinc-700/50"
-                >
-                  <img
-                    src={req.avatarUrl || "/Avatar.png"}
-                    alt={req.name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <span className="flex-1 font-medium text-sm">{req.name}</span>
-                  <button
-                    onClick={() => handleApproveJoin(req.id)}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-semibold transition"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleDenyJoin(req.id)}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-semibold transition"
-                  >
-                    Deny
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Settings (Host Only) */}
-        {isHost && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5"
-          >
-            <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-              <Settings size={16} />
-              Game Settings
-            </h3>
-
-            {/* Category */}
-            <div>
-              <label className="text-xs text-zinc-500 mb-2 block">
-                Category
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() =>
-                    handleUpdateSettings("category", "programming")
-                  }
-                  className={`p-4 rounded-xl border text-center transition-all ${
-                    settings.category === "programming"
-                      ? "border-green-500 bg-green-500/10 text-green-400"
-                      : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600"
-                  }`}
-                >
-                  <Code size={24} className="mx-auto mb-2" />
-                  <span className="text-sm font-semibold">Programming</span>
-                </button>
-                <button
-                  onClick={() => handleUpdateSettings("category", "general")}
-                  className={`p-4 rounded-xl border text-center transition-all ${
-                    settings.category === "general"
-                      ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                      : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600"
-                  }`}
-                >
-                  <BookOpen size={24} className="mx-auto mb-2" />
-                  <span className="text-sm font-semibold">
-                    General Knowledge
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Topic & Description (both categories) */}
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-zinc-500 mb-2 block">
-                  Topic{" "}
-                  {settings.category === "programming" && (
-                    <span className="text-zinc-600">(Optional)</span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  value={settings.topic}
-                  onChange={(e) =>
-                    handleUpdateSettings("topic", e.target.value)
-                  }
-                  placeholder={
-                    settings.category === "programming"
-                      ? "e.g. Arrays, Linked Lists, Dynamic Programming"
-                      : "e.g. React Hooks, World History, Machine Learning"
-                  }
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 transition placeholder:text-zinc-600"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 mb-2 block">
-                  Description{" "}
-                  {settings.category === "programming" && (
-                    <span className="text-zinc-600">(Optional)</span>
-                  )}
-                </label>
-                <textarea
-                  value={settings.description}
-                  onChange={(e) =>
-                    handleUpdateSettings("description", e.target.value)
-                  }
-                  placeholder={
-                    settings.category === "programming"
-                      ? "e.g. Focus on recursion and sorting algorithms..."
-                      : "Describe what the questions should be about..."
-                  }
-                  rows={3}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 transition placeholder:text-zinc-600 resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Language (Programming only) */}
-            {settings.category === "programming" && (
-              <div>
-                <label className="text-xs text-zinc-500 mb-2 block">
-                  Language
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {["javascript", "python", "java"].map((lang) => (
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex items-center gap-0 bg-black/40 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 border-r border-zinc-800 bg-zinc-900/50">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        Code
+                      </span>
+                    </div>
+                    <div className="px-6 py-3 font-mono text-2xl font-bold text-orange-400 tracking-[0.2em]">
+                      {roomCode}
+                    </div>
                     <button
-                      key={lang}
-                      onClick={() => handleUpdateSettings("language", lang)}
-                      className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all capitalize ${
-                        settings.language === lang
-                          ? "border-orange-500 bg-orange-500/10 text-orange-400"
-                          : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600"
-                      }`}
+                      onClick={handleCopyCode}
+                      className="px-4 py-3 hover:bg-zinc-800/80 transition-colors border-l border-zinc-800 text-zinc-400 hover:text-white"
                     >
-                      {lang}
+                      {copied ? (
+                        <Check size={20} className="text-green-500" />
+                      ) : (
+                        <Copy size={20} />
+                      )}
                     </button>
+                  </div>
+
+                  <Button
+                    onClick={handleCopyCode}
+                    className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200"
+                  >
+                    <Copy size={16} />
+                    Copy Invite Link
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Players Grid */}
+            <Card className="bg-zinc-900/30 border-zinc-800/50">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                    <Users size={16} />
+                    Participants{" "}
+                    <span className="px-2 py-0.5 bg-zinc-800 rounded-full text-white text-xs">
+                      {room?.players?.length || 0}/20
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <AnimatePresence>
+                    {room?.players?.map((player) => (
+                      <motion.div
+                        key={player.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="group relative flex items-center gap-3 p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl transition-all hover:shadow-lg hover:shadow-black/20"
+                      >
+                        <div className="relative">
+                          <img
+                            src={player.avatarUrl || "/Avatar.png"}
+                            alt={player.name}
+                            className="w-10 h-10 rounded-full object-cover ring-2 ring-zinc-800 group-hover:ring-zinc-700 transition"
+                          />
+                          {player.id === room.hostId && (
+                            <div className="absolute -top-1 -right-1 bg-zinc-950 rounded-full p-0.5">
+                              <Crown
+                                size={12}
+                                className="text-yellow-400 fill-yellow-400"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-zinc-200 truncate group-hover:text-white transition">
+                            {player.name}
+                          </p>
+                          {player.id === room.hostId ? (
+                            <p className="text-[10px] text-yellow-500 font-medium">
+                              Lobby Host
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-zinc-500">Player</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                    {/* Empty slots placeholders (optional visual filler) */}
+                    {Array.from({
+                      length: Math.max(0, 3 - (room?.players?.length || 0)),
+                    }).map((_, i) => (
+                      <div
+                        key={`empty-${i}`}
+                        className="border border-dashed border-zinc-800 rounded-xl p-3 flex items-center justify-center h-[66px]"
+                      >
+                        <span className="text-xs text-zinc-700">
+                          Waiting...
+                        </span>
+                      </div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </Card>
+
+            {/* Join Requests (Host Only) */}
+            {isHost && pendingRequests.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-6"
+              >
+                <h3 className="text-sm font-bold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  🔔 Pending Requests ({pendingRequests.length})
+                </h3>
+                <div className="space-y-3">
+                  {pendingRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="flex items-center gap-3 p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl"
+                    >
+                      <img
+                        src={req.avatarUrl || "/Avatar.png"}
+                        alt={req.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <span className="flex-1 font-medium text-sm text-zinc-200">
+                        {req.name}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveJoin(req.id)}
+                          className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 h-8"
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleDenyJoin(req.id)}
+                          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 h-8"
+                        >
+                          Deny
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
-
-            {/* Difficulty */}
-            <div>
-              <label className="text-xs text-zinc-500 mb-2 block">
-                Difficulty
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {["easy", "medium", "hard"].map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => handleUpdateSettings("difficulty", d)}
-                    className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all capitalize ${
-                      settings.difficulty === d
-                        ? "border-orange-500 bg-orange-500/10 text-orange-400"
-                        : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Questions Count */}
-            <div>
-              <label className="text-xs text-zinc-500 mb-2 block">
-                Number of Questions
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[3, 5, 7, 10].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => handleUpdateSettings("totalQuestions", n)}
-                    className={`py-2 rounded-lg border text-sm font-medium transition-all ${
-                      settings.totalQuestions === n
-                        ? "border-orange-500 bg-orange-500/10 text-orange-400"
-                        : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Timer */}
-            <div>
-              <label className="text-xs text-zinc-500 mb-2 block">
-                Timer (minutes)
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[3, 5, 10, 15].map((m) => (
-                  <button
-                    key={m}
-                    onClick={() =>
-                      handleUpdateSettings("timerDuration", m * 60)
-                    }
-                    className={`py-2 rounded-lg border text-sm font-medium transition-all ${
-                      settings.timerDuration === m * 60
-                        ? "border-orange-500 bg-orange-500/10 text-orange-400"
-                        : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600"
-                    }`}
-                  >
-                    {m} min
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Start Button */}
-            <button
-              onClick={handleStartGame}
-              disabled={isStarting || !settings.category}
-              className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
-            >
-              {isStarting ? (
-                <>
-                  <Loader2 size={22} className="animate-spin" /> Generating...
-                </>
-              ) : (
-                <>
-                  <Play size={22} /> Start Game
-                </>
-              )}
-            </button>
-          </motion.div>
-        )}
-
-        {/* Waiting message for non-hosts */}
-        {!isHost && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
-            <Loader2
-              size={32}
-              className="animate-spin text-orange-400 mx-auto mb-4"
-            />
-            <p className="text-zinc-300 font-medium">
-              Waiting for host to start the game...
-            </p>
-            <p className="text-sm text-zinc-500 mt-1">
-              Category:{" "}
-              <span className="capitalize text-zinc-300">
-                {settings.category || "Not selected"}
-              </span>
-            </p>
           </div>
-        )}
+
+          {/* RIGHT COLUMN: Settings Panel */}
+          <div className="lg:col-span-1">
+            {isHost ? (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6 sticky top-6 shadow-2xl shadow-black/50"
+              >
+                <div className="flex items-center gap-3 pb-4 border-b border-zinc-800">
+                  <div className="p-2 bg-orange-500/10 rounded-lg">
+                    <Settings size={20} className="text-orange-500" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-lg text-white">
+                      Match Configuration
+                    </h2>
+                    <p className="text-xs text-zinc-500">
+                      Customize your competition
+                    </p>
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                    Target Domain
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        handleUpdateSettings("category", "programming");
+                        handleUpdateSettings("challengeMode", "classic");
+                      }}
+                      className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
+                        settings.category === "programming"
+                          ? "border-orange-500 bg-orange-500/10"
+                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                      }`}
+                    >
+                      <Code
+                        size={24}
+                        className={`mb-2 ${settings.category === "programming" ? "text-orange-500" : "text-zinc-500"}`}
+                      />
+                      <span
+                        className={`block text-sm font-bold ${settings.category === "programming" ? "text-white" : "text-zinc-400"}`}
+                      >
+                        Programming
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleUpdateSettings("category", "general");
+                        handleUpdateSettings("challengeMode", "classic");
+                      }}
+                      className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
+                        settings.category === "general"
+                          ? "border-blue-500 bg-blue-500/10"
+                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                      }`}
+                    >
+                      <BookOpen
+                        size={24}
+                        className={`mb-2 ${settings.category === "general" ? "text-blue-500" : "text-zinc-500"}`}
+                      />
+                      <span
+                        className={`block text-sm font-bold ${settings.category === "general" ? "text-white" : "text-zinc-400"}`}
+                      >
+                        General
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Challenge Mode */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                    Challenge Type
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                    {(settings.category === "programming"
+                      ? [
+                          {
+                            id: "classic",
+                            name: "Classic Coding",
+                            icon: "💻",
+                            desc: "Standard algorithmic challenges",
+                          },
+                          {
+                            id: "scenario",
+                            name: "Scenario Challenge",
+                            icon: "🎭",
+                            desc: "Real-world engineering narratives",
+                          },
+                          {
+                            id: "debug",
+                            name: "Debug Detective",
+                            icon: "🔍",
+                            desc: "Find and fix critical bugs",
+                          },
+                          {
+                            id: "outage",
+                            name: "Production Outage",
+                            icon: "🚨",
+                            desc: "High-pressure incident response",
+                          },
+                          {
+                            id: "refactor",
+                            name: "Code Refactor",
+                            icon: "♻️",
+                            desc: "Optimize messy legacy code",
+                          },
+                          {
+                            id: "missing",
+                            name: "Missing Link",
+                            icon: "🧩",
+                            desc: "Implement the missing component",
+                          },
+                          {
+                            id: "interactive",
+                            name: "Interactive",
+                            icon: "🎮",
+                            desc: "Drag, drop, and type answers",
+                          },
+                        ]
+                      : [
+                          {
+                            id: "classic",
+                            name: "Classic Quiz",
+                            icon: "📝",
+                            desc: "Standard multiple-choice",
+                          },
+                          {
+                            id: "interactive",
+                            name: "Interactive",
+                            icon: "🎮",
+                            desc: "Drag, drop, and type answers",
+                          },
+                          {
+                            id: "scenario",
+                            name: "Scenario Challenge",
+                            icon: "🎭",
+                            desc: "Real-world situations",
+                          },
+                          {
+                            id: "missing",
+                            name: "Missing Link",
+                            icon: "🧩",
+                            desc: "Connect the system concepts",
+                          },
+                        ]
+                    ).map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() =>
+                          handleUpdateSettings("challengeMode", mode.id)
+                        }
+                        className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                          settings.challengeMode === mode.id
+                            ? "border-orange-500 bg-orange-500/10"
+                            : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800"
+                        }`}
+                      >
+                        <span className="text-xl mt-0.5">{mode.icon}</span>
+                        <div>
+                          <span
+                            className={`block text-sm font-bold ${
+                              settings.challengeMode === mode.id
+                                ? "text-orange-400"
+                                : "text-zinc-300"
+                            }`}
+                          >
+                            {mode.name}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 leading-tight block mt-0.5">
+                            {mode.desc}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Topic & Description */}
+                <div className="space-y-4 pt-4 border-t border-zinc-800">
+                  <div>
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                      Specific Topic
+                    </label>
+                    <Input
+                      type="text"
+                      value={settings.topic}
+                      onChange={(e) =>
+                        handleUpdateSettings("topic", e.target.value)
+                      }
+                      placeholder={
+                        settings.category === "programming"
+                          ? "e.g. React Hooks, graph algorithms..."
+                          : "e.g. European History, Physics..."
+                      }
+                      className="bg-black/40 border-zinc-800 text-zinc-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                      Description
+                    </label>
+                    <textarea
+                      value={settings.description}
+                      onChange={(e) =>
+                        handleUpdateSettings("description", e.target.value)
+                      }
+                      placeholder="Context or rules..."
+                      rows={2}
+                      className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition placeholder:text-zinc-700 resize-none text-zinc-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Sliders / Metrics */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                      Difficulty
+                    </label>
+                    <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+                      {["easy", "medium", "hard"].map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => handleUpdateSettings("difficulty", d)}
+                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
+                            settings.difficulty === d
+                              ? "bg-zinc-800 text-white shadow-sm"
+                              : "text-zinc-500 hover:text-zinc-300"
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                      Questions
+                    </label>
+                    <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+                      {[3, 5, 10].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() =>
+                            handleUpdateSettings("totalQuestions", n)
+                          }
+                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
+                            settings.totalQuestions === n
+                              ? "bg-zinc-800 text-white shadow-sm"
+                              : "text-zinc-500 hover:text-zinc-300"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duration Selector */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                    Duration
+                  </label>
+                  <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+                    {[1, 3, 5, 10, 15, 30].map((m) => (
+                      <button
+                        key={m}
+                        onClick={() =>
+                          handleUpdateSettings("timerDuration", m * 60)
+                        }
+                        className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
+                          settings.timerDuration === m * 60
+                            ? "bg-zinc-800 text-white shadow-sm"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        {m}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Start Button */}
+                <Button
+                  onClick={handleStartGame}
+                  disabled={isStarting || !settings.category}
+                  className="w-full py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-900/20"
+                >
+                  {isStarting ? (
+                    <>
+                      <Loader2 size={24} className="animate-spin mr-2" />
+                      Initiating...
+                    </>
+                  ) : (
+                    <>
+                      <Swords size={24} className="mr-2" />
+                      Begin Competition
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            ) : (
+              /* Guest Waiting View */
+              <Card className="bg-zinc-900/50 border-zinc-800 text-center sticky top-6 p-8">
+                <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                  <Loader2 size={32} className="animate-spin text-orange-500" />
+                  <div className="absolute inset-0 border-4 border-zinc-800 rounded-full" />
+                  <div className="absolute inset-0 border-t-4 border-orange-500 rounded-full animate-spin" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">
+                  Preparing Battle...
+                </h2>
+                <p className="text-zinc-400 mb-8 text-sm">
+                  The host is currently configuring the match settings. Please
+                  wait for the game to launch.
+                </p>
+
+                <div className="bg-zinc-950 rounded-xl p-4 space-y-3 text-left border border-zinc-900">
+                  <div className="flex justify-between items-center text-sm border-b border-zinc-900 pb-3">
+                    <span className="text-zinc-500">Mode</span>
+                    <span className="font-semibold text-zinc-300 capitalize flex items-center gap-2">
+                      {settings.category === "programming" ? (
+                        <Code size={14} />
+                      ) : (
+                        <BookOpen size={14} />
+                      )}
+                      {settings.category}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-zinc-500">Challenge</span>
+                    <span className="font-semibold text-orange-400 capitalize">
+                      {settings.challengeMode}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1475,23 +2081,25 @@ const ProgrammingEditor = ({
   return (
     <>
       <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900/80 flex items-center justify-between shrink-0">
-        <span className="text-xs text-zinc-500 uppercase font-semibold">
+        <span className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-2">
+          <Code size={14} className="text-zinc-600" />
           {language} Editor
         </span>
-        <button
+        <Button
+          size="sm"
           onClick={handleRun}
           disabled={isRunning || isSubmitting}
-          className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 disabled:bg-zinc-700 text-white text-xs font-semibold px-4 py-1.5 rounded-md transition"
+          className="bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 text-white h-8 text-xs font-semibold px-4 transition-all"
         >
           {isRunning ? (
-            <Loader2 size={13} className="animate-spin" />
+            <Loader2 size={13} className="animate-spin mr-2" />
           ) : (
-            <Play size={13} fill="currentColor" />
+            <Play size={13} fill="currentColor" className="mr-2" />
           )}
           Run & Test
-        </button>
+        </Button>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <Editor
           height="100%"
           language={language}
@@ -1504,35 +2112,41 @@ const ProgrammingEditor = ({
             scrollBeyondLastLine: false,
             automaticLayout: true,
             padding: { top: 12 },
+            fontFamily: "monospace",
           }}
         />
       </div>
       {output && (
-        <div className="border-t border-zinc-800 p-3 bg-zinc-950 max-h-40 overflow-y-auto">
+        <div className="border-t border-zinc-800 p-3 bg-zinc-950 max-h-40 overflow-y-auto custom-scrollbar shrink-0">
+          <div className="text-[10px] text-zinc-500 uppercase font-bold mb-1">
+            Output Console
+          </div>
           {output.text && (
-            <pre className="text-xs text-zinc-300 whitespace-pre-wrap">
+            <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono">
               {output.text}
             </pre>
           )}
           {output.error && (
-            <pre className="text-xs text-red-400 whitespace-pre-wrap">
+            <pre className="text-xs text-red-400 whitespace-pre-wrap font-mono mt-1">
               {output.error}
             </pre>
           )}
           {output.testResult && (
             <div
-              className={`mt-2 text-xs font-semibold ${
-                output.testResult.success ? "text-green-400" : "text-red-400"
+              className={`mt-2 text-xs font-semibold p-2 rounded border ${
+                output.testResult.success
+                  ? "text-green-400 bg-green-500/10 border-green-500/20"
+                  : "text-red-400 bg-red-500/10 border-red-500/20"
               }`}
             >
               {output.testResult.success
-                ? "✓ All tests passed!"
-                : `✗ ${output.testResult.message}`}
+                ? "✓ All tests passed successfully!"
+                : `✗ ${output.testResult.message || "Tests failed"}`}
             </div>
           )}
           {answerResult && (
-            <div className="mt-2 text-xs font-semibold text-green-400">
-              +{answerResult.pointsEarned} points!
+            <div className="mt-2 text-xs font-semibold text-green-400 p-2 rounded bg-green-500/10 border border-green-500/20">
+              +{answerResult.pointsEarned} XP Earned!
             </div>
           )}
         </div>
