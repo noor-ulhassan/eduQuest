@@ -1,3 +1,5 @@
+
+
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
@@ -20,10 +22,16 @@ const authSlice = createSlice({
       state.user = null;
       state.status = "unauthenticated";
     },
+    updateUserStats: (state, action) => {
+      if (state.user) {
+        // This merges the new XP, Level, and Rank into your existing user state
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
   },
 });
 
-export const { authLoading, authSuccess, authLogout } =
+export const { authLoading, authSuccess, authLogout, updateUserStats } =
   authSlice.actions;
 
 export default authSlice.reducer;

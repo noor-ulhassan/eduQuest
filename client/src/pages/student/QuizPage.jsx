@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Navbar from "../../components/Navbar.jsx";
+import Navbar from "../../layout/Navbar.jsx";
 import {
   Loader2Icon,
   PlayIcon,

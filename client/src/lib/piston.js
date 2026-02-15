@@ -53,7 +53,9 @@ export async function executeCode(language, code) {
     const output = data.run.output || "";
     const stderr = data.run.stderr || "";
 
-    if (stderr) {
+    // If there's stderr but also stdout output, treat as success with warnings
+    // Python often writes deprecation/import warnings to stderr even on valid runs
+    if (stderr && !output) {
       return {
         success: false,
         output: output,
@@ -64,6 +66,7 @@ export async function executeCode(language, code) {
     return {
       success: true,
       output: output || "No output",
+      error: stderr || null,
     };
   } catch (error) {
     return {

@@ -1,17 +1,27 @@
-import Navbar from "@/components/Navbar";
+import Navbar from "@/layout/Navbar";
 import React from "react";
-import Footer from "@/components/Footer";
-import { Outlet } from "react-router-dom";
-import ChatBotFloating from "@/components/ChatBotFloating";
+import Footer from "@/layout/Footer";
+import { Outlet, useLocation } from "react-router-dom";
 
 const MainLayout = () => {
+  const location = useLocation();
+  const isPlaygroundRoute =
+    location.pathname.startsWith("/playground/") &&
+    location.pathname !== "/playground";
+  const hideFooter =
+    location.pathname.startsWith("/problem/") ||
+    location.pathname === "/workspace" ||
+    location.pathname.startsWith("/course/") ||
+    isPlaygroundRoute ||
+    location.pathname.startsWith("/competition");
+
   return (
     <div>
-      <Navbar />
+      {!isPlaygroundRoute && <Navbar />}
       <div>
         <Outlet />
       </div>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 };

@@ -4,17 +4,13 @@ import { User } from "../models/user.model.js";
 
 export const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers["authorization"];
-    // const token = authHeader?.split(" ")[1];
-    const token = req.cookies?.refreshToken; // Extract token from cookies
+    const token = req.cookies.token;
     // console.log("Extracted Token:", token);
-    if (!token) return res.status(401).json({ message: "No access token" });
+    if (!token) return res.status(401).json({ message: "Login Required" });
 
-    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.id).select(
-      "-password -refreshToken"
-    );
+    const user = await User.findById(decoded.id).select("-password");
 
     if (!user) return res.status(401).json({ message: "User not found" });
 
@@ -22,6 +18,6 @@ export const authenticate = async (req, res, next) => {
     next();
   } catch (err) {
     // If token expired or invalid
-    return res.status(401).json({ message: "Access token expired or invalid" });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };

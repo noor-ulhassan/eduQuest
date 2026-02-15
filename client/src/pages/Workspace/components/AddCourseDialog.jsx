@@ -166,8 +166,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader, Loader2Icon, Sparkle } from "lucide-react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
+import api from "@/features/auth/authApi";
 
 function AddCourseDialog({ children, setCourseList, user }) {
   const [open, setOpen] = useState(false);
@@ -195,17 +195,15 @@ function AddCourseDialog({ children, setCourseList, user }) {
     setLoading(true);
     try {
       // Change 3: Include user data in the request body
-      const res = await axios.post(
+      const res = await api.post(
         "http://localhost:8080/api/v1/ai/generate-course",
         {
           ...formData,
-          userEmail: user?.email,
-          userName: user?.name,
-          userProfileImage: user?.avatar,
-        }
+        },
       );
 
       console.log("Generated Course ID:", res.data.courseId);
+
       setLoading(false);
 
       if (res.data.success) {
@@ -242,7 +240,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
               </div>
 
               <div>
-                <label>Course Description (Optional)</label>
+                <label>Course Description *</label>
                 <Textarea
                   placeholder="Description"
                   onChange={(e) =>
@@ -262,7 +260,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
                 />
               </div>
 
-              <div className="flex gap-3 items-center">
+              {/* <div className="flex gap-3 items-center">
                 <label>Include Video</label>
                 <Switch
                   checked={formData.includeVideo}
@@ -270,7 +268,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
                     onHandleInputChange("includeVideo", !formData.includeVideo)
                   }
                 />
-              </div>
+              </div> */}
 
               <div>
                 <label>Difficulty Level</label>

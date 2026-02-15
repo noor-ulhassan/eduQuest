@@ -1,4 +1,6 @@
 import express from "express";
+import http from "http";
+import { Server } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -8,29 +10,43 @@ import aiRoute from "./routes/aiRoutes.js";
 import authRoute from "./routes/auth.routes.js";
 import documentRoute from "./routes/documentRoutes.js";
 import quizRoute from "./routes/quizRoutes.js";
-import { auth } from "google-auth-library";
+import playgroundRoute from "./routes/playgroundRoutes.js";
+import leaderboardRoute from "./routes/leaderboardRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
+import competitionRoutes from "./routes/competitionRoutes.js";
+import { initializeSocket } from "./socket/roomHandler.js";
 
 // 1. Load Environment Variables First
 dotenv.config({});
 
-// 2. Initialize Express App (MUST be done before app.use)
+// 2. Initialize Express App + HTTP Server + Socket.io
 const app = express();
+const httpServer = http.createServer(app);
 const PORT = process.env.PORT;
 
-// 3. Setup Directory Paths (ES6 Fix)
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Initialize Socket.io handlers
+initializeSocket(io);
 
 // 4. Connect to Database
 connectDB();
 // 5. Apply Middlewares
 
-// app.use(
-//   cors({
-//     origin: process.env.CLIENT_URL || "http://localhost:5173", // Best practice: use env var
-//     methods: ["GET", "POST", "PUT", "DELETE"],
-//     allowedHeaders: ["Content-Type", "Authorization"], // Fixed typo: 'Authorized' -> 'Authorization'
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
 
 app.use(cors());
 
@@ -46,7 +62,11 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/ai", aiRoute);
 app.use("/api/v1/documents", documentRoute);
 app.use("/api/v1/quiz", quizRoute);
+app.use("/api/v1/playground", playgroundRoute);
+app.use("/api/v1/leaderboard", leaderboardRoute);
+app.use("/api/v1/posts", postRoutes);
+app.use("/api/v1/competition", competitionRoutes);
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);
 });
