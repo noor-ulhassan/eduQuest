@@ -1,5 +1,5 @@
 import express from "express";
-import upload  from "../config/multer.js";
+import upload  from "../middleware/multerMiddleware.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import {
   uploadDocument,

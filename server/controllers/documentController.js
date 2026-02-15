@@ -6,6 +6,7 @@ import { extractTextFromPDF } from "../utils/pdfParser.js";
 import { chunkText } from "../utils/textChunker.js";
 import fs from "fs/promises";
 import mongoose from "mongoose";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 // @desc    Upload PDF document
 // @route   POST /api/documents/upload
@@ -19,7 +20,8 @@ export const uploadDocument = async (req, res, next) => {
         statusCode: 400,
       });
     }
-    console.log("Uploaded file:", req.file);
+    // console.log("Uploaded file:", req.file);
+    const filePath = req.file.path; // The temp file on your disk
 
     const { title } = req.body;
 
@@ -32,16 +34,30 @@ export const uploadDocument = async (req, res, next) => {
         statusCode: 400,
       });
     }
-    // Construct the URL for the uploaded file
-    const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
-    const fileUrl = `${baseUrl}/uploads/documents/${req.file.filename}`;
+
+    //  UPLOAD TO CLOUDINARY
+    // console.log("Step 1: Uploading to Cloudinary...");
+    const cloudinaryResponse = await uploadOnCloudinary(filePath);
+
+    if (!cloudinaryResponse) {
+      throw new Error("Failed to upload to Cloudinary");
+    }
+    // console.log("Upload Success. URL:", cloudinaryResponse.secure_url);
+
+    // --- STEP 2: EXTRACT TEXT (Sequential) ---
+    // We do this AFTER upload succeeds. If upload fails, this never runs.
+    console.log("Step 2: Extracting text...");
+    const { text } = await extractTextFromPDF(filePath);
+
+    // --- STEP 3: CHUNK TEXT ---
+    const chunks = chunkText(text, 500, 50);
 
     // Create document record
     const document = await Document.create({
       userId: req.user._id,
       title,
       fileName: req.file.originalname,
-      filePath: fileUrl, // Store the URL instead of the local path
+      filePath: cloudinaryResponse.secure_url, // Store the Cloud URL
       fileSize: req.file.size,
       status: "processing",
     });
@@ -77,6 +93,9 @@ const processPDF = async (documentId, filePath) => {
       chunks: chunks,
       status: "ready",
     });
+    console.log(
+      `Document ${documentId} processed successfully with ${chunks.length} chunks.`,
+    );
     // console.log(`Document ${documentId} processed successfully`);
     // console.log(`Extracted ${chunks.length} chunks for document ${documentId}`);
     // console.log(`Extracted text length: ${text.length} characters`);
@@ -95,9 +114,7 @@ const processPDF = async (documentId, filePath) => {
 export const getDocuments = async (req, res, next) => {
   try {
     const documents = await Document.find({ userId: req.user._id })
-      .select(
-        "_id title fileName fileSize filePath status createdAt"
-      )
+      .select("_id title fileName fileSize filePath status createdAt")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
