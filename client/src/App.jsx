@@ -24,7 +24,7 @@ import EditCourse from "./pages/Workspace/EditCourse";
 import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 
 import AuthLoading from "./components/auth/AuthLoading";
-import UploadPdfPage from "./pages/UploadPdfPage";
+import UploadPdfPage from "./pages/Documents/UploadPdfPage";
 import CourseView from "./pages/Workspace/CourseView";
 import AboutPage from "./pages/about/About";
 import Playground from "./pages/Playgrounds/Page";

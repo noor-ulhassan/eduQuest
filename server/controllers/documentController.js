@@ -59,12 +59,11 @@ export const uploadDocument = async (req, res, next) => {
       fileName: req.file.originalname,
       filePath: cloudinaryResponse.secure_url, // Store the Cloud URL
       fileSize: req.file.size,
-      status: "processing",
+      extractedText: text,
+      chunks: chunks,
+      status: "ready",
     });
-    // Process PDF in background (in production, use a queue like Bull)
-    processPDF(document._id, req.file.path).catch((err) => {
-      console.error("PDF processing error:", err);
-    });
+    
 
     res.status(201).json({
       success: true,
@@ -77,37 +76,20 @@ export const uploadDocument = async (req, res, next) => {
       await fs.unlink(req.file.path).catch(() => {});
     }
     next(error);
+  } finally {
+    // --- CRITICAL CLEANUP ---
+    // This block runs whether the upload succeeded OR failed.
+    // It guarantees your server disk never fills up.
+    try {
+      await fs.unlink(filePath);
+      console.log(`Cleanup: Deleted local file ${filePath}`);
+    } catch (err) {
+      // If file was already deleted or doesn't exist, ignore error
+      if (err.code !== 'ENOENT') console.error("Error deleting temp file:", err);
+    }
   }
 };
-// Helper function to process PDF
-const processPDF = async (documentId, filePath) => {
-  try {
-    const { text } = await extractTextFromPDF(filePath);
 
-    // Create chunks
-    const chunks = chunkText(text, 500, 50);
-
-    // Update document
-    await Document.findByIdAndUpdate(documentId, {
-      extractedText: text,
-      chunks: chunks,
-      status: "ready",
-    });
-    console.log(
-      `Document ${documentId} processed successfully with ${chunks.length} chunks.`,
-    );
-    // console.log(`Document ${documentId} processed successfully`);
-    // console.log(`Extracted ${chunks.length} chunks for document ${documentId}`);
-    // console.log(`Extracted text length: ${text.length} characters`);
-    // console.log(`Sample chunk content: ${chunks[0]?.content.slice(0, 100)}...`);
-    // console.log(`CoMPLETE CHUNKS VARIABLE IS :  ------------->>>> ${JSON.stringify(chunks)}`);
-  } catch (error) {
-    console.error(`Error processing document ${documentId}:`, error);
-    await Document.findByIdAndUpdate(documentId, {
-      status: "failed",
-    });
-  }
-};
 // @desc    Get all user documents
 // @route   GET /api/documents
 // @access  Private
@@ -136,6 +118,21 @@ export const getDocuments = async (req, res, next) => {
 // @access  Private
 export const getDocument = async (req, res, next) => {
   try {
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({ success: false, error: "Document not found" });
+    }
+
+    // Ensure user owns the document
+    if (document.userId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, error: "Not authorized to view this document" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: document,
+    });
   } catch (error) {
     next(error);
   }
@@ -146,6 +143,26 @@ export const getDocument = async (req, res, next) => {
 // @access  Private
 export const deleteDocument = async (req, res, next) => {
   try {
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({ success: false, error: "Document not found" });
+    }
+
+    // Ensure user owns the document
+    if (document.userId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, error: "Not authorized" });
+    }
+
+    // OPTIONAL: Delete from Cloudinary here if you want to be thorough
+    // await cloudinary.uploader.destroy(public_id); 
+
+    await document.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Document deleted successfully",
+    });
   } catch (error) {
     next(error);
   }
@@ -156,6 +173,31 @@ export const deleteDocument = async (req, res, next) => {
 // @access  Private
 export const updateDocument = async (req, res, next) => {
   try {
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ success: false, error: "Please provide a title" });
+    }
+
+    let document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({ success: false, error: "Document not found" });
+    }
+
+    // Ensure user owns the document
+    if (document.userId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, error: "Not authorized" });
+    }
+
+    document.title = title;
+    await document.save();
+
+    res.status(200).json({
+      success: true,
+      data: document,
+      message: "Document updated successfully"
+    });
   } catch (error) {
     next(error);
   }

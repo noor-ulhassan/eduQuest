@@ -1,4 +1,4 @@
-import UploadPdf from "../components/UploadPdf";
+import UploadPdf from "../../components/UploadPdf";
 
 const UploadPdfPage = () => {
   return (
@@ -11,8 +11,6 @@ const UploadPdfPage = () => {
           Upload PDFs and level up your workspace!
         </p>
         <UploadPdf />
-
-    
       </div>
     </div>
   );
