@@ -21,10 +21,9 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Signup from "./pages/Auth/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
-import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 
 import AuthLoading from "./components/auth/AuthLoading";
-import UploadPdfPage from "./pages/Documents/UploadPdfPage";
+
 import CourseView from "./pages/Workspace/CourseView";
 import AboutPage from "./pages/about/About";
 import Playground from "./pages/Playgrounds/Page";
@@ -87,17 +86,26 @@ const appRouter = createBrowserRouter([
       // 2. ADDED THE DOCUMENTS ROUTE HERE
       {
         path: "documents",
-        element: (
-          <ProtectedRoute>
-            <DocumentDetailPage />
-          </ProtectedRoute>
-        ),
+        children: [
+          {
+            index: true, // This triggers when the user visits exactly "/documents"
+            element: (
+              <ProtectedRoute>
+                <DocumentLibraryPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":id", // This triggers on "/documents/12345"
+            element: (
+              <ProtectedRoute>
+                <DocumentInteractPage />
+              </ProtectedRoute>
+            ),
+          },
+        ],
       },
       { path: "workspace/edit-course/:courseId", element: <EditCourse /> },
-      { path: "document", element: <DocumentDetailPage /> },
-      { path:"documentss", element:<DocumentLibraryPage />} ,
-      {path:"documentss/:id", element:<DocumentInteractPage />} ,
-      { path: "upload-pdf", element: <UploadPdfPage /> },
 
       {
         path: "profile",

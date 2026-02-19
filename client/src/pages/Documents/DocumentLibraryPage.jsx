@@ -132,7 +132,7 @@ const DocumentLibraryPage = () => {
               key={doc._id} 
               className="cursor-pointer hover:shadow-xl transition-all group border-zinc-200 overflow-hidden flex flex-col"
               // Kept the extra 's' here as requested
-              onClick={() => navigate(`/documentss/${doc._id}`)} 
+              onClick={() => navigate(`/documents/${doc._id}`)} 
             >
               {/* --- IMAGE THUMBNAIL SECTION --- */}
               <div className="h-40 w-full relative bg-zinc-100 border-b overflow-hidden flex items-center justify-center">
