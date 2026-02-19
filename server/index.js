@@ -15,6 +15,7 @@ import leaderboardRoute from "./routes/leaderboardRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import competitionRoutes from "./routes/competitionRoutes.js";
 import { initializeSocket } from "./socket/roomHandler.js";
+import quizAttemptRoute from "./routes/quizAttemptRoutes.js";
 
 // 1. Load Environment Variables First
 dotenv.config({});
@@ -62,6 +63,7 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/ai", aiRoute);
 app.use("/api/v1/documents", documentRoute);
 app.use("/api/v1/quiz", quizRoute);
+app.use("/api/v1/quiz-attempts", quizAttemptRoute);
 app.use("/api/v1/playground", playgroundRoute);
 app.use("/api/v1/leaderboard", leaderboardRoute);
 app.use("/api/v1/posts", postRoutes);

@@ -21,13 +21,12 @@ export const uploadDocument = async (req, res, next) => {
       });
     }
     // console.log("Uploaded file:", req.file);
-    const filePath = req.file.path; // The temp file on your disk
+    let filePath = req.file.path; // The temp file on your disk
 
     const { title } = req.body;
 
     if (!title) {
       // Delete uploaded file if no title provided
-      await fs.unlink(req.file.path);
       return res.status(400).json({
         success: false,
         error: "Please provide a document title",
@@ -63,7 +62,6 @@ export const uploadDocument = async (req, res, next) => {
       chunks: chunks,
       status: "ready",
     });
-    
 
     res.status(201).json({
       success: true,
@@ -72,20 +70,24 @@ export const uploadDocument = async (req, res, next) => {
     });
   } catch (error) {
     // Clean up file on error
-    if (req.file) {
-      await fs.unlink(req.file.path).catch(() => {});
-    }
+    // if (req.file) {
+    //   await fs.unlink(req.file.path).catch(() => {});
+    // }
     next(error);
   } finally {
     // --- CRITICAL CLEANUP ---
     // This block runs whether the upload succeeded OR failed.
     // It guarantees your server disk never fills up.
     try {
+      console.log("Step 4: Cleaning up temp file...", req.file?.path);
+      let filePath = req.file?.path;
+
       await fs.unlink(filePath);
       console.log(`Cleanup: Deleted local file ${filePath}`);
     } catch (err) {
       // If file was already deleted or doesn't exist, ignore error
-      if (err.code !== 'ENOENT') console.error("Error deleting temp file:", err);
+      if (err.code !== "ENOENT")
+        console.error("Error deleting temp file:", err);
     }
   }
 };
@@ -121,12 +123,19 @@ export const getDocument = async (req, res, next) => {
     const document = await Document.findById(req.params.id);
 
     if (!document) {
-      return res.status(404).json({ success: false, error: "Document not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Document not found" });
     }
 
     // Ensure user owns the document
     if (document.userId.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ success: false, error: "Not authorized to view this document" });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          error: "Not authorized to view this document",
+        });
     }
 
     res.status(200).json({
@@ -146,7 +155,9 @@ export const deleteDocument = async (req, res, next) => {
     const document = await Document.findById(req.params.id);
 
     if (!document) {
-      return res.status(404).json({ success: false, error: "Document not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Document not found" });
     }
 
     // Ensure user owns the document
@@ -155,7 +166,7 @@ export const deleteDocument = async (req, res, next) => {
     }
 
     // OPTIONAL: Delete from Cloudinary here if you want to be thorough
-    // await cloudinary.uploader.destroy(public_id); 
+    // await cloudinary.uploader.destroy(public_id);
 
     await document.deleteOne();
 
@@ -176,13 +187,17 @@ export const updateDocument = async (req, res, next) => {
     const { title } = req.body;
 
     if (!title) {
-      return res.status(400).json({ success: false, error: "Please provide a title" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Please provide a title" });
     }
 
     let document = await Document.findById(req.params.id);
 
     if (!document) {
-      return res.status(404).json({ success: false, error: "Document not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Document not found" });
     }
 
     // Ensure user owns the document
@@ -196,7 +211,7 @@ export const updateDocument = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: document,
-      message: "Document updated successfully"
+      message: "Document updated successfully",
     });
   } catch (error) {
     next(error);

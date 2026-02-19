@@ -31,6 +31,8 @@ import Playground from "./pages/Playgrounds/Page";
 import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
 import Home from "./pages/Community/components/Home";
 import CompetitionLobby from "./pages/Competition/CompetitionLobby";
+import DocumentLibraryPage from "./pages/Documents/DocumentLibraryPage";
+import DocumentInteractPage from "./pages/Documents/DocumentInteractPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -93,6 +95,8 @@ const appRouter = createBrowserRouter([
       },
       { path: "workspace/edit-course/:courseId", element: <EditCourse /> },
       { path: "document", element: <DocumentDetailPage /> },
+      { path:"documentss", element:<DocumentLibraryPage />} ,
+      {path:"documentss/:id", element:<DocumentInteractPage />} ,
       { path: "upload-pdf", element: <UploadPdfPage /> },
 
       {

@@ -23,7 +23,7 @@ const uploadOnCloudinary = async (filePath) => {
     return result;
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error);
-    fs.unlinkSync(filePath); // Remove the file to save space on our server
+    // fs.unlinkSync(filePath); // Remove the file to save space on our server
     return null;
   }
 };
