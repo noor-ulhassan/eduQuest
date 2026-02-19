@@ -32,6 +32,7 @@ const quizAttemptSchema = new mongoose.Schema(
         correctAnswer: { type: String, required: true },
         userAnswer: { type: String, required: true },
         isCorrect: { type: Boolean, required: true },
+        sourceQuote: { type: String, default: "" },
         // FUTURE PROOFING: When you ask Gemini to generate the quiz, 
         // have it return the index of the chunk it used. Save it here.
         sourceChunkIndex: { type: Number, default: null } 
