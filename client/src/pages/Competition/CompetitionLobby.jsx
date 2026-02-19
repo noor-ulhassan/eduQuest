@@ -106,7 +106,8 @@ const CompetitionLobby = () => {
   // Connect socket on mount
   useEffect(() => {
     if (!user) return;
-    const s = connectSocket();
+    const token = localStorage.getItem("accessToken");
+    const s = connectSocket(token);
     setSocket(s);
 
     return () => {

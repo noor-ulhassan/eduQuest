@@ -8,8 +8,10 @@ let socket = null;
 
 export const getSocket = () => socket;
 
-export const connectSocket = () => {
+export const connectSocket = (token) => {
   if (socket?.connected) return socket;
+
+  const authToken = token || localStorage.getItem("accessToken");
 
   socket = io(SOCKET_URL, {
     withCredentials: true,
@@ -17,6 +19,9 @@ export const connectSocket = () => {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
+    auth: {
+      token: authToken,
+    },
   });
 
   socket.on("connect", () => {
