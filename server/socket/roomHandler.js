@@ -23,10 +23,19 @@ export function initializeSocket(io) {
   // Authenticate socket connections via JWT
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token;
+      // Try auth.token first, then fall back to HTTP-only cookie
+      let token = socket.handshake.auth?.token;
+
+      if (!token) {
+        // Parse token from cookie header (same cookie set by auth.controller.js)
+        const cookieHeader = socket.handshake.headers?.cookie || "";
+        const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
+        token = match ? match[1] : null;
+      }
+
       if (!token) return next(new Error("Authentication required"));
 
-      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id).select(
         "name email avatarUrl xp level",
       );

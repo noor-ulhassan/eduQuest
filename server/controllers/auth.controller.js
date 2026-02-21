@@ -52,11 +52,11 @@ export const googleAuth = async (req, res) => {
     // Create token
     const token = createToken(user);
 
-
     // Set token in HTTP-only cookie
     res.cookie("token", token, cookieOptions);
 
     return res.json({
+      token,
       message: "Google login successful",
       user: {
         name: user.name,
@@ -163,6 +163,7 @@ export const login = async (req, res) => {
       .status(200)
       .cookie("token", token, cookieOptions)
       .json({
+        token,
         success: true,
         message: `Welcome back ${user.name}`,
         user: {

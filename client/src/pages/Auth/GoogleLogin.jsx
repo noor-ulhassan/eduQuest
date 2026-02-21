@@ -14,10 +14,13 @@ export default function GoogleAuthButton({ setError }) {
       const res = await api.post("/auth/google", {
         idToken: credentialResponse.credential,
       });
+      if (res.data.token) {
+        localStorage.setItem("accessToken", res.data.token);
+      }
       dispatch(
         authSuccess({
           user: res.data.user,
-        })
+        }),
       );
 
       navigate("/");

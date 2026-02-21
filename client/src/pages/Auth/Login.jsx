@@ -22,13 +22,14 @@ export default function Login() {
     const { email, password } = formData;
     try {
       const res = await api.post("/auth/login", { email, password });
+      if (res.data.token) {
+        localStorage.setItem("accessToken", res.data.token);
+      }
       dispatch(
         authSuccess({
           user: res.data.user,
-        })
+        }),
       );
-      // alert(res.data.message);
-      // console.log(res.data);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong");

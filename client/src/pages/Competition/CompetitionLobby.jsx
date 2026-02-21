@@ -605,7 +605,7 @@ const CompetitionLobby = () => {
       <div className="min-h-screen relative flex items-center justify-center p-6 mt-20 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
         {/* Overlay for text readability */}
         <div className="absolute inset-0 bg-black/50 z-0" />
-        
+
         {/* Content wrapper */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

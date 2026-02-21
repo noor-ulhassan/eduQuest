@@ -8,6 +8,7 @@ export default function LogoutButton() {
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");
+      localStorage.removeItem("accessToken");
       dispatch(authLogout());
     } catch (err) {
       console.log(err);
