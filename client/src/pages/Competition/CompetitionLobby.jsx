@@ -602,20 +602,22 @@ const CompetitionLobby = () => {
   // ─── RENDER: No Room Yet (Create/Join) ──────────────────
   if (!room) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-28">
+      <div className="min-h-screen relative flex items-center justify-center p-6 mt-20 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
+        {/* Overlay for text readability */}
+        <div className="absolute inset-0 bg-black/50 z-0" />
+        
+        {/* Content wrapper */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-lg w-full space-y-8"
+          className="max-w-lg w-full space-y-8 relative z-10"
         >
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-600 mb-6">
-              <Swords size={36} className="text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
-              Competition Arena
+            <h1 className="text-4xl font-bold text-yellow-400 mb-6">
+              EduQuest Arena
             </h1>
-            <p className="text-zinc-400 mt-2">
+
+            <p className="text-zinc-300 mt-2 text-lg">
               Challenge your friends in coding battles & quizzes
             </p>
           </div>

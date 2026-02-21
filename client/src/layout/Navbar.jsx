@@ -123,6 +123,11 @@ const Navbar = () => {
                   <Link to={"/playground"}>Playground</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
+                  <Link to={"/documents"}>Documents</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
 
               <NavigationMenuItem>
                 <NavigationMenuLink className="hover:text-yellow-600 text-sm">

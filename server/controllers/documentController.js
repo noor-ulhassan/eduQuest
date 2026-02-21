@@ -6,6 +6,7 @@ import { extractTextFromPDF } from "../utils/pdfParser.js";
 import { chunkText } from "../utils/textChunker.js";
 import fs from "fs/promises";
 import mongoose from "mongoose";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 // @desc    Upload PDF document
 // @route   POST /api/documents/upload
@@ -19,35 +20,47 @@ export const uploadDocument = async (req, res, next) => {
         statusCode: 400,
       });
     }
-    console.log("Uploaded file:", req.file);
+    // console.log("Uploaded file:", req.file);
+    let filePath = req.file.path; // The temp file on your disk
 
     const { title } = req.body;
 
     if (!title) {
       // Delete uploaded file if no title provided
-      await fs.unlink(req.file.path);
       return res.status(400).json({
         success: false,
         error: "Please provide a document title",
         statusCode: 400,
       });
     }
-    // Construct the URL for the uploaded file
-    const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
-    const fileUrl = `${baseUrl}/uploads/documents/${req.file.filename}`;
+
+    //  UPLOAD TO CLOUDINARY
+    // console.log("Step 1: Uploading to Cloudinary...");
+    const cloudinaryResponse = await uploadOnCloudinary(filePath);
+
+    if (!cloudinaryResponse) {
+      throw new Error("Failed to upload to Cloudinary");
+    }
+    // console.log("Upload Success. URL:", cloudinaryResponse.secure_url);
+
+    // --- STEP 2: EXTRACT TEXT (Sequential) ---
+    // We do this AFTER upload succeeds. If upload fails, this never runs.
+    console.log("Step 2: Extracting text...");
+    const { text } = await extractTextFromPDF(filePath);
+
+    // --- STEP 3: CHUNK TEXT ---
+    const chunks = chunkText(text, 500, 50);
 
     // Create document record
     const document = await Document.create({
       userId: req.user._id,
       title,
       fileName: req.file.originalname,
-      filePath: fileUrl, // Store the URL instead of the local path
+      filePath: cloudinaryResponse.secure_url, // Store the Cloud URL
       fileSize: req.file.size,
-      status: "processing",
-    });
-    // Process PDF in background (in production, use a queue like Bull)
-    processPDF(document._id, req.file.path).catch((err) => {
-      console.error("PDF processing error:", err);
+      extractedText: text,
+      chunks: chunks,
+      status: "ready",
     });
 
     res.status(201).json({
@@ -57,47 +70,35 @@ export const uploadDocument = async (req, res, next) => {
     });
   } catch (error) {
     // Clean up file on error
-    if (req.file) {
-      await fs.unlink(req.file.path).catch(() => {});
-    }
+    // if (req.file) {
+    //   await fs.unlink(req.file.path).catch(() => {});
+    // }
     next(error);
+  } finally {
+    // --- CRITICAL CLEANUP ---
+    // This block runs whether the upload succeeded OR failed.
+    // It guarantees your server disk never fills up.
+    try {
+      console.log("Step 4: Cleaning up temp file...", req.file?.path);
+      let filePath = req.file?.path;
+
+      await fs.unlink(filePath);
+      console.log(`Cleanup: Deleted local file ${filePath}`);
+    } catch (err) {
+      // If file was already deleted or doesn't exist, ignore error
+      if (err.code !== "ENOENT")
+        console.error("Error deleting temp file:", err);
+    }
   }
 };
-// Helper function to process PDF
-const processPDF = async (documentId, filePath) => {
-  try {
-    const { text } = await extractTextFromPDF(filePath);
 
-    // Create chunks
-    const chunks = chunkText(text, 500, 50);
-
-    // Update document
-    await Document.findByIdAndUpdate(documentId, {
-      extractedText: text,
-      chunks: chunks,
-      status: "ready",
-    });
-    // console.log(`Document ${documentId} processed successfully`);
-    // console.log(`Extracted ${chunks.length} chunks for document ${documentId}`);
-    // console.log(`Extracted text length: ${text.length} characters`);
-    // console.log(`Sample chunk content: ${chunks[0]?.content.slice(0, 100)}...`);
-    // console.log(`CoMPLETE CHUNKS VARIABLE IS :  ------------->>>> ${JSON.stringify(chunks)}`);
-  } catch (error) {
-    console.error(`Error processing document ${documentId}:`, error);
-    await Document.findByIdAndUpdate(documentId, {
-      status: "failed",
-    });
-  }
-};
 // @desc    Get all user documents
 // @route   GET /api/documents
 // @access  Private
 export const getDocuments = async (req, res, next) => {
   try {
     const documents = await Document.find({ userId: req.user._id })
-      .select(
-        "_id title fileName fileSize filePath status createdAt"
-      )
+      .select("_id title fileName fileSize filePath status createdAt")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -119,6 +120,28 @@ export const getDocuments = async (req, res, next) => {
 // @access  Private
 export const getDocument = async (req, res, next) => {
   try {
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Document not found" });
+    }
+
+    // Ensure user owns the document
+    if (document.userId.toString() !== req.user._id.toString()) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+          error: "Not authorized to view this document",
+        });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: document,
+    });
   } catch (error) {
     next(error);
   }
@@ -129,6 +152,28 @@ export const getDocument = async (req, res, next) => {
 // @access  Private
 export const deleteDocument = async (req, res, next) => {
   try {
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Document not found" });
+    }
+
+    // Ensure user owns the document
+    if (document.userId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, error: "Not authorized" });
+    }
+
+    // OPTIONAL: Delete from Cloudinary here if you want to be thorough
+    // await cloudinary.uploader.destroy(public_id);
+
+    await document.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Document deleted successfully",
+    });
   } catch (error) {
     next(error);
   }
@@ -139,6 +184,35 @@ export const deleteDocument = async (req, res, next) => {
 // @access  Private
 export const updateDocument = async (req, res, next) => {
   try {
+    const { title } = req.body;
+
+    if (!title) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Please provide a title" });
+    }
+
+    let document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Document not found" });
+    }
+
+    // Ensure user owns the document
+    if (document.userId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ success: false, error: "Not authorized" });
+    }
+
+    document.title = title;
+    await document.save();
+
+    res.status(200).json({
+      success: true,
+      data: document,
+      message: "Document updated successfully",
+    });
   } catch (error) {
     next(error);
   }

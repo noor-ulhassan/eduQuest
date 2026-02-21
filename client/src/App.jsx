@@ -21,16 +21,17 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Signup from "./pages/Auth/Signup";
 import Workspace from "./pages/Workspace/Page";
 import EditCourse from "./pages/Workspace/EditCourse";
-import DocumentDetailPage from "./pages/Documents/DocumentDetailPage";
 
 import AuthLoading from "./components/auth/AuthLoading";
-import UploadPdfPage from "./pages/UploadPdfPage";
+
 import CourseView from "./pages/Workspace/CourseView";
 import AboutPage from "./pages/about/About";
 import Playground from "./pages/Playgrounds/Page";
 import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
 import Home from "./pages/Community/components/Home";
 import CompetitionLobby from "./pages/Competition/CompetitionLobby";
+import DocumentLibraryPage from "./pages/Documents/DocumentLibraryPage";
+import DocumentInteractPage from "./pages/Documents/DocumentInteractPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -85,15 +86,26 @@ const appRouter = createBrowserRouter([
       // 2. ADDED THE DOCUMENTS ROUTE HERE
       {
         path: "documents",
-        element: (
-          <ProtectedRoute>
-            <DocumentDetailPage />
-          </ProtectedRoute>
-        ),
+        children: [
+          {
+            index: true, // This triggers when the user visits exactly "/documents"
+            element: (
+              <ProtectedRoute>
+                <DocumentLibraryPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":id", // This triggers on "/documents/12345"
+            element: (
+              <ProtectedRoute>
+                <DocumentInteractPage />
+              </ProtectedRoute>
+            ),
+          },
+        ],
       },
       { path: "workspace/edit-course/:courseId", element: <EditCourse /> },
-      { path: "document", element: <DocumentDetailPage /> },
-      { path: "upload-pdf", element: <UploadPdfPage /> },
 
       {
         path: "profile",

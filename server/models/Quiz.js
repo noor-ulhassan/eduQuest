@@ -48,6 +48,10 @@ const quizSchema = new mongoose.Schema(
           type: String,
           default: "",
         },
+        sourceQuote: {
+          type: String,
+          default: "",
+        },
 
         difficulty: {
           type: String,

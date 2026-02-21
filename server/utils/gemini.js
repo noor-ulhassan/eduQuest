@@ -521,7 +521,12 @@ export const generateQuizFromGemini = async ({
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
+    });
 
     const MAX_CHARS = 15000;
     context = context.slice(0, MAX_CHARS);
@@ -557,7 +562,8 @@ JSON SCHEMA:
       "options": ["", "", "", ""],
       "correctAnswer": "",
       "explanation": "",
-      "difficulty": "${difficulty}"
+      "difficulty": "${difficulty}",
+      "sourceQuote": "The exact verbatim sentence from the context that proves the answer."
     }
   ]
 }
