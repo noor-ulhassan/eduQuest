@@ -105,14 +105,14 @@ const DocumentLibraryPage = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto min-h-screen mt-10">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto min-h-screen mt-14 sm:mt-16 md:mt-20">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold font-jersey text-zinc-800">Knowledge Vault</h1>
-          <p className="text-zinc-500">Manage your PDFs and generate AI quizzes.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold font-jersey text-zinc-800">Knowledge Vault</h1>
+          <p className="text-sm sm:text-base text-zinc-500">Manage your PDFs and generate AI quizzes.</p>
         </div>
-        <Button onClick={() => setIsUploadOpen(true)} className="bg-zinc-900 hover:bg-zinc-800 text-white">
+        <Button onClick={() => setIsUploadOpen(true)} className="bg-zinc-900 hover:bg-zinc-800 text-white w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Upload PDF
         </Button>
       </div>
@@ -126,7 +126,7 @@ const DocumentLibraryPage = () => {
           <p className="text-zinc-500">No documents found. Upload one to get started!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {documents.map((doc) => (
             <Card 
               key={doc._id} 

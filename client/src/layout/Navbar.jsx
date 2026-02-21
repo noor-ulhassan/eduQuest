@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import NotificationBell from "@/components/social/NotificationBell";
@@ -10,8 +10,16 @@ import {
   NavigationMenuContent,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
-import { Link } from "react-router-dom";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Link, useNavigate } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
+import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 
 const courses = [
   {
@@ -71,6 +79,17 @@ const courses = [
 ];
 
 const Navbar = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [coursesOpen, setCoursesOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+
+  const handleLinkClick = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false);
+    setCoursesOpen(false);
+  };
+
   return (
     <motion.div className="h-14 dark:bg-black bg-white backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-50 shadow-sm">
       {/* Desktop */}
@@ -96,13 +115,12 @@ const Navbar = () => {
                 <NavigationMenuContent className="bg-white dark:bg-black shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
                   <ul className="grid md:grid-cols-2 gap-2 sm:w-400px md:w-[500px] lg:w-[500px] p-4 max-h-[90vh] overflow-y-auto">
                     {courses.map((course, index) => (
-                      <div
-                        key={index}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer"
-                      >
-                        <h2 className="font-medium">{course.name}</h2>
-                        <p className="text-sm text-gray-600">{course.desc}</p>
-                      </div>
+                      <Link key={index} to={course.path}>
+                        <div className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer">
+                          <h2 className="font-medium">{course.name}</h2>
+                          <p className="text-sm text-gray-600">{course.desc}</p>
+                        </div>
+                      </Link>
                     ))}
                   </ul>
                 </NavigationMenuContent>
@@ -147,13 +165,131 @@ const Navbar = () => {
 
       {/* Mobile */}
       <div className="flex md:hidden justify-between items-center px-4 h-full">
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <h1 className="font-bold text-xl">
             <span className="text-yellow-500 font-hand text-xl">Edu</span>
             <span className="dark:text-white text-gray-800 font-hand text-xl">
               Quest
             </span>
           </h1>
+        </Link>
+
+        <div className="flex items-center gap-3">
+          {user && <NotificationBell />}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Open menu</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto bg-white dark:bg-black">
+              <SheetHeader className="pb-4 border-b border-gray-200 dark:border-gray-800">
+                <SheetTitle className="text-left">
+                  <span className="text-yellow-500 font-hand text-2xl">Edu</span>
+                  <span className="dark:text-white text-gray-800 font-hand text-2xl">
+                    Quest
+                  </span>
+                </SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-1">
+                {/* Courses Dropdown */}
+                <div>
+                  <button
+                    onClick={() => setCoursesOpen(!coursesOpen)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                  >
+                    <span>Courses</span>
+                    {coursesOpen ? (
+                      <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    )}
+                  </button>
+                  {coursesOpen && (
+                    <div className="ml-4 mt-2 mb-2 space-y-1 border-l-2 border-yellow-400 dark:border-yellow-600 pl-4">
+                      {courses.map((course) => (
+                        <button
+                          key={course.id}
+                          onClick={() => handleLinkClick(course.path)}
+                          className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors block"
+                        >
+                          <div className="font-medium text-sm text-gray-900 dark:text-white">
+                            {course.name}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+                            {course.desc}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Other Navigation Links */}
+                <button
+                  onClick={() => handleLinkClick("/workspace")}
+                  className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                >
+                  Create & Learn
+                </button>
+
+                <button
+                  onClick={() => handleLinkClick("/competition")}
+                  className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                >
+                  Compete
+                </button>
+
+                <button
+                  onClick={() => handleLinkClick("/playground")}
+                  className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                >
+                  Playground
+                </button>
+
+                <button
+                  onClick={() => handleLinkClick("/documents")}
+                  className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                >
+                  Documents
+                </button>
+
+                <button
+                  onClick={() => handleLinkClick("/community")}
+                  className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                >
+                  Community
+                </button>
+
+                {user && (
+                  <>
+                    <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-800">
+                      <button
+                        onClick={() => handleLinkClick("/profile")}
+                        className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                      >
+                        Profile
+                      </button>
+
+                      <button
+                        onClick={() => handleLinkClick("/my-learning")}
+                        className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors font-medium text-gray-900 dark:text-white"
+                      >
+                        My Learning
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Auth Buttons for Mobile */}
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <AuthButtons />
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </motion.div>

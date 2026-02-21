@@ -8,6 +8,9 @@ const MainLayout = () => {
   const isPlaygroundRoute =
     location.pathname.startsWith("/playground/") &&
     location.pathname !== "/playground";
+  const hideNavbar =
+    isPlaygroundRoute ||
+    location.pathname.startsWith("/competition");
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||
@@ -17,7 +20,7 @@ const MainLayout = () => {
 
   return (
     <div>
-      {!isPlaygroundRoute && <Navbar />}
+      {!hideNavbar && <Navbar />}
       <div>
         <Outlet />
       </div>

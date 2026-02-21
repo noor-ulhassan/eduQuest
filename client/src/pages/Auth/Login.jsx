@@ -36,9 +36,9 @@ export default function Login() {
     }
   };
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[url('/pixel.jfif')] bg-cover bg-center bg-no-repeat px-4 mt-5">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm text-center">
-        <h2 className="text-4xl font-jersey mb-6">EduQuest</h2>
+    <div className="flex justify-center items-center min-h-screen bg-[url('/pixel.jfif')] bg-cover bg-center bg-no-repeat px-4 py-8 sm:py-12">
+      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-sm text-center">
+        <h2 className="text-3xl sm:text-4xl font-jersey mb-4 sm:mb-6">EduQuest</h2>
 
         {/* Google Login */}
         <GoogleAuthButton setError={setError} className="w-full mb-4" />

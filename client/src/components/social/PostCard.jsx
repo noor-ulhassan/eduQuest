@@ -55,14 +55,14 @@ const PostCard = ({ post: initialPost }) => {
   };
 
   return (
-    <Card className="w-full bg-white mb-6 border-zinc-200 shadow-sm">
-      <CardHeader className="flex flex-row items-center gap-4 p-4 pb-0">
-        <Avatar className="h-10 w-10 border border-zinc-200 cursor-pointer">
+    <Card className="w-full bg-white mb-4 sm:mb-6 border-zinc-200 shadow-sm">
+      <CardHeader className="flex flex-row items-center gap-3 sm:gap-4 p-3 sm:p-4 pb-0">
+        <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border border-zinc-200 cursor-pointer flex-shrink-0">
           <AvatarImage src={post.author?.avatarUrl} />
           <AvatarFallback>{post.author?.name?.[0]}</AvatarFallback>
         </Avatar>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold text-zinc-900 cursor-pointer hover:underline">
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-xs sm:text-sm font-semibold text-zinc-900 cursor-pointer hover:underline truncate">
             {post.author?.name}
           </span>
           <span className="text-xs text-zinc-500">
@@ -71,7 +71,7 @@ const PostCard = ({ post: initialPost }) => {
         </div>
       </CardHeader>
 
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         <p className="text-sm text-zinc-800 mb-3 whitespace-pre-wrap">
           {post.content}
         </p>
@@ -87,31 +87,33 @@ const PostCard = ({ post: initialPost }) => {
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col p-4 pt-0">
-        <div className="flex items-center justify-between w-full border-t border-zinc-100 pt-3">
+      <CardFooter className="flex flex-col p-3 sm:p-4 pt-0">
+        <div className="flex items-center justify-between w-full border-t border-zinc-100 pt-2 sm:pt-3 gap-1 sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
-            className={`gap-2 ${isLiked ? "text-rose-500 hover:text-rose-600 hover:bg-rose-50" : "text-zinc-500"}`}
+            className={`gap-1 sm:gap-2 text-xs sm:text-sm ${isLiked ? "text-rose-500 hover:text-rose-600 hover:bg-rose-50" : "text-zinc-500"}`}
             onClick={handleLike}
           >
-            <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
-            <span>{post.likes.length} Likes</span>
+            <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${isLiked ? "fill-current" : ""}`} />
+            <span className="hidden sm:inline">{post.likes.length} Likes</span>
+            <span className="sm:hidden">{post.likes.length}</span>
           </Button>
 
           <Button
             variant="ghost"
             size="sm"
-            className="gap-2 text-zinc-500"
+            className="gap-1 sm:gap-2 text-xs sm:text-sm text-zinc-500"
             onClick={() => setShowComments(!showComments)}
           >
-            <MessageSquare className="w-4 h-4" />
-            <span>{post.comments.length} Comments</span>
+            <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{post.comments.length} Comments</span>
+            <span className="sm:hidden">{post.comments.length}</span>
           </Button>
 
-          <Button variant="ghost" size="sm" className="gap-2 text-zinc-500">
-            <Share2 className="w-4 h-4" />
-            <span>Share</span>
+          <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm text-zinc-500">
+            <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Share</span>
           </Button>
         </div>
 
@@ -136,7 +138,7 @@ const PostCard = ({ post: initialPost }) => {
             </div>
 
             <form onSubmit={handleComment} className="flex gap-2 items-center">
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                 <AvatarImage src={user?.avatarUrl} />
                 <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
               </Avatar>
@@ -144,15 +146,15 @@ const PostCard = ({ post: initialPost }) => {
                 placeholder="Write a comment..."
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className="rounded-full bg-zinc-50 border-zinc-200 focus-visible:ring-indigo-500"
+                className="rounded-full bg-zinc-50 border-zinc-200 focus-visible:ring-indigo-500 text-xs sm:text-sm flex-1"
               />
               <Button
                 type="submit"
                 size="icon"
                 disabled={!commentText.trim()}
-                className="rounded-full h-8 w-8 bg-indigo-600 hover:bg-indigo-700"
+                className="rounded-full h-7 w-7 sm:h-8 sm:w-8 bg-indigo-600 hover:bg-indigo-700 flex-shrink-0"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </form>
           </div>

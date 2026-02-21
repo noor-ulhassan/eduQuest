@@ -11,14 +11,14 @@ import {
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-yellow-200 pt-16 pb-12">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+    <footer className="bg-white border-t border-yellow-200 pt-8 sm:pt-12 md:pt-16 pb-8 sm:pb-10 md:pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div>
-            <h3 className="font-jersey tracking-wider text-2xl mb-5 text-yellow-700">
+            <h3 className="font-jersey tracking-wider text-lg sm:text-xl md:text-2xl mb-3 sm:mb-4 md:mb-5 text-yellow-700">
               QUEST HUB
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1.5 sm:space-y-2">
               {[
                 "About",
                 "Profile",
@@ -30,7 +30,7 @@ const Footer = () => {
                 <li key={item}>
                   <a
                     href={`/${item.toLowerCase()}`}
-                    className="text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
+                    className="text-xs sm:text-sm text-gray-600 hover:text-yellow-700 transition transform hover:scale-105"
                   >
                     {item}
                   </a>
@@ -114,13 +114,13 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-gray-200">
-          <div className="text-sm text-gray-500 mb-4 md:mb-0">
+        <div className="flex flex-col md:flex-row justify-between items-center pt-4 sm:pt-6 border-t border-gray-200 gap-4">
+          <div className="text-xs sm:text-sm text-gray-500 text-center md:text-left">
             © {new Date().getFullYear()} EduQuest. All rights reserved.
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 md:gap-6">
-            <span className="text-gray-500 text-sm">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 sm:gap-4 md:gap-6">
+            <span className="text-gray-500 text-xs sm:text-sm text-center">
               Level 10 Learner <span className="text-yellow-500">🏆</span> in
               Sargodha, PK
             </span>

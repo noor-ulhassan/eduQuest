@@ -64,12 +64,12 @@ const TweetCard = ({ post: initialPost }) => {
   };
 
   return (
-    <div className="w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-black/5 rounded-2xl hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer p-5 group">
-      <div className="flex gap-4">
+    <div className="w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-black/5 rounded-2xl hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer p-3 sm:p-5 group">
+      <div className="flex gap-3 sm:gap-4">
         {/* Avatar Column */}
         <div className="flex-shrink-0">
           <Avatar
-            className="h-11 w-11 border-2 border-white shadow-sm cursor-pointer hover:scale-105 transition-transform"
+            className="h-9 w-9 sm:h-11 sm:w-11 border-2 border-white shadow-sm cursor-pointer hover:scale-105 transition-transform"
             onClick={goToProfile}
           >
             <AvatarImage src={post.author?.avatarUrl} />
@@ -83,23 +83,23 @@ const TweetCard = ({ post: initialPost }) => {
         <div className="flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
               <span
-                className="font-bold text-[15px] text-gray-900 truncate hover:underline cursor-pointer"
+                className="font-bold text-sm sm:text-[15px] text-gray-900 truncate hover:underline cursor-pointer"
                 onClick={goToProfile}
               >
                 {post.author?.name}
               </span>
-              <span className="text-[14px] text-gray-500 truncate">
+              <span className="hidden sm:inline text-xs sm:text-[14px] text-gray-500 truncate">
                 @{post.author?.username || "user"}
               </span>
-              <span className="text-[14px] text-gray-300">·</span>
-              <span className="text-[14px] text-gray-500 hover:underline">
+              <span className="hidden sm:inline text-xs sm:text-[14px] text-gray-300">·</span>
+              <span className="text-xs sm:text-[14px] text-gray-500 hover:underline truncate">
                 {formatDistanceToNow(new Date(post.createdAt))}
               </span>
             </div>
-            <button className="text-gray-300 hover:text-gray-600 rounded-full p-1.5 hover:bg-gray-100 transition-colors">
-              <MoreHorizontal className="w-4 h-4" />
+            <button className="text-gray-300 hover:text-gray-600 rounded-full p-1 sm:p-1.5 hover:bg-gray-100 transition-colors flex-shrink-0">
+              <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
           </div>
 
@@ -120,7 +120,7 @@ const TweetCard = ({ post: initialPost }) => {
           )}
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between mt-4 max-w-md">
+          <div className="flex items-center justify-between mt-3 sm:mt-4 max-w-md gap-2 sm:gap-0">
             {/* Comment */}
             <div
               className="flex items-center gap-1.5 group/comment cursor-pointer text-gray-500 hover:text-blue-500 transition-colors"
@@ -196,9 +196,9 @@ const TweetCard = ({ post: initialPost }) => {
 
               <form
                 onSubmit={handleComment}
-                className="flex gap-3 items-center"
+                className="flex gap-2 sm:gap-3 items-center"
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                   <AvatarImage src={user?.avatarUrl} />
                   <AvatarFallback className="text-xs">
                     {user?.name?.[0]}
@@ -207,7 +207,7 @@ const TweetCard = ({ post: initialPost }) => {
                 <input
                   type="text"
                   placeholder="Post your reply"
-                  className="flex-1 bg-gray-50 border-0 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none"
+                  className="flex-1 bg-gray-50 border-0 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
@@ -215,7 +215,7 @@ const TweetCard = ({ post: initialPost }) => {
                 <Button
                   type="submit"
                   size="sm"
-                  className="rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold disabled:opacity-50"
+                  className="rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-4 flex-shrink-0"
                   disabled={!commentText.trim()}
                 >
                   Reply

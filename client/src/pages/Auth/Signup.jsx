@@ -31,12 +31,12 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[url('/moon.gif')] bg-cover bg-center bg-no-repeat px-4 mt-8">
+    <div className="flex justify-center items-center min-h-screen bg-[url('/moon.gif')] bg-cover bg-center bg-no-repeat px-4 py-8 sm:py-12">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm text-center"
+        className="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-sm text-center"
       >
-        <h2 className="text-3xl font-jersey mb-6">EduQuest</h2>
+        <h2 className="text-2xl sm:text-3xl font-jersey mb-4 sm:mb-6">EduQuest</h2>
         {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
         {success && <p className="text-green-500 mb-4 text-sm">{success}</p>}
         <div className="space-y-4">

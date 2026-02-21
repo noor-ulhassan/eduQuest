@@ -95,12 +95,12 @@ function Workspace() {
           </SidebarContent>
         </Sidebar>
 
-        <div className="p-10 mt-4 flex-1">
+        <div className="p-4 sm:p-6 md:p-10 mt-4 flex-1">
           <div className="mb-4">
-            <SidebarTrigger className="scale-125 border shadow-sm" />
+            <SidebarTrigger className="scale-110 sm:scale-125 border shadow-sm" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-7">
             <div className="lg:col-span-2">
               <WelcomeBanner />
               <EnrollCourseList userEmail={user?.email} />

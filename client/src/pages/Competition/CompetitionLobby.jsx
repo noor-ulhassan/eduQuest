@@ -492,7 +492,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Spectator View ─────────────────────────────
   if (isSpectator && (spectatorData || gameState === "playing")) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6 mt-20">
+      <div className="min-h-screen bg-zinc-950 text-white p-6">
         <div className="max-w-lg mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <button
@@ -602,7 +602,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: No Room Yet (Create/Join) ──────────────────
   if (!room) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center p-6 mt-20 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
+      <div className="min-h-screen relative flex items-center justify-center p-6 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
         {/* Overlay for text readability */}
         <div className="absolute inset-0 bg-black/50 z-0" />
 
@@ -613,7 +613,7 @@ const CompetitionLobby = () => {
           className="max-w-lg w-full space-y-8 relative z-10"
         >
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-yellow-400 mb-6">
+            <h1 className="text-4xl font-bold text-yellow-400 mb-6 mt-8">
               EduQuest Arena
             </h1>
 
@@ -623,18 +623,19 @@ const CompetitionLobby = () => {
           </div>
 
           {/* Create Room */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <div className=" border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Crown size={18} className="text-yellow-400" />
+              <img src="crown.jpg" alt="" width={50} height={60} />
               Create a Room
             </h2>
             <p className="text-sm text-zinc-400">
               Create a room and share the code with your friends
             </p>
-            <button
+            <Button
+              variant={"pixel"}
               onClick={handleCreateRoom}
               disabled={isConnecting}
-              className="w-full py-3 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isConnecting ? (
                 <Loader2 size={18} className="animate-spin" />
@@ -642,20 +643,20 @@ const CompetitionLobby = () => {
                 <Swords size={18} />
               )}
               Create Room
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-zinc-800" />
-            <span className="text-zinc-500 text-xs uppercase tracking-widest">
+            <span className="text-white text-xs uppercase tracking-widest">
               or
             </span>
             <div className="flex-1 h-px bg-zinc-800" />
           </div>
 
           {/* Join Room */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+          <div className=" border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <h2 className="text-lg text-white font-semibold flex items-center gap-2">
               <Users size={18} className="text-blue-400" />
               Join a Room
             </h2>
@@ -665,21 +666,21 @@ const CompetitionLobby = () => {
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="Enter room code"
                 maxLength={6}
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-[.3em] uppercase placeholder:text-zinc-600 placeholder:tracking-normal placeholder:text-sm focus:outline-none focus:border-orange-500 transition"
+                className="flex-1 bg-white border border-zinc-700 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-[.3em] uppercase placeholder:text-zinc-600 placeholder:tracking-normal placeholder:text-sm focus:outline-none focus:border-orange-500 transition"
               />
-              <button
+              <Button
                 onClick={() => handleJoinRoom()}
                 disabled={isConnecting || !joinCode.trim()}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 Join
-              </button>
+              </Button>
             </div>
           </div>
 
           <button
             onClick={() => navigate("/")}
-            className="w-full py-2 text-zinc-500 hover:text-zinc-300 text-sm flex items-center justify-center gap-1 transition"
+            className="w-full py-2 text-white hover:text-zinc-300 text-sm flex items-center justify-center gap-1 transition"
           >
             <ArrowLeft size={14} /> Back to Home
           </button>
@@ -691,7 +692,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Generating ─────────────────────────────────
   if (gameState === "generating") {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-12">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -714,7 +715,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Ready (Wait for Host) ──────────────────────
   if (gameState === "ready") {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-12">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -768,7 +769,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: Game Over ──────────────────────────────────
   if (gameState === "finished" && finalResults) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 mt-12">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -1041,7 +1042,7 @@ const CompetitionLobby = () => {
     (gameCategory === "general" || gameChallengeMode !== "classic")
   ) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6 mt-12">
+      <div className="min-h-screen bg-zinc-950 text-white p-6">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -1467,21 +1468,21 @@ const CompetitionLobby = () => {
 
   // ─── RENDER: Lobby (Waiting Room) ──────────────────────
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 mt-12">
+    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Top Navigation */}
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={handleLeave}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+            className="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
           >
             <ArrowLeft size={16} /> Exit Lobby
           </Button>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-green-200 animate-pulse" />
               <span className="text-xs font-medium text-green-500 uppercase tracking-wide">
                 Live
               </span>
@@ -1497,15 +1498,15 @@ const CompetitionLobby = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Room Header Card */}
             <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-orange-500/20 transition-all duration-700" />
+              <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-orange-500/20 transition-all duration-300" />
 
               <div className="relative z-10">
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+                <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
                   Competition Lobby
                 </h1>
                 <p className="text-zinc-400 mb-8 max-w-lg">
-                  Waiting for players to join. Share the codes below to invite
-                  others to this challenge.
+                  Waiting for players to join. Share the code below with your
+                  Friends to invite them to this challenge.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">

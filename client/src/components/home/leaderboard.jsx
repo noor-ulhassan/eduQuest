@@ -134,28 +134,28 @@ const Leaderboard = () => {
     : 100;
 
   return (
-    <Card className="w-full max-w-[1240px] mx-auto mt-12 bg-white/50 backdrop-blur-sm border-zinc-200/60 shadow-xl overflow-hidden">
-      <CardHeader className="pb-6 border-b border-gray-100 bg-white/80">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+    <Card className="w-full max-w-[1240px] mx-auto mt-6 sm:mt-8 md:mt-12 bg-white/50 backdrop-blur-sm border-zinc-200/60 shadow-xl overflow-hidden">
+      <CardHeader className="pb-4 sm:pb-6 border-b border-gray-100 bg-white/80 px-4 sm:px-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <img
               src="/trophy.gif"
               alt="Target"
-              className="w-20 h-20 rounded-full object-contain"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-contain flex-shrink-0"
             />
 
             <div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
+              <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
                 Global Leaderboard
               </CardTitle>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Top learners around the world
               </p>
             </div>
           </div>
 
           {currentUser && nextTarget && (
-            <div className="flex-1 max-w-md bg-zinc-50 rounded-xl p-4 border border-zinc-100">
+            <div className="flex-1 max-w-md bg-zinc-50 rounded-xl p-3 sm:p-4 border border-zinc-100">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold text-zinc-700">
                   Current League:{" "}
@@ -186,7 +186,7 @@ const Leaderboard = () => {
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="flex items-center px-6 py-3 bg-zinc-50/50 text-xs font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
+        <div className="hidden md:flex items-center px-4 sm:px-6 py-3 bg-zinc-50/50 text-xs font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
           <div className="w-20 text-center">Rank</div>
           <div className="flex-1 pl-4">User</div>
           <div className="w-32 text-right pr-4">League</div>
@@ -203,7 +203,7 @@ const Leaderboard = () => {
             ))}
           </div>
         ) : (
-          <div className="h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 scrollbar-track-transparent">
+          <div className="h-[400px] sm:h-[500px] md:h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 scrollbar-track-transparent">
             {leagueOrder.map((league) => {
               const users = groupedUsers[league];
               if (!users || users.length === 0) return null;
@@ -244,10 +244,10 @@ const Leaderboard = () => {
                                 : `/profile/${user._id}`,
                             )
                           }
-                          className={`flex items-center px-6 py-4 transition-colors hover:bg-zinc-50 cursor-pointer ${isCurrentUser ? "bg-blue-50/50 hover:bg-blue-50" : ""}`}
+                          className={`flex flex-col md:flex-row items-start md:items-center px-4 sm:px-6 py-3 sm:py-4 transition-colors hover:bg-zinc-50 cursor-pointer gap-3 md:gap-0 ${isCurrentUser ? "bg-blue-50/50 hover:bg-blue-50" : ""}`}
                         >
                           {/* Rank */}
-                          <div className="w-20 flex justify-center items-center gap-1">
+                          <div className="w-full md:w-20 flex justify-start md:justify-center items-center gap-2 md:gap-1">
                             {getRankIcon(globalRank)}
                             {/* Show Sr No. for top 10 always, or for all. User said "for top 10" */}
                             {globalRank <= 10 ? (
@@ -264,24 +264,24 @@ const Leaderboard = () => {
                           </div>
 
                           {/* User */}
-                          <div className="flex-1 flex items-center gap-4 pl-4 min-w-0">
+                          <div className="flex-1 flex items-center gap-3 sm:gap-4 md:pl-4 min-w-0 w-full md:w-auto">
                             <Avatar
-                              className={`h-10 w-10 border-2 ${isCurrentUser ? "border-blue-200" : "border-white"} shadow-sm ring-2 ring-gray-100`}
+                              className={`h-9 w-9 sm:h-10 sm:w-10 border-2 flex-shrink-0 ${isCurrentUser ? "border-blue-200" : "border-white"} shadow-sm ring-2 ring-gray-100`}
                             >
                               <AvatarImage src={user.avatarUrl} />
                               <AvatarFallback className="bg-gradient-to-br from-gray-100 to-gray-200">
-                                <UserIcon className="w-5 h-5 text-gray-400" />
+                                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                               </AvatarFallback>
                             </Avatar>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <h4
                                   className={`font-bold text-sm truncate ${isCurrentUser ? "text-blue-700" : "text-gray-900"}`}
                                 >
                                   {user.name || user.username || "Anonymous"}
                                 </h4>
                                 {isCurrentUser && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-600">
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-600 flex-shrink-0">
                                     YOU
                                   </span>
                                 )}
@@ -293,7 +293,7 @@ const Leaderboard = () => {
                           </div>
 
                           {/* League Badge */}
-                          <div className="w-32 flex justify-end pr-4">
+                          <div className="w-full md:w-32 flex justify-start md:justify-end md:pr-4">
                             <div
                               className={`px-2.5 py-1 rounded-full text-xs font-bold border ${leagueStyle.bg} ${leagueStyle.color} ${leagueStyle.border} shadow-sm`}
                             >
@@ -302,7 +302,7 @@ const Leaderboard = () => {
                           </div>
 
                           {/* XP */}
-                          <div className="w-24 text-right">
+                          <div className="w-full md:w-24 text-left md:text-right">
                             <span className="font-mono font-bold text-gray-900 text-sm">
                               {user.xp.toLocaleString()}
                             </span>

@@ -1,5 +1,7 @@
 import { User } from "../models/user.model.js";
 import { Post } from "../models/Post.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import fs from "fs/promises";
 
 export const getUser = async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -208,6 +210,93 @@ export const unfriend = async (req, res) => {
 
     res.status(200).json({ success: true, message: "Unfriended successfully" });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Upload avatar: multipart form with "avatar" file → Cloudinary, update user, return user
+export const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No image file provided" });
+    }
+    const filePath = req.file.path;
+    const result = await uploadOnCloudinary(filePath);
+    await fs.unlink(filePath).catch(() => {});
+
+    if (!result || !result.secure_url) {
+      return res.status(500).json({ success: false, message: "Failed to upload image" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatarUrl: result.secure_url },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user, avatarUrl: user.avatarUrl });
+  } catch (error) {
+    console.error("uploadAvatar error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Upload banner: multipart form with "banner" file → Cloudinary, update user, return user
+export const uploadBanner = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No image file provided" });
+    }
+    const filePath = req.file.path;
+    const result = await uploadOnCloudinary(filePath);
+    await fs.unlink(filePath).catch(() => {});
+
+    if (!result || !result.secure_url) {
+      return res.status(500).json({ success: false, message: "Failed to upload image" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { bannerUrl: result.secure_url },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user, bannerUrl: user.bannerUrl });
+  } catch (error) {
+    console.error("uploadBanner error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update profile (name, username); optional avatarUrl/bannerUrl if client already has it from upload
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, username, avatarUrl, bannerUrl } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (username !== undefined) updates.username = username;
+    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+    if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl;
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+    }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("updateProfile error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

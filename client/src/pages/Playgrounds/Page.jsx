@@ -50,20 +50,22 @@ const Playground = () => {
 
   return (
     <div>
-      <div className="flex gap-10 mt-28 px-12 mb-12">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-10 mt-20 sm:mt-24 md:mt-28 px-4 sm:px-6 md:px-12 mb-6 sm:mb-8 md:mb-12">
         <img
           src="/cs.png"
           alt="cs"
           height={70}
           width={70}
-          className="border-r-full rounded-lg "
+          className="border-r-full rounded-lg flex-shrink-0"
         />
-        <h1 className="font-bold text-2xl mt-6">Foundations of Development</h1>
-        <p className="mt-8 text-sm text-zinc-600 text-1xl">
-          Strengthen your fundamentals
-        </p>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-bold text-xl sm:text-2xl">Foundations of Development</h1>
+          <p className="mt-2 sm:mt-4 text-sm text-zinc-600">
+            Strengthen your fundamentals
+          </p>
+        </div>
       </div>
-      <div className="mt-18 flex bg-zinc-100 border rounded-3xl px-12 py-12 mx-6 my-6 gap-6 items-start overflow-x-auto pb-8 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
+      <div className="mt-8 sm:mt-12 md:mt-18 flex bg-zinc-100 border rounded-2xl sm:rounded-3xl px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-12 mx-4 sm:mx-6 my-4 sm:my-6 gap-4 sm:gap-6 items-start overflow-x-auto pb-6 sm:pb-8 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
         <SkillCard
           title="Html"
           img="/html5.png"

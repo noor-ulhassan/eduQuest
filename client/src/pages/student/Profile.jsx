@@ -124,8 +124,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-6">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="bg-gray-50 min-h-screen py-4 sm:py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <ProfileHeader
           displayName={user.name}
           username={user.username || user.email?.split("@")[0]}
@@ -138,7 +138,7 @@ const Profile = () => {
           onEdit={() => setIsEditModalOpen(true)}
         />
 
-        <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-8 mt-16">
+        <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 sm:gap-8 mt-8 sm:mt-12 lg:mt-16">
           <div className="space-y-10">
             <TabNav
               tabs={["Overview", "Projects", "Posts", "Friends"]}
@@ -215,17 +215,17 @@ const Profile = () => {
                       {requests.map((req) => (
                         <div
                           key={req._id}
-                          className="flex items-center justify-between bg-zinc-50 p-3 rounded-lg border border-zinc-100"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-50 p-3 rounded-lg border border-zinc-100"
                         >
-                          <div className="flex items-center gap-3">
-                            <Avatar>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Avatar className="flex-shrink-0">
                               <AvatarImage src={req.from?.avatarUrl} />
                               <AvatarFallback>
                                 {req.from?.name?.[0]}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <p className="font-semibold text-sm">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm truncate">
                                 {req.from?.name}
                               </p>
                               <p className="text-xs text-zinc-500">
@@ -235,7 +235,7 @@ const Profile = () => {
                           </div>
                           <Button
                             size="sm"
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full sm:w-auto"
                             onClick={() => handleAcceptRequest(req._id)}
                           >
                             <Check className="w-4 h-4" /> Accept
@@ -339,6 +339,7 @@ const Profile = () => {
             displayName: user.name,
             username: user.username,
             avatarUrl: user.avatarUrl,
+            bannerUrl: user.bannerUrl,
           }}
         />
 

@@ -6,13 +6,11 @@ import { CompetitionResult } from "../models/CompetitionResult.model.js";
 export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log(`[Stats] Fetching stats for user: ${userId}`);
 
-    // 1. Fetch all results for this user
+    // 1. Fetch all results for this user (newest first)
     const results = await CompetitionResult.find({ userId }).sort({
       timestamp: -1,
     });
-    console.log(`[Stats] Found ${results.length} results`);
 
     if (!results || results.length === 0) {
       return res.status(200).json({
@@ -23,6 +21,9 @@ export const getUserStats = async (req, res) => {
           losses: 0,
           dnf: 0,
           winRate: 0,
+          currentStreak: 0,
+          avgScore: 0,
+          bestScore: 0,
           recentActivity: [],
           categoryDistribution: [],
           modeDistribution: [],
@@ -36,30 +37,59 @@ export const getUserStats = async (req, res) => {
       (r) => r.rank === 1 && r.status === "completed",
     ).length;
     const dnf = results.filter((r) => r.status === "dnf").length;
-    // Loss is any game not won (rank > 1) OR dnf
-    const losses = totalGames - wins;
+    // Losses are completed games where user didn't win (excludes DNF)
+    const losses = totalGames - wins - dnf;
 
     const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
 
-    // 3. Category & Mode Distribution
+    // 3. Current win streak (consecutive rank=1 from most recent)
+    let currentStreak = 0;
+    for (const r of results) {
+      if (r.rank === 1 && r.status === "completed") {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    // 4. Score stats
+    const completedResults = results.filter((r) => r.status === "completed");
+    const totalScore = completedResults.reduce(
+      (sum, r) => sum + (r.score || 0),
+      0,
+    );
+    const avgScore =
+      completedResults.length > 0
+        ? Math.round(totalScore / completedResults.length)
+        : 0;
+    const bestScore =
+      completedResults.length > 0
+        ? Math.max(...completedResults.map((r) => r.score || 0))
+        : 0;
+
+    // 5. Category & Mode Distribution
     const categoryCount = {};
     const modeCount = {};
 
     results.forEach((r) => {
-      categoryCount[r.category] = (categoryCount[r.category] || 0) + 1;
-      modeCount[r.challengeMode] = (modeCount[r.challengeMode] || 0) + 1;
+      const cat = r.category || "unknown";
+      const mode = r.challengeMode || "classic";
+      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+      modeCount[mode] = (modeCount[mode] || 0) + 1;
     });
 
     const categoryDistribution = Object.entries(categoryCount).map(
-      ([name, value]) => ({ name, value }),
+      ([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+      }),
     );
     const modeDistribution = Object.entries(modeCount).map(([name, value]) => ({
-      name,
+      name: name.charAt(0).toUpperCase() + name.slice(1),
       value,
     }));
 
-    // 4. Recent Activity (last 10 games) for graphing
-    // Format: { date: "MM/DD", score: 120, rank: 2 }
+    // 6. Recent Activity (last 10 games) for graphing
     const recentActivity = results
       .slice(0, 10)
       .reverse() // Chronological order for graph
@@ -68,8 +98,8 @@ export const getUserStats = async (req, res) => {
           month: "short",
           day: "numeric",
         }),
-        score: r.score,
-        rank: r.rank || 0, // 0 for DNF
+        score: r.score || 0,
+        rank: r.rank || 0,
         status: r.status,
       }));
 
@@ -81,6 +111,9 @@ export const getUserStats = async (req, res) => {
         losses,
         dnf,
         winRate,
+        currentStreak,
+        avgScore,
+        bestScore,
         recentActivity,
         categoryDistribution,
         modeDistribution,
