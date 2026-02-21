@@ -186,6 +186,11 @@ export const getAllActiveRooms = async (req, res) => {
           difficulty: room.difficulty,
           language: room.language,
           playerCount: room.players.length,
+          players: room.players.map((p) => ({
+            id: p.id,
+            name: p.name,
+            avatarUrl: p.avatarUrl || null,
+          })),
           spectatorCount: (room.spectators || []).length,
           maxPlayers: 20,
           timerDuration: room.timerDuration,

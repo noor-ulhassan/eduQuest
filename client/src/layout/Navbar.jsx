@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 
@@ -82,7 +82,14 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+
+  // Close mobile menu when route changes (e.g. AuthButtons, any link)
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+    setCoursesOpen(false);
+  }, [location.pathname]);
 
   const handleLinkClick = (path) => {
     navigate(path);
@@ -91,7 +98,7 @@ const Navbar = () => {
   };
 
   return (
-    <motion.div className="h-14 dark:bg-black bg-white backdrop-blur-md border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-50 shadow-sm">
+    <motion.div className="h-14 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-border fixed top-0 left-0 right-0 duration-300 z-50 shadow-sm">
       {/* Desktop */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
@@ -112,13 +119,13 @@ const Navbar = () => {
                 <NavigationMenuTrigger className="hover:bg-yellow-300 data-[state=open] text-sm">
                   Courses
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="bg-white dark:bg-black shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
+                <NavigationMenuContent className="bg-background shadow-lg border border-border rounded-lg">
                   <ul className="grid md:grid-cols-2 gap-2 sm:w-400px md:w-[500px] lg:w-[500px] p-4 max-h-[90vh] overflow-y-auto">
                     {courses.map((course, index) => (
                       <Link key={index} to={course.path}>
-                        <div className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer">
-                          <h2 className="font-medium">{course.name}</h2>
-                          <p className="text-sm text-gray-600">{course.desc}</p>
+                        <div className="p-2 hover:bg-accent rounded-xl cursor-pointer">
+                          <h2 className="font-medium text-foreground">{course.name}</h2>
+                          <p className="text-sm text-muted-foreground">{course.desc}</p>
                         </div>
                       </Link>
                     ))}
@@ -183,8 +190,8 @@ const Navbar = () => {
                 <span className="sr-only">Open menu</span>
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto bg-white dark:bg-black">
-              <SheetHeader className="pb-4 border-b border-gray-200 dark:border-gray-800">
+            <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto bg-background">
+              <SheetHeader className="pb-4 border-b border-border">
                 <SheetTitle className="text-left">
                   <span className="text-yellow-500 font-hand text-2xl">Edu</span>
                   <span className="dark:text-white text-gray-800 font-hand text-2xl">

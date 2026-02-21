@@ -23,9 +23,15 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { playNotificationSound, playPlayerJoinedSound } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import InteractiveQuestion from "../../components/competition/InteractiveQuestion";
 
 const CompetitionLobby = () => {
@@ -124,13 +130,14 @@ const CompetitionLobby = () => {
 
     const onPlayerJoined = ({ players, newPlayer }) => {
       setRoom((prev) => (prev ? { ...prev, players } : prev));
-      // Remove the joined player from pending requests if they were there
       setPendingRequests((prev) =>
         prev.filter(
           (req) =>
-            !players.some((p) => p.id === req.id || p.name === newPlayer), // Match by ID or Name safely
+            !players.some((p) => p.id === req.id || p.name === newPlayer),
         ),
       );
+      // Play for host and other participants; joiner already heard on joinApproved
+      if (user?.name !== newPlayer) playPlayerJoinedSound();
       toast(`${newPlayer} joined the room!`);
     };
 
@@ -235,11 +242,11 @@ const CompetitionLobby = () => {
     // Join request notification (host)
     const onJoinRequest = ({ roomCode: rc, requester }) => {
       console.log("Received join request:", requester);
+      playNotificationSound();
       setPendingRequests((prev) => {
         if (prev.find((r) => r.id === requester.id)) return prev;
         return [...prev, requester];
       });
-      // Also update room state to keep it consistent
       setRoom((prev) => {
         if (!prev) return prev;
         const current = prev.pendingRequests || [];
@@ -602,87 +609,109 @@ const CompetitionLobby = () => {
   // ─── RENDER: No Room Yet (Create/Join) ──────────────────
   if (!room) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center p-6 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
+      <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
         {/* Overlay for text readability */}
         <div className="absolute inset-0 bg-black/50 z-0" />
 
-        {/* Content wrapper */}
+        {/* Content wrapper - centered, consistent spacing */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-lg w-full space-y-8 relative z-10"
+          transition={{ duration: 0.3 }}
+          className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center"
         >
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-yellow-400 mb-6 mt-8">
+          {/* Header */}
+          <header className="text-center mb-8 sm:mb-10">
+            <h1 className="text-3xl sm:text-4xl font-bold text-yellow-400 mb-3">
               EduQuest Arena
             </h1>
-
-            <p className="text-zinc-300 mt-2 text-lg">
+            <p className="text-zinc-300 text-base sm:text-lg">
               Challenge your friends in coding battles & quizzes
             </p>
-          </div>
+          </header>
 
-          {/* Create Room */}
-          <div className=" border border-zinc-800 rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <img src="crown.jpg" alt="" width={50} height={60} />
-              Create a Room
-            </h2>
-            <p className="text-sm text-zinc-400">
-              Create a room and share the code with your friends
-            </p>
-            <Button
-              variant={"pixel"}
-              onClick={handleCreateRoom}
-              disabled={isConnecting}
-              className="w-full py-3 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isConnecting ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Swords size={18} />
-              )}
-              Create Room
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-zinc-800" />
-            <span className="text-white text-xs uppercase tracking-widest">
-              or
-            </span>
-            <div className="flex-1 h-px bg-zinc-800" />
-          </div>
-
-          {/* Join Room */}
-          <div className=" border border-zinc-800 rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg text-white font-semibold flex items-center gap-2">
-              <Users size={18} className="text-blue-400" />
-              Join a Room
-            </h2>
-            <div className="flex gap-2">
-              <input
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="Enter room code"
-                maxLength={6}
-                className="flex-1 bg-white border border-zinc-700 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-[.3em] uppercase placeholder:text-zinc-600 placeholder:tracking-normal placeholder:text-sm focus:outline-none focus:border-orange-500 transition"
-              />
+          {/* Cards container */}
+          <div className="w-full space-y-5 sm:space-y-6">
+            {/* Create Room */}
+            <div className="border border-zinc-700/80 rounded-2xl p-6 bg-zinc-900/40 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src="crown.jpg"
+                  alt=""
+                  width={40}
+                  height={48}
+                  className="rounded-lg object-contain"
+                />
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Create a Room
+                  </h2>
+                  <p className="text-sm text-zinc-400 mt-0.5">
+                    Share the code with your friends
+                  </p>
+                </div>
+              </div>
               <Button
-                onClick={() => handleJoinRoom()}
-                disabled={isConnecting || !joinCode.trim()}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                variant="pixel"
+                onClick={handleCreateRoom}
+                disabled={isConnecting}
+                className="w-full py-3 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Join
+                {isConnecting ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Swords size={18} />
+                )}
+                Create Room
               </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-zinc-700" />
+              <span className="text-zinc-500 text-xs font-medium uppercase tracking-wider">
+                or
+              </span>
+              <div className="flex-1 h-px bg-zinc-700" />
+            </div>
+
+            {/* Join Room */}
+            <div className="border border-zinc-700/80 rounded-2xl p-6 bg-zinc-900/40 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <Users size={20} className="text-blue-400 shrink-0" />
+                <h2 className="text-lg font-semibold text-white">
+                  Join a Room
+                </h2>
+              </div>
+              <p className="text-sm text-zinc-400 mb-4">
+                Enter the 6-character code shared by the host
+              </p>
+              <div className="flex gap-2 sm:gap-3">
+                <Input
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  placeholder="ABC123"
+                  maxLength={6}
+                  className="flex-1 h-12 text-center text-lg font-mono tracking-[0.25em] uppercase bg-zinc-800/80 border-zinc-600 text-white placeholder:text-zinc-500 focus-visible:ring-2 focus-visible:ring-orange-500"
+                />
+                <Button
+                  onClick={() => handleJoinRoom()}
+                  disabled={isConnecting || !joinCode.trim()}
+                  className="h-12 px-6 shrink-0 bg-blue-600 hover:bg-blue-500 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  Join
+                </Button>
+              </div>
             </div>
           </div>
 
+          {/* Back link */}
           <button
             onClick={() => navigate("/")}
-            className="w-full py-2 text-white hover:text-zinc-300 text-sm flex items-center justify-center gap-1 transition"
+            className="mt-6 sm:mt-8 flex items-center justify-center gap-2 py-2 px-4 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
           >
-            <ArrowLeft size={14} /> Back to Home
+            <ArrowLeft size={16} className="shrink-0" />
+            Back to Home
           </button>
         </motion.div>
       </div>
@@ -1468,540 +1497,459 @@ const CompetitionLobby = () => {
 
   // ─── RENDER: Lobby (Waiting Room) ──────────────────────
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-6 lg:p-8 font-sans selection:bg-orange-500/30">
+      <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
         {/* Top Navigation */}
-        <div className="flex items-center justify-between">
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <Button
             variant="ghost"
+            size="sm"
             onClick={handleLeave}
-            className="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+            className="flex items-center gap-2 text-zinc-400 hover:text-white hover:bg-zinc-800/50 -ml-1"
           >
-            <ArrowLeft size={16} /> Exit Lobby
+            <ArrowLeft size={18} /> Exit Lobby
           </Button>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-200 animate-pulse" />
-              <span className="text-xs font-medium text-green-500 uppercase tracking-wide">
-                Live
-              </span>
-            </div>
-            <div className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs font-medium text-zinc-400">
-              {isHost ? "Host Mode" : "Player Mode"}
-            </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="secondary"
+              className="bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/20"
+            >
+              <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              Live
+            </Badge>
+            <Badge variant="outline" className="border-zinc-700 text-zinc-400 font-normal">
+              {isHost ? "Host" : "Player"}
+            </Badge>
           </div>
-        </div>
+        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* LEFT COLUMN: Room Info & Players */}
           <div className="lg:col-span-2 space-y-6">
             {/* Room Header Card */}
-            <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-orange-500/20 transition-all duration-300" />
-
-              <div className="relative z-10">
-                <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
+            <Card className="relative border-zinc-800 bg-zinc-900/50 overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" aria-hidden />
+              <CardHeader className="relative z-10 pb-4">
+                <CardTitle className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                   Competition Lobby
-                </h1>
-                <p className="text-zinc-400 mb-8 max-w-lg">
-                  Waiting for players to join. Share the code below with your
-                  Friends to invite them to this challenge.
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <div className="flex items-center gap-0 bg-black/40 border border-zinc-800 rounded-xl overflow-hidden">
-                    <div className="px-4 py-3 border-r border-zinc-800 bg-zinc-900/50">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                        Code
-                      </span>
+                </CardTitle>
+                <CardDescription className="text-zinc-400 max-w-lg">
+                  Share the room code with friends to invite them to this challenge.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="relative z-10 pt-0">
+                <div className="flex flex-col sm:flex-row sm:items-stretch gap-3 sm:gap-4">
+                  <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950/50 overflow-hidden shrink-0">
+                    <div className="px-4 py-3 bg-zinc-900/80 border-r border-zinc-800">
+                      <Label className="text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-default">
+                        Room Code
+                      </Label>
                     </div>
-                    <div className="px-6 py-3 font-mono text-2xl font-bold text-orange-400 tracking-[0.2em]">
+                    <div className="px-5 py-3 font-mono text-xl sm:text-2xl font-bold text-orange-400 tracking-[0.2em]">
                       {roomCode}
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={handleCopyCode}
-                      className="px-4 py-3 hover:bg-zinc-800/80 transition-colors border-l border-zinc-800 text-zinc-400 hover:text-white"
+                      className="rounded-none h-auto px-4 py-3 text-zinc-400 hover:text-white hover:bg-zinc-800/80 border-l border-zinc-800 shrink-0"
                     >
                       {copied ? (
                         <Check size={20} className="text-green-500" />
                       ) : (
                         <Copy size={20} />
                       )}
-                    </button>
+                    </Button>
                   </div>
-
                   <Button
                     onClick={handleCopyCode}
-                    className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200"
+                    variant="secondary"
+                    className="flex items-center justify-center gap-2 bg-white text-zinc-900 hover:bg-zinc-200 shrink-0 min-h-[46px]"
                   >
                     <Copy size={16} />
                     Copy Invite Link
                   </Button>
                 </div>
-              </div>
-            </div>
-
-            {/* Players Grid */}
-            <Card className="bg-zinc-900/30 border-zinc-800/50">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                    <Users size={16} />
-                    Participants{" "}
-                    <span className="px-2 py-0.5 bg-zinc-800 rounded-full text-white text-xs">
-                      {room?.players?.length || 0}/20
-                    </span>
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <AnimatePresence>
-                    {room?.players?.map((player) => (
-                      <motion.div
-                        key={player.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="group relative flex items-center gap-3 p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl transition-all hover:shadow-lg hover:shadow-black/20"
-                      >
-                        <div className="relative">
-                          <img
-                            src={player.avatarUrl || "/Avatar.png"}
-                            alt={player.name}
-                            className="w-10 h-10 rounded-full object-cover ring-2 ring-zinc-800 group-hover:ring-zinc-700 transition"
-                          />
-                          {player.id === room.hostId && (
-                            <div className="absolute -top-1 -right-1 bg-zinc-950 rounded-full p-0.5">
-                              <Crown
-                                size={12}
-                                className="text-yellow-400 fill-yellow-400"
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-zinc-200 truncate group-hover:text-white transition">
-                            {player.name}
-                          </p>
-                          {player.id === room.hostId ? (
-                            <p className="text-[10px] text-yellow-500 font-medium">
-                              Lobby Host
-                            </p>
-                          ) : (
-                            <p className="text-[10px] text-zinc-500">Player</p>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                    {/* Empty slots placeholders (optional visual filler) */}
-                    {Array.from({
-                      length: Math.max(0, 3 - (room?.players?.length || 0)),
-                    }).map((_, i) => (
-                      <div
-                        key={`empty-${i}`}
-                        className="border border-dashed border-zinc-800 rounded-xl p-3 flex items-center justify-center h-[66px]"
-                      >
-                        <span className="text-xs text-zinc-700">
-                          Waiting...
-                        </span>
-                      </div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
+              </CardContent>
             </Card>
+
+            {/* Match Configuration (Host Only) - Below Lobby */}
+            {isHost && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Card className="border-zinc-800 bg-zinc-900 overflow-hidden">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/10">
+                        <Settings size={20} className="text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg text-white">Match Configuration</CardTitle>
+                        <CardDescription className="text-zinc-500">Customize your competition</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Category */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                        Target Domain
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => {
+                            handleUpdateSettings("category", "programming");
+                            handleUpdateSettings("challengeMode", "classic");
+                          }}
+                          className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
+                            settings.category === "programming"
+                              ? "border-orange-500 bg-orange-500/10"
+                              : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                          }`}
+                        >
+                          <Code
+                            size={24}
+                            className={`mb-2 ${settings.category === "programming" ? "text-orange-500" : "text-zinc-500"}`}
+                          />
+                          <span
+                            className={`block text-sm font-bold ${settings.category === "programming" ? "text-white" : "text-zinc-400"}`}
+                          >
+                            Programming
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleUpdateSettings("category", "general");
+                            handleUpdateSettings("challengeMode", "classic");
+                          }}
+                          className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
+                            settings.category === "general"
+                              ? "border-blue-500 bg-blue-500/10"
+                              : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                          }`}
+                        >
+                          <BookOpen
+                            size={24}
+                            className={`mb-2 ${settings.category === "general" ? "text-blue-500" : "text-zinc-500"}`}
+                          />
+                          <span
+                            className={`block text-sm font-bold ${settings.category === "general" ? "text-white" : "text-zinc-400"}`}
+                          >
+                            General
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Challenge Mode */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                        Challenge Type
+                      </Label>
+                      <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        {(settings.category === "programming"
+                          ? [
+                              { id: "classic", name: "Classic Coding", icon: "💻", desc: "Standard algorithmic challenges" },
+                              { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world engineering narratives" },
+                              { id: "debug", name: "Debug Detective", icon: "🔍", desc: "Find and fix critical bugs" },
+                              { id: "outage", name: "Production Outage", icon: "🚨", desc: "High-pressure incident response" },
+                              { id: "refactor", name: "Code Refactor", icon: "♻️", desc: "Optimize messy legacy code" },
+                              { id: "missing", name: "Missing Link", icon: "🧩", desc: "Implement the missing component" },
+                              { id: "interactive", name: "Interactive", icon: "🎮", desc: "Drag, drop, and type answers" },
+                            ]
+                          : [
+                              { id: "classic", name: "Classic Quiz", icon: "📝", desc: "Standard multiple-choice" },
+                              { id: "interactive", name: "Interactive", icon: "🎮", desc: "Drag, drop, and type answers" },
+                              { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world situations" },
+                              { id: "missing", name: "Missing Link", icon: "🧩", desc: "Connect the system concepts" },
+                            ]
+                        ).map((mode) => (
+                          <button
+                            key={mode.id}
+                            onClick={() => handleUpdateSettings("challengeMode", mode.id)}
+                            className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                              settings.challengeMode === mode.id
+                                ? "border-orange-500 bg-orange-500/10"
+                                : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800"
+                            }`}
+                          >
+                            <span className="text-xl mt-0.5">{mode.icon}</span>
+                            <div>
+                              <span
+                                className={`block text-sm font-bold ${
+                                  settings.challengeMode === mode.id ? "text-orange-400" : "text-zinc-300"
+                                }`}
+                              >
+                                {mode.name}
+                              </span>
+                              <span className="text-[10px] text-zinc-500 leading-tight block mt-0.5">{mode.desc}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator className="bg-zinc-800" />
+
+                    {/* Topic & Description */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Specific Topic</Label>
+                        <Input
+                          type="text"
+                          value={settings.topic}
+                          onChange={(e) => handleUpdateSettings("topic", e.target.value)}
+                          placeholder={
+                            settings.category === "programming"
+                              ? "e.g. React Hooks, graph algorithms..."
+                              : "e.g. European History, Physics..."
+                          }
+                          className="bg-zinc-950/80 border-zinc-800 text-zinc-200 placeholder:text-zinc-600"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</Label>
+                        <Textarea
+                          value={settings.description}
+                          onChange={(e) => handleUpdateSettings("description", e.target.value)}
+                          placeholder="Context or rules..."
+                          rows={2}
+                          className="resize-none bg-zinc-950/80 border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-orange-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sliders / Metrics */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Difficulty</Label>
+                        <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+                          {["easy", "medium", "hard"].map((d) => (
+                            <button
+                              key={d}
+                              onClick={() => handleUpdateSettings("difficulty", d)}
+                              className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
+                                settings.difficulty === d ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                              }`}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Questions</Label>
+                        <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+                          {[3, 5, 10].map((n) => (
+                            <button
+                              key={n}
+                              onClick={() => handleUpdateSettings("totalQuestions", n)}
+                              className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
+                                settings.totalQuestions === n ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Duration Selector */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Duration</Label>
+                      <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+                        {[1, 3, 5, 10, 15, 30].map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => handleUpdateSettings("timerDuration", m * 60)}
+                            className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
+                              settings.timerDuration === m * 60 ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                            }`}
+                          >
+                            {m}m
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Start Button */}
+                    <Button
+                      onClick={handleStartGame}
+                      disabled={isStarting || !settings.category}
+                      size="lg"
+                      className="w-full h-14 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-base rounded-xl shadow-lg shadow-orange-900/20"
+                    >
+                      {isStarting ? (
+                        <>
+                          <Loader2 size={22} className="animate-spin mr-2" />
+                          Initiating...
+                        </>
+                      ) : (
+                        <>
+                          <Swords size={22} className="mr-2" />
+                          Begin Competition
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
             {/* Join Requests (Host Only) */}
             {isHost && pendingRequests.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-6"
+                className="overflow-hidden"
               >
-                <h3 className="text-sm font-bold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  🔔 Pending Requests ({pendingRequests.length})
-                </h3>
-                <div className="space-y-3">
-                  {pendingRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      className="flex items-center gap-3 p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl"
-                    >
-                      <img
-                        src={req.avatarUrl || "/Avatar.png"}
-                        alt={req.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      <span className="flex-1 font-medium text-sm text-zinc-200">
-                        {req.name}
-                      </span>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleApproveJoin(req.id)}
-                          className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 h-8"
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDenyJoin(req.id)}
-                          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 h-8"
-                        >
-                          Deny
-                        </Button>
+                <Card className="border-orange-500/20 bg-orange-500/5">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-orange-400 flex items-center gap-2">
+                      <span aria-hidden>🔔</span>
+                      Pending Requests
+                      <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 ml-1">
+                        {pendingRequests.length}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    {pendingRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/80"
+                      >
+                        <Avatar className="h-10 w-10 shrink-0">
+                          <AvatarImage src={req.avatarUrl || "/Avatar.png"} alt={req.name} />
+                          <AvatarFallback className="bg-zinc-800 text-zinc-400 text-sm">
+                            {req.name?.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="flex-1 font-medium text-sm text-zinc-200 truncate">
+                          {req.name}
+                        </span>
+                        <div className="flex gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApproveJoin(req.id)}
+                            className="h-8 border-green-500/30 text-green-400 hover:bg-green-500/20 hover:text-green-300"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDenyJoin(req.id)}
+                            className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                          >
+                            Deny
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
           </div>
 
-          {/* RIGHT COLUMN: Settings Panel */}
-          <div className="lg:col-span-1">
-            {isHost ? (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6 sticky top-6 shadow-2xl shadow-black/50"
-              >
-                <div className="flex items-center gap-3 pb-4 border-b border-zinc-800">
-                  <div className="p-2 bg-orange-500/10 rounded-lg">
-                    <Settings size={20} className="text-orange-500" />
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-lg text-white">
-                      Match Configuration
-                    </h2>
-                    <p className="text-xs text-zinc-500">
-                      Customize your competition
-                    </p>
-                  </div>
+          {/* RIGHT COLUMN: Participants (both Host & Guest) + Preparing Battle (Guest only) */}
+          <div className="lg:col-span-1 flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+            {/* Participants - visible to both host and joined players */}
+            <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+                    <Users size={18} className="text-zinc-400" />
+                    Participants
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 font-medium">
+                    {room?.players?.length || 0}/20
+                  </Badge>
                 </div>
-
-                {/* Category */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                    Target Domain
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => {
-                        handleUpdateSettings("category", "programming");
-                        handleUpdateSettings("challengeMode", "classic");
-                      }}
-                      className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
-                        settings.category === "programming"
-                          ? "border-orange-500 bg-orange-500/10"
-                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-                      }`}
-                    >
-                      <Code
-                        size={24}
-                        className={`mb-2 ${settings.category === "programming" ? "text-orange-500" : "text-zinc-500"}`}
-                      />
-                      <span
-                        className={`block text-sm font-bold ${settings.category === "programming" ? "text-white" : "text-zinc-400"}`}
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 gap-3">
+                  <AnimatePresence>
+                    {room?.players?.map((player) => (
+                      <motion.div
+                        key={player.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 transition-colors"
                       >
-                        Programming
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        handleUpdateSettings("category", "general");
-                        handleUpdateSettings("challengeMode", "classic");
-                      }}
-                      className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
-                        settings.category === "general"
-                          ? "border-blue-500 bg-blue-500/10"
-                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-                      }`}
-                    >
-                      <BookOpen
-                        size={24}
-                        className={`mb-2 ${settings.category === "general" ? "text-blue-500" : "text-zinc-500"}`}
-                      />
-                      <span
-                        className={`block text-sm font-bold ${settings.category === "general" ? "text-white" : "text-zinc-400"}`}
-                      >
-                        General
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Challenge Mode */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                    Challenge Type
-                  </label>
-                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                    {(settings.category === "programming"
-                      ? [
-                          {
-                            id: "classic",
-                            name: "Classic Coding",
-                            icon: "💻",
-                            desc: "Standard algorithmic challenges",
-                          },
-                          {
-                            id: "scenario",
-                            name: "Scenario Challenge",
-                            icon: "🎭",
-                            desc: "Real-world engineering narratives",
-                          },
-                          {
-                            id: "debug",
-                            name: "Debug Detective",
-                            icon: "🔍",
-                            desc: "Find and fix critical bugs",
-                          },
-                          {
-                            id: "outage",
-                            name: "Production Outage",
-                            icon: "🚨",
-                            desc: "High-pressure incident response",
-                          },
-                          {
-                            id: "refactor",
-                            name: "Code Refactor",
-                            icon: "♻️",
-                            desc: "Optimize messy legacy code",
-                          },
-                          {
-                            id: "missing",
-                            name: "Missing Link",
-                            icon: "🧩",
-                            desc: "Implement the missing component",
-                          },
-                          {
-                            id: "interactive",
-                            name: "Interactive",
-                            icon: "🎮",
-                            desc: "Drag, drop, and type answers",
-                          },
-                        ]
-                      : [
-                          {
-                            id: "classic",
-                            name: "Classic Quiz",
-                            icon: "📝",
-                            desc: "Standard multiple-choice",
-                          },
-                          {
-                            id: "interactive",
-                            name: "Interactive",
-                            icon: "🎮",
-                            desc: "Drag, drop, and type answers",
-                          },
-                          {
-                            id: "scenario",
-                            name: "Scenario Challenge",
-                            icon: "🎭",
-                            desc: "Real-world situations",
-                          },
-                          {
-                            id: "missing",
-                            name: "Missing Link",
-                            icon: "🧩",
-                            desc: "Connect the system concepts",
-                          },
-                        ]
-                    ).map((mode) => (
-                      <button
-                        key={mode.id}
-                        onClick={() =>
-                          handleUpdateSettings("challengeMode", mode.id)
-                        }
-                        className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
-                          settings.challengeMode === mode.id
-                            ? "border-orange-500 bg-orange-500/10"
-                            : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800"
-                        }`}
-                      >
-                        <span className="text-xl mt-0.5">{mode.icon}</span>
-                        <div>
-                          <span
-                            className={`block text-sm font-bold ${
-                              settings.challengeMode === mode.id
-                                ? "text-orange-400"
-                                : "text-zinc-300"
-                            }`}
-                          >
-                            {mode.name}
-                          </span>
-                          <span className="text-[10px] text-zinc-500 leading-tight block mt-0.5">
-                            {mode.desc}
-                          </span>
+                        <Avatar className="h-10 w-10 shrink-0 ring-2 ring-zinc-800">
+                          <AvatarImage src={player.avatarUrl || "/Avatar.png"} alt={player.name} />
+                          <AvatarFallback className="bg-zinc-800 text-zinc-400 text-sm">
+                            {player.name?.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-zinc-200 truncate">{player.name}</p>
+                          {player.id === room.hostId ? (
+                            <Badge variant="outline" className="mt-0.5 h-4 px-1.5 text-[10px] border-yellow-500/50 text-yellow-500 font-medium">
+                              <Crown size={10} className="mr-0.5" /> Host
+                            </Badge>
+                          ) : (
+                            <p className="text-[11px] text-zinc-500 mt-0.5">Player</p>
+                          )}
                         </div>
-                      </button>
+                      </motion.div>
                     ))}
-                  </div>
-                </div>
-
-                {/* Topic & Description */}
-                <div className="space-y-4 pt-4 border-t border-zinc-800">
-                  <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
-                      Specific Topic
-                    </label>
-                    <Input
-                      type="text"
-                      value={settings.topic}
-                      onChange={(e) =>
-                        handleUpdateSettings("topic", e.target.value)
-                      }
-                      placeholder={
-                        settings.category === "programming"
-                          ? "e.g. React Hooks, graph algorithms..."
-                          : "e.g. European History, Physics..."
-                      }
-                      className="bg-black/40 border-zinc-800 text-zinc-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
-                      Description
-                    </label>
-                    <textarea
-                      value={settings.description}
-                      onChange={(e) =>
-                        handleUpdateSettings("description", e.target.value)
-                      }
-                      placeholder="Context or rules..."
-                      rows={2}
-                      className="w-full bg-black/40 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition placeholder:text-zinc-700 resize-none text-zinc-200"
-                    />
-                  </div>
-                </div>
-
-                {/* Sliders / Metrics */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
-                      Difficulty
-                    </label>
-                    <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-                      {["easy", "medium", "hard"].map((d) => (
-                        <button
-                          key={d}
-                          onClick={() => handleUpdateSettings("difficulty", d)}
-                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                            settings.difficulty === d
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "text-zinc-500 hover:text-zinc-300"
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
-                      Questions
-                    </label>
-                    <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-                      {[3, 5, 10].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() =>
-                            handleUpdateSettings("totalQuestions", n)
-                          }
-                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                            settings.totalQuestions === n
-                              ? "bg-zinc-800 text-white shadow-sm"
-                              : "text-zinc-500 hover:text-zinc-300"
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Duration Selector */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
-                    Duration
-                  </label>
-                  <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-                    {[1, 3, 5, 10, 15, 30].map((m) => (
-                      <button
-                        key={m}
-                        onClick={() =>
-                          handleUpdateSettings("timerDuration", m * 60)
-                        }
-                        className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                          settings.timerDuration === m * 60
-                            ? "bg-zinc-800 text-white shadow-sm"
-                            : "text-zinc-500 hover:text-zinc-300"
-                        }`}
+                    {Array.from({ length: Math.max(0, 3 - (room?.players?.length || 0)) }).map((_, i) => (
+                      <div
+                        key={`empty-${i}`}
+                        className="border border-dashed border-zinc-800 rounded-lg p-3 flex items-center justify-center min-h-[72px]"
                       >
-                        {m}m
-                      </button>
+                        <span className="text-xs text-zinc-600">Waiting...</span>
+                      </div>
                     ))}
-                  </div>
+                  </AnimatePresence>
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Start Button */}
-                <Button
-                  onClick={handleStartGame}
-                  disabled={isStarting || !settings.category}
-                  className="w-full py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-900/20"
-                >
-                  {isStarting ? (
-                    <>
-                      <Loader2 size={24} className="animate-spin mr-2" />
-                      Initiating...
-                    </>
-                  ) : (
-                    <>
-                      <Swords size={24} className="mr-2" />
-                      Begin Competition
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            ) : (
-              /* Guest Waiting View */
-              <Card className="bg-zinc-900/50 border-zinc-800 text-center sticky top-6 p-8">
-                <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                  <Loader2 size={32} className="animate-spin text-orange-500" />
-                  <div className="absolute inset-0 border-4 border-zinc-800 rounded-full" />
-                  <div className="absolute inset-0 border-t-4 border-orange-500 rounded-full animate-spin" />
-                </div>
-                <h2 className="text-xl font-bold text-white mb-2">
-                  Preparing Battle...
-                </h2>
-                <p className="text-zinc-400 mb-8 text-sm">
-                  The host is currently configuring the match settings. Please
-                  wait for the game to launch.
-                </p>
-
-                <div className="bg-zinc-950 rounded-xl p-4 space-y-3 text-left border border-zinc-900">
-                  <div className="flex justify-between items-center text-sm border-b border-zinc-900 pb-3">
-                    <span className="text-zinc-500">Mode</span>
-                    <span className="font-semibold text-zinc-300 capitalize flex items-center gap-2">
-                      {settings.category === "programming" ? (
-                        <Code size={14} />
-                      ) : (
-                        <BookOpen size={14} />
-                      )}
-                      {settings.category}
-                    </span>
+            {/* Preparing Battle - guest only */}
+            {!isHost && (
+              <Card className="border-zinc-800 bg-zinc-900/50 overflow-hidden">
+                <CardContent className="pt-8 pb-8 text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden">
+                    <div className="absolute inset-0 border-2 border-zinc-800 rounded-full" />
+                    <div className="absolute inset-0 border-2 border-transparent border-t-orange-500 rounded-full animate-spin" />
+                    <Loader2 size={28} className="text-orange-500 relative z-10" />
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-zinc-500">Challenge</span>
-                    <span className="font-semibold text-orange-400 capitalize">
-                      {settings.challengeMode}
-                    </span>
+                  <CardTitle className="text-xl text-white mb-2">Preparing Battle...</CardTitle>
+                  <CardDescription className="mb-6 text-zinc-400">
+                    The host is configuring the match. Please wait for the game to launch.
+                  </CardDescription>
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4 space-y-3 text-left">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-zinc-500">Mode</span>
+                      <span className="font-medium text-zinc-300 capitalize flex items-center gap-2">
+                        {settings.category === "programming" ? (
+                          <Code size={14} className="text-orange-500" />
+                        ) : (
+                          <BookOpen size={14} className="text-blue-500" />
+                        )}
+                        {settings.category}
+                      </span>
+                    </div>
+                    <Separator className="bg-zinc-800" />
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-zinc-500">Challenge</span>
+                      <Badge variant="outline" className="border-orange-500/50 text-orange-400 font-medium capitalize">
+                        {settings.challengeMode}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
+                </CardContent>
               </Card>
             )}
           </div>

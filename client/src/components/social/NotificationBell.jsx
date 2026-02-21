@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Bell, Check, X } from "lucide-react";
+import { playNotificationSound } from "@/lib/sound";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   getFriendRequests,
@@ -27,12 +28,21 @@ const NotificationBell = () => {
     }
   };
 
+  const prevCountRef = useRef(0);
+
   useEffect(() => {
     fetchRequests();
-    // Poll every 30 seconds for new requests
     const interval = setInterval(fetchRequests, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Play sound when new notifications arrive (count increased)
+  useEffect(() => {
+    if (requests.length > prevCountRef.current && prevCountRef.current > 0) {
+      playNotificationSound();
+    }
+    prevCountRef.current = requests.length;
+  }, [requests.length]);
 
   // Close dropdown on outside click
   useEffect(() => {
