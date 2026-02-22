@@ -16,14 +16,19 @@ import {
   Menu,
   Play,
   RotateCcw,
-  Trophy,
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { updateUserStats } from "../../features/auth/authSlice";
 import {
   getPlaygroundProgress,
-  enrollInPlayground,
   completeProblem as completeProb,
 } from "../../features/playground/playgroundApi";
 
@@ -42,33 +47,24 @@ const LanguagePlayground = () => {
   const [showHints, setShowHints] = useState(false);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const iframeRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const data = PLAYGROUND_DATA[language?.toLowerCase()];
   const isLivePreview = data?.livePreview === true;
 
-  // Fetch progress and auto-enroll on mount
+  // Fetch progress; redirect to topics page if not yet enrolled
   useEffect(() => {
     const initProgress = async () => {
       if (!user || !language) return;
-      console.log("[Playground] initProgress called for language:", language);
 
       try {
         setIsLoadingProgress(true);
-        // Fetch all progress
         const { progress } = await getPlaygroundProgress();
-        console.log("[Playground] fetched progress:", progress);
         const currentProgress = progress.find((p) => p.language === language);
-        console.log(
-          "[Playground] currentProgress for",
-          language,
-          ":",
-          currentProgress,
-        );
 
         if (currentProgress) {
           const completedSet = new Set(currentProgress.completedProblems);
           setCompletedProblems(completedSet);
-          console.log("[Playground] completedProblems:", [...completedSet]);
 
           // Auto-open first unsolved problem
           if (data && data.chapters) {
@@ -92,20 +88,8 @@ const LanguagePlayground = () => {
             }
           }
         } else {
-          // Auto-enroll if not enrolled
-          console.log(
-            "[Playground] Not enrolled, auto-enrolling for:",
-            language,
-          );
-          try {
-            const enrollResult = await enrollInPlayground(language);
-            console.log("[Playground] Enrollment result:", enrollResult);
-          } catch (enrollErr) {
-            console.error(
-              "[Playground] Enrollment FAILED:",
-              enrollErr?.response?.data || enrollErr.message,
-            );
-          }
+          // Not enrolled — send them to the topic overview to enroll from there
+          navigate(`/playground/${language}/topics`, { replace: true });
         }
       } catch (error) {
         console.error(
@@ -327,21 +311,34 @@ const LanguagePlayground = () => {
     return () => window.removeEventListener("keydown", handler);
   }, [handleRunCode]);
 
+  // On mobile, start with sidebar closed so content is visible
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [isMobile]);
+
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-screen bg-zinc-950 text-white">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Language Not Found</h1>
-          <p className="text-zinc-400 mb-6">
-            The playground for "{language}" is not available yet.
-          </p>
-          <button
-            onClick={() => navigate("/playground")}
-            className="px-6 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 transition"
-          >
-            Back to Playgrounds
-          </button>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-zinc-950 text-white p-6">
+        <Card className="w-full max-w-md border-zinc-800 bg-zinc-900/95 shadow-xl">
+          <CardHeader className="space-y-1 text-center pb-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-white">
+              Language Not Found
+            </h1>
+            <p className="text-sm text-zinc-400">
+              The playground for &quot;{language}&quot; is not available yet.
+            </p>
+          </CardHeader>
+          <CardContent className="flex justify-center pt-2">
+            <Button
+              onClick={() => navigate("/playground")}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Back to Playgrounds
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -355,7 +352,22 @@ const LanguagePlayground = () => {
     totalProblems > 0 ? Math.round((completedCount / totalProblems) * 100) : 0;
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">
+    <div className="flex h-screen min-h-dvh bg-zinc-950 text-white overflow-hidden">
+      {/* Mobile backdrop when sidebar open */}
+      <AnimatePresence>
+        {isMobile && isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/60 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+
       {/* ===== SIDEBAR ===== */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -364,28 +376,34 @@ const LanguagePlayground = () => {
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="h-full bg-zinc-900 border-r border-zinc-800 flex flex-col overflow-hidden shrink-0"
+            className={cn(
+              "h-full border-r border-zinc-800 flex flex-col overflow-hidden shrink-0",
+              isMobile
+                ? "fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] bg-zinc-900 shadow-xl md:relative md:inset-auto md:z-auto md:w-auto md:max-w-none md:shadow-none"
+                : "bg-zinc-900/98",
+            )}
           >
-            {/* Sidebar Header */}
-            <div className="p-4 border-b border-zinc-800 flex justify-between items-start">
-              <div className="min-w-0">
-                <h2 className="font-bold text-base text-white truncate">
+            <div className="p-4 flex justify-between items-start shrink-0">
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold text-sm text-white truncate tracking-tight">
                   {data.title}
                 </h2>
-                <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+                <p className="text-xs text-zinc-500 mt-0.5 truncate">
                   {data.subtitle}
                 </p>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsSidebarOpen(false)}
-                className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-zinc-300 transition shrink-0 ml-2"
+                className="h-8 w-8 shrink-0 ml-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
               >
-                <X size={16} />
-              </button>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
+            <Separator className="bg-zinc-800" />
 
-            {/* Chapters & Problems */}
-            <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5 scrollbar-thin scrollbar-thumb-zinc-700">
+            <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
               {data.chapters.map((chapter, idx) => {
                 const chapterCompleted = chapter.problems.filter((p) =>
                   completedProblems.has(p.id),
@@ -393,13 +411,13 @@ const LanguagePlayground = () => {
                 return (
                   <div key={chapter.id}>
                     <div className="flex items-center justify-between mb-2 px-1">
-                      <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-bold flex items-center justify-center">
+                      <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-md bg-orange-500/20 text-orange-400 text-[10px] font-semibold flex items-center justify-center">
                           {idx + 1}
                         </span>
                         {chapter.title}
                       </span>
-                      <span className="text-[10px] text-zinc-600">
+                      <span className="text-[10px] text-zinc-600 tabular-nums">
                         {chapterCompleted}/{chapter.problems.length}
                       </span>
                     </div>
@@ -408,39 +426,49 @@ const LanguagePlayground = () => {
                         const isActive = currentProblem?.id === prob.id;
                         const isDone = completedProblems.has(prob.id);
                         return (
-                          <button
+                          <Button
                             key={prob.id}
+                            variant="ghost"
                             onClick={() => selectProblem(prob)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all ${
-                              isActive
-                                ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
-                                : isDone
-                                  ? "text-zinc-400 hover:bg-zinc-800/60 border border-transparent"
-                                  : "text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300 border border-transparent"
-                            }`}
+                            className={cn(
+                              "w-full justify-start gap-2.5 h-auto py-2 px-3 rounded-lg text-[13px] font-normal transition-all",
+                              isActive &&
+                                "bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20 hover:text-orange-400",
+                              isDone &&
+                                !isActive &&
+                                "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300",
+                              !isDone &&
+                                !isActive &&
+                                "text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300",
+                            )}
                           >
-                            <div
-                              className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                                isDone
-                                  ? "bg-green-500/20 text-green-400"
-                                  : isActive
-                                    ? "bg-orange-500/20 text-orange-400"
-                                    : "bg-zinc-800 text-zinc-600"
-                              }`}
+                            <span
+                              className={cn(
+                                "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
+                                isDone && "bg-emerald-500/20 text-emerald-400",
+                                isActive &&
+                                  !isDone &&
+                                  "bg-orange-500/20 text-orange-400",
+                                !isActive &&
+                                  !isDone &&
+                                  "bg-zinc-800 text-zinc-600",
+                              )}
                             >
                               {isDone ? (
-                                <CheckCircle size={10} />
+                                <CheckCircle className="h-2.5 w-2.5" />
                               ) : (
-                                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
                               )}
-                            </div>
-                            <span className="truncate">{prob.title}</span>
+                            </span>
+                            <span className="truncate flex-1 text-left">
+                              {prob.title}
+                            </span>
                             {isDone && (
-                              <span className="ml-auto text-[10px] text-green-500/70">
+                              <span className="text-[10px] text-emerald-500/80">
                                 ✓
                               </span>
                             )}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -449,20 +477,19 @@ const LanguagePlayground = () => {
               })}
             </div>
 
-            {/* Progress Footer */}
-            <div className="p-3 border-t border-zinc-800 bg-zinc-900/50">
-              <div className="flex items-center justify-between text-[11px] text-zinc-500 mb-1.5">
+            <Separator className="bg-zinc-800" />
+            <div className="p-3 bg-zinc-900/50 shrink-0">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500 mb-2">
                 <span>Progress</span>
-                <span>
+                <span className="tabular-nums">
                   {completedCount}/{totalProblems}
                 </span>
               </div>
-              <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+              <Progress
+                value={progressPercent}
+                className="h-1.5 bg-zinc-800"
+                indicatorClassName="rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-500"
+              />
             </div>
           </motion.aside>
         )}
@@ -471,325 +498,672 @@ const LanguagePlayground = () => {
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Bar */}
-        <header className="h-12 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {!isSidebarOpen && (
-              <button
+        <header className="h-11 sm:h-12 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between gap-2 px-3 sm:px-4 shrink-0 min-h-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
+            {(isMobile || !isSidebarOpen) && (
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition"
+                className="h-8 w-8 shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800"
               >
-                <Menu size={16} />
-              </button>
+                <Menu className="h-4 w-4" />
+              </Button>
             )}
-            <h1 className="font-semibold text-sm text-white truncate">
+            <h1 className="font-medium text-xs sm:text-sm text-white truncate tracking-tight min-w-0">
               {currentProblem?.title}
             </h1>
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${
-                currentProblem?.difficulty === "Easy"
-                  ? "bg-green-500/15 text-green-400"
-                  : currentProblem?.difficulty === "Medium"
-                    ? "bg-yellow-500/15 text-yellow-400"
-                    : "bg-red-500/15 text-red-400"
-              }`}
-            >
-              {currentProblem?.difficulty}
-            </span>
-            {completedProblems.has(currentProblem?.id) && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-500/15 text-green-400 flex items-center gap-1">
-                <CheckCircle size={10} /> SOLVED
-              </span>
-            )}
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wide border-0",
+                  currentProblem?.difficulty === "Easy" &&
+                    "bg-emerald-500/15 text-emerald-400",
+                  currentProblem?.difficulty === "Medium" &&
+                    "bg-amber-500/15 text-amber-400",
+                  currentProblem?.difficulty === "Hard" &&
+                    "bg-red-500/15 text-red-400",
+                )}
+              >
+                {currentProblem?.difficulty}
+              </Badge>
+              {completedProblems.has(currentProblem?.id) && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border-0 gap-1"
+                >
+                  <CheckCircle className="h-3 w-3" /> SOLVED
+                </Badge>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-orange-400 font-semibold bg-orange-500/10 px-2.5 py-1 rounded border border-orange-500/20">
-              +{currentProblem?.xp} XP
-            </span>
-            <button
-              onClick={resetCode}
-              className="p-1.5 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition"
-              title="Reset code"
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Badge
+              variant="outline"
+              className="text-[10px] sm:text-[11px] font-medium text-orange-400 bg-orange-500/10 border-orange-500/20 hidden sm:inline-flex"
             >
-              <RotateCcw size={14} />
-            </button>
-            <button
+              +{currentProblem?.xp} XP
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={resetCode}
+              title="Reset code"
+              className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-zinc-800"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
               onClick={handleRunCode}
               disabled={isRunning}
-              className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-all active:scale-95"
+              className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 sm:px-4 disabled:opacity-50 disabled:pointer-events-none"
             >
               {isRunning ? (
                 <>
-                  <Loader2 size={13} className="animate-spin" />
-                  Running…
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                  <span className="hidden sm:inline">Running…</span>
                 </>
               ) : (
                 <>
-                  <Play size={13} fill="currentColor" />
-                  Run Code
+                  <Play className="h-3.5 w-3.5 fill-current shrink-0" />
+                  <span className="hidden sm:inline">Run Code</span>
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </header>
 
         {/* Workspace */}
-        <div className="flex-1 overflow-hidden">
-          {currentProblem && (
-            <PanelGroup direction="horizontal">
-              {/* LEFT: Description */}
-              <Panel defaultSize={35} minSize={20}>
-                <div className="h-full bg-zinc-900 flex flex-col">
-                  <div className="px-4 py-2.5 border-b border-zinc-800 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                      <BookOpen size={13} />
-                      Instructions
-                    </div>
-
-                    {/* Next Problem Button */}
-                    {completedProblems.has(currentProblem.id) && (
-                      <button
-                        onClick={() => {
-                          const allProblems = data.chapters.flatMap(
-                            (ch) => ch.problems,
-                          );
-                          const currentIdx = allProblems.findIndex(
-                            (p) => p.id === currentProblem.id,
-                          );
-                          const nextProblem = allProblems[currentIdx + 1];
-                          if (nextProblem) {
-                            selectProblem(nextProblem);
-                          } else {
-                            toast.success(
-                              "You've completed all problems in this course!",
+        <div className="flex-1 overflow-hidden min-h-0">
+          {currentProblem &&
+            (isMobile ? (
+              /* Mobile: vertical stack */
+              <PanelGroup direction="vertical">
+                <Panel defaultSize={30} minSize={15} maxSize={50}>
+                  <Card className="h-full rounded-none border-0 border-b border-zinc-800 bg-zinc-900 flex flex-col shadow-none">
+                    <CardHeader className="px-3 sm:px-4 py-2.5 sm:py-3 flex flex-row items-center justify-between space-y-0 border-b border-zinc-800 shrink-0">
+                      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Instructions
+                      </div>
+                      {completedProblems.has(currentProblem.id) && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            const allProblems = data.chapters.flatMap(
+                              (ch) => ch.problems,
                             );
-                          }
-                        }}
-                        className="flex items-center gap-1 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded transition-colors"
-                      >
-                        Next <ChevronRight size={10} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin scrollbar-thumb-zinc-700">
-                    {/* Description */}
-                    <div className="prose prose-invert prose-sm max-w-none">
-                      <div className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
-                        {currentProblem.description}
-                      </div>
-                    </div>
-
-                    {/* Hints */}
-                    {currentProblem.hints &&
-                      currentProblem.hints.length > 0 && (
-                        <div>
-                          <button
-                            onClick={() => setShowHints(!showHints)}
-                            className="flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition mb-2"
-                          >
-                            <Lightbulb size={13} />
-                            {showHints ? "Hide" : "Show"} Hints (
-                            {currentProblem.hints.length})
-                          </button>
-                          <AnimatePresence>
-                            {showHints && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="space-y-2 overflow-hidden"
-                              >
-                                {currentProblem.hints.map((hint, i) => (
-                                  <div
-                                    key={i}
-                                    className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200/80 flex gap-2"
-                                  >
-                                    <span className="text-amber-500 font-bold shrink-0">
-                                      {i + 1}.
-                                    </span>
-                                    {hint}
-                                  </div>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      )}
-                  </div>
-                </div>
-              </Panel>
-
-              <PanelResizeHandle className="w-1 bg-zinc-800 hover:bg-orange-500 transition-colors cursor-col-resize" />
-
-              {/* RIGHT: Editor + Output */}
-              <Panel defaultSize={65} minSize={40}>
-                <PanelGroup direction="vertical">
-                  {/* Editor */}
-                  <Panel defaultSize={60} minSize={30}>
-                    <div className="h-full flex flex-col bg-[#1e1e1e]">
-                      <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                          </div>
-                          <span className="text-[11px] text-zinc-500 font-medium ml-2 uppercase">
-                            {language} Editor
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-zinc-600">
-                          Ctrl+Enter to run
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <Editor
-                          height="100%"
-                          language={
-                            language === "javascript"
-                              ? "javascript"
-                              : language === "css"
-                                ? "css"
-                                : "html"
-                          }
-                          value={code}
-                          onChange={(val) => setCode(val || "")}
-                          theme="vs-dark"
-                          options={{
-                            fontSize: 14,
-                            lineNumbers: "on",
-                            minimap: { enabled: false },
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            padding: { top: 12 },
-                            fontFamily:
-                              "'JetBrains Mono', 'Fira Code', monospace",
-                            renderLineHighlight: "all",
-                            bracketPairColorization: { enabled: true },
-                            cursorBlinking: "smooth",
-                            smoothScrolling: true,
+                            const currentIdx = allProblems.findIndex(
+                              (p) => p.id === currentProblem.id,
+                            );
+                            const nextProblem = allProblems[currentIdx + 1];
+                            if (nextProblem) {
+                              selectProblem(nextProblem);
+                            } else {
+                              toast.success(
+                                "You've completed all problems in this course!",
+                              );
+                            }
                           }}
-                        />
+                          className="h-7 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium gap-1"
+                        >
+                          Next <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
+                      <div className="prose prose-invert prose-sm max-w-none">
+                        <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap m-0">
+                          {currentProblem.description}
+                        </p>
                       </div>
-                    </div>
-                  </Panel>
-
-                  <PanelResizeHandle className="h-1 bg-zinc-800 hover:bg-orange-500 transition-colors cursor-row-resize" />
-
-                  {/* Output / Live Preview */}
-                  <Panel defaultSize={40} minSize={15}>
-                    {isLivePreview ? (
-                      <div className="h-full bg-white flex flex-col">
-                        <div className="px-4 py-2 border-b border-zinc-200 bg-zinc-50 flex items-center justify-between shrink-0">
-                          <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
-                            Live Preview
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {testResult && (
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded ${testResult.success ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
-                              >
-                                {testResult.success ? "✓ PASSED" : "✗ FAILED"}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1 text-[10px] text-green-600 font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                              Live
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-1 overflow-auto">
-                          <iframe
-                            ref={iframeRef}
-                            className="w-full h-full border-0"
-                            title="Live Preview"
-                            sandbox="allow-scripts allow-same-origin"
-                          />
-                        </div>
-                        {testResult && (
-                          <div
-                            className={`px-4 py-2 border-t text-xs ${testResult.success ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}
-                          >
-                            <div className="flex items-center gap-1.5 font-semibold">
-                              {testResult.success ? (
-                                <CheckCircle size={12} />
-                              ) : (
-                                <X size={12} />
+                      {currentProblem.hints &&
+                        currentProblem.hints.length > 0 && (
+                          <div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowHints(!showHints)}
+                              className="h-auto py-1 px-0 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-transparent gap-2 -ml-1"
+                            >
+                              <Lightbulb className="h-3.5 w-3.5" />
+                              {showHints ? "Hide" : "Show"} Hints (
+                              {currentProblem.hints.length})
+                            </Button>
+                            <AnimatePresence>
+                              {showHints && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="space-y-2 overflow-hidden mt-2"
+                                >
+                                  {currentProblem.hints.map((hint, i) => (
+                                    <Card
+                                      key={i}
+                                      className="bg-amber-500/5 border-amber-500/20 rounded-lg p-3"
+                                    >
+                                      <CardContent className="p-0 text-xs text-amber-200/90 flex gap-2">
+                                        <span className="text-amber-500 font-semibold shrink-0">
+                                          {i + 1}.
+                                        </span>
+                                        <span>{hint}</span>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </motion.div>
                               )}
-                              {testResult.message}
-                            </div>
+                            </AnimatePresence>
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      <div className="h-full bg-zinc-950 flex flex-col">
-                        <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
-                          <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-                            Output
-                          </span>
-                          {testResult && (
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded ${testResult.success ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}
-                            >
-                              {testResult.success
-                                ? "✓ ALL TESTS PASSED"
-                                : "✗ TESTS FAILED"}
-                            </span>
-                          )}
+                    </CardContent>
+                  </Card>
+                </Panel>
+                <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+                <Panel defaultSize={45} minSize={25} maxSize={70}>
+                  <div className="h-full flex flex-col bg-[#1e1e1e]">
+                    <div className="px-3 sm:px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 font-mono text-sm scrollbar-thin scrollbar-thumb-zinc-700">
-                          {isRunning ? (
-                            <div className="flex items-center gap-2 text-zinc-500">
-                              <Loader2 size={14} className="animate-spin" />
-                              Executing…
-                            </div>
-                          ) : output === null ? (
-                            <p className="text-zinc-600 text-xs">
-                              Click <strong>Run Code</strong> or press{" "}
-                              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px]">
-                                Ctrl+Enter
-                              </kbd>{" "}
-                              to execute your code.
-                            </p>
-                          ) : (
-                            <div className="space-y-3">
-                              {output.text && (
-                                <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed">
-                                  {output.text}
-                                </pre>
+                        <span className="text-[11px] text-zinc-500 font-medium uppercase tracking-wide">
+                          {language} Editor
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-normal text-zinc-500 border-zinc-700 bg-transparent hidden sm:inline-flex"
+                      >
+                        Ctrl+Enter to run
+                      </Badge>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      <Editor
+                        height="100%"
+                        language={
+                          language === "javascript"
+                            ? "javascript"
+                            : language === "css"
+                              ? "css"
+                              : "html"
+                        }
+                        value={code}
+                        onChange={(val) => setCode(val || "")}
+                        theme="vs-dark"
+                        options={{
+                          fontSize: 14,
+                          lineNumbers: "on",
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          padding: { top: 12 },
+                          fontFamily:
+                            "'JetBrains Mono', 'Fira Code', monospace",
+                          renderLineHighlight: "all",
+                          bracketPairColorization: { enabled: true },
+                          cursorBlinking: "smooth",
+                          smoothScrolling: true,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </Panel>
+                <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+                <Panel defaultSize={25} minSize={15} maxSize={45}>
+                  {isLivePreview ? (
+                    <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
+                      <CardHeader className="px-3 sm:px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
+                        <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
+                          Live Preview
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {testResult && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] font-semibold border-0",
+                                testResult.success
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-red-100 text-red-700",
                               )}
-                              {output.error && (
-                                <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed bg-red-500/5 border border-red-500/20 rounded-lg p-3">
-                                  {output.error}
-                                </pre>
-                              )}
-                              {testResult && (
-                                <div
-                                  className={`rounded-lg p-3 border text-xs ${testResult.success ? "bg-green-500/5 border-green-500/20 text-green-400" : "bg-red-500/5 border-red-500/20 text-red-400"}`}
-                                >
-                                  <div className="font-semibold mb-1 flex items-center gap-1.5">
+                            >
+                              {testResult.success ? "✓ PASSED" : "✗ FAILED"}
+                            </Badge>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex-1 overflow-auto p-0 min-h-0">
+                        <iframe
+                          ref={iframeRef}
+                          className="w-full h-full border-0 min-h-[160px]"
+                          title="Live Preview"
+                          sandbox="allow-scripts allow-same-origin"
+                        />
+                      </CardContent>
+                      {testResult && (
+                        <div
+                          className={cn(
+                            "px-3 sm:px-4 py-2 border-t text-xs shrink-0",
+                            testResult.success
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              : "bg-red-50 border-red-200 text-red-700",
+                          )}
+                        >
+                          <div className="flex items-center gap-2 font-medium">
+                            {testResult.success ? (
+                              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <X className="h-3.5 w-3.5 shrink-0" />
+                            )}
+                            {testResult.message}
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  ) : (
+                    <div className="h-full bg-zinc-950 flex flex-col">
+                      <div className="px-3 sm:px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
+                        <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
+                          Output
+                        </span>
+                        {testResult && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] font-semibold border-0",
+                              testResult.success
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : "bg-red-500/15 text-red-400",
+                            )}
+                          >
+                            {testResult.success ? "✓ PASSED" : "✗ FAILED"}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-3 sm:p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
+                        {isRunning ? (
+                          <div className="flex items-center gap-2 text-zinc-500">
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                            <span className="text-sm">Executing…</span>
+                          </div>
+                        ) : output === null ? (
+                          <p className="text-zinc-500 text-xs">
+                            Tap <strong className="text-zinc-400">Run</strong>{" "}
+                            or{" "}
+                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
+                              Ctrl+Enter
+                            </kbd>
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {output.text && (
+                              <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
+                                {output.text}
+                              </pre>
+                            )}
+                            {output.error && (
+                              <Card className="bg-red-500/5 border-red-500/20">
+                                <CardContent className="p-3">
+                                  <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
+                                    {output.error}
+                                  </pre>
+                                </CardContent>
+                              </Card>
+                            )}
+                            {testResult && (
+                              <Card
+                                className={cn(
+                                  "border",
+                                  testResult.success
+                                    ? "bg-emerald-500/5 border-emerald-500/20"
+                                    : "bg-red-500/5 border-red-500/20",
+                                )}
+                              >
+                                <CardContent className="p-3">
+                                  <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
                                     {testResult.success ? (
-                                      <CheckCircle size={12} />
+                                      <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
                                     ) : (
-                                      <X size={12} />
+                                      <X className="h-3.5 w-3.5 text-red-400" />
                                     )}
                                     Validation Result
                                   </div>
-                                  <p className="text-zinc-400">
+                                  <p
+                                    className={cn(
+                                      "text-xs m-0",
+                                      testResult.success
+                                        ? "text-emerald-400/90"
+                                        : "text-red-400/90",
+                                    )}
+                                  >
                                     {testResult.message}
                                   </p>
-                                </div>
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Panel>
+              </PanelGroup>
+            ) : (
+              /* Desktop: horizontal then vertical */
+              <PanelGroup direction="horizontal">
+                {/* LEFT: Description */}
+                <Panel defaultSize={35} minSize={20}>
+                  <Card className="h-full rounded-none border-0 border-r border-zinc-800 bg-zinc-900 flex flex-col shadow-none">
+                    <CardHeader className="px-4 py-3 flex flex-row items-center justify-between space-y-0 border-b border-zinc-800 shrink-0">
+                      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Instructions
+                      </div>
+                      {completedProblems.has(currentProblem.id) && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            const allProblems = data.chapters.flatMap(
+                              (ch) => ch.problems,
+                            );
+                            const currentIdx = allProblems.findIndex(
+                              (p) => p.id === currentProblem.id,
+                            );
+                            const nextProblem = allProblems[currentIdx + 1];
+                            if (nextProblem) {
+                              selectProblem(nextProblem);
+                            } else {
+                              toast.success(
+                                "You've completed all problems in this course!",
+                              );
+                            }
+                          }}
+                          className="h-7 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium gap-1"
+                        >
+                          Next <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto p-5 space-y-5 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
+                      <div className="prose prose-invert prose-sm max-w-none">
+                        <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap m-0">
+                          {currentProblem.description}
+                        </p>
+                      </div>
+
+                      {currentProblem.hints &&
+                        currentProblem.hints.length > 0 && (
+                          <div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowHints(!showHints)}
+                              className="h-auto py-1 px-0 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-transparent gap-2 -ml-1"
+                            >
+                              <Lightbulb className="h-3.5 w-3.5" />
+                              {showHints ? "Hide" : "Show"} Hints (
+                              {currentProblem.hints.length})
+                            </Button>
+                            <AnimatePresence>
+                              {showHints && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="space-y-2 overflow-hidden mt-2"
+                                >
+                                  {currentProblem.hints.map((hint, i) => (
+                                    <Card
+                                      key={i}
+                                      className="bg-amber-500/5 border-amber-500/20 rounded-lg p-3"
+                                    >
+                                      <CardContent className="p-0 text-xs text-amber-200/90 flex gap-2">
+                                        <span className="text-amber-500 font-semibold shrink-0">
+                                          {i + 1}.
+                                        </span>
+                                        <span>{hint}</span>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </motion.div>
                               )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+                    </CardContent>
+                  </Card>
+                </Panel>
+
+                <PanelResizeHandle className="w-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-col-resize rounded-px data-[resize-handle-active]:bg-orange-500" />
+
+                {/* RIGHT: Editor + Output */}
+                <Panel defaultSize={65} minSize={40}>
+                  <PanelGroup direction="vertical">
+                    {/* Editor */}
+                    <Panel defaultSize={60} minSize={30}>
+                      <div className="h-full min-h-0 flex flex-col bg-[#1e1e1e]">
+                        <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between shrink-0">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
                             </div>
-                          )}
+                            <span className="text-[11px] text-zinc-500 font-medium uppercase tracking-wide">
+                              {language} Editor
+                            </span>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-normal text-zinc-500 border-zinc-700 bg-transparent"
+                          >
+                            Ctrl+Enter to run
+                          </Badge>
+                        </div>
+                        <div className="flex-1 min-h-0">
+                          <Editor
+                            height="100%"
+                            language={
+                              language === "javascript"
+                                ? "javascript"
+                                : language === "css"
+                                  ? "css"
+                                  : "html"
+                            }
+                            value={code}
+                            onChange={(val) => setCode(val || "")}
+                            theme="vs-dark"
+                            options={{
+                              fontSize: 14,
+                              lineNumbers: "on",
+                              minimap: { enabled: false },
+                              scrollBeyondLastLine: false,
+                              automaticLayout: true,
+                              padding: { top: 12 },
+                              fontFamily:
+                                "'JetBrains Mono', 'Fira Code', monospace",
+                              renderLineHighlight: "all",
+                              bracketPairColorization: { enabled: true },
+                              cursorBlinking: "smooth",
+                              smoothScrolling: true,
+                            }}
+                          />
                         </div>
                       </div>
-                    )}
-                  </Panel>
-                </PanelGroup>
-              </Panel>
-            </PanelGroup>
-          )}
+                    </Panel>
+
+                    <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+
+                    {/* Output / Live Preview */}
+                    <Panel defaultSize={40} minSize={15}>
+                      {isLivePreview ? (
+                        <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
+                          <CardHeader className="px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
+                            <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
+                              Live Preview
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {testResult && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-[10px] font-semibold border-0",
+                                    testResult.success
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-red-100 text-red-700",
+                                  )}
+                                >
+                                  {testResult.success ? "✓ PASSED" : "✗ FAILED"}
+                                </Badge>
+                              )}
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="flex-1 overflow-auto p-0 min-h-0">
+                            <iframe
+                              ref={iframeRef}
+                              className="w-full h-full border-0 min-h-[200px]"
+                              title="Live Preview"
+                              sandbox="allow-scripts allow-same-origin"
+                            />
+                          </CardContent>
+                          {testResult && (
+                            <div
+                              className={cn(
+                                "px-4 py-2 border-t text-xs shrink-0",
+                                testResult.success
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                  : "bg-red-50 border-red-200 text-red-700",
+                              )}
+                            >
+                              <div className="flex items-center gap-2 font-medium">
+                                {testResult.success ? (
+                                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                                ) : (
+                                  <X className="h-3.5 w-3.5 shrink-0" />
+                                )}
+                                {testResult.message}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      ) : (
+                        <div className="h-full bg-zinc-950 flex flex-col">
+                          <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
+                            <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
+                              Output
+                            </span>
+                            {testResult && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] font-semibold border-0",
+                                  testResult.success
+                                    ? "bg-emerald-500/15 text-emerald-400"
+                                    : "bg-red-500/15 text-red-400",
+                                )}
+                              >
+                                {testResult.success
+                                  ? "✓ ALL TESTS PASSED"
+                                  : "✗ TESTS FAILED"}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex-1 overflow-y-auto p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
+                            {isRunning ? (
+                              <div className="flex items-center gap-2 text-zinc-500">
+                                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                                <span className="text-sm">Executing…</span>
+                              </div>
+                            ) : output === null ? (
+                              <p className="text-zinc-500 text-xs">
+                                Click{" "}
+                                <strong className="text-zinc-400">
+                                  Run Code
+                                </strong>{" "}
+                                or press{" "}
+                                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
+                                  Ctrl+Enter
+                                </kbd>{" "}
+                                to execute your code.
+                              </p>
+                            ) : (
+                              <div className="space-y-3">
+                                {output.text && (
+                                  <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
+                                    {output.text}
+                                  </pre>
+                                )}
+                                {output.error && (
+                                  <Card className="bg-red-500/5 border-red-500/20">
+                                    <CardContent className="p-3">
+                                      <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
+                                        {output.error}
+                                      </pre>
+                                    </CardContent>
+                                  </Card>
+                                )}
+                                {testResult && (
+                                  <Card
+                                    className={cn(
+                                      "border",
+                                      testResult.success
+                                        ? "bg-emerald-500/5 border-emerald-500/20"
+                                        : "bg-red-500/5 border-red-500/20",
+                                    )}
+                                  >
+                                    <CardContent className="p-3">
+                                      <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
+                                        {testResult.success ? (
+                                          <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                                        ) : (
+                                          <X className="h-3.5 w-3.5 text-red-400" />
+                                        )}
+                                        Validation Result
+                                      </div>
+                                      <p
+                                        className={cn(
+                                          "text-xs m-0",
+                                          testResult.success
+                                            ? "text-emerald-400/90"
+                                            : "text-red-400/90",
+                                        )}
+                                      >
+                                        {testResult.message}
+                                      </p>
+                                    </CardContent>
+                                  </Card>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </Panel>
+                  </PanelGroup>
+                </Panel>
+              </PanelGroup>
+            ))}
         </div>
       </div>
     </div>

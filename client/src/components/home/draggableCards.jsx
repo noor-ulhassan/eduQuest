@@ -228,7 +228,11 @@ export function DraggableCards() {
                     ))}
                   </div>
                   <button
-                    onClick={() => navigate(`/playground/${card.language}`)}
+                    onClick={() =>
+                      card.isEnrolled
+                        ? navigate(`/playground/${card.language}`)
+                        : navigate(`/playground/${card.language}/topics`)
+                    }
                     className={`w-full text-black font-bold mt-4 py-5 rounded-2xl border-b-4 flex items-center justify-center gap-3 text-sm group transition-all
                         ${
                           card.isEnrolled

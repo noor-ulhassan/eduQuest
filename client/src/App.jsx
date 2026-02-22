@@ -28,6 +28,7 @@ import CourseView from "./pages/Workspace/CourseView";
 import AboutPage from "./pages/about/About";
 import Playground from "./pages/Playgrounds/Page";
 import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
+import PlaygroundTopics from "./pages/Playgrounds/PlaygroundTopics";
 import Home from "./pages/Community/components/Home";
 import CompetitionLobby from "./pages/Competition/CompetitionLobby";
 import DocumentLibraryPage from "./pages/Documents/DocumentLibraryPage";
@@ -125,6 +126,7 @@ const appRouter = createBrowserRouter([
       },
 
       { path: "quiz", element: <QuizPage /> },
+      { path: "playground/:language/topics", element: <PlaygroundTopics /> },
       {
         path: "playground/:language",
         element: (

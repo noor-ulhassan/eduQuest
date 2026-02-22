@@ -25,7 +25,13 @@ import {
 import { toast } from "sonner";
 import { playNotificationSound, playPlayerJoinedSound } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -609,7 +615,7 @@ const CompetitionLobby = () => {
   // ─── RENDER: No Room Yet (Create/Join) ──────────────────
   if (!room) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 bg-[url('/gladiator.jpg')] bg-cover bg-center bg-no-repeat">
+      <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 bg-[url('/gladiator1.jpg')] bg-cover bg-center bg-no-repeat">
         {/* Overlay for text readability */}
         <div className="absolute inset-0 bg-black/50 z-0" />
 
@@ -668,11 +674,11 @@ const CompetitionLobby = () => {
 
             {/* Divider */}
             <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-zinc-700" />
-              <span className="text-zinc-500 text-xs font-medium uppercase tracking-wider">
+              <div className="flex-1 h-px bg-zinc-500" />
+              <span className="text-zinc-200 text-xs font-bold uppercase tracking-wider">
                 or
               </span>
-              <div className="flex-1 h-px bg-zinc-700" />
+              <div className="flex-1 h-px bg-zinc-500" />
             </div>
 
             {/* Join Room */}
@@ -695,9 +701,10 @@ const CompetitionLobby = () => {
                   className="flex-1 h-12 text-center text-lg font-mono tracking-[0.25em] uppercase bg-zinc-800/80 border-zinc-600 text-white placeholder:text-zinc-500 focus-visible:ring-2 focus-visible:ring-orange-500"
                 />
                 <Button
+                  variant={"pixel"}
                   onClick={() => handleJoinRoom()}
                   disabled={isConnecting || !joinCode.trim()}
-                  className="h-12 px-6 shrink-0 bg-blue-600 hover:bg-blue-500 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50"
+                  className="h-12 px-6 shrink-0 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-100"
                 >
                   Join
                 </Button>
@@ -708,7 +715,7 @@ const CompetitionLobby = () => {
           {/* Back link */}
           <button
             onClick={() => navigate("/")}
-            className="mt-6 sm:mt-8 flex items-center justify-center gap-2 py-2 px-4 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+            className="mt-6 sm:mt-8 flex items-center font-bold justify-center gap-2 py-2 px-4 text-zinc-300 hover:text-white text-sm transition-colors"
           >
             <ArrowLeft size={16} className="shrink-0" />
             Back to Home
@@ -1518,7 +1525,10 @@ const CompetitionLobby = () => {
               <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
               Live
             </Badge>
-            <Badge variant="outline" className="border-zinc-700 text-zinc-400 font-normal">
+            <Badge
+              variant="outline"
+              className="border-zinc-700 text-zinc-400 font-normal"
+            >
               {isHost ? "Host" : "Player"}
             </Badge>
           </div>
@@ -1529,13 +1539,17 @@ const CompetitionLobby = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Room Header Card */}
             <Card className="relative border-zinc-800 bg-zinc-900/50 overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" aria-hidden />
+              <div
+                className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"
+                aria-hidden
+              />
               <CardHeader className="relative z-10 pb-4">
                 <CardTitle className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                   Competition Lobby
                 </CardTitle>
                 <CardDescription className="text-zinc-400 max-w-lg">
-                  Share the room code with friends to invite them to this challenge.
+                  Share the room code with friends to invite them to this
+                  challenge.
                 </CardDescription>
               </CardHeader>
               <CardContent className="relative z-10 pt-0">
@@ -1588,8 +1602,12 @@ const CompetitionLobby = () => {
                         <Settings size={20} className="text-orange-500" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg text-white">Match Configuration</CardTitle>
-                        <CardDescription className="text-zinc-500">Customize your competition</CardDescription>
+                        <CardTitle className="text-lg text-white">
+                          Match Configuration
+                        </CardTitle>
+                        <CardDescription className="text-zinc-500">
+                          Customize your competition
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -1653,24 +1671,81 @@ const CompetitionLobby = () => {
                       <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                         {(settings.category === "programming"
                           ? [
-                              { id: "classic", name: "Classic Coding", icon: "💻", desc: "Standard algorithmic challenges" },
-                              { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world engineering narratives" },
-                              { id: "debug", name: "Debug Detective", icon: "🔍", desc: "Find and fix critical bugs" },
-                              { id: "outage", name: "Production Outage", icon: "🚨", desc: "High-pressure incident response" },
-                              { id: "refactor", name: "Code Refactor", icon: "♻️", desc: "Optimize messy legacy code" },
-                              { id: "missing", name: "Missing Link", icon: "🧩", desc: "Implement the missing component" },
-                              { id: "interactive", name: "Interactive", icon: "🎮", desc: "Drag, drop, and type answers" },
+                              {
+                                id: "classic",
+                                name: "Classic Coding",
+                                icon: "💻",
+                                desc: "Standard algorithmic challenges",
+                              },
+                              {
+                                id: "scenario",
+                                name: "Scenario Challenge",
+                                icon: "🎭",
+                                desc: "Real-world engineering narratives",
+                              },
+                              {
+                                id: "debug",
+                                name: "Debug Detective",
+                                icon: "🔍",
+                                desc: "Find and fix critical bugs",
+                              },
+                              {
+                                id: "outage",
+                                name: "Production Outage",
+                                icon: "🚨",
+                                desc: "High-pressure incident response",
+                              },
+                              {
+                                id: "refactor",
+                                name: "Code Refactor",
+                                icon: "♻️",
+                                desc: "Optimize messy legacy code",
+                              },
+                              {
+                                id: "missing",
+                                name: "Missing Link",
+                                icon: "🧩",
+                                desc: "Implement the missing component",
+                              },
+                              {
+                                id: "interactive",
+                                name: "Interactive",
+                                icon: "🎮",
+                                desc: "Drag, drop, and type answers",
+                              },
                             ]
                           : [
-                              { id: "classic", name: "Classic Quiz", icon: "📝", desc: "Standard multiple-choice" },
-                              { id: "interactive", name: "Interactive", icon: "🎮", desc: "Drag, drop, and type answers" },
-                              { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world situations" },
-                              { id: "missing", name: "Missing Link", icon: "🧩", desc: "Connect the system concepts" },
+                              {
+                                id: "classic",
+                                name: "Classic Quiz",
+                                icon: "📝",
+                                desc: "Standard multiple-choice",
+                              },
+                              {
+                                id: "interactive",
+                                name: "Interactive",
+                                icon: "🎮",
+                                desc: "Drag, drop, and type answers",
+                              },
+                              {
+                                id: "scenario",
+                                name: "Scenario Challenge",
+                                icon: "🎭",
+                                desc: "Real-world situations",
+                              },
+                              {
+                                id: "missing",
+                                name: "Missing Link",
+                                icon: "🧩",
+                                desc: "Connect the system concepts",
+                              },
                             ]
                         ).map((mode) => (
                           <button
                             key={mode.id}
-                            onClick={() => handleUpdateSettings("challengeMode", mode.id)}
+                            onClick={() =>
+                              handleUpdateSettings("challengeMode", mode.id)
+                            }
                             className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
                               settings.challengeMode === mode.id
                                 ? "border-orange-500 bg-orange-500/10"
@@ -1681,12 +1756,16 @@ const CompetitionLobby = () => {
                             <div>
                               <span
                                 className={`block text-sm font-bold ${
-                                  settings.challengeMode === mode.id ? "text-orange-400" : "text-zinc-300"
+                                  settings.challengeMode === mode.id
+                                    ? "text-orange-400"
+                                    : "text-zinc-300"
                                 }`}
                               >
                                 {mode.name}
                               </span>
-                              <span className="text-[10px] text-zinc-500 leading-tight block mt-0.5">{mode.desc}</span>
+                              <span className="text-[10px] text-zinc-500 leading-tight block mt-0.5">
+                                {mode.desc}
+                              </span>
                             </div>
                           </button>
                         ))}
@@ -1698,11 +1777,15 @@ const CompetitionLobby = () => {
                     {/* Topic & Description */}
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Specific Topic</Label>
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                          Specific Topic
+                        </Label>
                         <Input
                           type="text"
                           value={settings.topic}
-                          onChange={(e) => handleUpdateSettings("topic", e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateSettings("topic", e.target.value)
+                          }
                           placeholder={
                             settings.category === "programming"
                               ? "e.g. React Hooks, graph algorithms..."
@@ -1712,10 +1795,14 @@ const CompetitionLobby = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</Label>
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                          Description
+                        </Label>
                         <Textarea
                           value={settings.description}
-                          onChange={(e) => handleUpdateSettings("description", e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateSettings("description", e.target.value)
+                          }
                           placeholder="Context or rules..."
                           rows={2}
                           className="resize-none bg-zinc-950/80 border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-orange-500"
@@ -1726,14 +1813,20 @@ const CompetitionLobby = () => {
                     {/* Sliders / Metrics */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Difficulty</Label>
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                          Difficulty
+                        </Label>
                         <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
                           {["easy", "medium", "hard"].map((d) => (
                             <button
                               key={d}
-                              onClick={() => handleUpdateSettings("difficulty", d)}
+                              onClick={() =>
+                                handleUpdateSettings("difficulty", d)
+                              }
                               className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                                settings.difficulty === d ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                                settings.difficulty === d
+                                  ? "bg-zinc-800 text-white shadow-sm"
+                                  : "text-zinc-500 hover:text-zinc-300"
                               }`}
                             >
                               {d}
@@ -1742,14 +1835,20 @@ const CompetitionLobby = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Questions</Label>
+                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                          Questions
+                        </Label>
                         <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
                           {[3, 5, 10].map((n) => (
                             <button
                               key={n}
-                              onClick={() => handleUpdateSettings("totalQuestions", n)}
+                              onClick={() =>
+                                handleUpdateSettings("totalQuestions", n)
+                              }
                               className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                                settings.totalQuestions === n ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                                settings.totalQuestions === n
+                                  ? "bg-zinc-800 text-white shadow-sm"
+                                  : "text-zinc-500 hover:text-zinc-300"
                               }`}
                             >
                               {n}
@@ -1761,14 +1860,20 @@ const CompetitionLobby = () => {
 
                     {/* Duration Selector */}
                     <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Duration</Label>
+                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                        Duration
+                      </Label>
                       <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
                         {[1, 3, 5, 10, 15, 30].map((m) => (
                           <button
                             key={m}
-                            onClick={() => handleUpdateSettings("timerDuration", m * 60)}
+                            onClick={() =>
+                              handleUpdateSettings("timerDuration", m * 60)
+                            }
                             className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                              settings.timerDuration === m * 60 ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                              settings.timerDuration === m * 60
+                                ? "bg-zinc-800 text-white shadow-sm"
+                                : "text-zinc-500 hover:text-zinc-300"
                             }`}
                           >
                             {m}m
@@ -1813,7 +1918,10 @@ const CompetitionLobby = () => {
                     <CardTitle className="text-sm font-semibold text-orange-400 flex items-center gap-2">
                       <span aria-hidden>🔔</span>
                       Pending Requests
-                      <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 ml-1">
+                      <Badge
+                        variant="secondary"
+                        className="bg-orange-500/20 text-orange-400 ml-1"
+                      >
                         {pendingRequests.length}
                       </Badge>
                     </CardTitle>
@@ -1825,7 +1933,10 @@ const CompetitionLobby = () => {
                         className="flex items-center gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/80"
                       >
                         <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage src={req.avatarUrl || "/Avatar.png"} alt={req.name} />
+                          <AvatarImage
+                            src={req.avatarUrl || "/Avatar.png"}
+                            alt={req.name}
+                          />
                           <AvatarFallback className="bg-zinc-800 text-zinc-400 text-sm">
                             {req.name?.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
@@ -1869,7 +1980,10 @@ const CompetitionLobby = () => {
                     <Users size={18} className="text-zinc-400" />
                     Participants
                   </CardTitle>
-                  <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 font-medium">
+                  <Badge
+                    variant="secondary"
+                    className="bg-zinc-800 text-zinc-300 font-medium"
+                  >
                     {room?.players?.length || 0}/20
                   </Badge>
                 </div>
@@ -1886,29 +2000,43 @@ const CompetitionLobby = () => {
                         className="flex items-center gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 transition-colors"
                       >
                         <Avatar className="h-10 w-10 shrink-0 ring-2 ring-zinc-800">
-                          <AvatarImage src={player.avatarUrl || "/Avatar.png"} alt={player.name} />
+                          <AvatarImage
+                            src={player.avatarUrl || "/Avatar.png"}
+                            alt={player.name}
+                          />
                           <AvatarFallback className="bg-zinc-800 text-zinc-400 text-sm">
                             {player.name?.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-zinc-200 truncate">{player.name}</p>
+                          <p className="text-sm font-medium text-zinc-200 truncate">
+                            {player.name}
+                          </p>
                           {player.id === room.hostId ? (
-                            <Badge variant="outline" className="mt-0.5 h-4 px-1.5 text-[10px] border-yellow-500/50 text-yellow-500 font-medium">
+                            <Badge
+                              variant="outline"
+                              className="mt-0.5 h-4 px-1.5 text-[10px] border-yellow-500/50 text-yellow-500 font-medium"
+                            >
                               <Crown size={10} className="mr-0.5" /> Host
                             </Badge>
                           ) : (
-                            <p className="text-[11px] text-zinc-500 mt-0.5">Player</p>
+                            <p className="text-[11px] text-zinc-500 mt-0.5">
+                              Player
+                            </p>
                           )}
                         </div>
                       </motion.div>
                     ))}
-                    {Array.from({ length: Math.max(0, 3 - (room?.players?.length || 0)) }).map((_, i) => (
+                    {Array.from({
+                      length: Math.max(0, 3 - (room?.players?.length || 0)),
+                    }).map((_, i) => (
                       <div
                         key={`empty-${i}`}
                         className="border border-dashed border-zinc-800 rounded-lg p-3 flex items-center justify-center min-h-[72px]"
                       >
-                        <span className="text-xs text-zinc-600">Waiting...</span>
+                        <span className="text-xs text-zinc-600">
+                          Waiting...
+                        </span>
                       </div>
                     ))}
                   </AnimatePresence>
@@ -1923,11 +2051,17 @@ const CompetitionLobby = () => {
                   <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden">
                     <div className="absolute inset-0 border-2 border-zinc-800 rounded-full" />
                     <div className="absolute inset-0 border-2 border-transparent border-t-orange-500 rounded-full animate-spin" />
-                    <Loader2 size={28} className="text-orange-500 relative z-10" />
+                    <Loader2
+                      size={28}
+                      className="text-orange-500 relative z-10"
+                    />
                   </div>
-                  <CardTitle className="text-xl text-white mb-2">Preparing Battle...</CardTitle>
+                  <CardTitle className="text-xl text-white mb-2">
+                    Preparing Battle...
+                  </CardTitle>
                   <CardDescription className="mb-6 text-zinc-400">
-                    The host is configuring the match. Please wait for the game to launch.
+                    The host is configuring the match. Please wait for the game
+                    to launch.
                   </CardDescription>
                   <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4 space-y-3 text-left">
                     <div className="flex justify-between items-center text-sm">
@@ -1944,7 +2078,10 @@ const CompetitionLobby = () => {
                     <Separator className="bg-zinc-800" />
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-zinc-500">Challenge</span>
-                      <Badge variant="outline" className="border-orange-500/50 text-orange-400 font-medium capitalize">
+                      <Badge
+                        variant="outline"
+                        className="border-orange-500/50 text-orange-400 font-medium capitalize"
+                      >
                         {settings.challengeMode}
                       </Badge>
                     </div>

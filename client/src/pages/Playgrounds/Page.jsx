@@ -59,7 +59,9 @@ const Playground = () => {
           className="border-r-full rounded-lg flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <h1 className="font-bold text-xl sm:text-2xl">Foundations of Development</h1>
+          <h1 className="font-bold text-xl sm:text-2xl">
+            Foundations of Development
+          </h1>
           <p className="mt-2 sm:mt-4 text-sm text-zinc-600">
             Strengthen your fundamentals
           </p>
@@ -69,14 +71,22 @@ const Playground = () => {
         <SkillCard
           title="Html"
           img="/html5.png"
-          href="/playground/html"
+          href={
+            progressData.html?.enrolled
+              ? "/playground/html"
+              : "/playground/html/topics"
+          }
           progress={progressData.html}
           isLoading={isLoading}
         />
         <SkillCard
           title="Css"
           img="/css.png"
-          href="/playground/css"
+          href={
+            progressData.css?.enrolled
+              ? "/playground/css"
+              : "/playground/css/topics"
+          }
           progress={progressData.css}
           isLoading={isLoading}
         />
@@ -84,14 +94,22 @@ const Playground = () => {
         <SkillCard
           title="JavaScript"
           img="/javascript.png"
-          href="/playground/javascript"
+          href={
+            progressData.javascript?.enrolled
+              ? "/playground/javascript"
+              : "/playground/javascript/topics"
+          }
           progress={progressData.javascript}
           isLoading={isLoading}
         />
         <SkillCard
           title="Python"
           img="/python.png"
-          href="/playground/python"
+          href={
+            progressData.python?.enrolled
+              ? "/playground/python"
+              : "/playground/python/topics"
+          }
           progress={progressData.python}
           isLoading={isLoading}
         />
