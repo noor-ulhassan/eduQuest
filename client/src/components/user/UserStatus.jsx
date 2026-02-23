@@ -28,9 +28,9 @@ const UserStats = () => {
   const getRankTitle = (level) => {
     if (level >= 100) return "GOAT";
     if (level >= 50) return "Grandmaster";
-    if (level >= 40) return "Master";
-    if (level >= 30) return "Skilled";
-    if (level >= 3) return "";
+    if (level >= 40) return "Terminator";
+    if (level >= 30) return "Master";
+    if (level >= 3) return "Skilled";
     if (level >= 1) return "Amateur";
     return "Learner";
   };

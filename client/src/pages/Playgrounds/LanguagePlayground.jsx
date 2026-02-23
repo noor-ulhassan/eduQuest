@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { PLAYGROUND_DATA } from "../../data/playgroundData";
+import { PLAYGROUND_DATA } from "../../data/playground";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Editor from "@monaco-editor/react";
 import { executeCode } from "../../lib/piston";

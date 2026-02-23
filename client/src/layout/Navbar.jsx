@@ -124,8 +124,12 @@ const Navbar = () => {
                     {courses.map((course, index) => (
                       <Link key={index} to={course.path}>
                         <div className="p-2 hover:bg-accent rounded-xl cursor-pointer">
-                          <h2 className="font-medium text-foreground">{course.name}</h2>
-                          <p className="text-sm text-muted-foreground">{course.desc}</p>
+                          <h2 className="font-medium text-foreground">
+                            {course.name}
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            {course.desc}
+                          </p>
                         </div>
                       </Link>
                     ))}
@@ -151,12 +155,6 @@ const Navbar = () => {
               <NavigationMenuItem>
                 <NavigationMenuLink className="hover:text-yellow-600 text-sm">
                   <Link to={"/documents"}>Documents</Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink className="hover:text-yellow-600 text-sm">
-                  <Link to={"/community"}>Community</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
@@ -190,10 +188,15 @@ const Navbar = () => {
                 <span className="sr-only">Open menu</span>
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto bg-background">
+            <SheetContent
+              side="right"
+              className="w-[85vw] sm:w-[400px] overflow-y-auto bg-background"
+            >
               <SheetHeader className="pb-4 border-b border-border">
                 <SheetTitle className="text-left">
-                  <span className="text-yellow-500 font-hand text-2xl">Edu</span>
+                  <span className="text-yellow-500 font-hand text-2xl">
+                    Edu
+                  </span>
                   <span className="dark:text-white text-gray-800 font-hand text-2xl">
                     Quest
                   </span>

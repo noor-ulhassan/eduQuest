@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { PLAYGROUND_DATA } from "../../data/playgroundData";
+import { PLAYGROUND_DATA } from "../../data/playground";
 import {
   getPlaygroundProgress,
   enrollInPlayground,

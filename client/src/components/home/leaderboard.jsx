@@ -9,10 +9,15 @@ import {
   User as UserIcon,
   TrendingUp,
   Shield,
+  Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 const Leaderboard = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
@@ -134,48 +139,50 @@ const Leaderboard = () => {
     : 100;
 
   return (
-    <Card className="w-full max-w-[1240px] mx-auto mt-6 sm:mt-8 md:mt-12 bg-white/50 backdrop-blur-sm border-zinc-200/60 shadow-xl overflow-hidden">
-      <CardHeader className="pb-4 sm:pb-6 border-b border-gray-100 bg-white/80 px-4 sm:px-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+    <Card className="w-full max-w-[1240px] mx-auto mt-6 sm:mt-8 md:mt-12 overflow-hidden border-0 bg-gradient-to-b from-white to-zinc-50/80 shadow-lg shadow-zinc-200/50 dark:shadow-none dark:bg-zinc-900/50 dark:from-zinc-900/80 dark:to-zinc-900/40">
+      <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8 space-y-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <img
-              src="/trophy.gif"
-              alt="Target"
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-contain flex-shrink-0"
-            />
-
+            <div className="relative flex-shrink-0">
+              <img
+                src="/trophy.gif"
+                alt="Leaderboard"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-contain ring-2 ring-amber-200/50 dark:ring-amber-500/20"
+              />
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-white shadow">
+                <Sparkles className="h-2.5 w-2.5" />
+              </span>
+            </div>
             <div>
-              <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
+              <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                 Global Leaderboard
               </CardTitle>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
                 Top learners around the world
               </p>
             </div>
           </div>
 
           {currentUser && nextTarget && (
-            <div className="flex-1 max-w-md bg-zinc-50 rounded-xl p-3 sm:p-4 border border-zinc-100">
+            <div className="flex-1 max-w-md rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50/80 dark:bg-zinc-800/50 p-3 sm:p-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-zinc-700">
+                <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                   Current League:{" "}
                   <span className={userLeague.color}>{userLeague.name}</span>
                 </span>
-                <span className="text-xs text-zinc-500">
-                  {currentUser.xp} / {nextTarget.target} XP
+                <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {currentUser.xp.toLocaleString()} / {nextTarget.target.toLocaleString()} XP
                 </span>
               </div>
-
               <Progress
                 value={userProgress}
-                className="h-2 w-full bg-zinc-200"
-                indicatorClassName="bg-gradient-to-r from-blue-500 to-indigo-600"
+                className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700"
+                indicatorClassName="rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 transition-all duration-500"
               />
-
-              <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1">
-                <TrendingUp size={14} className="text-green-500" />
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 flex items-center gap-1.5">
+                <TrendingUp size={14} className="text-emerald-500 shrink-0" />
                 Earn{" "}
-                <span className="font-bold text-zinc-700">
+                <span className="font-semibold text-zinc-700 dark:text-zinc-300">
                   {(nextTarget.target - currentUser.xp).toLocaleString()} XP
                 </span>{" "}
                 to reach {nextTarget.name} League
@@ -185,50 +192,69 @@ const Leaderboard = () => {
         </div>
       </CardHeader>
 
+      <Separator className="bg-zinc-200/80 dark:bg-zinc-700/50" />
+
       <CardContent className="p-0">
-        <div className="hidden md:flex items-center px-4 sm:px-6 py-3 bg-zinc-50/50 text-xs font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
-          <div className="w-20 text-center">Rank</div>
-          <div className="flex-1 pl-4">User</div>
-          <div className="w-32 text-right pr-4">League</div>
-          <div className="w-24 text-right">XP</div>
+        <div
+          role="presentation"
+          className="hidden md:grid grid-cols-[5rem_1fr_8rem_5rem] items-center gap-4 px-4 sm:px-6 py-3 bg-zinc-50/70 dark:bg-zinc-800/30 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
+        >
+          <div className="text-center">Rank</div>
+          <div className="pl-1">User</div>
+          <div className="text-right pr-2">League</div>
+          <div className="text-right tabular-nums">XP</div>
         </div>
 
         {loading ? (
-          <div className="space-y-4 p-6">
-            {[...Array(5)].map((_, i) => (
+          <div className="space-y-0 p-4 sm:p-6">
+            {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="h-16 bg-gray-100 rounded-xl animate-pulse"
-              />
+                className="flex items-center gap-4 py-4 px-2 sm:px-4"
+              >
+                <Skeleton className="h-6 w-12 rounded-lg shrink-0" />
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <Skeleton className="h-4 flex-1 max-w-[180px] rounded" />
+                <Skeleton className="h-5 w-16 rounded-md shrink-0" />
+                <Skeleton className="h-5 w-14 rounded-md shrink-0" />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="h-[400px] sm:h-[500px] md:h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 scrollbar-track-transparent">
+          <div
+            role="list"
+            className="h-[400px] sm:h-[500px] md:h-[600px] overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-zinc-100 dark:[&::-webkit-scrollbar-track]:bg-zinc-800/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
+          >
             {leagueOrder.map((league) => {
               const users = groupedUsers[league];
               if (!users || users.length === 0) return null;
 
-              const leagueStyle = getLeagueInfo(users[0].xp); // Get style from first user in league
+              const leagueStyle = getLeagueInfo(users[0].xp);
 
               return (
                 <div key={league}>
-                  {/* League Separator Header */}
                   <div
-                    className={`sticky top-0 z-10 px-6 py-2 ${leagueStyle.bg} backdrop-blur-md border-y ${leagueStyle.border} flex items-center gap-2`}
+                    className={cn(
+                      "sticky top-0 z-10 px-4 sm:px-6 py-2.5 flex items-center gap-2 backdrop-blur-sm border-y",
+                      leagueStyle.bg,
+                      leagueStyle.border
+                    )}
                   >
                     <leagueStyle.icon
-                      className={`w-4 h-4 ${leagueStyle.color}`}
+                      className={cn("h-4 w-4 shrink-0", leagueStyle.color)}
                     />
                     <span
-                      className={`text-xs font-bold ${leagueStyle.color} uppercase tracking-widest`}
+                      className={cn(
+                        "text-[11px] font-bold uppercase tracking-widest",
+                        leagueStyle.color
+                      )}
                     >
                       {league} League
                     </span>
                   </div>
 
-                  <div className="divide-y divide-gray-50">
+                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
                     {users.map((user) => {
-                      // Calculate global rank by finding index in original sorted list + 1
                       const globalRank =
                         leaderboard.findIndex((u) => u._id === user._id) + 1;
                       const isCurrentUser =
@@ -237,6 +263,8 @@ const Leaderboard = () => {
                       return (
                         <div
                           key={user._id}
+                          role="listitem"
+                          tabIndex={0}
                           onClick={() =>
                             navigate(
                               isCurrentUser
@@ -244,69 +272,104 @@ const Leaderboard = () => {
                                 : `/profile/${user._id}`,
                             )
                           }
-                          className={`flex flex-col md:flex-row items-start md:items-center px-4 sm:px-6 py-3 sm:py-4 transition-colors hover:bg-zinc-50 cursor-pointer gap-3 md:gap-0 ${isCurrentUser ? "bg-blue-50/50 hover:bg-blue-50" : ""}`}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              navigate(
+                                isCurrentUser
+                                  ? "/profile"
+                                  : `/profile/${user._id}`,
+                              );
+                            }
+                          }}
+                          className={cn(
+                            "grid grid-cols-[4rem_1fr_6rem_4rem] md:grid-cols-[5rem_1fr_8rem_5rem] items-center gap-2 md:gap-4 px-4 sm:px-6 py-3 sm:py-3.5 transition-colors cursor-pointer min-h-[72px] md:min-h-0",
+                            "hover:bg-zinc-50 dark:hover:bg-zinc-800/40",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:focus-visible:ring-zinc-500 rounded-sm",
+                            isCurrentUser &&
+                              "bg-sky-50/70 dark:bg-sky-950/30 hover:bg-sky-50 dark:hover:bg-sky-950/40 ring-inset ring-1 ring-sky-200/60 dark:ring-sky-700/40"
+                          )}
                         >
-                          {/* Rank */}
-                          <div className="w-full md:w-20 flex justify-start md:justify-center items-center gap-2 md:gap-1">
+                          <div className="flex justify-start md:justify-center items-center gap-1.5 col-span-1">
                             {getRankIcon(globalRank)}
-                            {/* Show Sr No. for top 10 always, or for all. User said "for top 10" */}
                             {globalRank <= 10 ? (
                               <span
-                                className={`text-sm font-bold ${globalRank <= 3 ? "text-gray-900" : "text-gray-500"}`}
+                                className={cn(
+                                  "text-sm font-bold tabular-nums",
+                                  globalRank <= 3
+                                    ? "text-zinc-900 dark:text-zinc-100"
+                                    : "text-zinc-600 dark:text-zinc-400"
+                                )}
                               >
                                 {globalRank > 3 ? `#${globalRank}` : ""}
                               </span>
                             ) : (
-                              <span className="text-sm font-bold text-gray-400">
+                              <span className="text-sm font-bold text-zinc-400 dark:text-zinc-500 tabular-nums">
                                 #{globalRank}
                               </span>
                             )}
                           </div>
 
-                          {/* User */}
-                          <div className="flex-1 flex items-center gap-3 sm:gap-4 md:pl-4 min-w-0 w-full md:w-auto">
+                          <div className="flex items-center gap-3 sm:gap-4 min-w-0 md:pl-1">
                             <Avatar
-                              className={`h-9 w-9 sm:h-10 sm:w-10 border-2 flex-shrink-0 ${isCurrentUser ? "border-blue-200" : "border-white"} shadow-sm ring-2 ring-gray-100`}
+                              className={cn(
+                                "h-9 w-9 sm:h-10 sm:w-10 border-2 flex-shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800",
+                                isCurrentUser
+                                  ? "border-sky-300 dark:border-sky-600"
+                                  : "border-white dark:border-zinc-700"
+                              )}
                             >
                               <AvatarImage src={user.avatarUrl} />
-                              <AvatarFallback className="bg-gradient-to-br from-gray-100 to-gray-200">
-                                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                              <AvatarFallback className="bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-600 dark:to-zinc-700 text-zinc-600 dark:text-zinc-300">
+                                <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <h4
-                                  className={`font-bold text-sm truncate ${isCurrentUser ? "text-blue-700" : "text-gray-900"}`}
+                                  className={cn(
+                                    "font-semibold text-sm truncate",
+                                    isCurrentUser
+                                      ? "text-sky-700 dark:text-sky-300"
+                                      : "text-zinc-900 dark:text-zinc-100"
+                                  )}
                                 >
                                   {user.name || user.username || "Anonymous"}
                                 </h4>
                                 {isCurrentUser && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-600 flex-shrink-0">
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] font-bold px-1.5 py-0 h-4 bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300 border-0 shrink-0"
+                                  >
                                     YOU
-                                  </span>
+                                  </Badge>
                                 )}
                               </div>
-                              <p className="text-xs text-gray-400 font-medium">
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
                                 Level {user.level}
                               </p>
                             </div>
                           </div>
 
-                          {/* League Badge */}
-                          <div className="w-full md:w-32 flex justify-start md:justify-end md:pr-4">
-                            <div
-                              className={`px-2.5 py-1 rounded-full text-xs font-bold border ${leagueStyle.bg} ${leagueStyle.color} ${leagueStyle.border} shadow-sm`}
+                          <div className="flex justify-start md:justify-end md:pr-2 col-span-1">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "rounded-full text-[11px] font-bold border shrink-0",
+                                leagueStyle.bg,
+                                leagueStyle.color,
+                                leagueStyle.border
+                              )}
                             >
                               {league}
-                            </div>
+                            </Badge>
                           </div>
 
-                          {/* XP */}
-                          <div className="w-full md:w-24 text-left md:text-right">
-                            <span className="font-mono font-bold text-gray-900 text-sm">
+                          <div className="text-left md:text-right col-span-1">
+                            <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100 text-sm tabular-nums">
                               {user.xp.toLocaleString()}
                             </span>
-                            <span className="text-[10px] text-gray-400 ml-1">
+                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 ml-1">
                               XP
                             </span>
                           </div>
@@ -319,9 +382,12 @@ const Leaderboard = () => {
             })}
 
             {leaderboard.length === 0 && (
-              <div className="text-center py-20 text-gray-400">
-                <Trophy className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p>No learners found on the leaderboard yet.</p>
+              <div className="flex flex-col items-center justify-center py-20 px-4 text-zinc-500 dark:text-zinc-400">
+                <div className="rounded-full bg-zinc-100 dark:bg-zinc-800 p-4 mb-4">
+                  <Trophy className="h-10 w-10 opacity-40" />
+                </div>
+                <p className="text-sm font-medium">No learners on the leaderboard yet.</p>
+                <p className="text-xs mt-1">Be the first to earn XP and climb the ranks.</p>
               </div>
             )}
           </div>

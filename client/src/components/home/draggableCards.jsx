@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2, Lock, Star } from "lucide-react";
 import { getPlaygroundProgress } from "../../features/playground/playgroundApi";
-import { PLAYGROUND_DATA } from "../../data/playgroundData";
+import { PLAYGROUND_DATA } from "../../data/playground";
 
 export function DraggableCards() {
   const navigate = useNavigate();

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import SkillCard from "./components/SkillCard";
 import { getPlaygroundProgress } from "../../features/playground/playgroundApi";
-import { PLAYGROUND_DATA } from "../../data/playgroundData";
+import { PLAYGROUND_DATA } from "../../data/playground";
 
 const Playground = () => {
   const user = useSelector((state) => state.auth.user);
