@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 desktop.ini
+ai_model_requirements.md 
+AI_MODELS_REQUIREMENTS.md 
+nlp_models_requirements.md 
