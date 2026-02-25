@@ -1,0 +1,20 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a Bug
+    url: https://github.com/your-username/eduQuest/issues/new?assignees=&labels=bug&template=bug_report.md
+    about: Report a bug or unexpected behavior
+  - name: Request a Feature
+    url: https://github.com/your-username/eduQuest/issues/new?assignees=&labels=enhancement&template=feature_request.md
+    about: Suggest a new feature or improvement
+  - name: Security Issue
+    url: mailto:security@eduquest.dev
+    about: Report a security vulnerability (private)
+  - name: Documentation Issue
+    url: https://github.com/your-username/eduQuest/issues/new?assignees=&labels=documentation&template=documentation.md
+    about: Report a problem with documentation
+  - name: Ask a Question
+    url: https://github.com/your-username/eduQuest/issues/new?assignees=&labels=question&template=question.md
+    about: Ask a question about the project
+  - name: General Discussion
+    url: https://github.com/your-username/eduQuest/discussions
+    about: Start a discussion or ask for help
