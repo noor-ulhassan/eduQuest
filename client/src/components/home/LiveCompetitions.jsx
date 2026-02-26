@@ -6,14 +6,13 @@ import {
   Swords,
   Code,
   BookOpen,
-  Users,
   Eye,
   Clock,
   Zap,
   Crown,
-  Loader2,
   ArrowRight,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { connectSocket } from "../../lib/socket";
 import api from "../../features/auth/authApi";
@@ -56,7 +55,8 @@ const LiveCompetitions = () => {
       if (document.visibilityState === "visible" && user) fetchRooms();
     };
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
   }, [user, fetchRooms]);
 
   const handleJoinRequest = (roomCode) => {
@@ -122,14 +122,47 @@ const LiveCompetitions = () => {
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => navigate("/competition")} className="text-primary hover:text-primary/90">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/competition")}
+          className="text-primary hover:text-primary/90"
+        >
           Create Room <ArrowRight size={14} className="ml-1" />
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 size={24} className="animate-spin text-primary" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-border bg-card p-4 space-y-4"
+            >
+              {/* Card header skeleton */}
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4 rounded" />
+                  <Skeleton className="h-3 w-1/2 rounded" />
+                </div>
+                <Skeleton className="h-6 w-16 rounded-full shrink-0" />
+              </div>
+              {/* Avatars + badges skeleton */}
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-24 rounded-full" />
+                <Skeleton className="h-6 w-14 rounded-md" />
+                <Skeleton className="h-6 w-14 rounded-md" />
+              </div>
+              {/* Timer skeleton */}
+              <Skeleton className="h-4 w-28 rounded" />
+              {/* Button skeleton */}
+              <div className="flex gap-2">
+                <Skeleton className="h-10 flex-1 rounded-lg" />
+                <Skeleton className="h-10 w-20 rounded-lg" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,14 +220,19 @@ const CompetitionCard = ({
     .map((p) => ({ imageUrl: p.avatarUrl || "/Avatar.png", alt: p.name }));
   const numPeople = Math.max(0, players.length - MAX_AVATARS);
 
-  const difficultyVariant = {
-    easy: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-    medium: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-    hard: "bg-red-500/10 text-red-600 border-red-500/20",
-  }[room.difficulty] || "bg-slate-500/10 text-slate-600 border-slate-500/20";
+  const difficultyVariant =
+    {
+      easy: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+      medium: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+      hard: "bg-red-500/10 text-red-600 border-red-500/20",
+    }[room.difficulty] || "bg-slate-500/10 text-slate-600 border-slate-500/20";
 
   const timerDisplay = isLive
-    ? (liveRemaining !== null ? formatTime(liveRemaining) : formatTime(Math.max(0, (room.timerDuration || 0) - (room.elapsedTime || 0))))
+    ? liveRemaining !== null
+      ? formatTime(liveRemaining)
+      : formatTime(
+          Math.max(0, (room.timerDuration || 0) - (room.elapsedTime || 0)),
+        )
     : formatTime(room.timerDuration || 0);
 
   return (
@@ -210,14 +248,17 @@ const CompetitionCard = ({
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                  isProgramming ? "bg-primary/10 text-primary" : "bg-blue-500/10 text-blue-600"
+                  isProgramming
+                    ? "bg-primary/10 text-primary"
+                    : "bg-blue-500/10 text-blue-600"
                 }`}
               >
                 {isProgramming ? <Code size={22} /> : <BookOpen size={22} />}
               </div>
               <div className="min-w-0 flex-1">
                 <CardTitle className="text-base font-semibold truncate text-foreground">
-                  {room.topic || (isProgramming ? "Coding Challenge" : "General Quiz")}
+                  {room.topic ||
+                    (isProgramming ? "Coding Challenge" : "General Quiz")}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
                   <Crown size={12} className="shrink-0 text-amber-500" />
@@ -260,11 +301,17 @@ const CompetitionCard = ({
                 {room.spectatorCount}
               </Badge>
             )}
-            <Badge variant="outline" className={`h-6 px-2 capitalize border ${difficultyVariant}`}>
+            <Badge
+              variant="outline"
+              className={`h-6 px-2 capitalize border ${difficultyVariant}`}
+            >
               {room.difficulty}
             </Badge>
             {isProgramming && room.language && (
-              <Badge variant="outline" className="h-6 px-2 font-normal capitalize">
+              <Badge
+                variant="outline"
+                className="h-6 px-2 font-normal capitalize"
+              >
                 {room.language}
               </Badge>
             )}
@@ -280,7 +327,10 @@ const CompetitionCard = ({
               </span>
             ) : (
               <span>
-                <span className="font-semibold tabular-nums text-foreground">{timerDisplay}</span> total
+                <span className="font-semibold tabular-nums text-foreground">
+                  {timerDisplay}
+                </span>{" "}
+                total
               </span>
             )}
           </div>

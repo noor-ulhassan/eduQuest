@@ -5,7 +5,7 @@ import RightSidebar from "./RightSidebar";
 
 const Home = () => {
   return (
-    <div className="mt-14 sm:mt-16 md:mt-20 px-4 sm:px-6 md:px-8">
+    <div className="px-4 sm:px-6 md:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row justify-between gap-4 lg:gap-6">
           <div className="hidden lg:block lg:w-64 flex-shrink-0">

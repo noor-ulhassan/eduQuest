@@ -4,7 +4,7 @@ const WelcomeBanner = ({ className }) => {
   const words = ["The Jungle!", "Your Workspace!", "New Beginnings!"];
   return (
     <div
-      className={`flex gap-4 items-center p-4 bg-zinc-100 rounded-lg shadow-lg mt-2 hover:cursor-pointer shadow-yellow-200 ${className}`}
+      className={`flex gap-4 items-center p-4 bg-zinc-100 rounded-lg shadow-lg hover:cursor-pointer shadow-yellow-200 ${className}`}
     >
       <img src="/pika3.gif" alt="robo" width={100} height={100} />
 

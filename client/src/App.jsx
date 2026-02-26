@@ -4,51 +4,87 @@ import {
   Navigate,
 } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
 import MainLayout from "./layout/MainLayout";
-import HomePage from "./pages/Homepage/HomePage";
-import ProblemsPage from "./pages/Problems/ProblemsPage";
-import ProblemPage from "./pages/Problems/ProblemPage";
-import MyLearning from "./pages/student/MyLearning";
-import Profile from "./pages/student/Profile";
-import PublicProfile from "./pages/student/PublicProfile";
-import QuizPage from "./pages/student/QuizPage";
-import LearnPage from "./pages/Learn/LearnPage";
-import Login from "./pages/Auth/Login";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import Signup from "./pages/Auth/Signup";
-import Workspace from "./pages/Workspace/Page";
-import EditCourse from "./pages/Workspace/EditCourse";
-
 import AuthLoading from "./components/auth/AuthLoading";
+import PageLoader from "./components/ui/PageLoader";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
+import NotFoundPage from "./pages/NotFoundPage";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-import CourseView from "./pages/Workspace/CourseView";
+// ─── Eagerly loaded (small / needed immediately) ────────────────────────────
+import HomePage from "./pages/Homepage/HomePage";
+import Login from "./pages/Auth/Login";
+import Signup from "./pages/Auth/Signup";
 import AboutPage from "./pages/about/About";
-import Playground from "./pages/Playgrounds/Page";
-import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
-import PlaygroundTopics from "./pages/Playgrounds/PlaygroundTopics";
-import Home from "./pages/Community/components/Home";
-import CompetitionLobby from "./pages/Competition/CompetitionLobby";
-import DocumentLibraryPage from "./pages/Documents/DocumentLibraryPage";
-import DocumentInteractPage from "./pages/Documents/DocumentInteractPage";
+import LearnPage from "./pages/Learn/LearnPage";
+import QuizPage from "./pages/student/QuizPage";
+
+// ─── Lazily loaded (heavy pages, code-split on demand) ──────────────────────
+const ProblemsPage = lazy(() => import("./pages/Problems/ProblemsPage"));
+const ProblemPage = lazy(() => import("./pages/Problems/ProblemPage"));
+const MyLearning = lazy(() => import("./pages/student/MyLearning"));
+const Profile = lazy(() => import("./pages/student/Profile"));
+const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
+const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
+const Workspace = lazy(() => import("./pages/Workspace/Page"));
+const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
+const DocumentLibraryPage = lazy(
+  () => import("./pages/Documents/DocumentLibraryPage"),
+);
+const DocumentInteractPage = lazy(
+  () => import("./pages/Documents/DocumentInteractPage"),
+);
+const Playground = lazy(() => import("./pages/Playgrounds/Page"));
+const LanguagePlayground = lazy(
+  () => import("./pages/Playgrounds/LanguagePlayground"),
+);
+const PlaygroundTopics = lazy(
+  () => import("./pages/Playgrounds/PlaygroundTopics"),
+);
+const CommunityHome = lazy(() => import("./pages/Community/components/Home"));
+const CompetitionLobby = lazy(
+  () => import("./pages/Competition/CompetitionLobby"),
+);
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+// Wraps a lazy element in a Suspense boundary with the global spinner fallback
+const Lazy = ({ element: Element }) => (
+  <Suspense fallback={<PageLoader />}>
+    <Element />
+  </Suspense>
+);
+
+// ─── Route definitions ───────────────────────────────────────────────────────
 const appRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
     children: [
+      // Public routes
       { index: true, element: <HomePage /> },
       { path: "home", element: <Navigate to="/" replace /> },
+      { path: "login", element: <Login /> },
+      { path: "signup", element: <Signup /> },
+      { path: "about", element: <AboutPage /> },
+      { path: "learn", element: <LearnPage /> },
+      { path: "quiz", element: <QuizPage /> },
+      { path: "playground", element: <Lazy element={Playground} /> },
+      {
+        path: "playground/:language/topics",
+        element: <Lazy element={PlaygroundTopics} />,
+      },
+      { path: "community", element: <Lazy element={CommunityHome} /> },
 
+      // Protected routes
       {
         path: "problems",
         element: (
           <ProtectedRoute>
-            <ProblemsPage />
+            <Lazy element={ProblemsPage} />
           </ProtectedRoute>
         ),
       },
@@ -56,7 +92,7 @@ const appRouter = createBrowserRouter([
         path: "problem/:id",
         element: (
           <ProtectedRoute>
-            <ProblemPage />
+            <Lazy element={ProblemPage} />
           </ProtectedRoute>
         ),
       },
@@ -64,55 +100,15 @@ const appRouter = createBrowserRouter([
         path: "my-learning",
         element: (
           <ProtectedRoute>
-            <MyLearning />
+            <Lazy element={MyLearning} />
           </ProtectedRoute>
         ),
       },
-      {
-        path: "course/:courseId",
-        element: (
-          <ProtectedRoute>
-            <CourseView />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "workspace",
-        element: (
-          <ProtectedRoute>
-            <Workspace />
-          </ProtectedRoute>
-        ),
-      },
-      // 2. ADDED THE DOCUMENTS ROUTE HERE
-      {
-        path: "documents",
-        children: [
-          {
-            index: true, // This triggers when the user visits exactly "/documents"
-            element: (
-              <ProtectedRoute>
-                <DocumentLibraryPage />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: ":id", // This triggers on "/documents/12345"
-            element: (
-              <ProtectedRoute>
-                <DocumentInteractPage />
-              </ProtectedRoute>
-            ),
-          },
-        ],
-      },
-      { path: "workspace/edit-course/:courseId", element: <EditCourse /> },
-
       {
         path: "profile",
         element: (
           <ProtectedRoute>
-            <Profile />
+            <Lazy element={Profile} />
           </ProtectedRoute>
         ),
       },
@@ -120,32 +116,68 @@ const appRouter = createBrowserRouter([
         path: "profile/:userId",
         element: (
           <ProtectedRoute>
-            <PublicProfile />
+            <Lazy element={PublicProfile} />
           </ProtectedRoute>
         ),
       },
-
-      { path: "quiz", element: <QuizPage /> },
-      { path: "playground/:language/topics", element: <PlaygroundTopics /> },
+      {
+        path: "course/:courseId",
+        element: (
+          <ProtectedRoute>
+            <Lazy element={CourseView} />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "workspace",
+        element: (
+          <ProtectedRoute>
+            <Lazy element={Workspace} />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "workspace/edit-course/:courseId",
+        element: (
+          <ProtectedRoute>
+            <Lazy element={EditCourse} />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "documents",
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Lazy element={DocumentLibraryPage} />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":id",
+            element: (
+              <ProtectedRoute>
+                <Lazy element={DocumentInteractPage} />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
       {
         path: "playground/:language",
         element: (
           <ProtectedRoute>
-            <LanguagePlayground />
+            <Lazy element={LanguagePlayground} />
           </ProtectedRoute>
         ),
       },
-      { path: "learn", element: <LearnPage /> },
-      { path: "signup", element: <Signup /> },
-      { path: "login", element: <Login /> },
-      { path: "about", element: <AboutPage /> },
-      { path: "playground", element: <Playground /> },
-      { path: "community", element: <Home /> },
       {
         path: "competition",
         element: (
           <ProtectedRoute>
-            <CompetitionLobby />
+            <Lazy element={CompetitionLobby} />
           </ProtectedRoute>
         ),
       },
@@ -153,26 +185,18 @@ const appRouter = createBrowserRouter([
         path: "competition/:roomCode",
         element: (
           <ProtectedRoute>
-            <CompetitionLobby />
+            <Lazy element={CompetitionLobby} />
           </ProtectedRoute>
         ),
       },
     ],
   },
 
-  {
-    path: "*",
-    element: (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <h1 className="text-4xl font-bold mb-4">404 - Page Not Found</h1>
-        <a href="/" className="text-blue-600 hover:underline text-lg">
-          Go Back Home
-        </a>
-      </div>
-    ),
-  },
+  // 404 — dedicated component instead of inline JSX
+  { path: "*", element: <NotFoundPage /> },
 ]);
 
+// ─── App root ─────────────────────────────────────────────────────────────────
 function App() {
   const dispatch = useDispatch();
   const { status } = useSelector((state) => state.auth);
@@ -187,7 +211,10 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <RouterProvider router={appRouter} />
+      {/* Top-level error boundary catches crashes anywhere in the tree */}
+      <ErrorBoundary>
+        <RouterProvider router={appRouter} />
+      </ErrorBoundary>
     </GoogleOAuthProvider>
   );
 }

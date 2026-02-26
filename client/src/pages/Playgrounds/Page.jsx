@@ -50,7 +50,7 @@ const Playground = () => {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-10 mt-20 sm:mt-24 md:mt-28 px-4 sm:px-6 md:px-12 mb-6 sm:mb-8 md:mb-12">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-10 px-4 sm:px-6 md:px-12 py-4 sm:py-6 mb-6 sm:mb-8 md:mb-12">
         <img
           src="/cs.png"
           alt="cs"

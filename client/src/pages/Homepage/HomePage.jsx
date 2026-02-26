@@ -36,12 +36,12 @@ const HomePage = () => {
       {user ? (
         <div className="flex flex-col">
           <MascotTweet />
-          <main className="flex-grow w-full py-8 sm:py-12 md:py-16 px-4 sm:px-6">
+          <main className="flex-grow w-full pb-6 sm:pb-10 md:pb-14 px-4 sm:px-6">
             <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
               <audio ref={audioRef} src="/ui2.mp3"></audio>
 
-              <div className="w-full lg:w-auto flex flex-col gap-6 sm:gap-8 items-center lg:items-end">
-                <div className="w-full max-w-[340px] space-y-6 sm:space-y-8 mt-8 sm:mt-12 lg:mt-16">
+              <div className="w-full lg:w-auto flex flex-col gap-6 sm:gap-8 items-center lg:items-end lg:mt-8">
+                <div className="w-full max-w-[340px] space-y-6 sm:space-y-8 mt-6 sm:mt-6">
                   <UserStats />
                   <Streak />
                 </div>
