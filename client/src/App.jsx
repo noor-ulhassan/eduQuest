@@ -31,6 +31,7 @@ import Playground from "./pages/Playgrounds/Page";
 import LanguagePlayground from "./pages/Playgrounds/LanguagePlayground";
 import Home from "./pages/Community/components/Home";
 import CompetitionLobby from "./pages/Competition/CompetitionLobby";
+import NotFound from "./pages/error/NotFound";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -149,12 +150,7 @@ const appRouter = createBrowserRouter([
   {
     path: "*",
     element: (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <h1 className="text-4xl font-bold mb-4">404 - Page Not Found</h1>
-        <a href="/" className="text-blue-600 hover:underline text-lg">
-          Go Back Home
-        </a>
-      </div>
+      <NotFound/>
     ),
   },
 ]);
