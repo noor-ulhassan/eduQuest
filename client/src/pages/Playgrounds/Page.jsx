@@ -118,7 +118,17 @@ const Playground = () => {
           img="/dsa.png"
           href="/Problems"
         />
-        <SkillCard title="React" img="/react.png" />
+        <SkillCard
+          title="React"
+          img="/react.png"
+          href={
+            progressData.react?.enrolled
+              ? "/playground/react"
+              : "/playground/react/topics"
+          }
+          progress={progressData.react}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

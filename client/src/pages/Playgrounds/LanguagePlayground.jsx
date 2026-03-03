@@ -31,6 +31,28 @@ import {
   getPlaygroundProgress,
   completeProblem as completeProb,
 } from "../../features/playground/playgroundApi";
+import InteractiveProblem from "./components/InteractiveProblem";
+
+// ─── React iframe document builder ─────────────────────────────────────────
+// Uses production builds for speed; globals (useState, useEffect, etc.) are
+// pre-destructured so students don't need to write imports.
+const buildReactDoc = (userCode) => `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin><\/script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin><\/script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,sans-serif;background:#fff;color:#1a1a1a;padding:16px}button{cursor:pointer}.done{text-decoration:line-through;color:#6b7280}.error{color:#e53e3e}<\/style>
+</head><body><div id="root"><\/div>
+<script>const{useState,useEffect,useRef,useCallback,useMemo,useReducer}=React;<\/script>
+<script type="text/babel">
+${userCode}
+try{ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));}catch(e){document.getElementById("root").innerHTML='<div style="color:#c0392b;background:#fff5f5;border:1px solid #f5c6cb;border-radius:4px;padding:10px;font-family:monospace;font-size:12px;white-space:pre-wrap"><b>Error:<\/b> '+e.message+'<\/div>';}
+<\/script>
+<script>
+window.__runTest__=function(s){try{var r=new Function("win","doc",s)(window,document);window.parent.postMessage({type:"TEST_RESULT",success:r.success,message:r.message},"*");}catch(e){window.parent.postMessage({type:"TEST_RESULT",success:false,message:"Test error: "+e.message},"*");}};
+window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
+setTimeout(function(){window.parent.postMessage({type:"IFRAME_READY"},"*");},250);
+<\/script></body></html>`;
 
 const LanguagePlayground = () => {
   const { language } = useParams();
@@ -48,9 +70,14 @@ const LanguagePlayground = () => {
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const iframeRef = useRef(null);
   const isMobile = useIsMobile();
+  // React-specific: async postMessage test runner
+  const pendingTestRef = useRef(null);
+  const currentProblemRef = useRef(null);
+  const reactDebounceRef = useRef(null);
 
   const data = PLAYGROUND_DATA[language?.toLowerCase()];
   const isLivePreview = data?.livePreview === true;
+  const isReact = language?.toLowerCase() === "react";
 
   // Fetch progress; redirect to topics page if not yet enrolled
   useEffect(() => {
@@ -124,8 +151,21 @@ const LanguagePlayground = () => {
     setShowHints(false);
   }, []);
 
-  // Live preview: update iframe when code changes
+  // Keep currentProblemRef in sync for use inside async message handler
   useEffect(() => {
+    currentProblemRef.current = currentProblem;
+  }, [currentProblem]);
+
+  // Live preview: update iframe when code changes (HTML/CSS + React)
+  useEffect(() => {
+    // React: debounced srcdoc update
+    if (isReact && iframeRef.current && currentProblem) {
+      if (reactDebounceRef.current) clearTimeout(reactDebounceRef.current);
+      reactDebounceRef.current = setTimeout(() => {
+        if (iframeRef.current) iframeRef.current.srcdoc = buildReactDoc(code);
+      }, 500);
+      return () => clearTimeout(reactDebounceRef.current);
+    }
     if (!isLivePreview || !iframeRef.current) return;
     const iframe = iframeRef.current;
     const doc = iframe.contentDocument;
@@ -142,7 +182,53 @@ const LanguagePlayground = () => {
       doc.write(code);
       doc.close();
     }
-  }, [code, currentProblem, isLivePreview, language]);
+  }, [code, currentProblem, isLivePreview, isReact, language]);
+
+  // React postMessage bridge: listen for IFRAME_READY and TEST_RESULT
+  useEffect(() => {
+    if (!isReact) return;
+    const handler = async (e) => {
+      if (!e.data?.type) return;
+      // When iframe signals ready AND we have a pending test — fire it
+      if (e.data.type === "IFRAME_READY" && pendingTestRef.current) {
+        const fn = pendingTestRef.current;
+        pendingTestRef.current = null;
+        // Small extra delay to let React flush its first paint
+        setTimeout(() => {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: "RUN_TEST", fn },
+            "*",
+          );
+        }, 100);
+      }
+      if (e.data.type === "TEST_RESULT") {
+        const { success, message } = e.data;
+        setTestResult({ success, message });
+        setIsRunning(false);
+        const prob = currentProblemRef.current;
+        if (!prob) return;
+        if (success) {
+          try {
+            const response = await completeProb("react", prob.id, prob.xp);
+            if (!response.alreadyCompleted) {
+              dispatch(updateUserStats(response.user));
+              toast.success(`${message} +${prob.xp} XP!`);
+              confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
+            } else {
+              toast.success("Problem solved! (XP already earned)");
+            }
+            setCompletedProblems((prev) => new Set([...prev, prob.id]));
+          } catch {
+            toast.error("Tests passed but failed to save progress");
+          }
+        } else {
+          toast.error(message || "Tests failed");
+        }
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [isReact, dispatch]);
 
   const resetCode = useCallback(() => {
     if (currentProblem) {
@@ -157,6 +243,19 @@ const LanguagePlayground = () => {
     setIsRunning(true);
     setOutput(null);
     setTestResult(null);
+
+    // ── React: rebuild iframe fresh, postMessage test when IFRAME_READY ──
+    if (isReact) {
+      if (!iframeRef.current) {
+        setIsRunning(false);
+        return;
+      }
+      pendingTestRef.current = currentProblem.testFunction;
+      // Force fresh iframe load so Babel re-compiles the latest code
+      iframeRef.current.srcdoc = buildReactDoc(code);
+      // setIsRunning(false) is called by the TEST_RESULT message handler
+      return;
+    }
 
     if (isLivePreview) {
       // Client-side validation for HTML/CSS
@@ -297,11 +396,12 @@ const LanguagePlayground = () => {
     } finally {
       setIsRunning(false);
     }
-  }, [code, currentProblem, isRunning, language, isLivePreview]);
+  }, [code, currentProblem, isRunning, language, isLivePreview, isReact]);
 
-  // Keyboard shortcut
+  // Keyboard shortcut (not for interactive problems)
   useEffect(() => {
     const handler = (e) => {
+      if (currentProblem?.type === "interactive") return;
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
         handleRunCode();
@@ -309,7 +409,30 @@ const LanguagePlayground = () => {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleRunCode]);
+  }, [handleRunCode, currentProblem]);
+
+  // XP/progress handler for interactive (fill-blank) problems
+  const handleInteractiveSolve = useCallback(async () => {
+    if (!currentProblem) return;
+    try {
+      const response = await completeProb(
+        language,
+        currentProblem.id,
+        currentProblem.xp,
+      );
+      if (!response.alreadyCompleted) {
+        dispatch(updateUserStats(response.user));
+        toast.success(`Correct! +${currentProblem.xp} XP!`);
+        confetti({ particleCount: 130, spread: 80, origin: { y: 0.7 } });
+      } else {
+        toast.success("Already solved! (XP already earned)");
+      }
+      setCompletedProblems((prev) => new Set([...prev, currentProblem.id]));
+      setTestResult({ success: true, message: "Correct!" });
+    } catch {
+      toast.error("Failed to save progress");
+    }
+  }, [currentProblem, language, dispatch]);
 
   // On mobile, start with sidebar closed so content is visible
   useEffect(() => {
@@ -684,182 +807,197 @@ const LanguagePlayground = () => {
                       </Badge>
                     </div>
                     <div className="flex-1 min-h-0">
-                      <Editor
-                        height="100%"
-                        language={
-                          language === "javascript"
-                            ? "javascript"
-                            : language === "css"
-                              ? "css"
-                              : "html"
-                        }
-                        value={code}
-                        onChange={(val) => setCode(val || "")}
-                        theme="vs-dark"
-                        options={{
-                          fontSize: 14,
-                          lineNumbers: "on",
-                          minimap: { enabled: false },
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true,
-                          padding: { top: 12 },
-                          fontFamily:
-                            "'JetBrains Mono', 'Fira Code', monospace",
-                          renderLineHighlight: "all",
-                          bracketPairColorization: { enabled: true },
-                          cursorBlinking: "smooth",
-                          smoothScrolling: true,
-                        }}
-                      />
+                      {currentProblem?.type === "interactive" ? (
+                        <InteractiveProblem
+                          key={currentProblem.id}
+                          problem={currentProblem}
+                          onSolve={handleInteractiveSolve}
+                          isAlreadySolved={completedProblems.has(
+                            currentProblem.id,
+                          )}
+                        />
+                      ) : (
+                        <Editor
+                          height="100%"
+                          language={
+                            isReact || language === "javascript"
+                              ? "javascript"
+                              : language === "css"
+                                ? "css"
+                                : "html"
+                          }
+                          value={code}
+                          onChange={(val) => setCode(val || "")}
+                          theme="vs-dark"
+                          options={{
+                            fontSize: 14,
+                            lineNumbers: "on",
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            padding: { top: 12 },
+                            fontFamily:
+                              "'JetBrains Mono', 'Fira Code', monospace",
+                            renderLineHighlight: "all",
+                            bracketPairColorization: { enabled: true },
+                            cursorBlinking: "smooth",
+                            smoothScrolling: true,
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 </Panel>
-                <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
-                <Panel defaultSize={25} minSize={15} maxSize={45}>
-                  {isLivePreview ? (
-                    <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
-                      <CardHeader className="px-3 sm:px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
-                        <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
-                          Live Preview
-                        </span>
-                        <div className="flex items-center gap-2">
+                {currentProblem?.type !== "interactive" && (
+                  <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+                )}
+                {currentProblem?.type !== "interactive" && (
+                  <Panel defaultSize={25} minSize={15} maxSize={45}>
+                    {isLivePreview || isReact ? (
+                      <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
+                        <CardHeader className="px-3 sm:px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
+                          <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
+                            Live Preview
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {testResult && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] font-semibold border-0",
+                                  testResult.success
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-red-100 text-red-700",
+                                )}
+                              >
+                                {testResult.success ? "✓ PASSED" : "✗ FAILED"}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Live
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="flex-1 overflow-auto p-0 min-h-0">
+                          <iframe
+                            ref={iframeRef}
+                            className="w-full h-full border-0 min-h-[160px]"
+                            title="Live Preview"
+                            sandbox="allow-scripts allow-same-origin"
+                          />
+                        </CardContent>
+                        {testResult && (
+                          <div
+                            className={cn(
+                              "px-3 sm:px-4 py-2 border-t text-xs shrink-0",
+                              testResult.success
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                : "bg-red-50 border-red-200 text-red-700",
+                            )}
+                          >
+                            <div className="flex items-center gap-2 font-medium">
+                              {testResult.success ? (
+                                <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                              ) : (
+                                <X className="h-3.5 w-3.5 shrink-0" />
+                              )}
+                              {testResult.message}
+                            </div>
+                          </div>
+                        )}
+                      </Card>
+                    ) : (
+                      <div className="h-full bg-zinc-950 flex flex-col">
+                        <div className="px-3 sm:px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
+                          <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
+                            Output
+                          </span>
                           {testResult && (
                             <Badge
                               variant="outline"
                               className={cn(
                                 "text-[10px] font-semibold border-0",
                                 testResult.success
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-red-100 text-red-700",
+                                  ? "bg-emerald-500/15 text-emerald-400"
+                                  : "bg-red-500/15 text-red-400",
                               )}
                             >
                               {testResult.success ? "✓ PASSED" : "✗ FAILED"}
                             </Badge>
                           )}
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Live
-                          </Badge>
                         </div>
-                      </CardHeader>
-                      <CardContent className="flex-1 overflow-auto p-0 min-h-0">
-                        <iframe
-                          ref={iframeRef}
-                          className="w-full h-full border-0 min-h-[160px]"
-                          title="Live Preview"
-                          sandbox="allow-scripts allow-same-origin"
-                        />
-                      </CardContent>
-                      {testResult && (
-                        <div
-                          className={cn(
-                            "px-3 sm:px-4 py-2 border-t text-xs shrink-0",
-                            testResult.success
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                              : "bg-red-50 border-red-200 text-red-700",
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
+                          {isRunning ? (
+                            <div className="flex items-center gap-2 text-zinc-500">
+                              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                              <span className="text-sm">Executing…</span>
+                            </div>
+                          ) : output === null ? (
+                            <p className="text-zinc-500 text-xs">
+                              Tap <strong className="text-zinc-400">Run</strong>{" "}
+                              or{" "}
+                              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
+                                Ctrl+Enter
+                              </kbd>
+                            </p>
+                          ) : (
+                            <div className="space-y-3">
+                              {output.text && (
+                                <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
+                                  {output.text}
+                                </pre>
+                              )}
+                              {output.error && (
+                                <Card className="bg-red-500/5 border-red-500/20">
+                                  <CardContent className="p-3">
+                                    <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
+                                      {output.error}
+                                    </pre>
+                                  </CardContent>
+                                </Card>
+                              )}
+                              {testResult && (
+                                <Card
+                                  className={cn(
+                                    "border",
+                                    testResult.success
+                                      ? "bg-emerald-500/5 border-emerald-500/20"
+                                      : "bg-red-500/5 border-red-500/20",
+                                  )}
+                                >
+                                  <CardContent className="p-3">
+                                    <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
+                                      {testResult.success ? (
+                                        <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                                      ) : (
+                                        <X className="h-3.5 w-3.5 text-red-400" />
+                                      )}
+                                      Validation Result
+                                    </div>
+                                    <p
+                                      className={cn(
+                                        "text-xs m-0",
+                                        testResult.success
+                                          ? "text-emerald-400/90"
+                                          : "text-red-400/90",
+                                      )}
+                                    >
+                                      {testResult.message}
+                                    </p>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
                           )}
-                        >
-                          <div className="flex items-center gap-2 font-medium">
-                            {testResult.success ? (
-                              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                            ) : (
-                              <X className="h-3.5 w-3.5 shrink-0" />
-                            )}
-                            {testResult.message}
-                          </div>
                         </div>
-                      )}
-                    </Card>
-                  ) : (
-                    <div className="h-full bg-zinc-950 flex flex-col">
-                      <div className="px-3 sm:px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
-                        <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-                          Output
-                        </span>
-                        {testResult && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] font-semibold border-0",
-                              testResult.success
-                                ? "bg-emerald-500/15 text-emerald-400"
-                                : "bg-red-500/15 text-red-400",
-                            )}
-                          >
-                            {testResult.success ? "✓ PASSED" : "✗ FAILED"}
-                          </Badge>
-                        )}
                       </div>
-                      <div className="flex-1 overflow-y-auto p-3 sm:p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-                        {isRunning ? (
-                          <div className="flex items-center gap-2 text-zinc-500">
-                            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                            <span className="text-sm">Executing…</span>
-                          </div>
-                        ) : output === null ? (
-                          <p className="text-zinc-500 text-xs">
-                            Tap <strong className="text-zinc-400">Run</strong>{" "}
-                            or{" "}
-                            <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
-                              Ctrl+Enter
-                            </kbd>
-                          </p>
-                        ) : (
-                          <div className="space-y-3">
-                            {output.text && (
-                              <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
-                                {output.text}
-                              </pre>
-                            )}
-                            {output.error && (
-                              <Card className="bg-red-500/5 border-red-500/20">
-                                <CardContent className="p-3">
-                                  <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
-                                    {output.error}
-                                  </pre>
-                                </CardContent>
-                              </Card>
-                            )}
-                            {testResult && (
-                              <Card
-                                className={cn(
-                                  "border",
-                                  testResult.success
-                                    ? "bg-emerald-500/5 border-emerald-500/20"
-                                    : "bg-red-500/5 border-red-500/20",
-                                )}
-                              >
-                                <CardContent className="p-3">
-                                  <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
-                                    {testResult.success ? (
-                                      <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5 text-red-400" />
-                                    )}
-                                    Validation Result
-                                  </div>
-                                  <p
-                                    className={cn(
-                                      "text-xs m-0",
-                                      testResult.success
-                                        ? "text-emerald-400/90"
-                                        : "text-red-400/90",
-                                    )}
-                                  >
-                                    {testResult.message}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </Panel>
+                    )}
+                  </Panel>
+                )}
               </PanelGroup>
             ) : (
               /* Desktop: horizontal then vertical */
@@ -975,191 +1113,208 @@ const LanguagePlayground = () => {
                           </Badge>
                         </div>
                         <div className="flex-1 min-h-0">
-                          <Editor
-                            height="100%"
-                            language={
-                              language === "javascript"
-                                ? "javascript"
-                                : language === "css"
-                                  ? "css"
-                                  : "html"
-                            }
-                            value={code}
-                            onChange={(val) => setCode(val || "")}
-                            theme="vs-dark"
-                            options={{
-                              fontSize: 14,
-                              lineNumbers: "on",
-                              minimap: { enabled: false },
-                              scrollBeyondLastLine: false,
-                              automaticLayout: true,
-                              padding: { top: 12 },
-                              fontFamily:
-                                "'JetBrains Mono', 'Fira Code', monospace",
-                              renderLineHighlight: "all",
-                              bracketPairColorization: { enabled: true },
-                              cursorBlinking: "smooth",
-                              smoothScrolling: true,
-                            }}
-                          />
+                          {currentProblem?.type === "interactive" ? (
+                            <InteractiveProblem
+                              key={currentProblem.id}
+                              problem={currentProblem}
+                              onSolve={handleInteractiveSolve}
+                              isAlreadySolved={completedProblems.has(
+                                currentProblem.id,
+                              )}
+                            />
+                          ) : (
+                            <Editor
+                              height="100%"
+                              language={
+                                isReact || language === "javascript"
+                                  ? "javascript"
+                                  : language === "css"
+                                    ? "css"
+                                    : "html"
+                              }
+                              value={code}
+                              onChange={(val) => setCode(val || "")}
+                              theme="vs-dark"
+                              options={{
+                                fontSize: 14,
+                                lineNumbers: "on",
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                                padding: { top: 12 },
+                                fontFamily:
+                                  "'JetBrains Mono', 'Fira Code', monospace",
+                                renderLineHighlight: "all",
+                                bracketPairColorization: { enabled: true },
+                                cursorBlinking: "smooth",
+                                smoothScrolling: true,
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
                     </Panel>
 
-                    <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+                    {currentProblem?.type !== "interactive" && (
+                      <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+                    )}
 
-                    {/* Output / Live Preview */}
-                    <Panel defaultSize={40} minSize={15}>
-                      {isLivePreview ? (
-                        <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
-                          <CardHeader className="px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
-                            <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
-                              Live Preview
-                            </span>
-                            <div className="flex items-center gap-2">
+                    {/* Output / Live Preview — hidden for interactive problems */}
+                    {currentProblem?.type !== "interactive" && (
+                      <Panel defaultSize={40} minSize={15}>
+                        {isLivePreview || isReact ? (
+                          <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
+                            <CardHeader className="px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
+                              <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
+                                Live Preview
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {testResult && (
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[10px] font-semibold border-0",
+                                      testResult.success
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-red-100 text-red-700",
+                                    )}
+                                  >
+                                    {testResult.success
+                                      ? "✓ PASSED"
+                                      : "✗ FAILED"}
+                                  </Badge>
+                                )}
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  Live
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="flex-1 overflow-auto p-0 min-h-0">
+                              <iframe
+                                ref={iframeRef}
+                                className="w-full h-full border-0 min-h-[200px]"
+                                title="Live Preview"
+                                sandbox="allow-scripts allow-same-origin"
+                              />
+                            </CardContent>
+                            {testResult && (
+                              <div
+                                className={cn(
+                                  "px-4 py-2 border-t text-xs shrink-0",
+                                  testResult.success
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                    : "bg-red-50 border-red-200 text-red-700",
+                                )}
+                              >
+                                <div className="flex items-center gap-2 font-medium">
+                                  {testResult.success ? (
+                                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                                  ) : (
+                                    <X className="h-3.5 w-3.5 shrink-0" />
+                                  )}
+                                  {testResult.message}
+                                </div>
+                              </div>
+                            )}
+                          </Card>
+                        ) : (
+                          <div className="h-full bg-zinc-950 flex flex-col">
+                            <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
+                              <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
+                                Output
+                              </span>
                               {testResult && (
                                 <Badge
                                   variant="outline"
                                   className={cn(
                                     "text-[10px] font-semibold border-0",
                                     testResult.success
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "bg-red-100 text-red-700",
+                                      ? "bg-emerald-500/15 text-emerald-400"
+                                      : "bg-red-500/15 text-red-400",
                                   )}
                                 >
-                                  {testResult.success ? "✓ PASSED" : "✗ FAILED"}
+                                  {testResult.success
+                                    ? "✓ ALL TESTS PASSED"
+                                    : "✗ TESTS FAILED"}
                                 </Badge>
                               )}
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Live
-                              </Badge>
                             </div>
-                          </CardHeader>
-                          <CardContent className="flex-1 overflow-auto p-0 min-h-0">
-                            <iframe
-                              ref={iframeRef}
-                              className="w-full h-full border-0 min-h-[200px]"
-                              title="Live Preview"
-                              sandbox="allow-scripts allow-same-origin"
-                            />
-                          </CardContent>
-                          {testResult && (
-                            <div
-                              className={cn(
-                                "px-4 py-2 border-t text-xs shrink-0",
-                                testResult.success
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                  : "bg-red-50 border-red-200 text-red-700",
+                            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
+                              {isRunning ? (
+                                <div className="flex items-center gap-2 text-zinc-500">
+                                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                                  <span className="text-sm">Executing…</span>
+                                </div>
+                              ) : output === null ? (
+                                <p className="text-zinc-500 text-xs">
+                                  Click{" "}
+                                  <strong className="text-zinc-400">
+                                    Run Code
+                                  </strong>{" "}
+                                  or press{" "}
+                                  <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
+                                    Ctrl+Enter
+                                  </kbd>{" "}
+                                  to execute your code.
+                                </p>
+                              ) : (
+                                <div className="space-y-3">
+                                  {output.text && (
+                                    <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
+                                      {output.text}
+                                    </pre>
+                                  )}
+                                  {output.error && (
+                                    <Card className="bg-red-500/5 border-red-500/20">
+                                      <CardContent className="p-3">
+                                        <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
+                                          {output.error}
+                                        </pre>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+                                  {testResult && (
+                                    <Card
+                                      className={cn(
+                                        "border",
+                                        testResult.success
+                                          ? "bg-emerald-500/5 border-emerald-500/20"
+                                          : "bg-red-500/5 border-red-500/20",
+                                      )}
+                                    >
+                                      <CardContent className="p-3">
+                                        <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
+                                          {testResult.success ? (
+                                            <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                                          ) : (
+                                            <X className="h-3.5 w-3.5 text-red-400" />
+                                          )}
+                                          Validation Result
+                                        </div>
+                                        <p
+                                          className={cn(
+                                            "text-xs m-0",
+                                            testResult.success
+                                              ? "text-emerald-400/90"
+                                              : "text-red-400/90",
+                                          )}
+                                        >
+                                          {testResult.message}
+                                        </p>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+                                </div>
                               )}
-                            >
-                              <div className="flex items-center gap-2 font-medium">
-                                {testResult.success ? (
-                                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                                ) : (
-                                  <X className="h-3.5 w-3.5 shrink-0" />
-                                )}
-                                {testResult.message}
-                              </div>
                             </div>
-                          )}
-                        </Card>
-                      ) : (
-                        <div className="h-full bg-zinc-950 flex flex-col">
-                          <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
-                            <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-                              Output
-                            </span>
-                            {testResult && (
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] font-semibold border-0",
-                                  testResult.success
-                                    ? "bg-emerald-500/15 text-emerald-400"
-                                    : "bg-red-500/15 text-red-400",
-                                )}
-                              >
-                                {testResult.success
-                                  ? "✓ ALL TESTS PASSED"
-                                  : "✗ TESTS FAILED"}
-                              </Badge>
-                            )}
                           </div>
-                          <div className="flex-1 overflow-y-auto p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-                            {isRunning ? (
-                              <div className="flex items-center gap-2 text-zinc-500">
-                                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                                <span className="text-sm">Executing…</span>
-                              </div>
-                            ) : output === null ? (
-                              <p className="text-zinc-500 text-xs">
-                                Click{" "}
-                                <strong className="text-zinc-400">
-                                  Run Code
-                                </strong>{" "}
-                                or press{" "}
-                                <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
-                                  Ctrl+Enter
-                                </kbd>{" "}
-                                to execute your code.
-                              </p>
-                            ) : (
-                              <div className="space-y-3">
-                                {output.text && (
-                                  <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
-                                    {output.text}
-                                  </pre>
-                                )}
-                                {output.error && (
-                                  <Card className="bg-red-500/5 border-red-500/20">
-                                    <CardContent className="p-3">
-                                      <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
-                                        {output.error}
-                                      </pre>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                                {testResult && (
-                                  <Card
-                                    className={cn(
-                                      "border",
-                                      testResult.success
-                                        ? "bg-emerald-500/5 border-emerald-500/20"
-                                        : "bg-red-500/5 border-red-500/20",
-                                    )}
-                                  >
-                                    <CardContent className="p-3">
-                                      <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
-                                        {testResult.success ? (
-                                          <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
-                                        ) : (
-                                          <X className="h-3.5 w-3.5 text-red-400" />
-                                        )}
-                                        Validation Result
-                                      </div>
-                                      <p
-                                        className={cn(
-                                          "text-xs m-0",
-                                          testResult.success
-                                            ? "text-emerald-400/90"
-                                            : "text-red-400/90",
-                                        )}
-                                      >
-                                        {testResult.message}
-                                      </p>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </Panel>
+                        )}
+                      </Panel>
+                    )}
                   </PanelGroup>
                 </Panel>
               </PanelGroup>

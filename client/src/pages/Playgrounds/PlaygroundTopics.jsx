@@ -70,6 +70,18 @@ const LANG_META = {
     levelColor: "text-green-600",
     levelBg: "bg-green-50 border-green-300",
   },
+  react: {
+    title: "React",
+    subtitle: "Build dynamic UIs with the world's most popular UI library",
+    img: "/react.png",
+    accent: "from-cyan-400 to-sky-500",
+    accentBg: "bg-cyan-500",
+    accentText: "text-cyan-600",
+    accentBorder: "border-cyan-500",
+    accentRing: "ring-cyan-400/40",
+    levelColor: "text-cyan-600",
+    levelBg: "bg-cyan-50 border-cyan-300",
+  },
 };
 
 const PlaygroundTopics = () => {
