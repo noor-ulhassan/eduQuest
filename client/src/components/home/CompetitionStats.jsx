@@ -18,8 +18,45 @@ import {
   Area,
   Label,
 } from "recharts";
-import { Trophy, Swords, Target, Zap, Star } from "lucide-react";
+import { Trophy, Swords, Target, Zap, Star, Shield, Award } from "lucide-react";
 import api from "../../features/auth/authApi";
+
+const getGamerRank = (wins) => {
+  if (wins >= 50)
+    return {
+      name: "Grand Champion",
+      color: "from-purple-400 to-pink-600",
+      text: "text-purple-400",
+      border: "border-purple-500/50",
+    };
+  if (wins >= 25)
+    return {
+      name: "Diamond",
+      color: "from-cyan-300 to-blue-600",
+      text: "text-cyan-400",
+      border: "border-cyan-500/50",
+    };
+  if (wins >= 10)
+    return {
+      name: "Gold",
+      color: "from-yellow-300 to-yellow-600",
+      text: "text-yellow-400",
+      border: "border-yellow-500/50",
+    };
+  if (wins >= 3)
+    return {
+      name: "Silver",
+      color: "from-slate-300 to-slate-500",
+      text: "text-slate-300",
+      border: "border-slate-400/50",
+    };
+  return {
+    name: "Bronze",
+    color: "from-orange-600 to-amber-900",
+    text: "text-orange-500",
+    border: "border-orange-800/50",
+  };
+};
 
 const CompetitionStats = () => {
   const [stats, setStats] = useState(null);
@@ -72,13 +109,28 @@ const CompetitionStats = () => {
     };
   });
 
+  const rank = getGamerRank(stats.wins);
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold font-hand flex items-center gap-2">
-        <Trophy className="text-orange-500 w-5 h-5" />
-        Competition{" "}
-        <span className="text-blue-500 dark:text-blue-400">Performance</span>
-      </h2>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xl font-bold font-hand flex items-center gap-2">
+          <Trophy className="text-orange-500 w-5 h-5" />
+          Competition{" "}
+          <span className="text-blue-500 dark:text-blue-400">Performance</span>
+        </h2>
+
+        <div
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full border ${rank.border} bg-zinc-900/50 shadow-lg`}
+        >
+          <Shield size={16} className={rank.text} />
+          <span
+            className={`text-sm font-black italic tracking-widest uppercase bg-gradient-to-r ${rank.color} bg-clip-text text-transparent`}
+          >
+            {rank.name}
+          </span>
+        </div>
+      </div>
 
       {/* ── Summary Row ── */}
       <div className="grid grid-cols-4 gap-3">

@@ -39,6 +39,17 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import InteractiveQuestion from "../../components/competition/InteractiveQuestion";
+import { useVoiceChat } from "../../hooks/useVoiceChat";
+import VoiceControls from "../../components/competition/VoiceControls";
+import VoiceSpeakerIndicator from "../../components/competition/VoiceSpeakerIndicator";
+import VSScreen from "../../components/competition/VSScreen";
+import FloatingFeedback from "../../components/competition/FloatingFeedback";
+import confetti from "canvas-confetti";
+import {
+  playCorrectSound,
+  playWrongSound,
+  playVictorySound,
+} from "@/lib/sound";
 
 const CompetitionLobby = () => {
   const navigate = useNavigate();
@@ -81,12 +92,30 @@ const CompetitionLobby = () => {
   const [gameChallengeMode, setGameChallengeMode] = useState("classic");
   const [finalResults, setFinalResults] = useState(null);
 
+  // Gamification state
+  const [showVS, setShowVS] = useState(false);
+  const [vsData, setVsData] = useState(null);
+  const [comboCount, setComboCount] = useState(0);
+  const [feedbackResult, setFeedbackResult] = useState(null);
+  const [feedbackKey, setFeedbackKey] = useState(0);
+
   // Spectator & join request state
   const isSpectator = searchParams.get("spectate") === "true";
   const [spectatorData, setSpectatorData] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
 
   const isHost = room?.hostId === user?._id;
+
+  // Voice chat
+  const {
+    isInVoice,
+    isMuted,
+    activeSpeakers,
+    voiceUsers,
+    joinVoice,
+    leaveVoice,
+    toggleMute,
+  } = useVoiceChat(socket, roomCode, user);
 
   // Auto-rejoin on reconnection to update socket ID on server
   useEffect(() => {
@@ -188,15 +217,17 @@ const CompetitionLobby = () => {
       challengeMode: cm,
       language,
     }) => {
-      setGameState("playing");
-      setTotalQuestions(tq);
-      setTimeRemaining(timerDuration);
-      setCurrentQuestion(question);
-      setQuestionIndex(qi);
-      setGameCategory(category);
-      setGameChallengeMode(cm || "classic");
-      setSelectedAnswer(null);
-      setAnswerResult(null);
+      // Store data and show VS screen first
+      setVsData({
+        totalQuestions: tq,
+        timerDuration,
+        question,
+        questionIndex: qi,
+        category,
+        challengeMode: cm,
+        language,
+      });
+      setShowVS(true);
       setIsStarting(false);
     };
 
@@ -493,6 +524,21 @@ const CompetitionLobby = () => {
       (result) => {
         setAnswerResult(result);
         setIsSubmitting(false);
+
+        // Combo tracking + sound effects
+        if (result?.correct) {
+          setComboCount((prev) => prev + 1);
+          playCorrectSound();
+          setFeedbackResult({
+            correct: true,
+            xpGained: result.pointsEarned || 50,
+          });
+        } else {
+          setComboCount(0);
+          playWrongSound();
+          setFeedbackResult({ correct: false });
+        }
+        setFeedbackKey((prev) => prev + 1);
       },
     );
   };
@@ -501,6 +547,35 @@ const CompetitionLobby = () => {
     socket?.emit("leaveRoom", { roomCode });
     navigate("/");
   };
+
+  // Handler: VS screen finished → transition to playing
+  const handleVSComplete = () => {
+    if (!vsData) return;
+    setShowVS(false);
+    setGameState("playing");
+    setTotalQuestions(vsData.totalQuestions);
+    setTimeRemaining(vsData.timerDuration);
+    setCurrentQuestion(vsData.question);
+    setQuestionIndex(vsData.questionIndex);
+    setGameCategory(vsData.category);
+    setGameChallengeMode(vsData.challengeMode || "classic");
+    setSelectedAnswer(null);
+    setAnswerResult(null);
+    setComboCount(0);
+    setFeedbackResult(null);
+    setVsData(null);
+  };
+
+  // ─── RENDER: VS Screen ─────────────────────────────────
+  if (showVS && room?.players) {
+    return (
+      <VSScreen
+        players={room.players}
+        settings={settings}
+        onComplete={handleVSComplete}
+      />
+    );
+  }
 
   // ─── RENDER: Spectator View ─────────────────────────────
   if (isSpectator && (spectatorData || gameState === "playing")) {
@@ -586,8 +661,11 @@ const CompetitionLobby = () => {
                     className="w-8 h-8 rounded-full"
                     alt=""
                   />
-                  <span className="flex-1 text-sm font-medium truncate">
+                  <span className="flex-1 text-sm font-medium truncate flex items-center">
                     {p.name}
+                    {activeSpeakers.has(p.id) && (
+                      <VoiceSpeakerIndicator inline />
+                    )}
                   </span>
                   <span className="font-bold text-orange-400">{p.score}</span>
                 </div>
@@ -1027,9 +1105,12 @@ const CompetitionLobby = () => {
                     {i + 1}
                   </span>
                   <span
-                    className={`flex-1 truncate ${p.id === user?._id ? "text-orange-400 font-medium" : "text-zinc-300"}`}
+                    className={`flex-1 truncate flex items-center ${p.id === user?._id ? "text-orange-400 font-medium" : "text-zinc-300"}`}
                   >
                     {p.name} {p.id === user?._id && "(You)"}
+                    {activeSpeakers.has(p.id) && (
+                      <VoiceSpeakerIndicator inline />
+                    )}
                   </span>
                   <span className="text-xs text-zinc-500">
                     {p.finished ? "✓" : `Q${p.currentQuestion}`}
@@ -1079,6 +1160,45 @@ const CompetitionLobby = () => {
   ) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-6">
+        {/* Floating Feedback */}
+        <FloatingFeedback
+          result={feedbackResult}
+          comboCount={comboCount}
+          triggerKey={feedbackKey}
+        />
+
+        {/* Animated Timer Bar */}
+        <div className="fixed top-0 left-0 w-full h-1.5 z-30 bg-zinc-800">
+          <motion.div
+            className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-500 to-orange-500" : "bg-gradient-to-r from-green-500 to-emerald-400"}`}
+            animate={{
+              width: `${(timeRemaining / (settings.timerDuration || 300)) * 100}%`,
+            }}
+            transition={{ duration: 0.5 }}
+          />
+          {timeRemaining <= 30 && (
+            <motion.div
+              className="absolute inset-0 bg-red-500/20"
+              animate={{ opacity: [0, 0.5, 0] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            />
+          )}
+        </div>
+
+        {/* Combo Indicator */}
+        {comboCount >= 2 && (
+          <motion.div
+            initial={{ scale: 0, y: -20 }}
+            animate={{ scale: 1, y: 0 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-gradient-to-r from-orange-600 to-red-600 px-4 py-2 rounded-full shadow-2xl"
+          >
+            <span className="text-lg">🔥</span>
+            <span className="text-white font-bold text-sm">
+              {comboCount}x Combo!
+            </span>
+          </motion.div>
+        )}
+
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -1193,9 +1313,12 @@ const CompetitionLobby = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-sm font-medium truncate ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
+                            className={`text-sm font-medium truncate flex items-center ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
                           >
                             {p.name}
+                            {activeSpeakers.has(p.id) && (
+                              <VoiceSpeakerIndicator inline />
+                            )}
                           </span>
                           {p.id === user?._id && (
                             <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 rounded">
@@ -1223,6 +1346,15 @@ const CompetitionLobby = () => {
             </div>
           </div>
         </div>
+        <VoiceControls
+          isInVoice={isInVoice}
+          isMuted={isMuted}
+          voiceUsers={voiceUsers}
+          activeSpeakers={activeSpeakers}
+          onJoin={joinVoice}
+          onLeave={leaveVoice}
+          onToggleMute={toggleMute}
+        />
       </div>
     );
   }
@@ -1235,6 +1367,37 @@ const CompetitionLobby = () => {
   ) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-6">
+        {/* Floating Feedback */}
+        <FloatingFeedback
+          result={feedbackResult}
+          comboCount={comboCount}
+          triggerKey={feedbackKey}
+        />
+
+        {/* Animated Timer Bar */}
+        <div className="fixed top-0 left-0 w-full h-1.5 z-30 bg-zinc-800">
+          <motion.div
+            className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-500 to-orange-500" : "bg-gradient-to-r from-green-500 to-emerald-400"}`}
+            animate={{
+              width: `${(timeRemaining / (settings.timerDuration || 300)) * 100}%`,
+            }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
+
+        {comboCount >= 2 && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-gradient-to-r from-orange-600 to-red-600 px-4 py-2 rounded-full shadow-2xl"
+          >
+            <span className="text-lg">🔥</span>
+            <span className="text-white font-bold text-sm">
+              {comboCount}x Combo!
+            </span>
+          </motion.div>
+        )}
+
         <div className="max-w-[1400px] mx-auto space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
@@ -1353,9 +1516,12 @@ const CompetitionLobby = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-sm font-medium truncate ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
+                          className={`text-sm font-medium truncate flex items-center ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
                         >
                           {p.name}
+                          {activeSpeakers.has(p.id) && (
+                            <VoiceSpeakerIndicator inline />
+                          )}
                         </span>
                       </div>
                       <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
@@ -1372,110 +1538,216 @@ const CompetitionLobby = () => {
             </Card>
           </div>
         </div>
+        <VoiceControls
+          isInVoice={isInVoice}
+          isMuted={isMuted}
+          voiceUsers={voiceUsers}
+          activeSpeakers={activeSpeakers}
+          onJoin={joinVoice}
+          onLeave={leaveVoice}
+          onToggleMute={toggleMute}
+        />
       </div>
     );
   }
 
   // ─── RENDER: Game Finished (Results) ─────────────────────────────
   if (gameState === "finished") {
-    // Determine winner and sorted list
     const sortedLeaderboard = [...leaderboard].sort(
       (a, b) => b.score - a.score,
     );
     const winner = sortedLeaderboard[0];
+    const second = sortedLeaderboard[1];
+    const third = sortedLeaderboard[2];
+    const rest = sortedLeaderboard.slice(3);
+    const isWinner = winner?.id === user?._id;
     const isHost = room?.host?._id === user?._id;
+
+    // Fire confetti + victory sound on mount
+    if (typeof window !== "undefined" && winner) {
+      setTimeout(() => {
+        if (isWinner) playVictorySound();
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ["#f97316", "#eab308", "#ef4444", "#22c55e"],
+        });
+        setTimeout(
+          () =>
+            confetti({
+              particleCount: 80,
+              spread: 120,
+              origin: { y: 0.3, x: 0.3 },
+            }),
+          400,
+        );
+        setTimeout(
+          () =>
+            confetti({
+              particleCount: 80,
+              spread: 120,
+              origin: { y: 0.3, x: 0.7 },
+            }),
+          700,
+        );
+      }, 300);
+    }
 
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 flex flex-col items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-2xl w-full space-y-8"
+          className="max-w-3xl w-full space-y-8"
         >
           <div className="text-center space-y-2">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-orange-400 to-red-600 bg-clip-text text-transparent">
-              Competition Ended
-            </h1>
-            <p className="text-zinc-400 text-lg">
-              Here are the final standings
-            </p>
+            <motion.h1
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-4xl md:text-5xl font-black bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 bg-clip-text text-transparent"
+            >
+              {isWinner ? "🏆 Victory!" : "Competition Ended"}
+            </motion.h1>
+            <p className="text-zinc-400 text-lg">Final standings</p>
           </div>
 
-          <Card className="bg-zinc-900 border-zinc-800 overflow-hidden shadow-2xl shadow-orange-900/10">
-            {/* Winner Highlight (if any) */}
-            {winner && (
-              <div className="p-8 flex flex-col items-center bg-gradient-to-b from-orange-500/10 to-transparent border-b border-zinc-800 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-orange-500/10 via-transparent to-transparent opacity-50" />
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 rounded-full border-4 border-yellow-500 shadow-[0_0_40px_rgba(234,179,8,0.4)] overflow-hidden bg-zinc-800">
-                    <img
-                      src={winner.avatarUrl || "/Avatar.png"}
-                      className="w-full h-full object-cover"
-                      alt={winner.name}
-                    />
-                  </div>
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shrink-0 w-max mt-1">
-                    <Crown size={12} fill="currentColor" /> WINNER
-                  </div>
-                </div>
-                <h2 className="text-3xl font-bold text-white mb-1">
-                  {winner.name}
-                </h2>
-                <div className="flex items-center gap-2 bg-zinc-900/50 px-3 py-1 rounded-full border border-zinc-700/50">
-                  <Trophy size={14} className="text-orange-400" />
-                  <span className="text-orange-400 font-mono font-bold text-lg">
-                    {winner.score} XP
+          {/* ─── Animated Podium ───────────────────────────── */}
+          <div className="flex items-end justify-center gap-3 md:gap-6 pt-8 pb-4">
+            {/* 2nd Place — Left */}
+            {second && (
+              <motion.div
+                initial={{ y: 60, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="flex flex-col items-center"
+              >
+                <div className="relative mb-2">
+                  <img
+                    src={second.avatarUrl || "/Avatar.png"}
+                    alt={second.name}
+                    className="w-16 h-16 md:w-20 md:h-20 rounded-full border-3 border-zinc-300 shadow-lg object-cover"
+                  />
+                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-zinc-300 text-black rounded-full flex items-center justify-center text-xs font-black shadow-md">
+                    2
                   </span>
                 </div>
-              </div>
+                <span className="text-sm font-semibold text-zinc-300 truncate max-w-[80px] mb-1">
+                  {second.name}
+                </span>
+                <div className="w-24 md:w-28 bg-gradient-to-t from-zinc-700 to-zinc-600 rounded-t-xl flex flex-col items-center justify-end h-[100px] md:h-[120px] border-t-4 border-zinc-400">
+                  <span className="text-lg font-bold text-zinc-200 mb-3">
+                    {second.score}
+                  </span>
+                </div>
+              </motion.div>
             )}
 
-            {/* Full List */}
-            <div className="max-h-[350px] overflow-y-auto custom-scrollbar bg-zinc-900/50">
-              {sortedLeaderboard.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`p-4 flex items-center gap-4 hover:bg-zinc-800/40 transition-colors border-b border-zinc-800/50 last:border-0 ${
-                    p.id === user?._id
-                      ? "bg-orange-500/5 hover:bg-orange-500/10"
-                      : ""
-                  }`}
+            {/* 1st Place — Center (tallest) */}
+            {winner && (
+              <motion.div
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex flex-col items-center -mt-4"
+              >
+                <motion.div
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="relative mb-2"
                 >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                      i === 0
-                        ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20"
-                        : i === 1
-                          ? "bg-zinc-300 text-black"
-                          : i === 2
-                            ? "bg-orange-700 text-white"
-                            : "bg-zinc-800 text-zinc-500"
-                    }`}
-                  >
-                    {i + 1}
-                  </div>
                   <img
-                    src={p.avatarUrl || "/Avatar.png"}
-                    className="w-10 h-10 rounded-full bg-zinc-800 object-cover shrink-0"
-                    alt=""
+                    src={winner.avatarUrl || "/Avatar.png"}
+                    alt={winner.name}
+                    className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.4)] object-cover"
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-zinc-200 flex items-center gap-2 truncate">
-                      {p.name}
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                    <Crown
+                      size={28}
+                      className="text-yellow-400 drop-shadow-lg"
+                      fill="currentColor"
+                    />
+                  </div>
+                </motion.div>
+                <span className="text-base font-bold text-yellow-300 truncate max-w-[100px] mb-1">
+                  {winner.name}
+                </span>
+                <div className="w-28 md:w-32 bg-gradient-to-t from-yellow-700/80 to-yellow-600/60 rounded-t-xl flex flex-col items-center justify-end h-[140px] md:h-[170px] border-t-4 border-yellow-500 shadow-xl">
+                  <Trophy size={24} className="text-yellow-400 mb-1" />
+                  <span className="text-2xl font-black text-yellow-200 mb-3">
+                    {winner.score}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 3rd Place — Right */}
+            {third && (
+              <motion.div
+                initial={{ y: 60, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex flex-col items-center"
+              >
+                <div className="relative mb-2">
+                  <img
+                    src={third.avatarUrl || "/Avatar.png"}
+                    alt={third.name}
+                    className="w-14 h-14 md:w-18 md:h-18 rounded-full border-3 border-orange-700 shadow-lg object-cover"
+                  />
+                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-orange-700 text-white rounded-full flex items-center justify-center text-xs font-black shadow-md">
+                    3
+                  </span>
+                </div>
+                <span className="text-sm font-semibold text-orange-300 truncate max-w-[80px] mb-1">
+                  {third.name}
+                </span>
+                <div className="w-24 md:w-28 bg-gradient-to-t from-orange-900/60 to-orange-800/40 rounded-t-xl flex flex-col items-center justify-end h-[80px] md:h-[100px] border-t-4 border-orange-700">
+                  <span className="text-lg font-bold text-orange-300 mb-3">
+                    {third.score}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Remaining players */}
+          {rest.length > 0 && (
+            <Card className="bg-zinc-900 border-zinc-800 overflow-hidden">
+              <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                {rest.map((p, i) => (
+                  <div
+                    key={p.id}
+                    className={`p-3 flex items-center gap-3 border-b border-zinc-800/50 last:border-0 ${p.id === user?._id ? "bg-orange-500/5" : ""}`}
+                  >
+                    <span className="w-6 h-6 rounded bg-zinc-800 text-zinc-500 flex items-center justify-center text-xs font-bold">
+                      {i + 4}
+                    </span>
+                    <img
+                      src={p.avatarUrl || "/Avatar.png"}
+                      className="w-8 h-8 rounded-full object-cover"
+                      alt=""
+                    />
+                    <span className="flex-1 text-sm font-medium text-zinc-300 truncate">
+                      {p.name}{" "}
                       {p.id === user?._id && (
-                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700 shrink-0">
+                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded ml-1">
                           YOU
                         </span>
                       )}
-                    </div>
+                    </span>
+                    <span className="font-mono font-bold text-orange-400 text-sm">
+                      {p.score} XP
+                    </span>
                   </div>
-                  <div className="font-mono font-bold text-orange-400 shrink-0">
-                    {p.score} XP
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <div className="flex gap-4 justify-center pt-4">
             <Button
@@ -1487,10 +1759,7 @@ const CompetitionLobby = () => {
             </Button>
             {isHost && (
               <Button
-                onClick={() => {
-                  // Host can restart or go to lobby (reloading page is simplest to reset state)
-                  window.location.reload();
-                }}
+                onClick={() => window.location.reload()}
                 className="gap-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white h-12 px-8 shadow-lg shadow-orange-900/20"
               >
                 <Play size={16} fill="currentColor" /> Play Again
@@ -2092,6 +2361,15 @@ const CompetitionLobby = () => {
           </div>
         </div>
       </div>
+      <VoiceControls
+        isInVoice={isInVoice}
+        isMuted={isMuted}
+        voiceUsers={voiceUsers}
+        activeSpeakers={activeSpeakers}
+        onJoin={joinVoice}
+        onLeave={leaveVoice}
+        onToggleMute={toggleMute}
+      />
     </div>
   );
 };

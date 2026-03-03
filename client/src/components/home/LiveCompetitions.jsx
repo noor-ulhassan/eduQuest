@@ -11,6 +11,7 @@ import {
   Zap,
   Crown,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -242,8 +243,42 @@ const CompetitionCard = ({
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="overflow-hidden border-border bg-card hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
+      <Card
+        className={`relative overflow-hidden transition-all duration-500 ${
+          isLive
+            ? "border-orange-500/50 shadow-[0_0_25px_rgba(249,115,22,0.2),_0_0_50px_rgba(249,115,22,0.1)] hover:shadow-[0_0_40px_rgba(249,115,22,0.35)] hover:border-orange-400/70"
+            : "border-border bg-card hover:shadow-md"
+        }`}
+        style={
+          isLive ? { animation: "glow-pulse 2s ease-in-out infinite" } : {}
+        }
+      >
+        {isLive && (
+          <>
+            {/* Animated gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-red-500/5 pointer-events-none" />
+            {/* Pulsating border ring */}
+            <div
+              className="absolute inset-0 rounded-xl pointer-events-none"
+              style={{
+                boxShadow:
+                  "0 0 0 1px rgba(249,115,22,0.3), 0 0 20px rgba(249,115,22,0.15)",
+                animation: "border-glow 2s ease-in-out infinite",
+              }}
+            />
+            <style>{`
+              @keyframes glow-pulse {
+                0%, 100% { box-shadow: 0 0 20px rgba(249,115,22,0.15), 0 0 40px rgba(249,115,22,0.05); }
+                50% { box-shadow: 0 0 30px rgba(249,115,22,0.3), 0 0 60px rgba(249,115,22,0.1); }
+              }
+              @keyframes border-glow {
+                0%, 100% { box-shadow: 0 0 0 1px rgba(249,115,22,0.2), 0 0 15px rgba(249,115,22,0.1); }
+                50% { box-shadow: 0 0 0 2px rgba(249,115,22,0.4), 0 0 25px rgba(249,115,22,0.2); }
+              }
+            `}</style>
+          </>
+        )}
+        <CardHeader className="pb-3 relative z-10">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <div

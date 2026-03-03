@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import { generateCompetitionQuestions } from "../utils/competitionQuestions.js";
 import { CompetitionResult } from "../models/CompetitionResult.model.js";
+import { registerVoiceEvents } from "./voiceHandler.js";
 
 // In-memory room storage
 const rooms = new Map();
@@ -57,6 +58,9 @@ export function initializeSocket(io) {
 
   io.on("connection", (socket) => {
     console.log(`[Socket] ${socket.user.name} connected (${socket.id})`);
+
+    // Register voice chat events for this socket
+    registerVoiceEvents(io, socket);
 
     // ─── CREATE ROOM ──────────────────────────────────────────
     socket.on("createRoom", (callback) => {

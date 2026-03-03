@@ -128,72 +128,106 @@ const Feedback = ({ result, correctAnswerData }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className={`mt-6 p-5 rounded-xl border backdrop-blur-sm ${
+      animate={
         isCorrect
-          ? "bg-green-500/5 border-green-500/20"
-          : "bg-red-500/5 border-red-500/20"
+          ? { opacity: 1, y: 0, scale: [0.97, 1.05, 1], rotate: [0, -1, 1, 0] }
+          : { opacity: 1, y: 0, scale: 1, x: [-8, 8, -8, 8, 0] }
+      }
+      transition={{
+        type: "spring",
+        stiffness: 400,
+        damping: 25,
+        duration: 0.4,
+      }}
+      className={`mt-6 p-5 rounded-xl border backdrop-blur-sm relative overflow-hidden ${
+        isCorrect
+          ? "bg-green-500/10 border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.15)]"
+          : "bg-red-500/10 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.15)]"
       }`}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={`mt-0.5 p-1.5 rounded-full shrink-0 ${
+      <motion.div
+        initial={{ opacity: 0.3 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 0.6 }}
+        className={`absolute inset-0 pointer-events-none ${isCorrect ? "bg-green-500" : "bg-red-500"}`}
+      />
+
+      <div className="flex items-start gap-4 relative z-10">
+        <motion.div
+          initial={{ scale: 0, rotate: -90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", delay: 0.1 }}
+          className={`mt-0.5 p-2 rounded-full shrink-0 shadow-lg ${
             isCorrect
-              ? "bg-green-500/20 text-green-400"
-              : "bg-red-500/20 text-red-400"
+              ? "bg-gradient-to-br from-green-400 to-emerald-600 text-white shadow-green-500/30"
+              : "bg-gradient-to-br from-red-400 to-rose-600 text-white shadow-red-500/30"
           }`}
         >
-          {isCorrect ? <Check size={14} /> : <X size={14} />}
-        </div>
+          {isCorrect ? (
+            <Check size={18} strokeWidth={3} />
+          ) : (
+            <X size={18} strokeWidth={3} />
+          )}
+        </motion.div>
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
             <p
-              className={`font-bold text-lg ${
-                isCorrect ? "text-green-400" : "text-red-400"
+              className={`font-black text-xl italic tracking-tight uppercase ${
+                isCorrect
+                  ? "text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                  : "text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]"
               }`}
             >
               {isCorrect ? "Correct!" : "Incorrect"}
             </p>
             {result.pointsEarned > 0 && (
               <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.2 }}
-                className="flex items-center gap-1 text-sm font-bold text-yellow-400 bg-yellow-500/10 px-2.5 py-0.5 rounded-full border border-yellow-500/20"
+                initial={{ scale: 0, y: 10 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: "spring", delay: 0.2, stiffness: 300 }}
+                className="flex items-center gap-1 text-sm font-black text-yellow-400 bg-yellow-500/20 px-3 py-0.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)] italic"
               >
-                <Zap size={12} className="fill-yellow-400" />+
+                <Zap size={14} className="fill-yellow-400" />+
                 {result.pointsEarned} XP
               </motion.span>
             )}
           </div>
           {result.explanation && (
             <p
-              className={`text-sm mt-1.5 leading-relaxed ${
-                isCorrect ? "text-green-400/80" : "text-red-400/80"
+              className={`text-sm mt-2 leading-relaxed font-medium ${
+                isCorrect ? "text-green-300" : "text-red-300"
               }`}
             >
               {result.explanation}
             </p>
           )}
           {!isCorrect && correctAnswerData && (
-            <div className="mt-3 text-sm bg-black/30 p-3 rounded-lg border border-white/5">
-              <span className="font-semibold text-zinc-400 text-xs uppercase tracking-wider block mb-2">
-                Correct Answer
+            <div className="mt-4 text-sm bg-black/40 p-4 rounded-xl border border-white/10 shadow-inner">
+              <span className="font-bold text-zinc-400 text-xs uppercase tracking-wider flex items-center gap-2 mb-3">
+                <Lightbulb size={14} className="text-yellow-400" /> Correct
+                Answer
               </span>
-              <div className="font-mono text-xs text-emerald-400/90 space-y-1">
-                {Array.isArray(correctAnswerData)
-                  ? correctAnswerData.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 py-0.5">
-                        <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[9px] font-bold shrink-0">
-                          {i + 1}
-                        </span>
-                        {typeof item === "object"
-                          ? JSON.stringify(item)
-                          : String(item)}
-                      </div>
-                    ))
-                  : String(correctAnswerData)}
+              <div className="font-mono text-sm text-emerald-400 space-y-2">
+                {Array.isArray(correctAnswerData) ? (
+                  correctAnswerData.map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 py-1 bg-emerald-500/5 px-3 rounded-lg border border-emerald-500/10"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {i + 1}
+                      </span>
+                      {typeof item === "object"
+                        ? JSON.stringify(item)
+                        : String(item)}
+                    </div>
+                  ))
+                ) : (
+                  <div className="bg-emerald-500/5 px-3 py-2 rounded-lg border border-emerald-500/10">
+                    {String(correctAnswerData)}
+                  </div>
+                )}
               </div>
             </div>
           )}
