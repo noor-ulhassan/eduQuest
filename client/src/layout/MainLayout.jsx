@@ -19,14 +19,17 @@ const MainLayout = () => {
     location.pathname !== "/playground";
 
   const hideNavbar =
-    isPlaygroundRoute || location.pathname.startsWith("/competition");
+    isPlaygroundRoute ||
+    location.pathname.startsWith("/competition") ||
+    location.pathname === "/leaderboard";
 
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||
     location.pathname.startsWith("/course/") ||
     isPlaygroundRoute ||
-    location.pathname.startsWith("/competition");
+    location.pathname.startsWith("/competition") ||
+    location.pathname === "/leaderboard";
 
   return (
     <div className="flex flex-col min-h-screen">

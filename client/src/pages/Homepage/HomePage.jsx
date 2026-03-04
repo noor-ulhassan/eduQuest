@@ -10,7 +10,6 @@ import UserStats from "@/components/user/UserStatus";
 
 import Streak from "../../components/home/streak";
 import ExplorePremium from "../../components/home/explorePremium";
-import Leaderboard from "../../components/home/leaderboard";
 import TopCommunityPosts from "../../components/social/TopCommunityPosts";
 import DraggableCards from "../../components/home/draggableCards";
 import ExploreMore from "@/components/user/ExploreMore";
@@ -63,7 +62,26 @@ const HomePage = () => {
             </div>
 
             <div className="max-w-[1200px] mx-auto mt-8 sm:mt-12 lg:mt-16 mb-12 sm:mb-16 lg:mb-20 px-4 sm:px-6 space-y-12 sm:space-y-16">
-              <Leaderboard />
+              <div className="bg-gradient-to-br from-[#0d0b1a] to-[#1a1730] rounded-3xl p-8 sm:p-12 border border-[#2d2755] flex flex-col items-center justify-center text-center shadow-2xl">
+                <div className="w-16 h-16 bg-[#3F48EF]/20 rounded-2xl flex items-center justify-center mb-6 ring-4 ring-[#3F48EF]/10">
+                  <span className="text-[#3F48EF] font-bold text-2xl tracking-widest">
+                    EQ
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                  EduQuest Hall of Fame
+                </h2>
+                <p className="text-zinc-400 mb-8 max-w-lg text-sm sm:text-base">
+                  Ready to see where you stand? Compete with learners worldwide,
+                  earn XP, and climb the ranks to become a Grandmaster.
+                </p>
+                <button
+                  onClick={() => (window.location.href = "/leaderboard")}
+                  className="bg-[#3F48EF] hover:bg-[#343cc4] text-white px-8 py-3.5 rounded-full font-bold transition-all shadow-lg shadow-[#3F48EF]/25 flex items-center gap-2"
+                >
+                  View Global Leaderboard
+                </button>
+              </div>
               <CompetitionStats />
               <LiveCompetitions />
 

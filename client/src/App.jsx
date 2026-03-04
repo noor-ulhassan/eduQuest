@@ -48,6 +48,7 @@ const CommunityHome = lazy(() => import("./pages/Community/components/Home"));
 const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
+const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -186,6 +187,14 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Lazy element={CompetitionLobby} />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "leaderboard",
+        element: (
+          <ProtectedRoute>
+            <Lazy element={LeaderboardPage} />
           </ProtectedRoute>
         ),
       },

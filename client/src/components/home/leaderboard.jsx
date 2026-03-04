@@ -7,15 +7,13 @@ import {
   Medal,
   Crown,
   User as UserIcon,
-  TrendingUp,
+  Search,
+  ChevronDown,
   Shield,
+  TrendingUp,
   Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -138,262 +136,410 @@ const Leaderboard = () => {
     ? getProgress(currentUser.xp, nextTarget.target)
     : 100;
 
+  // Sort all users unconditionally by XP descending for the overall list
+  const sortedLeaderboard = [...leaderboard].sort((a, b) => b.xp - a.xp);
+
+  // Identify top 3
+  const top3 = sortedLeaderboard.slice(0, 3);
+  const restOfLeaderboard = sortedLeaderboard.slice(3);
+
+  // Helper for formatting tier names
+  const formatTier = (name) => {
+    return `${name} Tier`;
+  };
+
+  // Get rank class for podium glow
+  const getPodiumGlowParams = (rank) => {
+    switch (rank) {
+      case 1:
+        return {
+          glow: "ring-[#eab308]",
+          badgeBg: "bg-[#eab308] text-black",
+          text: "text-[#3f48ef]",
+        };
+      case 2:
+        return {
+          glow: "ring-[#d1d5db]",
+          badgeBg: "bg-[#d1d5db] text-black",
+          text: "text-[#3f48ef]",
+        };
+      case 3:
+        return {
+          glow: "ring-[#f59e0b]",
+          badgeBg: "bg-[#f59e0b] text-black",
+          text: "text-[#3f48ef]",
+        };
+      default:
+        return {
+          glow: "",
+          badgeBg: "bg-zinc-700 text-white",
+          text: "text-zinc-400",
+        };
+    }
+  };
+
+  // ─── Render ───
   return (
-    <Card className="w-full max-w-[1240px] mx-auto mt-6 sm:mt-8 md:mt-12 overflow-hidden border-0 bg-gradient-to-b from-white to-zinc-50/80 shadow-lg shadow-zinc-200/50 dark:shadow-none dark:bg-zinc-900/50 dark:from-zinc-900/80 dark:to-zinc-900/40">
-      <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8 space-y-0">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative flex-shrink-0">
-              <img
-                src="/trophy.gif"
-                alt="Leaderboard"
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-contain ring-2 ring-amber-200/50 dark:ring-amber-500/20"
-              />
-              <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-white shadow">
-                <Sparkles className="h-2.5 w-2.5" />
+    <div className="flex flex-col min-h-screen bg-[#0d0b1a] text-white font-sans overflow-hidden">
+      {/* ── Navbar ── */}
+      <header className="h-[70px] shrink-0 border-b border-[#1e1b38] bg-[#0d0b1a] flex items-center justify-between px-6 z-20">
+        <div className="flex items-center gap-10 h-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#3F48EF] flex items-center justify-center">
+              <span className="font-bold text-white tracking-widest text-xs">
+                EQ
               </span>
             </div>
-            <div>
-              <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                Global Leaderboard
-              </CardTitle>
-              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Top learners around the world
-              </p>
-            </div>
+            <span className="font-bold text-lg tracking-wide">EduQuest</span>
           </div>
 
-          {currentUser && nextTarget && (
-            <div className="flex-1 max-w-md rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50/80 dark:bg-zinc-800/50 p-3 sm:p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                  Current League:{" "}
-                  <span className={userLeague.color}>{userLeague.name}</span>
-                </span>
-                <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
-                  {currentUser.xp.toLocaleString()} / {nextTarget.target.toLocaleString()} XP
-                </span>
-              </div>
-              <Progress
-                value={userProgress}
-                className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700"
-                indicatorClassName="rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 transition-all duration-500"
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 flex items-center gap-1.5">
-                <TrendingUp size={14} className="text-emerald-500 shrink-0" />
-                Earn{" "}
-                <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                  {(nextTarget.target - currentUser.xp).toLocaleString()} XP
-                </span>{" "}
-                to reach {nextTarget.name} League
-              </p>
-            </div>
-          )}
-        </div>
-      </CardHeader>
-
-      <Separator className="bg-zinc-200/80 dark:bg-zinc-700/50" />
-
-      <CardContent className="p-0">
-        <div
-          role="presentation"
-          className="hidden md:grid grid-cols-[5rem_1fr_8rem_5rem] items-center gap-4 px-4 sm:px-6 py-3 bg-zinc-50/70 dark:bg-zinc-800/30 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-        >
-          <div className="text-center">Rank</div>
-          <div className="pl-1">User</div>
-          <div className="text-right pr-2">League</div>
-          <div className="text-right tabular-nums">XP</div>
-        </div>
-
-        {loading ? (
-          <div className="space-y-0 p-4 sm:p-6">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 py-4 px-2 sm:px-4"
-              >
-                <Skeleton className="h-6 w-12 rounded-lg shrink-0" />
-                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                <Skeleton className="h-4 flex-1 max-w-[180px] rounded" />
-                <Skeleton className="h-5 w-16 rounded-md shrink-0" />
-                <Skeleton className="h-5 w-14 rounded-md shrink-0" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div
-            role="list"
-            className="h-[400px] sm:h-[500px] md:h-[600px] overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-zinc-100 dark:[&::-webkit-scrollbar-track]:bg-zinc-800/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
-          >
-            {leagueOrder.map((league) => {
-              const users = groupedUsers[league];
-              if (!users || users.length === 0) return null;
-
-              const leagueStyle = getLeagueInfo(users[0].xp);
-
-              return (
-                <div key={league}>
-                  <div
+          {/* Links */}
+          <nav className="hidden md:flex items-center gap-8 h-full">
+            {["Dashboard", "Challenges", "Leaderboard", "Profile"].map(
+              (link) => {
+                const isActive = link === "Leaderboard";
+                return (
+                  <button
+                    key={link}
+                    onClick={() => {
+                      if (link === "Dashboard") navigate("/");
+                      if (link === "Challenges") navigate("/playground");
+                      if (link === "Profile") navigate("/profile");
+                    }}
                     className={cn(
-                      "sticky top-0 z-10 px-4 sm:px-6 py-2.5 flex items-center gap-2 backdrop-blur-sm border-y",
-                      leagueStyle.bg,
-                      leagueStyle.border
+                      "h-full px-1 text-[13px] font-bold tracking-wide transition-colors relative flex items-center",
+                      isActive
+                        ? "text-[#3F48EF]"
+                        : "text-zinc-400 hover:text-white",
                     )}
                   >
-                    <leagueStyle.icon
-                      className={cn("h-4 w-4 shrink-0", leagueStyle.color)}
+                    {link}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3F48EF] rounded-t-full" />
+                    )}
+                  </button>
+                );
+              },
+            )}
+          </nav>
+        </div>
+
+        {/* Right actions */}
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center bg-[#1e1b38] rounded-full px-4 py-2 border border-[#2d2755]">
+            <Search className="w-4 h-4 text-zinc-500 mr-2" />
+            <input
+              type="text"
+              placeholder="Find players..."
+              className="bg-transparent text-sm focus:outline-none text-white w-40 placeholder:text-zinc-500"
+            />
+          </div>
+          <button className="bg-[#3F48EF] hover:bg-[#343cc4] text-white text-[13px] font-bold px-5 py-2.5 rounded-full transition-colors hidden sm:block">
+            Upgrade Pro
+          </button>
+          <button
+            onClick={() => navigate("/profile")}
+            className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-transparent hover:border-zinc-600 transition-colors overflow-hidden flex items-center justify-center shrink-0"
+          >
+            {currentUser?.imageUrl ? (
+              <img
+                src={currentUser.imageUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="w-full h-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center">
+                {currentUser?.name?.charAt(0) || "U"}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* ── Main content area ── */}
+      <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2d2755]">
+        <div className="max-w-[1000px] mx-auto px-6 pt-12">
+          {/* Header & Filter */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Hall of Fame</h1>
+              <p className="text-zinc-400 text-[15px]">
+                Global ranking based on total XP earned.
+              </p>
+            </div>
+            <div className="flex items-center bg-[#1e1b38] rounded-lg p-1.5 border border-[#2d2755]">
+              {["Global", "Friends", "Monthly"].map((filter) => (
+                <button
+                  key={filter}
+                  className={cn(
+                    "px-6 py-2 rounded-md text-sm font-bold transition-all",
+                    filter === "Global"
+                      ? "bg-[#2d2755] text-white shadow"
+                      : "text-zinc-400 hover:text-white",
+                  )}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Top 3 Podium */}
+          {!loading && top3.length > 0 && (
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-16">
+              {/* 2nd Place */}
+              {top3[1] && (
+                <div className="w-[260px] bg-[#161B2E] border border-[#2d2755] rounded-3xl p-6 flex flex-col items-center mt-8 relative">
+                  <div className="relative mb-4">
+                    <img
+                      src={
+                        top3[1].avatarUrl ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[1]._id}`
+                      }
+                      alt="avatar"
+                      className="w-20 h-20 rounded-full object-cover ring-4 ring-[#161B2E] outline outline-4 outline-[#d1d5db]"
                     />
-                    <span
-                      className={cn(
-                        "text-[11px] font-bold uppercase tracking-widest",
-                        leagueStyle.color
-                      )}
-                    >
-                      {league} League
-                    </span>
+                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-[#d1d5db] text-black font-bold flex items-center justify-center rounded-full text-sm border-2 border-[#161B2E]">
+                      2
+                    </div>
                   </div>
+                  <h3 className="font-bold text-lg">
+                    {top3[1].username || top3[1].name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-zinc-400 text-sm mt-1 mb-4">
+                    {(() => {
+                      const Icon = getLeagueInfo(top3[1].xp).icon;
+                      return <Icon className="w-3.5 h-3.5 text-zinc-400" />;
+                    })()}
+                    {formatTier(getLeagueInfo(top3[1].xp).name)}
+                  </div>
+                  <div className="text-[#3F48EF] font-bold text-lg">
+                    {top3[1].xp.toLocaleString()} XP
+                  </div>
+                </div>
+              )}
 
-                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                    {users.map((user) => {
-                      const globalRank =
-                        leaderboard.findIndex((u) => u._id === user._id) + 1;
-                      const isCurrentUser =
-                        currentUser && currentUser._id === user._id;
+              {/* 1st Place */}
+              {top3[0] && (
+                <div className="w-[300px] bg-gradient-to-b from-[#1c1836] to-[#0d0b1a] border border-[#3F48EF]/30 rounded-[32px] p-8 flex flex-col items-center relative shadow-[0_0_40px_-10px_rgba(63,72,239,0.3)] z-10">
+                  <div className="absolute -top-6 text-yellow-500">
+                    <Crown className="w-12 h-12 fill-yellow-500 stroke-black stroke-2" />
+                  </div>
+                  <div className="relative mb-5 mt-4">
+                    <img
+                      src={
+                        top3[0].avatarUrl ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[0]._id}`
+                      }
+                      alt="avatar"
+                      className="w-28 h-28 rounded-full object-cover ring-4 ring-[#161B2E] outline outline-4 outline-[#eab308] shadow-[0_0_20px_rgba(234,179,8,0.4)]"
+                    />
+                    <div className="absolute -bottom-1 -right-2 w-8 h-8 bg-[#eab308] text-black font-bold flex items-center justify-center rounded-full text-sm border-4 border-[#161B2E]">
+                      1
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-2xl">
+                    {top3[0].username || top3[0].name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-yellow-500 text-sm mt-1 mb-6 font-semibold">
+                    {(() => {
+                      const Icon = getLeagueInfo(top3[0].xp).icon;
+                      return <Icon className="w-4 h-4 fill-yellow-500" />;
+                    })()}
+                    Grandmaster
+                  </div>
+                  <div className="text-[#3F48EF] font-extrabold text-2xl tracking-wide font-mono">
+                    {top3[0].xp.toLocaleString()} XP
+                  </div>
+                </div>
+              )}
 
-                      return (
+              {/* 3rd Place */}
+              {top3[2] && (
+                <div className="w-[260px] bg-[#161B2E] border border-[#2d2755] rounded-3xl p-6 flex flex-col items-center mt-8 relative">
+                  <div className="relative mb-4">
+                    <img
+                      src={
+                        top3[2].avatarUrl ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[2]._id}`
+                      }
+                      alt="avatar"
+                      className="w-20 h-20 rounded-full object-cover ring-4 ring-[#161B2E] outline outline-4 outline-[#f59e0b]"
+                    />
+                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-[#f59e0b] text-black font-bold flex items-center justify-center rounded-full text-sm border-2 border-[#161B2E]">
+                      3
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-lg">
+                    {top3[2].username || top3[2].name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-zinc-400 text-sm mt-1 mb-4">
+                    {(() => {
+                      const Icon = getLeagueInfo(top3[2].xp).icon;
+                      return <Icon className="w-3.5 h-3.5 text-zinc-400" />;
+                    })()}
+                    {formatTier(getLeagueInfo(top3[2].xp).name)}
+                  </div>
+                  <div className="text-[#3F48EF] font-bold text-lg">
+                    {top3[2].xp.toLocaleString()} XP
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* List Headers */}
+          <div className="grid grid-cols-[3rem_minmax(150px,2fr)_minmax(150px,1.5fr)_1fr_4rem] gap-4 px-6 text-[11px] font-bold text-zinc-500 tracking-[0.2em] mb-4 pb-4 border-b border-[#2d2755]">
+            <div>RANK</div>
+            <div>PLAYER</div>
+            <div>TIER</div>
+            <div className="text-right">XP</div>
+            <div className="text-right">ACTION</div>
+          </div>
+
+          {/* List Content */}
+          <div className="space-y-3">
+            {loading ? (
+              // Skeletons
+              [...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-[#161B2E] border border-[#2d2755] rounded-xl h-[72px] px-6 flex items-center gap-4"
+                >
+                  <Skeleton className="w-6 h-6 rounded bg-[#2d2755] shrink-0" />
+                  <Skeleton className="w-10 h-10 rounded-full bg-[#2d2755] shrink-0" />
+                  <Skeleton className="h-4 w-32 bg-[#2d2755]" />
+                  <div className="flex-1" />
+                  <Skeleton className="h-4 w-20 bg-[#2d2755]" />
+                </div>
+              ))
+            ) : restOfLeaderboard.length > 0 ? (
+              // Actual remaining list
+              restOfLeaderboard.map((user, idx) => {
+                const globalRank = idx + 4; // since top 3 are extracted
+                const leagueStyle = getLeagueInfo(user.xp);
+                return (
+                  <div
+                    key={user._id}
+                    onClick={() => navigate(`/profile/${user._id}`)}
+                    className="group bg-[#161B2E] hover:bg-[#1e1b38] border border-[#2d2755] hover:border-[#3F48EF]/50 transition-colors rounded-xl h-[76px] px-6 grid grid-cols-[3rem_minmax(150px,2fr)_minmax(150px,1.5fr)_1fr_4rem] items-center gap-4 cursor-pointer"
+                  >
+                    <div className="font-bold text-zinc-400 text-lg">
+                      #{globalRank}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={
+                          user.avatarUrl ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user._id}`
+                        }
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full bg-[#2d2755]"
+                      />
+                      <span className="font-bold text-[15px]">
+                        {user.username || user.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <div
-                          key={user._id}
-                          role="listitem"
-                          tabIndex={0}
-                          onClick={() =>
-                            navigate(
-                              isCurrentUser
-                                ? "/profile"
-                                : `/profile/${user._id}`,
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              navigate(
-                                isCurrentUser
-                                  ? "/profile"
-                                  : `/profile/${user._id}`,
-                              );
-                            }
-                          }}
                           className={cn(
-                            "grid grid-cols-[4rem_1fr_6rem_4rem] md:grid-cols-[5rem_1fr_8rem_5rem] items-center gap-2 md:gap-4 px-4 sm:px-6 py-3 sm:py-3.5 transition-colors cursor-pointer min-h-[72px] md:min-h-0",
-                            "hover:bg-zinc-50 dark:hover:bg-zinc-800/40",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:focus-visible:ring-zinc-500 rounded-sm",
-                            isCurrentUser &&
-                              "bg-sky-50/70 dark:bg-sky-950/30 hover:bg-sky-50 dark:hover:bg-sky-950/40 ring-inset ring-1 ring-sky-200/60 dark:ring-sky-700/40"
+                            "w-2.5 h-2.5 rounded-full border border-black",
+                            `bg-[${leagueStyle.color.replace("text-", "")}]`,
                           )}
-                        >
-                          <div className="flex justify-start md:justify-center items-center gap-1.5 col-span-1">
-                            {getRankIcon(globalRank)}
-                            {globalRank <= 10 ? (
-                              <span
-                                className={cn(
-                                  "text-sm font-bold tabular-nums",
-                                  globalRank <= 3
-                                    ? "text-zinc-900 dark:text-zinc-100"
-                                    : "text-zinc-600 dark:text-zinc-400"
-                                )}
-                              >
-                                {globalRank > 3 ? `#${globalRank}` : ""}
-                              </span>
-                            ) : (
-                              <span className="text-sm font-bold text-zinc-400 dark:text-zinc-500 tabular-nums">
-                                #{globalRank}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 sm:gap-4 min-w-0 md:pl-1">
-                            <Avatar
-                              className={cn(
-                                "h-9 w-9 sm:h-10 sm:w-10 border-2 flex-shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800",
-                                isCurrentUser
-                                  ? "border-sky-300 dark:border-sky-600"
-                                  : "border-white dark:border-zinc-700"
-                              )}
-                            >
-                              <AvatarImage src={user.avatarUrl} />
-                              <AvatarFallback className="bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-600 dark:to-zinc-700 text-zinc-600 dark:text-zinc-300">
-                                <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4
-                                  className={cn(
-                                    "font-semibold text-sm truncate",
-                                    isCurrentUser
-                                      ? "text-sky-700 dark:text-sky-300"
-                                      : "text-zinc-900 dark:text-zinc-100"
-                                  )}
-                                >
-                                  {user.name || user.username || "Anonymous"}
-                                </h4>
-                                {isCurrentUser && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-[10px] font-bold px-1.5 py-0 h-4 bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300 border-0 shrink-0"
-                                  >
-                                    YOU
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-                                Level {user.level}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-start md:justify-end md:pr-2 col-span-1">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "rounded-full text-[11px] font-bold border shrink-0",
-                                leagueStyle.bg,
-                                leagueStyle.color,
-                                leagueStyle.border
-                              )}
-                            >
-                              {league}
-                            </Badge>
-                          </div>
-
-                          <div className="text-left md:text-right col-span-1">
-                            <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100 text-sm tabular-nums">
-                              {user.xp.toLocaleString()}
-                            </span>
-                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 ml-1">
-                              XP
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        />
+                        <span className="text-sm font-medium text-zinc-300">
+                          {formatTier(leagueStyle.name)}
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-[#2d2755] text-zinc-400 text-[10px] font-bold">
+                        Lvl {user.level || 1}
+                      </span>
+                    </div>
+                    <div className="text-right font-bold text-[15px] tabular-nums">
+                      {user.xp.toLocaleString()}
+                    </div>
+                    <div className="flex justify-end pr-2">
+                      <ChevronDown className="w-4 h-4 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity -rotate-90" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {leaderboard.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 px-4 text-zinc-500 dark:text-zinc-400">
-                <div className="rounded-full bg-zinc-100 dark:bg-zinc-800 p-4 mb-4">
-                  <Trophy className="h-10 w-10 opacity-40" />
-                </div>
-                <p className="text-sm font-medium">No learners on the leaderboard yet.</p>
-                <p className="text-xs mt-1">Be the first to earn XP and climb the ranks.</p>
+                );
+              })
+            ) : (
+              <div className="py-20 text-center text-zinc-500 font-medium">
+                No subsequent ranks found.
               </div>
             )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {!loading && restOfLeaderboard.length >= 5 && (
+            <button className="w-full mt-6 py-4 rounded-xl border border-dashed border-[#2d2755] text-zinc-400 font-bold text-sm tracking-wide hover:bg-[#1e1b38] hover:text-white transition-colors flex items-center justify-center gap-2">
+              View More Ranks <ChevronDown className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Sticky Bottom Bar ── */}
+      {currentUser && (
+        <div className="fixed bottom-0 left-0 right-0 h-[80px] bg-[#0A0914] border-t border-[#1e1b38] z-30 px-6 sm:px-12 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="w-12 h-12 rounded-full border border-[#2d2755] flex items-center justify-center text-[#3F48EF] font-bold text-xl bg-[#1e1b38]/50">
+              {leaderboard.findIndex((u) => u._id === currentUser._id) + 1 ||
+                "-"}
+            </div>
+            <img
+              src={
+                currentUser.imageUrl ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser._id}`
+              }
+              alt="My Avatar"
+              className="w-12 h-12 rounded-full ring-2 ring-[#3F48EF]"
+            />
+            <div>
+              <div className="text-[#3F48EF] text-[10px] font-extrabold tracking-widest uppercase mb-0.5">
+                Your Rank
+              </div>
+              <div className="font-bold text-[17px]">
+                {currentUser.username || currentUser.name}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-12">
+            <div className="hidden sm:block">
+              <div className="text-zinc-500 text-xs mb-1">Current XP</div>
+              <div className="font-bold text-xl tabular-nums">
+                {currentUser.xp.toLocaleString()}{" "}
+                <span className="text-[#3F48EF] text-sm font-extrabold ml-0.5">
+                  XP
+                </span>
+              </div>
+            </div>
+
+            {nextTarget && (
+              <div className="w-[300px] hidden md:block">
+                <div className="flex justify-between text-[11px] mb-2 font-bold text-zinc-400">
+                  <span>{userLeague?.name || "Bronze"} Tier</span>
+                  <span>Next: {nextTarget.name.substring(0, 4)}</span>
+                </div>
+                <div className="h-2 rounded-full bg-[#1e1b38] overflow-hidden">
+                  <div
+                    className="h-full bg-[#3F48EF] rounded-full"
+                    style={{ width: `${userProgress}%` }}
+                  />
+                </div>
+                <div className="text-right text-[10px] text-zinc-500 mt-2 font-medium">
+                  {(nextTarget.target - currentUser.xp).toLocaleString()} XP to
+                  tier up
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
