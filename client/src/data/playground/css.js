@@ -1,6 +1,6 @@
 export const cssPlayground = {
   title: "The EduQuest CSS Codex",
-  subtitle: "Master Modern Styling from Basics to Advanced Animations",
+  subtitle: "",
   livePreview: true,
   chapters: [
     {

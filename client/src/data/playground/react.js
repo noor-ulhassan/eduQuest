@@ -1,6 +1,6 @@
 export const reactPlayground = {
   title: "The React Workshop",
-  subtitle: "Build dynamic UIs with the world's most popular front-end library",
+  subtitle: "Build dynamic UIs",
   chapters: [
     // ─── CHAPTER 1: JSX FUNDAMENTALS ───────────────────────────────
     {

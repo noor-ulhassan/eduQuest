@@ -2,28 +2,36 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { PLAYGROUND_DATA } from "../../data/playground";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Editor from "@monaco-editor/react";
 import { executeCode } from "../../lib/piston";
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
 import {
+  ArrowLeft,
+  Award,
+  BarChart2,
+  Bell,
   BookOpen,
   CheckCircle,
   ChevronRight,
+  FileCode2,
+  GraduationCap,
+  HelpCircle,
   Lightbulb,
   Loader2,
-  Menu,
+  Lock,
+  MessageCircle,
   Play,
   RotateCcw,
+  Settings,
+  Star,
+  Terminal,
+  User,
+  Users,
   X,
+  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { updateUserStats } from "../../features/auth/authSlice";
@@ -34,8 +42,6 @@ import {
 import InteractiveProblem from "./components/InteractiveProblem";
 
 // ─── React iframe document builder ─────────────────────────────────────────
-// Uses production builds for speed; globals (useState, useEffect, etc.) are
-// pre-destructured so students don't need to write imports.
 const buildReactDoc = (userCode) => `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin><\/script>
@@ -67,10 +73,10 @@ const LanguagePlayground = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [completedProblems, setCompletedProblems] = useState(new Set());
   const [showHints, setShowHints] = useState(false);
+  const [expandedChapterId, setExpandedChapterId] = useState(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const iframeRef = useRef(null);
   const isMobile = useIsMobile();
-  // React-specific: async postMessage test runner
   const pendingTestRef = useRef(null);
   const currentProblemRef = useRef(null);
   const reactDebounceRef = useRef(null);
@@ -83,17 +89,13 @@ const LanguagePlayground = () => {
   useEffect(() => {
     const initProgress = async () => {
       if (!user || !language) return;
-
       try {
         setIsLoadingProgress(true);
         const { progress } = await getPlaygroundProgress();
         const currentProgress = progress.find((p) => p.language === language);
-
         if (currentProgress) {
           const completedSet = new Set(currentProgress.completedProblems);
           setCompletedProblems(completedSet);
-
-          // Auto-open first unsolved problem
           if (data && data.chapters) {
             let firstUnsolved = null;
             for (const chapter of data.chapters) {
@@ -105,7 +107,6 @@ const LanguagePlayground = () => {
                 break;
               }
             }
-
             if (firstUnsolved) {
               setCurrentProblem(firstUnsolved);
               setCode(firstUnsolved.starterCode);
@@ -115,7 +116,6 @@ const LanguagePlayground = () => {
             }
           }
         } else {
-          // Not enrolled — send them to the topic overview to enroll from there
           navigate(`/playground/${language}/topics`, { replace: true });
         }
       } catch (error) {
@@ -127,15 +127,15 @@ const LanguagePlayground = () => {
         setIsLoadingProgress(false);
       }
     };
-
     initProgress();
   }, [user, language]);
 
   useEffect(() => {
-    // Only set default if no problem selected yet
     if (data && !currentProblem) {
-      const firstProblem = data.chapters[0].problems[0];
+      const firstChapter = data.chapters[0];
+      const firstProblem = firstChapter.problems[0];
       setCurrentProblem(firstProblem);
+      setExpandedChapterId(firstChapter.id);
       setCode(firstProblem.starterCode);
       setOutput(null);
       setTestResult(null);
@@ -143,22 +143,21 @@ const LanguagePlayground = () => {
     }
   }, [language, data, currentProblem]);
 
-  const selectProblem = useCallback((prob) => {
+  const selectProblem = useCallback((prob, chapterId) => {
     setCurrentProblem(prob);
+    if (chapterId) setExpandedChapterId(chapterId);
     setCode(prob.starterCode);
     setOutput(null);
     setTestResult(null);
     setShowHints(false);
   }, []);
 
-  // Keep currentProblemRef in sync for use inside async message handler
   useEffect(() => {
     currentProblemRef.current = currentProblem;
   }, [currentProblem]);
 
-  // Live preview: update iframe when code changes (HTML/CSS + React)
+  // Live preview: update iframe when code changes
   useEffect(() => {
-    // React: debounced srcdoc update
     if (isReact && iframeRef.current && currentProblem) {
       if (reactDebounceRef.current) clearTimeout(reactDebounceRef.current);
       reactDebounceRef.current = setTimeout(() => {
@@ -177,23 +176,20 @@ const LanguagePlayground = () => {
       );
       doc.close();
     } else {
-      // HTML
       doc.open();
       doc.write(code);
       doc.close();
     }
   }, [code, currentProblem, isLivePreview, isReact, language]);
 
-  // React postMessage bridge: listen for IFRAME_READY and TEST_RESULT
+  // React postMessage bridge
   useEffect(() => {
     if (!isReact) return;
     const handler = async (e) => {
       if (!e.data?.type) return;
-      // When iframe signals ready AND we have a pending test — fire it
       if (e.data.type === "IFRAME_READY" && pendingTestRef.current) {
         const fn = pendingTestRef.current;
         pendingTestRef.current = null;
-        // Small extra delay to let React flush its first paint
         setTimeout(() => {
           iframeRef.current?.contentWindow?.postMessage(
             { type: "RUN_TEST", fn },
@@ -244,21 +240,17 @@ const LanguagePlayground = () => {
     setOutput(null);
     setTestResult(null);
 
-    // ── React: rebuild iframe fresh, postMessage test when IFRAME_READY ──
     if (isReact) {
       if (!iframeRef.current) {
         setIsRunning(false);
         return;
       }
       pendingTestRef.current = currentProblem.testFunction;
-      // Force fresh iframe load so Babel re-compiles the latest code
       iframeRef.current.srcdoc = buildReactDoc(code);
-      // setIsRunning(false) is called by the TEST_RESULT message handler
       return;
     }
 
     if (isLivePreview) {
-      // Client-side validation for HTML/CSS
       try {
         const iframe = iframeRef.current;
         const doc = iframe?.contentDocument;
@@ -268,14 +260,12 @@ const LanguagePlayground = () => {
           const result = testFn(doc);
           setTestResult(result);
           if (result.success) {
-            // Call backend to save progress and update XP
             try {
               const response = await completeProb(
                 language,
                 currentProblem.id,
                 currentProblem.xp,
               );
-
               if (!response.alreadyCompleted) {
                 dispatch(updateUserStats(response.user));
                 toast.success(`${result.message} +${currentProblem.xp} XP!`);
@@ -287,7 +277,6 @@ const LanguagePlayground = () => {
               } else {
                 toast.success("Problem solved! (XP already earned)");
               }
-
               setCompletedProblems(
                 (prev) => new Set([...prev, currentProblem.id]),
               );
@@ -308,23 +297,14 @@ const LanguagePlayground = () => {
       return;
     }
 
-    // Piston execution for JS & Python
+    // Piston execution
     let codeToRun = code;
-    if (currentProblem.testFunction) {
+    if (currentProblem.testFunction)
       codeToRun = code + "\n" + currentProblem.testFunction;
-    }
-
     try {
-      console.log("[Playground] Executing code via Piston for:", language);
       const result = await executeCode(language, codeToRun);
-      console.log(
-        "[Playground] Piston result:",
-        JSON.stringify(result).slice(0, 500),
-      );
       let displayOutput = result.output || "";
       let parsedTest = null;
-
-      // Always try to parse test results from output, even if there were warnings
       if (displayOutput) {
         const lines = displayOutput.split("\n");
         const jsonLineIdx = lines.findIndex((l) =>
@@ -341,7 +321,6 @@ const LanguagePlayground = () => {
           } catch (e) {}
         }
       }
-
       setOutput({
         text:
           displayOutput ||
@@ -351,29 +330,22 @@ const LanguagePlayground = () => {
         error: result.error || null,
         success: result.success,
       });
-
-      console.log("[Playground] parsedTest:", parsedTest);
       if (parsedTest) {
         setTestResult(parsedTest);
         if (parsedTest.success) {
-          console.log("[Playground] Test PASSED. Saving progress...");
-          // Call backend to save progress and update XP
           try {
             const response = await completeProb(
               language,
               currentProblem.id,
               currentProblem.xp,
             );
-
             if (!response.alreadyCompleted) {
-              // Update Redux with new user stats
               dispatch(updateUserStats(response.user));
               toast.success(`${parsedTest.message} +${currentProblem.xp} XP!`);
               confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
             } else {
               toast.success("Problem solved! (XP already earned)");
             }
-
             setCompletedProblems(
               (prev) => new Set([...prev, currentProblem.id]),
             );
@@ -398,7 +370,7 @@ const LanguagePlayground = () => {
     }
   }, [code, currentProblem, isRunning, language, isLivePreview, isReact]);
 
-  // Keyboard shortcut (not for interactive problems)
+  // Keyboard shortcut
   useEffect(() => {
     const handler = (e) => {
       if (currentProblem?.type === "interactive") return;
@@ -411,7 +383,7 @@ const LanguagePlayground = () => {
     return () => window.removeEventListener("keydown", handler);
   }, [handleRunCode, currentProblem]);
 
-  // XP/progress handler for interactive (fill-blank) problems
+  // Interactive problem solve handler
   const handleInteractiveSolve = useCallback(async () => {
     if (!currentProblem) return;
     try {
@@ -434,38 +406,33 @@ const LanguagePlayground = () => {
     }
   }, [currentProblem, language, dispatch]);
 
-  // On mobile, start with sidebar closed so content is visible
   useEffect(() => {
-    if (isMobile) {
-      setIsSidebarOpen(false);
-    }
+    if (isMobile) setIsSidebarOpen(false);
   }, [isMobile]);
 
+  // ── Not found ──────────────────────────────────────────
   if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-zinc-950 text-white p-6">
-        <Card className="w-full max-w-md border-zinc-800 bg-zinc-900/95 shadow-xl">
-          <CardHeader className="space-y-1 text-center pb-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-white">
-              Language Not Found
-            </h1>
-            <p className="text-sm text-zinc-400">
-              The playground for &quot;{language}&quot; is not available yet.
-            </p>
-          </CardHeader>
-          <CardContent className="flex justify-center pt-2">
-            <Button
-              onClick={() => navigate("/playground")}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              Back to Playgrounds
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen bg-[#0d0b1a] text-white p-6">
+        <div className="w-full max-w-md border border-[#2d2755] bg-[#13112a] rounded-2xl shadow-2xl p-8 text-center space-y-4">
+          <h1 className="text-2xl font-semibold tracking-tight text-white">
+            Language Not Found
+          </h1>
+          <p className="text-sm text-zinc-400">
+            The playground for &quot;{language}&quot; is not available yet.
+          </p>
+          <button
+            onClick={() => navigate("/playground")}
+            className="bg-purple-600 hover:bg-purple-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
+          >
+            Back to Playgrounds
+          </button>
+        </div>
       </div>
     );
   }
 
+  // ── Computed values ────────────────────────────────────
   const totalProblems = data.chapters.reduce(
     (sum, ch) => sum + ch.problems.length,
     0,
@@ -474,852 +441,968 @@ const LanguagePlayground = () => {
   const progressPercent =
     totalProblems > 0 ? Math.round((completedCount / totalProblems) * 100) : 0;
 
+  // Lesson number (e.g. "2.1")
+  let currentChapterIdx = 0;
+  let currentProblemIdx = 0;
+  if (currentProblem) {
+    for (let ci = 0; ci < data.chapters.length; ci++) {
+      const pi = data.chapters[ci].problems.findIndex(
+        (p) => p.id === currentProblem.id,
+      );
+      if (pi !== -1) {
+        currentChapterIdx = ci;
+        currentProblemIdx = pi;
+        break;
+      }
+    }
+  }
+
+  // Derive filename from language
+  const fileExtMap = {
+    python: "py",
+    javascript: "js",
+    html: "html",
+    css: "css",
+    react: "jsx",
+  };
+  const fileName = `main.${fileExtMap[language?.toLowerCase()] || language}`;
+
+  // Go to next problem
+  const goToNextProblem = () => {
+    const allProblems = data.chapters.flatMap((ch) => ch.problems);
+    const currentIdx = allProblems.findIndex(
+      (p) => p.id === currentProblem?.id,
+    );
+    const nextProblem = allProblems[currentIdx + 1];
+    if (nextProblem) selectProblem(nextProblem);
+    else toast.success("You've completed all problems in this course!");
+  };
+
+  // ── Editor language mapping ────────────────────────────
+  const editorLang =
+    isReact || language === "javascript"
+      ? "javascript"
+      : language === "css"
+        ? "css"
+        : language === "python"
+          ? "python"
+          : "html";
+
+  // ── Loading state ──────────────────────────────────────
+  if (isLoadingProgress) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0d0b1a] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          <span className="text-sm text-zinc-400">Loading your progress…</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════
+   *  RENDER
+   * ════════════════════════════════════════════════════════ */
   return (
-    <div className="flex h-screen min-h-dvh bg-zinc-950 text-white overflow-hidden">
-      {/* Mobile backdrop when sidebar open */}
-      <AnimatePresence>
-        {isMobile && isSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/60 md:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-            aria-hidden
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ===== SIDEBAR ===== */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              "h-full border-r border-zinc-800 flex flex-col overflow-hidden shrink-0",
-              isMobile
-                ? "fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] bg-zinc-900 shadow-xl md:relative md:inset-auto md:z-auto md:w-auto md:max-w-none md:shadow-none"
-                : "bg-zinc-900/98",
-            )}
-          >
-            <div className="p-4 flex justify-between items-start shrink-0">
-              <div className="min-w-0 flex-1">
-                <h2 className="font-semibold text-sm text-white truncate tracking-tight">
-                  {data.title}
-                </h2>
-                <p className="text-xs text-zinc-500 mt-0.5 truncate">
-                  {data.subtitle}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(false)}
-                className="h-8 w-8 shrink-0 ml-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+    <div className="flex flex-col h-screen min-h-dvh bg-[#0d0b1a] text-white overflow-hidden">
+      {/* ═══════════ DESKTOP NAVBAR ═══════════ */}
+      {!isMobile && (
+        <header className="h-[60px] shrink-0 border-b border-[#2d2755] bg-[#0d0b1a] flex items-center justify-between px-6 z-10">
+          {/* Logo & title */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shrink-0">
+              <Terminal className="w-5 h-5 text-white" />
             </div>
-            <Separator className="bg-zinc-800" />
-
-            <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-              {data.chapters.map((chapter, idx) => {
-                const chapterCompleted = chapter.problems.filter((p) =>
-                  completedProblems.has(p.id),
-                ).length;
-                return (
-                  <div key={chapter.id}>
-                    <div className="flex items-center justify-between mb-2 px-1">
-                      <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-orange-500/20 text-orange-400 text-[10px] font-semibold flex items-center justify-center">
-                          {idx + 1}
-                        </span>
-                        {chapter.title}
-                      </span>
-                      <span className="text-[10px] text-zinc-600 tabular-nums">
-                        {chapterCompleted}/{chapter.problems.length}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5">
-                      {chapter.problems.map((prob) => {
-                        const isActive = currentProblem?.id === prob.id;
-                        const isDone = completedProblems.has(prob.id);
-                        return (
-                          <Button
-                            key={prob.id}
-                            variant="ghost"
-                            onClick={() => selectProblem(prob)}
-                            className={cn(
-                              "w-full justify-start gap-2.5 h-auto py-2 px-3 rounded-lg text-[13px] font-normal transition-all",
-                              isActive &&
-                                "bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20 hover:text-orange-400",
-                              isDone &&
-                                !isActive &&
-                                "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300",
-                              !isDone &&
-                                !isActive &&
-                                "text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300",
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
-                                isDone && "bg-emerald-500/20 text-emerald-400",
-                                isActive &&
-                                  !isDone &&
-                                  "bg-orange-500/20 text-orange-400",
-                                !isActive &&
-                                  !isDone &&
-                                  "bg-zinc-800 text-zinc-600",
-                              )}
-                            >
-                              {isDone ? (
-                                <CheckCircle className="h-2.5 w-2.5" />
-                              ) : (
-                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                              )}
-                            </span>
-                            <span className="truncate flex-1 text-left">
-                              {prob.title}
-                            </span>
-                            {isDone && (
-                              <span className="text-[10px] text-emerald-500/80">
-                                ✓
-                              </span>
-                            )}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <Separator className="bg-zinc-800" />
-            <div className="p-3 bg-zinc-900/50 shrink-0">
-              <div className="flex items-center justify-between text-[11px] text-zinc-500 mb-2">
-                <span>Progress</span>
-                <span className="tabular-nums">
-                  {completedCount}/{totalProblems}
-                </span>
-              </div>
-              <Progress
-                value={progressPercent}
-                className="h-1.5 bg-zinc-800"
-                indicatorClassName="rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-500"
-              />
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* ===== MAIN CONTENT ===== */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Top Bar */}
-        <header className="h-11 sm:h-12 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between gap-2 px-3 sm:px-4 shrink-0 min-h-0">
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
-            {(isMobile || !isSidebarOpen) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(true)}
-                className="h-8 w-8 shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800"
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-            )}
-            <h1 className="font-medium text-xs sm:text-sm text-white truncate tracking-tight min-w-0">
-              {currentProblem?.title}
-            </h1>
-            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wide border-0",
-                  currentProblem?.difficulty === "Easy" &&
-                    "bg-emerald-500/15 text-emerald-400",
-                  currentProblem?.difficulty === "Medium" &&
-                    "bg-amber-500/15 text-amber-400",
-                  currentProblem?.difficulty === "Hard" &&
-                    "bg-red-500/15 text-red-400",
-                )}
-              >
-                {currentProblem?.difficulty}
-              </Badge>
-              {completedProblems.has(currentProblem?.id) && (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border-0 gap-1"
-                >
-                  <CheckCircle className="h-3 w-3" /> SOLVED
-                </Badge>
-              )}
-            </div>
+            <span className="font-bold text-lg tracking-wide">
+              {language.charAt(0).toUpperCase() + language.slice(1)} Playground
+            </span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <Badge
-              variant="outline"
-              className="text-[10px] sm:text-[11px] font-medium text-orange-400 bg-orange-500/10 border-orange-500/20 hidden sm:inline-flex"
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-8 h-full">
+            {["Dashboard", "Courses", "Practice", "Community"].map((link) => {
+              const isActive = link === "Courses";
+              return (
+                <button
+                  key={link}
+                  onClick={() => {
+                    if (link === "Dashboard") navigate("/dashboard");
+                    if (link === "Practice") navigate("/playground");
+                    if (link === "Community") navigate("/community");
+                  }}
+                  className={cn(
+                    "h-full px-1 text-[13px] font-bold tracking-wide transition-colors relative flex items-center",
+                    isActive
+                      ? "text-purple-400"
+                      : "text-zinc-400 hover:text-white",
+                  )}
+                >
+                  {link}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-t-full" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* User actions */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 bg-[#2d1b69] border border-purple-500/20 px-3 py-1.5 rounded-full">
+              <Zap className="w-3.5 h-3.5 text-purple-400 fill-purple-400" />
+              <span className="text-purple-300 font-bold text-xs tracking-wide">
+                {(user?.stats?.totalXp || 0).toLocaleString()} XP
+              </span>
+            </div>
+            <button className="w-9 h-9 rounded-full bg-[#1e1b38] hover:bg-[#2d2755] flex items-center justify-center transition-colors">
+              <Bell className="w-4 h-4 text-purple-400" />
+            </button>
+            <button className="w-9 h-9 rounded-full bg-[#1e1b38] hover:bg-[#2d2755] flex items-center justify-center transition-colors">
+              <Settings className="w-4 h-4 text-purple-400" />
+            </button>
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-9 h-9 rounded-full overflow-hidden border border-[#2d2755] flex items-center justify-center"
             >
-              +{currentProblem?.xp} XP
-            </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={resetCode}
-              title="Reset code"
-              className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-zinc-800"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={handleRunCode}
-              disabled={isRunning}
-              className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 sm:px-4 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {isRunning ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                  <span className="hidden sm:inline">Running…</span>
-                </>
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <>
-                  <Play className="h-3.5 w-3.5 fill-current shrink-0" />
-                  <span className="hidden sm:inline">Run Code</span>
-                </>
+                <div className="w-full h-full bg-indigo-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {user?.name?.charAt(0) || "U"}
+                  </span>
+                </div>
               )}
-            </Button>
+            </button>
           </div>
         </header>
+      )}
 
-        {/* Workspace */}
-        <div className="flex-1 overflow-hidden min-h-0">
-          {currentProblem &&
-            (isMobile ? (
-              /* Mobile: vertical stack */
-              <PanelGroup direction="vertical">
-                <Panel defaultSize={30} minSize={15} maxSize={50}>
-                  <Card className="h-full rounded-none border-0 border-b border-zinc-800 bg-zinc-900 flex flex-col shadow-none">
-                    <CardHeader className="px-3 sm:px-4 py-2.5 sm:py-3 flex flex-row items-center justify-between space-y-0 border-b border-zinc-800 shrink-0">
-                      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        Instructions
-                      </div>
-                      {completedProblems.has(currentProblem.id) && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            const allProblems = data.chapters.flatMap(
-                              (ch) => ch.problems,
-                            );
-                            const currentIdx = allProblems.findIndex(
-                              (p) => p.id === currentProblem.id,
-                            );
-                            const nextProblem = allProblems[currentIdx + 1];
-                            if (nextProblem) {
-                              selectProblem(nextProblem);
-                            } else {
-                              toast.success(
-                                "You've completed all problems in this course!",
-                              );
-                            }
-                          }}
-                          className="h-7 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium gap-1"
-                        >
-                          Next <ChevronRight className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-                      <div className="prose prose-invert prose-sm max-w-none">
-                        <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap m-0">
-                          {currentProblem.description}
-                        </p>
-                      </div>
-                      {currentProblem.hints &&
-                        currentProblem.hints.length > 0 && (
-                          <div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowHints(!showHints)}
-                              className="h-auto py-1 px-0 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-transparent gap-2 -ml-1"
-                            >
-                              <Lightbulb className="h-3.5 w-3.5" />
-                              {showHints ? "Hide" : "Show"} Hints (
-                              {currentProblem.hints.length})
-                            </Button>
-                            <AnimatePresence>
-                              {showHints && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="space-y-2 overflow-hidden mt-2"
-                                >
-                                  {currentProblem.hints.map((hint, i) => (
-                                    <Card
-                                      key={i}
-                                      className="bg-amber-500/5 border-amber-500/20 rounded-lg p-3"
-                                    >
-                                      <CardContent className="p-0 text-xs text-amber-200/90 flex gap-2">
-                                        <span className="text-amber-500 font-semibold shrink-0">
-                                          {i + 1}.
-                                        </span>
-                                        <span>{hint}</span>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Mobile backdrop */}
+        <AnimatePresence>
+          {isMobile && isSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/60"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ═══════════ LEFT SIDEBAR ═══════════ */}
+        <AnimatePresence>
+          {(isSidebarOpen || !isMobile) && (
+            <motion.aside
+              initial={isMobile ? { x: -280, opacity: 0 } : false}
+              animate={isMobile ? { x: 0, opacity: 1 } : false}
+              exit={isMobile ? { x: -280, opacity: 0 } : undefined}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className={cn(
+                "h-full flex flex-col overflow-hidden shrink-0 bg-[#13112a] border-r border-[#2d2755]",
+                isMobile
+                  ? "fixed inset-y-0 left-0 z-50 w-[280px] shadow-2xl"
+                  : "w-[250px] hidden md:flex",
+              )}
+            >
+              {/* Course header */}
+              <div className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/20 flex items-center justify-center shrink-0">
+                  <FileCode2 className="w-5 h-5 text-purple-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-semibold text-sm text-white truncate">
+                    {data.title}
+                  </h2>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">
+                    {data.subtitle || "BEGINNER LEVEL"}
+                  </span>
+                </div>
+                {isMobile && (
+                  <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="text-zinc-500 hover:text-zinc-300 p-1"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Progress */}
+              <div className="px-4 pb-3">
+                <div className="flex items-center justify-between text-xs uppercase tracking-widest font-semibold mb-2">
+                  <span className="text-zinc-500">Course Progress</span>
+                  <span className="text-white font-bold">
+                    {progressPercent}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-[#1e1b38] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-600 mt-2 block">
+                  {completedCount} of {totalProblems} lessons completed
+                </span>
+              </div>
+
+              <div className="h-px bg-[#2d2755]" />
+
+              {/* Topic / chapter list */}
+              <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2d2755]">
+                {data.chapters.map((chapter, idx) => {
+                  const isActiveChapter = chapter.problems.some(
+                    (p) => p.id === currentProblem?.id,
+                  );
+                  const chapterDone = chapter.problems.every((p) =>
+                    completedProblems.has(p.id),
+                  );
+                  const chapterHasProgress = chapter.problems.some((p) =>
+                    completedProblems.has(p.id),
+                  );
+
+                  // A chapter is locked if: no progress in it, it's not active, and previous chapters aren't done
+                  let isLocked = false;
+                  if (
+                    !isActiveChapter &&
+                    !chapterDone &&
+                    !chapterHasProgress &&
+                    idx > 0
+                  ) {
+                    const prevDone = data.chapters[idx - 1].problems.every(
+                      (p) => completedProblems.has(p.id),
+                    );
+                    const prevHasProgress = data.chapters[
+                      idx - 1
+                    ].problems.some((p) => completedProblems.has(p.id));
+                    if (!prevDone && !prevHasProgress) isLocked = true;
+                  }
+
+                  const isExpanded = expandedChapterId === chapter.id;
+
+                  return (
+                    <div key={chapter.id} className="mb-2">
+                      <button
+                        onClick={() => {
+                          if (isLocked) return;
+                          setExpandedChapterId(isExpanded ? null : chapter.id);
+                        }}
+                        disabled={isLocked}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left",
+                          isActiveChapter && "text-purple-300",
+                          chapterDone &&
+                            !isActiveChapter &&
+                            "text-zinc-400 hover:bg-[#1e1b38]",
+                          isLocked &&
+                            "text-zinc-600 cursor-not-allowed opacity-60",
+                          !isActiveChapter &&
+                            !chapterDone &&
+                            !isLocked &&
+                            "text-zinc-300 hover:bg-[#1e1b38]",
                         )}
-                    </CardContent>
-                  </Card>
-                </Panel>
-                <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
-                <Panel defaultSize={45} minSize={25} maxSize={70}>
-                  <div className="h-full flex flex-col bg-[#1e1e1e]">
-                    <div className="px-3 sm:px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between shrink-0">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-                        </div>
-                        <span className="text-[11px] text-zinc-500 font-medium uppercase tracking-wide">
-                          {language} Editor
-                        </span>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] font-normal text-zinc-500 border-zinc-700 bg-transparent hidden sm:inline-flex"
                       >
-                        Ctrl+Enter to run
-                      </Badge>
+                        <div className="flex items-center gap-3 truncate">
+                          <span
+                            className={cn(
+                              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px]",
+                              isActiveChapter
+                                ? "bg-[#2d1b69] text-purple-400"
+                                : "bg-[#1e1b38] text-zinc-500",
+                            )}
+                          >
+                            {chapterDone ? (
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : isActiveChapter ? (
+                              <Play className="w-3.5 h-3.5 text-purple-400 fill-purple-400" />
+                            ) : (
+                              <BookOpen className="w-3.5 h-3.5" />
+                            )}
+                          </span>
+                          <span className="flex-1 truncate font-bold text-[14px]">
+                            {chapter.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {chapterDone && (
+                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                          )}
+                          {isLocked && (
+                            <Lock className="w-3.5 h-3.5 text-zinc-600" />
+                          )}
+                          {!isLocked && (
+                            <ChevronRight
+                              className={cn(
+                                "w-4 h-4 text-zinc-500 transition-transform",
+                                isExpanded && "rotate-90",
+                              )}
+                            />
+                          )}
+                        </div>
+                      </button>
+
+                      <AnimatePresence>
+                        {isExpanded && !isLocked && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pl-11 pr-2 py-1 flex flex-col gap-1">
+                              {chapter.problems.map((prob, pIdx) => {
+                                const isProbActive =
+                                  currentProblem?.id === prob.id;
+                                const isProbDone = completedProblems.has(
+                                  prob.id,
+                                );
+
+                                // Check if problem is locked (previous problem in chapter not done)
+                                let isProbLocked = false;
+                                if (pIdx > 0 && !isProbActive && !isProbDone) {
+                                  isProbLocked = !completedProblems.has(
+                                    chapter.problems[pIdx - 1].id,
+                                  );
+                                }
+
+                                return (
+                                  <button
+                                    key={prob.id}
+                                    onClick={() => {
+                                      if (!isProbLocked) {
+                                        selectProblem(prob, chapter.id);
+                                        if (isMobile) setIsSidebarOpen(false);
+                                      }
+                                    }}
+                                    disabled={isProbLocked}
+                                    className={cn(
+                                      "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg text-sm transition-colors",
+                                      isProbActive
+                                        ? "bg-[#2d1b69]/40 text-purple-300 font-semibold border border-purple-500/20"
+                                        : "text-zinc-400 hover:text-zinc-200 hover:bg-[#1e1b38]",
+                                      isProbLocked &&
+                                        "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
+                                      isProbDone &&
+                                        !isProbActive &&
+                                        "text-emerald-400/70",
+                                    )}
+                                  >
+                                    <span className="truncate">
+                                      {prob.title}
+                                    </span>
+                                    {isProbDone && (
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-2" />
+                                    )}
+                                    {isProbLocked && (
+                                      <Lock className="w-3 h-3 text-zinc-600 shrink-0 ml-2" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="flex-1 min-h-0">
-                      {currentProblem?.type === "interactive" ? (
-                        <InteractiveProblem
-                          key={currentProblem.id}
-                          problem={currentProblem}
-                          onSolve={handleInteractiveSolve}
-                          isAlreadySolved={completedProblems.has(
-                            currentProblem.id,
+                  );
+                })}
+              </div>
+
+              <div className="h-px bg-[#2d2755]" />
+
+              {/* View Curriculum */}
+              <div className="p-3">
+                <button
+                  onClick={() => navigate(`/playground/${language}/topics`)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#2d1b69]/40 hover:bg-[#2d1b69]/60 text-purple-400 text-sm font-medium transition-colors"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  View Curriculum
+                </button>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* ═══════════ MAIN CONTENT ═══════════ */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* ── Mobile top bar ── */}
+          {isMobile && (
+            <header className="flex items-center justify-between px-4 py-3 bg-[#0d0b1a] shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="text-zinc-300 hover:text-white p-0.5"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="font-semibold text-[15px] text-white truncate">
+                  {data.title}
+                </h1>
+              </div>
+              <span className="flex items-center gap-2 bg-[#2d1b69] text-[#b794f4] text-xs font-bold px-3 py-1.5 rounded-full border border-purple-500/20 shrink-0">
+                <span className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <Star className="w-2.5 h-2.5 text-black fill-current" />
+                </span>
+                {currentProblem?.xp} XP
+              </span>
+            </header>
+          )}
+
+          {/* ── Mobile progress bar ── */}
+          {isMobile && (
+            <div className="px-4 pb-3 shrink-0">
+              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.15em] font-bold mb-2">
+                <span className="text-purple-500">Lesson Progress</span>
+                <span className="text-white">{progressPercent}%</span>
+              </div>
+              <div className="h-2.5 bg-[#1e1b38] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Scrollable content ── */}
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2d2755]">
+            <div
+              className={cn(
+                "mx-auto space-y-5",
+                isMobile ? "px-4 py-4" : "max-w-4xl px-8 py-8",
+              )}
+            >
+              {/* Desktop: Lesson badge + XP reward */}
+              {!isMobile && (
+                <div className="flex items-center justify-between">
+                  <span className="bg-[#2d1b69] text-purple-400 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
+                    Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
+                  </span>
+                  <span className="text-emerald-400 text-sm font-bold flex items-center gap-1.5">
+                    <Award className="w-4 h-4" /> +{currentProblem?.xp} XP
+                    Reward
+                  </span>
+                </div>
+              )}
+
+              {/* Lesson title */}
+              <h1
+                className={cn(
+                  "font-bold text-white leading-tight",
+                  isMobile ? "text-xl" : "text-3xl",
+                )}
+              >
+                {currentProblem?.title}
+              </h1>
+
+              {/* Desktop: description paragraph */}
+              {!isMobile && (
+                <p className="text-zinc-400 text-[15px] leading-relaxed whitespace-pre-wrap">
+                  {currentProblem?.description}
+                </p>
+              )}
+
+              {/* ── Task Card ── */}
+              <div
+                className={cn(
+                  "rounded-[24px]",
+                  isMobile
+                    ? "bg-[#1f1b38] border border-[#2d2755] p-5"
+                    : "bg-transparent p-0",
+                )}
+              >
+                {isMobile ? (
+                  <>
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <span className="inline-block bg-[#a855f7] text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
+                        Task
+                      </span>
+                      <div className="w-12 h-10 rounded-xl bg-[#2d2755] flex items-center justify-center shrink-0">
+                        <Terminal className="w-6 h-6 text-zinc-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-3">
+                        {currentProblem?.title}
+                      </h3>
+                      <div
+                        className="text-zinc-300 text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
+                        dangerouslySetInnerHTML={{
+                          __html: currentProblem?.description
+                            ?.replace(
+                              /`([^`]+)`/g,
+                              '<span class="text-purple-400 bg-purple-500/10 px-1 py-0.5 rounded font-mono">$1</span>',
+                            )
+                            ?.replace(
+                              /"([^"]+)"/g,
+                              '<span class="text-emerald-400 font-mono">"$1"</span>',
+                            ),
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-[#1a1730]/40 border border-[#2d2755]/50 rounded-xl p-5 mb-2">
+                    <span className="text-purple-400 text-[14px] font-bold flex items-center gap-2 mb-3">
+                      <CheckCircle className="w-4 h-4" /> Your Task:
+                    </span>
+                    <div
+                      className="text-white text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
+                      dangerouslySetInnerHTML={{
+                        __html: currentProblem?.description
+                          ?.replace(
+                            /`([^`]+)`/g,
+                            '<span class="bg-[#2d2755] text-purple-300 px-1.5 py-0.5 rounded font-mono text-sm">$1</span>',
+                          )
+                          ?.replace(
+                            /"([^"]+)"/g,
+                            '<span class="bg-[#2d2755] text-emerald-400 px-1.5 py-0.5 rounded font-mono text-sm">"$1"</span>',
+                          ),
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* ── Hints ── */}
+              {currentProblem?.hints &&
+                currentProblem.hints.length > 0 &&
+                (isMobile ? (
+                  /* Mobile: hint card with toggle */
+                  <div className="bg-[#1f1b38] border border-[#2d2755] rounded-[24px] p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-[#2d1b69] flex items-center justify-center shrink-0">
+                          <Lightbulb className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-[17px] font-bold text-white mb-0.5">
+                            Need a hint?
+                          </h4>
+                          <p className="text-[13px] text-zinc-400">
+                            Reveal a tip to help you solve it
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowHints(!showHints)}
+                        className={cn(
+                          "w-12 h-7 rounded-full transition-colors relative shrink-0",
+                          showHints
+                            ? "bg-purple-500"
+                            : "bg-[#2d1b69] border border-white/10",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "absolute top-1 w-5 h-5 rounded-full bg-white transition-transform shadow-md",
+                            showHints ? "translate-x-6" : "translate-x-1",
                           )}
                         />
+                      </button>
+                    </div>
+                    <AnimatePresence>
+                      {showHints && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden mt-4 space-y-2"
+                        >
+                          {currentProblem.hints.map((hint, i) => (
+                            <p
+                              key={i}
+                              className="text-sm text-purple-200/90 pl-3 border-l-2 border-purple-500 py-1"
+                            >
+                              {hint}
+                            </p>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  /* Desktop: tip text */
+                  <div>
+                    <p className="text-emerald-400/80 text-sm italic">
+                      Tip: {currentProblem.hints[0]}
+                    </p>
+                    {currentProblem.hints.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setShowHints(!showHints)}
+                          className="text-amber-400 hover:text-amber-300 text-xs mt-2 flex items-center gap-1"
+                        >
+                          <Lightbulb className="w-3 h-3" />
+                          {showHints ? "Hide" : "Show"}{" "}
+                          {currentProblem.hints.length - 1} more hint
+                          {currentProblem.hints.length > 2 ? "s" : ""}
+                        </button>
+                        <AnimatePresence>
+                          {showHints && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden space-y-1.5 mt-2"
+                            >
+                              {currentProblem.hints.slice(1).map((hint, i) => (
+                                <p
+                                  key={i}
+                                  className="text-emerald-400/60 text-sm italic"
+                                >
+                                  Tip: {hint}
+                                </p>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+              {/* ── Code Editor / Interactive Problem ── */}
+              {currentProblem?.type === "interactive" ? (
+                <div className="bg-[#1a1730] border border-[#2d2755] rounded-xl overflow-hidden p-1">
+                  <InteractiveProblem
+                    key={currentProblem.id}
+                    problem={currentProblem}
+                    onSolve={handleInteractiveSolve}
+                    isAlreadySolved={completedProblems.has(currentProblem.id)}
+                  />
+                </div>
+              ) : (
+                <div className="bg-[#1f1b38] rounded-2xl border border-[#2d2755]/60 overflow-hidden shadow-lg">
+                  {/* Editor toolbar */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d2755]/60 bg-[#1f1b38]/80">
+                    <div className="flex items-center gap-3 w-full">
+                      {isMobile ? (
+                        <>
+                          <div className="flex gap-2">
+                            <span className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+                            <span className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                            <span className="w-3 h-3 rounded-full bg-[#27c93f]" />
+                          </div>
+                          <span className="flex-1 text-right text-[11px] text-zinc-500 font-bold uppercase tracking-[0.15em] ml-auto">
+                            {fileName}
+                          </span>
+                        </>
                       ) : (
-                        <Editor
-                          height="100%"
-                          language={
-                            isReact || language === "javascript"
-                              ? "javascript"
-                              : language === "css"
-                                ? "css"
-                                : "html"
-                          }
-                          value={code}
-                          onChange={(val) => setCode(val || "")}
-                          theme="vs-dark"
-                          options={{
-                            fontSize: 14,
-                            lineNumbers: "on",
-                            minimap: { enabled: false },
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            padding: { top: 12 },
-                            fontFamily:
-                              "'JetBrains Mono', 'Fira Code', monospace",
-                            renderLineHighlight: "all",
-                            bracketPairColorization: { enabled: true },
-                            cursorBlinking: "smooth",
-                            smoothScrolling: true,
-                          }}
-                        />
+                        <>
+                          <div className="flex items-center gap-2 text-sm text-zinc-300 font-medium">
+                            <FileCode2 className="w-4 h-4 text-zinc-400" />
+                            {fileName}
+                          </div>
+                          <div className="flex items-center gap-3 ml-auto">
+                            <button
+                              onClick={resetCode}
+                              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Reset
+                            </button>
+
+                            <div className="flex gap-2">
+                              {testResult?.success && (
+                                <button
+                                  onClick={goToNextProblem}
+                                  className="flex items-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-black font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+                                >
+                                  Next Question{" "}
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={handleRunCode}
+                                disabled={isRunning || testResult?.success}
+                                className="flex items-center gap-2 bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-50 text-white font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-purple-500/20"
+                              >
+                                {isRunning ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />{" "}
+                                    Running…
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-4 h-4 fill-white" /> Run
+                                    Code
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
-                </Panel>
-                {currentProblem?.type !== "interactive" && (
-                  <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
-                )}
-                {currentProblem?.type !== "interactive" && (
-                  <Panel defaultSize={25} minSize={15} maxSize={45}>
-                    {isLivePreview || isReact ? (
-                      <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
-                        <CardHeader className="px-3 sm:px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
-                          <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
-                            Live Preview
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {testResult && (
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] font-semibold border-0",
-                                  testResult.success
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-red-100 text-red-700",
-                                )}
-                              >
-                                {testResult.success ? "✓ PASSED" : "✗ FAILED"}
-                              </Badge>
+
+                  {/* Monaco editor */}
+                  <div className={isMobile ? "h-[220px]" : "h-[320px]"}>
+                    <Editor
+                      height="100%"
+                      language={editorLang}
+                      value={code}
+                      onChange={(val) => setCode(val || "")}
+                      theme="vs-dark"
+                      options={{
+                        fontSize: isMobile ? 13 : 14,
+                        lineNumbers: "on",
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        padding: { top: 12, bottom: 12 },
+                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        renderLineHighlight: "all",
+                        bracketPairColorization: { enabled: true },
+                        cursorBlinking: "smooth",
+                        smoothScrolling: true,
+                        lineDecorationsWidth: 0,
+                        overviewRulerLanes: 0,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Live Preview (HTML/CSS/React) ── */}
+              {(isLivePreview || isReact) &&
+                currentProblem?.type !== "interactive" && (
+                  <div className="bg-white rounded-xl border border-[#2d2755] overflow-hidden">
+                    <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+                      <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
+                        Live Preview
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {testResult && (
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold px-2 py-0.5 rounded",
+                              testResult.success
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-red-100 text-red-700",
                             )}
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              Live
-                            </Badge>
+                          >
+                            {testResult.success ? "✓ PASSED" : "✗ FAILED"}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Live
+                        </span>
+                      </div>
+                    </div>
+                    <iframe
+                      ref={iframeRef}
+                      className="w-full border-0"
+                      style={{ height: isMobile ? 180 : 250 }}
+                      title="Live Preview"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
+                    {testResult && (
+                      <div
+                        className={cn(
+                          "px-4 py-2 border-t text-xs font-medium flex items-center gap-2",
+                          testResult.success
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : "bg-red-50 border-red-200 text-red-700",
+                        )}
+                      >
+                        {testResult.success ? (
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        ) : (
+                          <X className="w-3.5 h-3.5" />
+                        )}
+                        {testResult.message}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Hidden iframe for non-preview React */}
+              {isReact && !isLivePreview && (
+                <iframe
+                  ref={iframeRef}
+                  className="hidden"
+                  title="React Runner"
+                  sandbox="allow-scripts allow-same-origin"
+                />
+              )}
+
+              {/* ── Output (non-preview languages) ── */}
+              {!isLivePreview &&
+                !isReact &&
+                currentProblem?.type !== "interactive" && (
+                  <div>
+                    {isRunning && (
+                      <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Executing…
+                      </div>
+                    )}
+                    {output && !isRunning && (
+                      <div className="space-y-3">
+                        {output.text && (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2.5 text-sm px-4 py-3 bg-[#13112a] border-t border-[#2d2755]/60">
+                              <Terminal className="w-4 h-4 text-purple-400 shrink-0" />
+                              <span className="text-zinc-400">Output:</span>
+                              <span className="text-emerald-400 font-mono ml-2">
+                                {output.text}
+                              </span>
+                            </div>
                           </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-auto p-0 min-h-0">
-                          <iframe
-                            ref={iframeRef}
-                            className="w-full h-full border-0 min-h-[160px]"
-                            title="Live Preview"
-                            sandbox="allow-scripts allow-same-origin"
-                          />
-                        </CardContent>
+                        )}
+                        {output.error && (
+                          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
+                            <pre className="text-red-400 whitespace-pre-wrap text-xs font-mono m-0">
+                              {output.error}
+                            </pre>
+                          </div>
+                        )}
                         {testResult && (
                           <div
                             className={cn(
-                              "px-3 sm:px-4 py-2 border-t text-xs shrink-0",
+                              "rounded-xl p-4 border flex items-center gap-2 text-sm font-medium",
                               testResult.success
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                : "bg-red-50 border-red-200 text-red-700",
+                                ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                                : "bg-red-500/5 border-red-500/20 text-red-400",
                             )}
                           >
-                            <div className="flex items-center gap-2 font-medium">
-                              {testResult.success ? (
-                                <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                              ) : (
-                                <X className="h-3.5 w-3.5 shrink-0" />
-                              )}
-                              {testResult.message}
-                            </div>
+                            {testResult.success ? (
+                              <CheckCircle className="w-4 h-4" />
+                            ) : (
+                              <X className="w-4 h-4" />
+                            )}
+                            {testResult.message}
                           </div>
                         )}
-                      </Card>
-                    ) : (
-                      <div className="h-full bg-zinc-950 flex flex-col">
-                        <div className="px-3 sm:px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
-                          <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-                            Output
-                          </span>
-                          {testResult && (
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[10px] font-semibold border-0",
-                                testResult.success
-                                  ? "bg-emerald-500/15 text-emerald-400"
-                                  : "bg-red-500/15 text-red-400",
-                              )}
-                            >
-                              {testResult.success ? "✓ PASSED" : "✗ FAILED"}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-3 sm:p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-                          {isRunning ? (
-                            <div className="flex items-center gap-2 text-zinc-500">
-                              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                              <span className="text-sm">Executing…</span>
-                            </div>
-                          ) : output === null ? (
-                            <p className="text-zinc-500 text-xs">
-                              Tap <strong className="text-zinc-400">Run</strong>{" "}
-                              or{" "}
-                              <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
-                                Ctrl+Enter
-                              </kbd>
-                            </p>
-                          ) : (
-                            <div className="space-y-3">
-                              {output.text && (
-                                <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
-                                  {output.text}
-                                </pre>
-                              )}
-                              {output.error && (
-                                <Card className="bg-red-500/5 border-red-500/20">
-                                  <CardContent className="p-3">
-                                    <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
-                                      {output.error}
-                                    </pre>
-                                  </CardContent>
-                                </Card>
-                              )}
-                              {testResult && (
-                                <Card
-                                  className={cn(
-                                    "border",
-                                    testResult.success
-                                      ? "bg-emerald-500/5 border-emerald-500/20"
-                                      : "bg-red-500/5 border-red-500/20",
-                                  )}
-                                >
-                                  <CardContent className="p-3">
-                                    <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
-                                      {testResult.success ? (
-                                        <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
-                                      ) : (
-                                        <X className="h-3.5 w-3.5 text-red-400" />
-                                      )}
-                                      Validation Result
-                                    </div>
-                                    <p
-                                      className={cn(
-                                        "text-xs m-0",
-                                        testResult.success
-                                          ? "text-emerald-400/90"
-                                          : "text-red-400/90",
-                                      )}
-                                    >
-                                      {testResult.message}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-                              )}
-                            </div>
-                          )}
-                        </div>
                       </div>
                     )}
-                  </Panel>
+                  </div>
                 )}
-              </PanelGroup>
-            ) : (
-              /* Desktop: horizontal then vertical */
-              <PanelGroup direction="horizontal">
-                {/* LEFT: Description */}
-                <Panel defaultSize={35} minSize={20}>
-                  <Card className="h-full rounded-none border-0 border-r border-zinc-800 bg-zinc-900 flex flex-col shadow-none">
-                    <CardHeader className="px-4 py-3 flex flex-row items-center justify-between space-y-0 border-b border-zinc-800 shrink-0">
-                      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        Instructions
-                      </div>
-                      {completedProblems.has(currentProblem.id) && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            const allProblems = data.chapters.flatMap(
-                              (ch) => ch.problems,
-                            );
-                            const currentIdx = allProblems.findIndex(
-                              (p) => p.id === currentProblem.id,
-                            );
-                            const nextProblem = allProblems[currentIdx + 1];
-                            if (nextProblem) {
-                              selectProblem(nextProblem);
-                            } else {
-                              toast.success(
-                                "You've completed all problems in this course!",
-                              );
-                            }
-                          }}
-                          className="h-7 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium gap-1"
-                        >
-                          Next <ChevronRight className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto p-5 space-y-5 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-                      <div className="prose prose-invert prose-sm max-w-none">
-                        <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap m-0">
-                          {currentProblem.description}
-                        </p>
-                      </div>
 
-                      {currentProblem.hints &&
-                        currentProblem.hints.length > 0 && (
-                          <div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowHints(!showHints)}
-                              className="h-auto py-1 px-0 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-transparent gap-2 -ml-1"
-                            >
-                              <Lightbulb className="h-3.5 w-3.5" />
-                              {showHints ? "Hide" : "Show"} Hints (
-                              {currentProblem.hints.length})
-                            </Button>
-                            <AnimatePresence>
-                              {showHints && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="space-y-2 overflow-hidden mt-2"
-                                >
-                                  {currentProblem.hints.map((hint, i) => (
-                                    <Card
-                                      key={i}
-                                      className="bg-amber-500/5 border-amber-500/20 rounded-lg p-3"
-                                    >
-                                      <CardContent className="p-0 text-xs text-amber-200/90 flex gap-2">
-                                        <span className="text-amber-500 font-semibold shrink-0">
-                                          {i + 1}.
-                                        </span>
-                                        <span>{hint}</span>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        )}
-                    </CardContent>
-                  </Card>
-                </Panel>
+              {/* ── Next problem button (after completion) ── */}
+              {completedProblems.has(currentProblem?.id) && (
+                <button
+                  onClick={goToNextProblem}
+                  className="flex items-center gap-2 text-sm font-semibold text-purple-300 hover:text-purple-200 transition-colors group"
+                >
+                  Next Problem
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
+            </div>
+          </div>
 
-                <PanelResizeHandle className="w-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-col-resize rounded-px data-[resize-handle-active]:bg-orange-500" />
+          {/* ── Mobile: Fixed RUN CODE button ── */}
+          {isMobile && currentProblem?.type !== "interactive" && (
+            <div className="px-4 pb-4 pt-2 bg-[#0d0b1a] shrink-0 flex gap-3">
+              <button
+                onClick={handleRunCode}
+                disabled={isRunning || testResult?.success}
+                className="flex-1 h-[56px] bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-50 text-white font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-purple-900/20"
+              >
+                {isRunning ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> RUNNING…
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5 fill-current" /> RUN CODE
+                  </>
+                )}
+              </button>
+              {testResult?.success && (
+                <button
+                  onClick={goToNextProblem}
+                  className="flex-1 h-[56px] bg-[#34d399] hover:bg-[#10b981] text-black font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-emerald-900/20 animate-in slide-in-from-right-4"
+                >
+                  NEXT <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          )}
 
-                {/* RIGHT: Editor + Output */}
-                <Panel defaultSize={65} minSize={40}>
-                  <PanelGroup direction="vertical">
-                    {/* Editor */}
-                    <Panel defaultSize={60} minSize={30}>
-                      <div className="h-full min-h-0 flex flex-col bg-[#1e1e1e]">
-                        <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between shrink-0">
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-                            </div>
-                            <span className="text-[11px] text-zinc-500 font-medium uppercase tracking-wide">
-                              {language} Editor
-                            </span>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] font-normal text-zinc-500 border-zinc-700 bg-transparent"
-                          >
-                            Ctrl+Enter to run
-                          </Badge>
-                        </div>
-                        <div className="flex-1 min-h-0">
-                          {currentProblem?.type === "interactive" ? (
-                            <InteractiveProblem
-                              key={currentProblem.id}
-                              problem={currentProblem}
-                              onSolve={handleInteractiveSolve}
-                              isAlreadySolved={completedProblems.has(
-                                currentProblem.id,
-                              )}
-                            />
-                          ) : (
-                            <Editor
-                              height="100%"
-                              language={
-                                isReact || language === "javascript"
-                                  ? "javascript"
-                                  : language === "css"
-                                    ? "css"
-                                    : "html"
-                              }
-                              value={code}
-                              onChange={(val) => setCode(val || "")}
-                              theme="vs-dark"
-                              options={{
-                                fontSize: 14,
-                                lineNumbers: "on",
-                                minimap: { enabled: false },
-                                scrollBeyondLastLine: false,
-                                automaticLayout: true,
-                                padding: { top: 12 },
-                                fontFamily:
-                                  "'JetBrains Mono', 'Fira Code', monospace",
-                                renderLineHighlight: "all",
-                                bracketPairColorization: { enabled: true },
-                                cursorBlinking: "smooth",
-                                smoothScrolling: true,
-                              }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </Panel>
-
-                    {currentProblem?.type !== "interactive" && (
-                      <PanelResizeHandle className="h-1.5 bg-zinc-800 hover:bg-orange-500/80 transition-colors cursor-row-resize data-[resize-handle-active]:bg-orange-500" />
+          {/* ── Mobile: Bottom navigation ── */}
+          {isMobile && (
+            <nav className="flex items-center justify-around py-3 border-t border-[#2d2755] bg-[#13112a] shrink-0">
+              {[
+                {
+                  icon: GraduationCap,
+                  label: "LEARN",
+                  active: true,
+                  action: () => setIsSidebarOpen(true),
+                },
+                {
+                  icon: Terminal,
+                  label: "PRACTICE",
+                  active: false,
+                  action: () => navigate("/playground"),
+                },
+                {
+                  icon: BarChart2,
+                  label: "RANKING",
+                  active: false,
+                  action: () => navigate("/leaderboard"),
+                },
+                {
+                  icon: User,
+                  label: "PROFILE",
+                  active: false,
+                  action: () => navigate("/profile"),
+                },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 text-[10px] font-bold tracking-widest transition-colors",
+                    item.active
+                      ? "text-purple-400"
+                      : "text-zinc-500 hover:text-zinc-400",
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "w-6 h-6",
+                      item.active && "fill-purple-400/20",
                     )}
-
-                    {/* Output / Live Preview — hidden for interactive problems */}
-                    {currentProblem?.type !== "interactive" && (
-                      <Panel defaultSize={40} minSize={15}>
-                        {isLivePreview || isReact ? (
-                          <Card className="h-full rounded-none border-0 flex flex-col bg-white shadow-none">
-                            <CardHeader className="px-4 py-2 flex flex-row items-center justify-between space-y-0 border-b border-zinc-200 bg-zinc-50 shrink-0">
-                              <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
-                                Live Preview
-                              </span>
-                              <div className="flex items-center gap-2">
-                                {testResult && (
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] font-semibold border-0",
-                                      testResult.success
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-red-100 text-red-700",
-                                    )}
-                                  >
-                                    {testResult.success
-                                      ? "✓ PASSED"
-                                      : "✗ FAILED"}
-                                  </Badge>
-                                )}
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border-0 gap-1"
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  Live
-                                </Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-auto p-0 min-h-0">
-                              <iframe
-                                ref={iframeRef}
-                                className="w-full h-full border-0 min-h-[200px]"
-                                title="Live Preview"
-                                sandbox="allow-scripts allow-same-origin"
-                              />
-                            </CardContent>
-                            {testResult && (
-                              <div
-                                className={cn(
-                                  "px-4 py-2 border-t text-xs shrink-0",
-                                  testResult.success
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                    : "bg-red-50 border-red-200 text-red-700",
-                                )}
-                              >
-                                <div className="flex items-center gap-2 font-medium">
-                                  {testResult.success ? (
-                                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                                  ) : (
-                                    <X className="h-3.5 w-3.5 shrink-0" />
-                                  )}
-                                  {testResult.message}
-                                </div>
-                              </div>
-                            )}
-                          </Card>
-                        ) : (
-                          <div className="h-full bg-zinc-950 flex flex-col">
-                            <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900 flex items-center gap-3 shrink-0">
-                              <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-                                Output
-                              </span>
-                              {testResult && (
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[10px] font-semibold border-0",
-                                    testResult.success
-                                      ? "bg-emerald-500/15 text-emerald-400"
-                                      : "bg-red-500/15 text-red-400",
-                                  )}
-                                >
-                                  {testResult.success
-                                    ? "✓ ALL TESTS PASSED"
-                                    : "✗ TESTS FAILED"}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700">
-                              {isRunning ? (
-                                <div className="flex items-center gap-2 text-zinc-500">
-                                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                                  <span className="text-sm">Executing…</span>
-                                </div>
-                              ) : output === null ? (
-                                <p className="text-zinc-500 text-xs">
-                                  Click{" "}
-                                  <strong className="text-zinc-400">
-                                    Run Code
-                                  </strong>{" "}
-                                  or press{" "}
-                                  <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 text-[10px] font-mono">
-                                    Ctrl+Enter
-                                  </kbd>{" "}
-                                  to execute your code.
-                                </p>
-                              ) : (
-                                <div className="space-y-3">
-                                  {output.text && (
-                                    <pre className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed m-0">
-                                      {output.text}
-                                    </pre>
-                                  )}
-                                  {output.error && (
-                                    <Card className="bg-red-500/5 border-red-500/20">
-                                      <CardContent className="p-3">
-                                        <pre className="text-red-400 whitespace-pre-wrap text-xs leading-relaxed m-0 font-mono">
-                                          {output.error}
-                                        </pre>
-                                      </CardContent>
-                                    </Card>
-                                  )}
-                                  {testResult && (
-                                    <Card
-                                      className={cn(
-                                        "border",
-                                        testResult.success
-                                          ? "bg-emerald-500/5 border-emerald-500/20"
-                                          : "bg-red-500/5 border-red-500/20",
-                                      )}
-                                    >
-                                      <CardContent className="p-3">
-                                        <div className="font-semibold mb-1 flex items-center gap-2 text-xs">
-                                          {testResult.success ? (
-                                            <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
-                                          ) : (
-                                            <X className="h-3.5 w-3.5 text-red-400" />
-                                          )}
-                                          Validation Result
-                                        </div>
-                                        <p
-                                          className={cn(
-                                            "text-xs m-0",
-                                            testResult.success
-                                              ? "text-emerald-400/90"
-                                              : "text-red-400/90",
-                                          )}
-                                        >
-                                          {testResult.message}
-                                        </p>
-                                      </CardContent>
-                                    </Card>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </Panel>
-                    )}
-                  </PanelGroup>
-                </Panel>
-              </PanelGroup>
-            ))}
+                  />
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          )}
         </div>
+
+        {/* ═══════════ RIGHT FABs (desktop) ═══════════ */}
+        {!isMobile && (
+          <div className="hidden lg:flex flex-col gap-3 py-6 pr-4 pl-2 shrink-0">
+            {[
+              { icon: MessageCircle, color: "text-zinc-400" },
+              { icon: Lightbulb, color: "text-yellow-400" },
+              { icon: Users, color: "text-zinc-400" },
+              { icon: HelpCircle, color: "text-zinc-400" },
+            ].map((fab, i) => (
+              <button
+                key={i}
+                className="w-12 h-12 rounded-full bg-[#1a1730] border border-[#2d2755] flex items-center justify-center hover:bg-[#1e1b38] transition-colors"
+              >
+                <fab.icon className={cn("w-5 h-5", fab.color)} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

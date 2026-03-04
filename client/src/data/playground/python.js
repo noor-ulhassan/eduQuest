@@ -1,7 +1,6 @@
 export const pythonPlayground = {
   title: "Python 3 Fundamentals",
-  subtitle:
-    "Master Modern Python from Basics to Advanced Data Science & AI Applications",
+  subtitle: "",
   chapters: [
     // ΓöÇΓöÇΓöÇ CHAPTER 1: VARIABLES & DATA TYPES ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     {

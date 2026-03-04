@@ -14,6 +14,7 @@ import playgroundRoute from "./routes/playgroundRoutes.js";
 import leaderboardRoute from "./routes/leaderboardRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import competitionRoutes from "./routes/competitionRoutes.js";
+import codeRoute from "./routes/codeRoutes.js";
 import { initializeSocket } from "./socket/roomHandler.js";
 import quizAttemptRoute from "./routes/quizAttemptRoutes.js";
 
@@ -68,6 +69,7 @@ app.use("/api/v1/playground", playgroundRoute);
 app.use("/api/v1/leaderboard", leaderboardRoute);
 app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/competition", competitionRoutes);
+app.use("/api/v1/code", codeRoute);
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);

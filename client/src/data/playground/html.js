@@ -1,6 +1,6 @@
 export const htmlPlayground = {
   title: "The EduQuest HTML Codex",
-  subtitle: "Master Modern Web Development from Foundation to Enterprise",
+  subtitle: "",
   livePreview: true,
   chapters: [
     {

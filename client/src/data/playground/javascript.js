@@ -1,7 +1,6 @@
 export const javascriptPlayground = {
   title: "The JavaScript Codex",
-  subtitle:
-    "Master Modern JavaScript from ES6 Fundamentals to Advanced Patterns",
+  subtitle: "",
   chapters: [
     // ΓöÇΓöÇΓöÇ CHAPTER 1: VARIABLES ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     {

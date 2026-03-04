@@ -1,6 +1,4 @@
-// Piston API is a service for code execution
-
-const PISTON_API = "https://emkc.org/api/v2/piston";
+// Code execution via backend proxy (avoids CORS/cert issues with Piston directly)
 
 const LANGUAGE_VERSIONS = {
   javascript: { language: "javascript", version: "18.15.0" },
@@ -10,7 +8,7 @@ const LANGUAGE_VERSIONS = {
 
 /**
  * @param {string} language - programming language
- * @param {string} code - source code to executed
+ * @param {string} code - source code to execute
  * @returns {Promise<{success:boolean, output?:string, error?: string}>}
  */
 export async function executeCode(language, code) {
@@ -24,11 +22,12 @@ export async function executeCode(language, code) {
       };
     }
 
-    const response = await fetch(`${PISTON_API}/execute`, {
+    const response = await fetch("http://localhost:8080/api/v1/code/execute", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         language: languageConfig.language,
         version: languageConfig.version,
@@ -53,8 +52,6 @@ export async function executeCode(language, code) {
     const output = data.run.output || "";
     const stderr = data.run.stderr || "";
 
-    // If there's stderr but also stdout output, treat as success with warnings
-    // Python often writes deprecation/import warnings to stderr even on valid runs
     if (stderr && !output) {
       return {
         success: false,
