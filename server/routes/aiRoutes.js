@@ -3,6 +3,8 @@ import {
   enrollToCourse,
   geminiCourseGenerator,
   generateChapterContent,
+  generateFlashcards,
+  courseMentorChat,
   getAllCourses,
   getCourseById,
   getEnrollmentStatus,
@@ -26,5 +28,7 @@ router.get("/enrollment-status", authenticate, getEnrollmentStatus);
 router.post("/mark-chapter-completed", authenticate, markChapterCompleted);
 router.get("/user-enrollments", authenticate, getUserEnrollments);
 router.post("/update-user-xp", authenticate, updateUserXP);
+router.post("/generate-flashcards", authenticate, generateFlashcards);
+router.post("/course-mentor-chat", authenticate, courseMentorChat);
 
 export default router;

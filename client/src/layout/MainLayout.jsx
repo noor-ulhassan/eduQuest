@@ -2,15 +2,6 @@ import Navbar from "@/layout/Navbar";
 import Footer from "@/layout/Footer";
 import { Outlet, useLocation } from "react-router-dom";
 
-/**
- * MainLayout — root shell shared by all public + protected pages.
- *
- * Layout contract:
- *  - Navbar is fixed at the top (h-14 = 3.5rem).
- *  - <main> has pt-14 so page content always starts below the navbar.
- *    Individual pages must NOT add their own top margin/padding for this offset.
- *  - Footer is hidden on full-screen pages (workspace, problem solver, etc.).
- */
 const MainLayout = () => {
   const location = useLocation();
 
@@ -21,6 +12,7 @@ const MainLayout = () => {
   const hideNavbar =
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||
+    location.pathname.startsWith("/course/") ||
     location.pathname === "/leaderboard";
 
   const hideFooter =

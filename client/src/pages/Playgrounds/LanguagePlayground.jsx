@@ -1310,7 +1310,7 @@ const LanguagePlayground = () => {
               <button
                 onClick={handleRunCode}
                 disabled={isRunning || testResult?.success}
-                className="flex-1 h-[56px] bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-50 text-white font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-purple-900/20"
+                className="flex-1 h-[56px] bg-[#2cf07d] hover:bg-[#2cf09d] disabled:opacity-50 text-black font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-purple-900/20"
               >
                 {isRunning ? (
                   <>

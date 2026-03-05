@@ -66,6 +66,13 @@ export const geminiCourseGenerator = async (req, res) => {
             "duration": "string",
             "topics": ["string"]
           }
+        ],
+        "achievements": [
+          {
+            "title": "string",
+            "icon": "string (material symbol name, e.g. 'wb_sunny', 'auto_fix_high', 'bug_report')",
+            "description": "string"
+          }
         ]
       }
     }
@@ -165,12 +172,19 @@ export const generateChapterContent = async (req, res) => {
 
     const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML 
     and give response in JSON format. 
-    Schema:{
-    chapterName:<>,
-    {
-    topic:<>,
-    content:<>
-    }
+    Schema: {
+      "chapterName": "string",
+      "topics": [
+        {
+          "topic": "string",
+          "content": "string (html format)",
+          "proTip": "string (a useful pro tip about the topic)",
+          "keyConcepts": [
+             { "title": "string", "description": "string", "icon": "string (material symbol name like 'dns' or 'stream')" }
+          ],
+          "imagePrompt": "string (abstract futuristic digital architecture concept describing the topic)"
+        }
+      ]
     }
     : User Input: ${JSON.stringify(chapter)}`;
 
@@ -297,7 +311,7 @@ export const getEnrollmentStatus = async (req, res) => {
   }
 };
 
-// 2. Mark Chapter Completed (Fixes the progress logic)
+// 2. Mark Chapter Completed + Auto-Unlock Achievements
 export const markChapterCompleted = async (req, res) => {
   try {
     const { enrollmentId, chapterName } = req.body;
@@ -312,7 +326,7 @@ export const markChapterCompleted = async (req, res) => {
     const updatedEnrollment = await Enrollment.findByIdAndUpdate(
       enrollmentId,
       {
-        $addToSet: { completedChapters: chapterName }, // Adds only if not already exists
+        $addToSet: { completedChapters: chapterName },
       },
       { new: true },
     );
@@ -322,6 +336,42 @@ export const markChapterCompleted = async (req, res) => {
         success: false,
         message: "Enrollment not found",
       });
+    }
+
+    // --- Auto-unlock achievements based on progress milestones ---
+    const course = await Course.findOne({
+      courseId: updatedEnrollment.courseId,
+    });
+    if (course) {
+      const totalChapters =
+        course.noOfChapters || course.courseOutput?.chapters?.length || 1;
+      const completedCount = updatedEnrollment.completedChapters.length;
+      const achievements = course.courseOutput?.achievements || [];
+      const newUnlocks = [];
+
+      // Milestone: first chapter completed → unlock achievement[0]
+      if (completedCount >= 1 && achievements[0]) {
+        newUnlocks.push(achievements[0].title);
+      }
+      // Milestone: 50% completed → unlock achievement[1]
+      if (completedCount >= Math.ceil(totalChapters / 2) && achievements[1]) {
+        newUnlocks.push(achievements[1].title);
+      }
+      // Milestone: all chapters completed → unlock achievement[2] and beyond
+      if (completedCount >= totalChapters) {
+        achievements.slice(2).forEach((ach) => newUnlocks.push(ach.title));
+      }
+
+      if (newUnlocks.length > 0) {
+        await Enrollment.findByIdAndUpdate(enrollmentId, {
+          $addToSet: { unlockedAchievements: { $each: newUnlocks } },
+        });
+        // Re-fetch to get latest state
+        const finalEnrollment = await Enrollment.findById(enrollmentId);
+        return res
+          .status(200)
+          .json({ success: true, enrollment: finalEnrollment });
+      }
     }
 
     return res
@@ -586,5 +636,133 @@ JSON SCHEMA:
   } catch (error) {
     console.error("Gemini Quiz Error:", error);
     throw error;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLASHCARD GENERATION
+// ═══════════════════════════════════════════════════════════════════════════
+export const generateFlashcards = async (req, res) => {
+  try {
+    const { courseId, chapterIndex } = req.body;
+
+    if (!courseId || chapterIndex === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "courseId and chapterIndex are required",
+      });
+    }
+
+    const course = await Course.findOne({ courseId });
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
+    }
+
+    const chapter = course.courseOutput?.chapters?.[chapterIndex];
+    if (!chapter) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Chapter not found" });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const prompt = `Based on the following chapter content, generate flashcards for study and revision.
+Each flashcard should have a "front" (question or term), a "back" (answer or definition), and a "hint" (a short clue).
+Generate between 8 and 15 flashcards that cover the key concepts comprehensively.
+
+Return ONLY valid JSON in this exact schema:
+{
+  "flashcards": [
+    { "front": "string", "back": "string", "hint": "string" }
+  ]
+}
+
+Chapter: ${JSON.stringify(chapter)}`;
+
+    const result = await model.generateContent(prompt);
+    const text = (await result.response).text();
+    const cleanedText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    const parsed = JSON.parse(cleanedText);
+
+    return res.status(200).json({
+      success: true,
+      flashcards: parsed.flashcards || [],
+    });
+  } catch (error) {
+    console.error("Flashcard Generation Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI MENTOR CHAT (Course-contextual)
+// ═══════════════════════════════════════════════════════════════════════════
+export const courseMentorChat = async (req, res) => {
+  try {
+    const { courseId, chapterIndex, message, history } = req.body;
+
+    if (!courseId || chapterIndex === undefined || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "courseId, chapterIndex, and message are required",
+      });
+    }
+
+    const course = await Course.findOne({ courseId });
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
+    }
+
+    const chapter = course.courseOutput?.chapters?.[chapterIndex];
+    if (!chapter) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Chapter not found" });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+      systemInstruction: `You are an expert AI mentor and tutor for the course "${course.name}".
+You are currently helping a student with Chapter: "${chapter.chapterName}".
+
+Here is the full chapter content for context:
+${JSON.stringify(chapter)}
+
+Rules:
+- Answer questions clearly and concisely based on the chapter content.
+- If the student asks something outside the chapter scope, briefly answer but guide them back.
+- Use examples and analogies to explain complex concepts.
+- Be encouraging, friendly, and supportive.
+- Keep responses under 300 words unless the student asks for a detailed explanation.
+- Format your responses in clean markdown with code blocks where appropriate.`,
+    });
+
+    // Build chat history from previous messages
+    const chatHistory = (history || []).map((msg) => ({
+      role: msg.role === "user" ? "user" : "model",
+      parts: [{ text: msg.content }],
+    }));
+
+    const chat = model.startChat({ history: chatHistory });
+    const result = await chat.sendMessage(message);
+    const responseText = (await result.response).text();
+
+    return res.status(200).json({
+      success: true,
+      reply: responseText,
+    });
+  } catch (error) {
+    console.error("Mentor Chat Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
