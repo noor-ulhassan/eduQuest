@@ -13,15 +13,18 @@ const MainLayout = () => {
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||
     location.pathname.startsWith("/course/") ||
-    location.pathname === "/leaderboard";
-
+    location.pathname === "/leaderboard" ||
+    location.pathname === "/login" ||
+    location.pathname === "/signup";
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||
     location.pathname.startsWith("/course/") ||
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||
-    location.pathname === "/leaderboard";
+    location.pathname === "/leaderboard" ||
+    location.pathname === "/login" ||
+    location.pathname === "/signup";
 
   return (
     <div className="flex flex-col min-h-screen">

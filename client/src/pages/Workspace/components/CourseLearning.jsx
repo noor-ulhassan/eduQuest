@@ -177,9 +177,9 @@ export default function CourseLearning({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-[#191022] text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-space-grotesk">
+    <div className="bg-slate-100 dark:bg-[#12091b] text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-space-grotesk">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-[#8c2bee]/20 bg-white/80 dark:bg-[#191022]/80 backdrop-blur-md px-6 py-3">
+      <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-[#8c2bee]/15 bg-white/90 dark:bg-[#160d22]/90 backdrop-blur-xl px-6 py-3 shadow-sm dark:shadow-black/10">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
             <button
@@ -187,7 +187,9 @@ export default function CourseLearning({
               className="flex items-center gap-3 text-[#8c2bee] hover:scale-105 transition-transform"
             >
               <Rocket className="w-8 h-8" />
-              <h2 className="text-xl font-bold tracking-tight">EduQuest</h2>
+              <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-[#8c2bee] to-[#b06aff] bg-clip-text text-transparent">
+                EduQuest
+              </h2>
             </button>
             <div className="hidden lg:flex items-center gap-6">
               <button
@@ -265,8 +267,8 @@ export default function CourseLearning({
 
       <div className="max-w-[1440px] mx-auto w-full flex-1 flex gap-0 lg:gap-8 p-0 lg:p-6 overflow-hidden">
         {/* Sidebar Navigation */}
-        <aside className="hidden lg:flex flex-col w-80 shrink-0 gap-6">
-          <div className="bg-white dark:bg-[#8c2bee]/5 rounded-xl border border-slate-200 dark:border-[#8c2bee]/10 p-5">
+        <aside className="hidden lg:flex flex-col w-80 shrink-0 gap-5">
+          <div className="bg-white dark:bg-[#1e1230] rounded-2xl border border-slate-200/80 dark:border-[#8c2bee]/15 p-5 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
             <div className="mb-6">
               <h3 className="text-lg font-bold mb-1">Course Progress</h3>
               <div className="flex items-center justify-between text-sm mb-2">
@@ -346,7 +348,7 @@ export default function CourseLearning({
           </div>
 
           {/* Helpful Resources Card */}
-          <div className="bg-[#8c2bee]/5 dark:bg-[#8c2bee]/10 border border-[#8c2bee]/20 rounded-xl p-5">
+          <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-black/20">
             <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
               <BookOpen className="text-[#8c2bee] w-5 h-5" />
               Resources
@@ -365,7 +367,7 @@ export default function CourseLearning({
           <button
             onClick={handleGenerateFlashcards}
             disabled={generatingFlashcards}
-            className="w-full flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-[#8c2bee] to-[#6b1fb8] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#8c2bee]/20 hover:scale-[1.02] transition-transform active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100"
+            className="w-full flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-[#8c2bee] to-[#6b1fb8] text-white rounded-2xl font-bold text-sm shadow-lg shadow-[#8c2bee]/30 hover:shadow-xl hover:shadow-[#8c2bee]/40 hover:-translate-y-0.5 transition-all active:scale-[0.98] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
           >
             <CreditCard className="w-5 h-5" />
             <span className="flex-1 text-left">
@@ -377,7 +379,7 @@ export default function CourseLearning({
           {/* 🤖 AI Mentor Button */}
           <button
             onClick={() => setShowMentor(true)}
-            className="w-full flex items-center gap-3 px-5 py-4 bg-white dark:bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-xl font-bold text-sm hover:scale-[1.02] transition-transform active:scale-[0.98] shadow-sm"
+            className="w-full flex items-center gap-3 px-5 py-4 bg-white dark:bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-2xl font-bold text-sm hover:-translate-y-0.5 transition-all active:scale-[0.98] shadow-md shadow-slate-200/50 dark:shadow-black/20 hover:shadow-lg"
           >
             <Bot className="w-5 h-5" />
             <span className="flex-1 text-left">AI Mentor</span>
@@ -388,10 +390,10 @@ export default function CourseLearning({
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 bg-white dark:bg-[#191022]/40 lg:rounded-xl border border-slate-200 dark:border-[#8c2bee]/10 overflow-y-auto flex flex-col shadow-xl">
+        <main className="flex-1 bg-white dark:bg-[#160d22] lg:rounded-2xl border border-slate-200/80 dark:border-[#8c2bee]/15 overflow-y-auto flex flex-col shadow-xl shadow-slate-200/50 dark:shadow-black/30">
           {/* Hero Image Section */}
           <div className="relative h-72 w-full bg-slate-300 dark:bg-slate-800 overflow-hidden shrink-0">
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 dark:from-[#191022] via-[#8c2bee]/20 to-transparent z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 dark:from-[#12091b] via-[#8c2bee]/20 to-transparent z-10"></div>
             {!imgError ? (
               <img
                 src={heroImage}
@@ -401,7 +403,7 @@ export default function CourseLearning({
                 crossOrigin="anonymous"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#8c2bee]/30 to-[#191022] flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#8c2bee]/30 to-[#12091b] flex items-center justify-center">
                 <BookOpen className="w-20 h-20 text-white/20" />
               </div>
             )}
@@ -442,7 +444,7 @@ export default function CourseLearning({
 
                   {/* Pro Tip Callout */}
                   {topicNode.proTip && (
-                    <div className="bg-[#8c2bee]/5 dark:bg-[#8c2bee]/10 border-l-4 border-[#8c2bee] p-6 rounded-r-lg shadow-sm">
+                    <div className="bg-gradient-to-r from-[#8c2bee]/10 to-[#8c2bee]/5 dark:from-[#8c2bee]/15 dark:to-[#8c2bee]/5 border-l-4 border-[#8c2bee] p-6 rounded-r-2xl shadow-md shadow-[#8c2bee]/10">
                       <div className="flex items-start gap-4">
                         <Lightbulb className="text-[#8c2bee] w-8 h-8 flex-shrink-0 mt-0.5" />
                         <div>
@@ -463,7 +465,7 @@ export default function CourseLearning({
                       {topicNode.keyConcepts.map((concept, cidx) => (
                         <div
                           key={cidx}
-                          className="bg-slate-50 dark:bg-[#8c2bee]/10 p-6 rounded-xl border border-[#8c2bee]/10 shadow-sm transition-transform hover:-translate-y-1"
+                          className="bg-slate-50 dark:bg-[#1e1230] p-6 rounded-2xl border border-slate-200/80 dark:border-[#8c2bee]/15 shadow-md shadow-slate-200/50 dark:shadow-black/20 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-[#8c2bee]/30"
                         >
                           {/* Map Gemini icon string to basic Lucide or fallback */}
                           {cidx % 2 === 0 ? (
@@ -483,7 +485,7 @@ export default function CourseLearning({
               ))}
 
               {/* Footer Action */}
-              <div className="mt-12 pt-8 border-t border-[#8c2bee]/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="mt-12 pt-8 border-t border-slate-200/80 dark:border-[#8c2bee]/15 flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() =>
@@ -504,7 +506,7 @@ export default function CourseLearning({
                     disabled={enrollment?.completedChapters?.includes(
                       currentChapter?.chapterName,
                     )}
-                    className="bg-[#8c2bee] text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl shadow-[#8c2bee]/30 hover:scale-[1.02] transition-transform active:scale-95 flex items-center gap-3 disabled:opacity-50 disabled:grayscale disabled:hover:scale-100"
+                    className="bg-gradient-to-r from-[#8c2bee] to-[#6b1fb8] text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-[#8c2bee]/30 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-[#8c2bee]/40 transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0 disabled:hover:shadow-xl"
                   >
                     {enrollment?.completedChapters?.includes(
                       currentChapter?.chapterName,

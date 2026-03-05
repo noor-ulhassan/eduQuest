@@ -63,14 +63,16 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   const currentChapter = chapters[currentChapterIndex];
 
   return (
-    <div className="bg-slate-50 dark:bg-[#191022] text-slate-900 dark:text-slate-100 min-h-screen flex font-space-grotesk">
+    <div className="bg-slate-100 dark:bg-[#12091b] text-slate-900 dark:text-slate-100 min-h-screen flex font-space-grotesk">
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-slate-200 dark:border-[#8c2bee]/20 bg-white dark:bg-[#191022] flex flex-col fixed left-0 top-0 h-full z-20">
+      <aside className="w-64 border-r border-slate-200/80 dark:border-[#8c2bee]/15 bg-white dark:bg-[#160d22] flex flex-col fixed left-0 top-0 h-full z-20 shadow-xl shadow-slate-200/50 dark:shadow-black/30">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#8c2bee] rounded-xl flex items-center justify-center shadow-lg shadow-[#8c2bee]/20">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#8c2bee] to-[#6b1fb8] rounded-xl flex items-center justify-center shadow-lg shadow-[#8c2bee]/30">
             <GraduationCap className="text-white w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Edu Quest</h1>
+          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-[#8c2bee] to-[#b06aff] bg-clip-text text-transparent">
+            EduQuest
+          </h1>
         </div>
 
         <nav className="flex-1 px-4 mt-4 space-y-2">
@@ -96,14 +98,14 @@ export default function CourseOverview({ course, enrollment, onResume }) {
         </nav>
 
         <div className="p-4 mt-auto">
-          <div className="bg-[#8c2bee]/10 rounded-xl p-4 border border-[#8c2bee]/20">
+          <div className="bg-gradient-to-br from-[#8c2bee]/15 to-[#6b1fb8]/10 rounded-xl p-4 border border-[#8c2bee]/25">
             <p className="text-xs font-semibold text-[#8c2bee] uppercase tracking-wider mb-2">
               Pro Access
             </p>
-            <p className="text-sm dark:text-slate-300 mb-3">
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
               Unlock all 120+ courses & certificates.
             </p>
-            <button className="w-full bg-[#8c2bee] py-2 rounded-lg text-sm font-bold text-white hover:opacity-90 transition-opacity">
+            <button className="w-full bg-gradient-to-r from-[#8c2bee] to-[#6b1fb8] py-2.5 rounded-lg text-sm font-bold text-white hover:shadow-lg hover:shadow-[#8c2bee]/30 transition-all hover:-translate-y-0.5">
               Upgrade Now
             </button>
           </div>
@@ -111,9 +113,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 flex flex-col min-h-screen bg-slate-50 dark:bg-[#191022]">
+      <main className="ml-64 flex-1 flex flex-col min-h-screen bg-slate-100 dark:bg-[#12091b]">
         {/* Header */}
-        <header className="flex items-center justify-between px-8 py-6 sticky top-0 bg-white/80 dark:bg-[#191022]/80 backdrop-blur-md z-10 border-b border-slate-200 dark:border-[#8c2bee]/10">
+        <header className="flex items-center justify-between px-8 py-5 sticky top-0 bg-white/90 dark:bg-[#160d22]/90 backdrop-blur-xl z-10 border-b border-slate-200/80 dark:border-[#8c2bee]/15 shadow-sm dark:shadow-black/10 ">
           <div className="flex items-center gap-4">
             <div className="p-2 bg-[#8c2bee]/20 rounded-lg">
               <Terminal className="text-[#8c2bee] w-6 h-6" />
@@ -152,7 +154,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
           {/* Left Column: Path & Progress */}
           <div className="flex-1 space-y-8">
             {/* Progress Header Card */}
-            <div className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-8 flex items-center justify-between overflow-hidden relative">
+            <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-8 flex items-center justify-between overflow-hidden relative shadow-lg shadow-slate-200/50 dark:shadow-black/20 hover:shadow-xl transition-shadow z-0">
               <div className="z-10">
                 <span className="px-3 py-1 bg-[#8c2bee]/20 text-[#8c2bee] text-xs font-bold rounded-full mb-4 inline-block">
                   CONTINUE LEARNING
@@ -167,7 +169,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 </p>
                 <button
                   onClick={() => onResume(currentChapterIndex, 0)}
-                  className="px-6 py-3 bg-[#8c2bee] text-white font-bold rounded-xl flex items-center gap-2 hover:scale-105 transition-transform"
+                  className="px-6 py-3 bg-gradient-to-r from-[#8c2bee] to-[#6b1fb8] text-white font-bold rounded-xl flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-[#8c2bee]/30 hover:shadow-xl hover:shadow-[#8c2bee]/40"
                 >
                   <Play className="w-5 h-5" fill="currentColor" /> Resume Module
                 </button>
@@ -209,7 +211,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-6">
+              <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-6 shadow-md shadow-slate-200/50 dark:shadow-black/20 hover:shadow-lg transition-shadow">
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
                   Total Experience
                 </p>
@@ -229,7 +231,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-6">
+              <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-6 shadow-md shadow-slate-200/50 dark:shadow-black/20 hover:shadow-lg transition-shadow">
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
                   Current Streak
                 </p>
@@ -247,7 +249,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-6">
+              <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-6 shadow-md shadow-slate-200/50 dark:shadow-black/20 hover:shadow-lg transition-shadow">
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
                   Global Ranking
                 </p>
@@ -263,7 +265,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             </div>
 
             {/* Vertical Learning Path */}
-            <div className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-8">
+            <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-8 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
               <h4 className="text-lg font-bold mb-8">Learning Path</h4>
               <div className="space-y-0">
                 {chapters.map((chap, idx) => {
@@ -346,7 +348,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
           {/* Right Column: Sidebar */}
           <div className="w-80 shrink-0 space-y-6">
             {/* Unlocked Achievements */}
-            <section className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-6">
+            <section className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-6 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
               <div className="flex items-center justify-between mb-6">
                 <h4 className="font-bold">Achievements</h4>
                 <button className="text-xs text-[#8c2bee] font-bold hover:underline">
@@ -427,7 +429,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             </section>
 
             {/* Leaderboard Teaser */}
-            <section className="bg-white dark:bg-[#8c2bee]/5 border border-slate-200 dark:border-[#8c2bee]/10 rounded-xl p-6">
+            <section className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-6 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
               <h4 className="font-bold mb-4">Leaderboard</h4>
               <div className="space-y-4">
                 {loadingLB ? (
@@ -491,7 +493,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             </section>
 
             {/* Help/Support Banner */}
-            <div className="bg-[#8c2bee] rounded-xl p-6 relative overflow-hidden group mt-6">
+            <div className="bg-gradient-to-br from-[#8c2bee] to-[#6b1fb8] rounded-2xl p-6 relative overflow-hidden group mt-6 shadow-lg shadow-[#8c2bee]/30">
               <div className="z-10 relative">
                 <h4 className="text-white font-bold mb-1">Need help?</h4>
                 <p className="text-white/80 text-xs mb-4">
