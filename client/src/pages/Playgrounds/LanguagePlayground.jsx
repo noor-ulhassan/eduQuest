@@ -40,6 +40,11 @@ import {
   completeProblem as completeProb,
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
+import {
+  Terminal as MagicTerminal,
+  TypingAnimation,
+  AnimatedSpan,
+} from "@/components/ui/terminal";
 
 // ─── React iframe document builder ─────────────────────────────────────────
 const buildReactDoc = (userCode) => `<!DOCTYPE html>
@@ -520,14 +525,14 @@ const LanguagePlayground = () => {
 
           {/* Navigation Links */}
           <nav className="flex items-center gap-8 h-full">
-            {["Dashboard", "Courses", "Practice", "Community"].map((link) => {
+            {["Home", "Courses", "Playgrounds", "Community"].map((link) => {
               const isActive = link === "Courses";
               return (
                 <button
                   key={link}
                   onClick={() => {
-                    if (link === "Dashboard") navigate("/dashboard");
-                    if (link === "Practice") navigate("/playground");
+                    if (link === "Home") navigate("/");
+                    if (link === "Playgrounds") navigate("/playground");
                     if (link === "Community") navigate("/community");
                   }}
                   className={cn(
@@ -937,15 +942,10 @@ const LanguagePlayground = () => {
                       <div
                         className="text-zinc-300 text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
                         dangerouslySetInnerHTML={{
-                          __html: currentProblem?.description
-                            ?.replace(
-                              /`([^`]+)`/g,
-                              '<span class="text-purple-400 bg-purple-500/10 px-1 py-0.5 rounded font-mono">$1</span>',
-                            )
-                            ?.replace(
-                              /"([^"]+)"/g,
-                              '<span class="text-emerald-400 font-mono">"$1"</span>',
-                            ),
+                          __html: currentProblem?.description?.replace(
+                            /`([^`]+)`/g,
+                            '<span class="text-purple-400 bg-purple-500/10 px-1 py-0.5 rounded font-mono">$1</span>',
+                          ),
                         }}
                       />
                     </div>
@@ -958,15 +958,10 @@ const LanguagePlayground = () => {
                     <div
                       className="text-white text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
                       dangerouslySetInnerHTML={{
-                        __html: currentProblem?.description
-                          ?.replace(
-                            /`([^`]+)`/g,
-                            '<span class="bg-[#2d2755] text-purple-300 px-1.5 py-0.5 rounded font-mono text-sm">$1</span>',
-                          )
-                          ?.replace(
-                            /"([^"]+)"/g,
-                            '<span class="bg-[#2d2755] text-emerald-400 px-1.5 py-0.5 rounded font-mono text-sm">"$1"</span>',
-                          ),
+                        __html: currentProblem?.description?.replace(
+                          /`([^`]+)`/g,
+                          '<span class="bg-[#2d2755] text-purple-300 px-1.5 py-0.5 rounded font-mono text-sm">$1</span>',
+                        ),
                       }}
                     />
                   </div>
@@ -1250,24 +1245,32 @@ const LanguagePlayground = () => {
                       </div>
                     )}
                     {output && !isRunning && (
-                      <div className="space-y-3">
+                      <div className="space-y-4 my-2">
                         {output.text && (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2.5 text-sm px-4 py-3 bg-[#13112a] border-t border-[#2d2755]/60">
-                              <Terminal className="w-4 h-4 text-purple-400 shrink-0" />
-                              <span className="text-zinc-400">Output:</span>
-                              <span className="text-emerald-400 font-mono ml-2">
-                                {output.text}
-                              </span>
-                            </div>
-                          </div>
+                          <MagicTerminal className="w-full max-w-full bg-[#13112a] border-[#2d2755]/60 shadow-xl">
+                            <AnimatedSpan className="text-zinc-400 mb-2 font-mono">
+                              Output:
+                            </AnimatedSpan>
+                            <TypingAnimation
+                              className="text-emerald-400 whitespace-pre-wrap font-mono mt-2 block"
+                              duration={10}
+                            >
+                              {output.text}
+                            </TypingAnimation>
+                          </MagicTerminal>
                         )}
                         {output.error && (
-                          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-                            <pre className="text-red-400 whitespace-pre-wrap text-xs font-mono m-0">
+                          <MagicTerminal className="w-full max-w-full bg-red-950/10 border-red-500/20 shadow-xl">
+                            <AnimatedSpan className="text-red-400/80 mb-2 font-mono">
+                              Error:
+                            </AnimatedSpan>
+                            <TypingAnimation
+                              className="text-red-400 whitespace-pre-wrap font-mono mt-2 block"
+                              duration={10}
+                            >
                               {output.error}
-                            </pre>
-                          </div>
+                            </TypingAnimation>
+                          </MagicTerminal>
                         )}
                         {testResult && (
                           <div
