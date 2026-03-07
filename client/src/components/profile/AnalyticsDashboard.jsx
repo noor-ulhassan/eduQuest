@@ -19,7 +19,6 @@ import api from "@/features/auth/authApi";
 
 // Aceternity UI
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
-import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
 
 // Shadcn UI
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,61 +123,77 @@ const AnalyticsDashboard = () => {
         </div>
       </BackgroundBeamsWithCollision>
 
-      {/* 2. Key Metrics Grid - Aceternity BentoGrid */}
+      {/* 2. Key Metrics Grid - 8 Ball Pool Style Stat Card */}
       <div className="pt-2">
         <h3 className="text-xl font-bold mb-4 text-zinc-800 dark:text-zinc-100 px-1">
           Performance Highlights
         </h3>
-        <BentoGrid className="md:auto-rows-[10rem]">
-          {[
-            {
-              title: global.dayStreak.toString(),
-              description: "Current Day Streak",
-              icon: (
-                <Flame className="w-8 h-8 text-orange-500 drop-shadow-md" />
-              ),
-              className:
-                "md:col-span-1 border-orange-100 dark:border-white/10 bg-gradient-to-br from-orange-50 to-white dark:from-zinc-900 dark:to-zinc-950",
-            },
-            {
-              title: playground.totalProblemsSolved.toString(),
-              description: "Problems Solved",
-              icon: <Code className="w-8 h-8 text-indigo-500 drop-shadow-md" />,
-              className:
-                "md:col-span-1 border-indigo-100 dark:border-white/10 bg-gradient-to-br from-indigo-50 to-white dark:from-zinc-900 dark:to-zinc-950",
-            },
-            {
-              title: `${competitions.winRate}%`,
-              description: "Overall Win Rate",
-              icon: (
-                <Target className="w-8 h-8 text-emerald-500 drop-shadow-md" />
-              ),
-              className:
-                "md:col-span-2 border-emerald-100 dark:border-white/10 bg-gradient-to-br from-emerald-50 to-white dark:from-zinc-900 dark:to-zinc-950",
-            },
-            {
-              title: competitions.totalGamesPlayed.toString(),
-              description: "Matches Played",
-              icon: (
-                <Activity className="w-8 h-8 text-pink-500 drop-shadow-md" />
-              ),
-              className:
-                "md:col-span-2 border-pink-100 dark:border-white/10 bg-gradient-to-br from-pink-50 to-white dark:from-zinc-900 dark:to-zinc-950",
-            },
-          ].map((stat, i) => (
-            <BentoGridItem
-              key={i}
-              title={<span className="text-3xl font-black">{stat.title}</span>}
-              description={
-                <span className="text-sm font-medium uppercase tracking-wider">
-                  {stat.description}
-                </span>
-              }
-              icon={stat.icon}
-              className={`flex flex-col justify-end p-6 hover:scale-[1.02] transition-transform ${stat.className}`}
-            />
-          ))}
-        </BentoGrid>
+        <Card className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800">
+            {[
+              {
+                title: global.dayStreak.toString(),
+                description: "Day Streak",
+                icon: (
+                  <Flame
+                    className="w-7 h-7 text-orange-500"
+                    strokeWidth={2.5}
+                  />
+                ),
+                accent: "bg-orange-50 dark:bg-orange-950/30",
+              },
+              {
+                title: playground.totalProblemsSolved.toString(),
+                description: "Problems Solved",
+                icon: (
+                  <Code className="w-7 h-7 text-indigo-500" strokeWidth={2.5} />
+                ),
+                accent: "bg-indigo-50 dark:bg-indigo-950/30",
+              },
+              {
+                title: `${competitions.winRate}%`,
+                description: "Win Rate",
+                icon: (
+                  <Target
+                    className="w-7 h-7 text-emerald-500"
+                    strokeWidth={2.5}
+                  />
+                ),
+                accent: "bg-emerald-50 dark:bg-emerald-950/30",
+              },
+              {
+                title: competitions.totalGamesPlayed.toString(),
+                description: "Matches Played",
+                icon: (
+                  <Activity
+                    className="w-7 h-7 text-pink-500"
+                    strokeWidth={2.5}
+                  />
+                ),
+                accent: "bg-pink-50 dark:bg-pink-950/30",
+              },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="flex-1 p-6 flex flex-row md:flex-col lg:flex-row items-center gap-4 md:gap-3 lg:gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors cursor-default"
+              >
+                <div
+                  className={`w-14 h-14 md:w-12 md:h-12 lg:w-14 lg:h-14 shrink-0 rounded-2xl ${stat.accent} flex items-center justify-center shadow-inner border border-white dark:border-zinc-700`}
+                >
+                  {stat.icon}
+                </div>
+                <div className="flex-1 text-left md:text-center lg:text-left">
+                  <p className="text-2xl lg:text-3xl font-black text-zinc-900 dark:text-white tracking-tight leading-none mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    {stat.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
       {/* 3. Charts Section - Shadcn Cards */}

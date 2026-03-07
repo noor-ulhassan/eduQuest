@@ -19,6 +19,8 @@ import CreatePost from "@/components/social/CreatePost";
 import TweetCard from "@/components/social/TweetCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -136,20 +138,34 @@ const Profile = () => {
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 sm:gap-8 mt-8 sm:mt-12 lg:mt-16">
-          <div className="space-y-10">
-            <TabNav
-              tabs={["Overview", "Projects", "Posts", "Friends"]}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
+          <Tabs
+            defaultValue="Overview"
+            className="space-y-8"
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="bg-transparent border-b border-zinc-200 dark:border-zinc-800 rounded-none w-full justify-start h-12 p-0 space-x-8">
+              {["Overview", "Projects", "Posts", "Friends"].map((tab) => (
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-yellow-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-semibold text-zinc-500 data-[state=active]:text-yellow-600 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                >
+                  {tab}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-            {activeTab === "Overview" && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <AnalyticsDashboard />
-              </div>
-            )}
+            <TabsContent
+              value="Overview"
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 outline-none"
+            >
+              <AnalyticsDashboard />
+            </TabsContent>
 
-            {activeTab === "Projects" && (
+            <TabsContent
+              value="Projects"
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none"
+            >
               <SectionCard title="Projects">
                 <EmptyState
                   message="You don't have any projects yet."
@@ -157,25 +173,30 @@ const Profile = () => {
                   onAction={() => alert("Navigate to Project Showcase")}
                 />
               </SectionCard>
-            )}
+            </TabsContent>
 
-            {activeTab === "Posts" && (
-              <div className="space-y-6">
-                {/* Create Post Section */}
-                <div className="bg-white rounded-xl border border-zinc-200 p-4">
-                  <h3 className="text-lg font-semibold mb-4">Create a Post</h3>
-                  <CreatePost onPostCreated={handlePostCreated} />
-                </div>
+            <TabsContent
+              value="Posts"
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 outline-none"
+            >
+              {/* Create Post Section */}
+              <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
+                <h3 className="text-lg font-bold tracking-tight mb-4 text-zinc-900 dark:text-zinc-100">
+                  Create a Post
+                </h3>
+                <CreatePost onPostCreated={handlePostCreated} />
+              </div>
 
-                {/* Posts List */}
-                <div>
-                  {loadingPosts ? (
-                    <div className="space-y-4">
-                      <div className="h-40 bg-zinc-100 rounded-xl animate-pulse" />
-                      <div className="h-40 bg-zinc-100 rounded-xl animate-pulse" />
-                    </div>
-                  ) : posts.length > 0 ? (
-                    posts.map((post) => (
+              {/* Posts List */}
+              <div className="space-y-4">
+                {loadingPosts ? (
+                  <div className="space-y-4">
+                    <div className="h-40 bg-zinc-100 dark:bg-zinc-900 rounded-xl animate-pulse" />
+                    <div className="h-40 bg-zinc-100 dark:bg-zinc-900 rounded-xl animate-pulse" />
+                  </div>
+                ) : posts.length > 0 ? (
+                  posts.map((post) => (
+                    <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
                       <TweetCard
                         key={post._id}
                         post={post}
@@ -183,96 +204,99 @@ const Profile = () => {
                           setPosts((prev) => prev.filter((p) => p._id !== id))
                         }
                       />
-                    ))
-                  ) : (
-                    <SectionCard title="Posts">
-                      <EmptyState
-                        message="You haven't posted anything yet."
-                        actionText="Create your first post!"
-                        onAction={() => {}}
-                      />
-                    </SectionCard>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === "Friends" && (
-              <div className="space-y-8">
-                {/* Friend Requests */}
-                {requests.length > 0 && (
-                  <SectionCard title={`Friend Requests (${requests.length})`}>
-                    <div className="space-y-4">
-                      {requests.map((req) => (
-                        <div
-                          key={req._id}
-                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-50 p-3 rounded-lg border border-zinc-100"
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <Avatar className="flex-shrink-0">
-                              <AvatarImage src={req.from?.avatarUrl} />
-                              <AvatarFallback>
-                                {req.from?.name?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-sm truncate">
-                                {req.from?.name}
-                              </p>
-                              <p className="text-xs text-zinc-500">
-                                Sent you a friend request
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full sm:w-auto"
-                            onClick={() => handleAcceptRequest(req._id)}
-                          >
-                            <Check className="w-4 h-4" /> Accept
-                          </Button>
-                        </div>
-                      ))}
                     </div>
-                  </SectionCard>
-                )}
-
-                {/* Friends List */}
-                <SectionCard title={`Friends (${friends.length})`}>
-                  {friends.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {friends.map((friend) => (
-                        <div
-                          key={friend._id}
-                          className="flex items-center gap-3 bg-zinc-50 p-3 rounded-lg border border-zinc-100 cursor-pointer hover:bg-zinc-100 transition-colors"
-                          onClick={() => navigate(`/profile/${friend._id}`)}
-                        >
-                          <Avatar>
-                            <AvatarImage src={friend.avatarUrl} />
-                            <AvatarFallback>{friend.name?.[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold text-sm hover:underline">
-                              {friend.name}
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              @{friend.username}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                  ))
+                ) : (
+                  <SectionCard title="Posts">
                     <EmptyState
-                      message="You haven't added any friends yet."
-                      actionText="Find friends on Leaderboard"
+                      message="You haven't posted anything yet."
+                      actionText="Create your first post!"
                       onAction={() => {}}
                     />
-                  )}
-                </SectionCard>
+                  </SectionCard>
+                )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+
+            <TabsContent
+              value="Friends"
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8 outline-none"
+            >
+              {/* Friend Requests */}
+              {requests.length > 0 && (
+                <SectionCard title={`Friend Requests (${requests.length})`}>
+                  <div className="space-y-3">
+                    {requests.map((req) => (
+                      <div
+                        key={req._id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/80"
+                      >
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <Avatar className="h-12 w-12 border-2 border-white dark:border-zinc-800 shadow-sm">
+                            <AvatarImage src={req.from?.avatarUrl} />
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
+                              {req.from?.name?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                              {req.from?.name}
+                            </p>
+                            <p className="text-xs font-medium text-zinc-500 mt-0.5 uppercase tracking-wide">
+                              Sent you a friend request
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full sm:w-auto rounded-lg shadow-sm"
+                          onClick={() => handleAcceptRequest(req._id)}
+                        >
+                          <Check className="w-4 h-4" /> Accept
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* Friends List */}
+              <SectionCard title={`Friends (${friends.length})`}>
+                {friends.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {friends.map((friend) => (
+                      <div
+                        key={friend._id}
+                        className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/80 cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-sm transition-all group"
+                        onClick={() => navigate(`/profile/${friend._id}`)}
+                      >
+                        <Avatar className="h-12 w-12 border-2 border-white dark:border-zinc-800 shadow-sm group-hover:scale-105 transition-transform">
+                          <AvatarImage src={friend.avatarUrl} />
+                          <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
+                            {friend.name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate transition-colors">
+                            {friend.name}
+                          </p>
+                          <p className="text-xs font-medium text-zinc-500 mt-0.5 truncate">
+                            @{friend.username}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    message="You haven't added any friends yet."
+                    actionText="Find friends on Leaderboard"
+                    onAction={() => {}}
+                  />
+                )}
+              </SectionCard>
+            </TabsContent>
+          </Tabs>
 
           <div className="space-y-8">
             <UserStats
@@ -292,23 +316,25 @@ const Profile = () => {
                 />
               ) : (
                 <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 pt-2">
                     {(skills || []).map((skill) => (
-                      <span
+                      <Badge
                         key={skill}
-                        className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium"
+                        variant="secondary"
+                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-900/50 px-3 py-1 font-bold tracking-wide"
                       >
                         {skill}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => setIsSkillsDialogOpen(true)}
-                    className="mt-8 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium hover:bg-yellow-200 transition"
+                    variant="outline"
+                    className="mt-6 w-full border-dashed border-2 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                   >
-                    + Add Skill
-                  </button>
+                    + Add More Skills
+                  </Button>
                 </div>
               )}
             </SectionCard>

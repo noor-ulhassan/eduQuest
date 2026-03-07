@@ -1,4 +1,5 @@
 import React from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const SectionCard = ({
   title,
@@ -6,25 +7,19 @@ const SectionCard = ({
   className = "",
   variant = "light",
 }) => {
-  const baseClasses = "rounded-xl p-6";
-
-  const lightClasses =
-    "bg-white " +
-    "shadow-sm hover:shadow-[0_4px_12px_rgba(234,179,8,0.15)] " + 
-    "transition-shadow duration-200";
-
-  const darkClasses = "bg-gray-800 border border-gray-700";
-
-  const bgClass = variant === "dark" ? darkClasses : lightClasses;
-  const titleColor = variant === "dark" ? "text-white" : "text-gray-900";
-
   return (
-    <div className={`${baseClasses} ${bgClass} ${className}`}>
+    <Card
+      className={`w-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border-zinc-200 dark:border-zinc-800 ${variant === "dark" ? "bg-zinc-950 text-white" : "bg-white dark:bg-zinc-950"} ${className}`}
+    >
       {title && (
-        <h2 className={`font-semibold text-xl mb-4 ${titleColor}`}>{title}</h2>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {title}
+          </CardTitle>
+        </CardHeader>
       )}
-      {children}
-    </div>
+      <CardContent className={title ? "pt-0" : "pt-6"}>{children}</CardContent>
+    </Card>
   );
 };
 
