@@ -4,6 +4,7 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import UserStats from "@/components/profile/UserStats";
 import SectionCard from "@/components/profile/SectionCard";
 import TabNav from "@/components/profile/TabNav";
+import AnalyticsDashboard from "@/components/profile/AnalyticsDashboard";
 import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 import SkillsDialog from "@/components/profile/SkillsDialog";
@@ -36,7 +37,6 @@ const Profile = () => {
   // Friends State
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
-  const [loadingFriends, setLoadingFriends] = useState(false);
 
   // Fetch posts when Posts tab is active
   useEffect(() => {
@@ -55,7 +55,6 @@ const Profile = () => {
     };
 
     const fetchFriendsData = async () => {
-      setLoadingFriends(true);
       try {
         const [friendsRes, requestsRes] = await Promise.all([
           getFriends(),
@@ -65,8 +64,6 @@ const Profile = () => {
         if (requestsRes.success) setRequests(requestsRes.requests);
       } catch (error) {
         console.error("Failed to fetch friends data", error);
-      } finally {
-        setLoadingFriends(false);
       }
     };
 
@@ -147,15 +144,9 @@ const Profile = () => {
             />
 
             {activeTab === "Overview" && (
-              <>
-                <SectionCard title="Projects">
-                  <EmptyState
-                    message="You don't have any projects yet."
-                    actionText="Go to Project Showcase"
-                    onAction={() => alert("Navigate to Project Showcase")}
-                  />
-                </SectionCard>
-              </>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <AnalyticsDashboard />
+              </div>
             )}
 
             {activeTab === "Projects" && (

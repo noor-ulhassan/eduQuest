@@ -10,6 +10,7 @@ import {
   uploadAvatar,
   uploadBanner,
   updateProfile,
+  getUserAnalytics,
 } from "../controllers/user.controller.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { uploadAvatar as avatarMulter } from "../middleware/avatarMulter.js";
@@ -40,5 +41,8 @@ router.put("/friend-request/accept", authenticate, acceptFriendRequest);
 router.get("/friends", authenticate, getFriends);
 router.get("/friend-requests", authenticate, getFriendRequests);
 router.post("/unfriend", authenticate, unfriend);
+
+// Analytics Route
+router.get("/analytics", authenticate, getUserAnalytics);
 
 export default router;

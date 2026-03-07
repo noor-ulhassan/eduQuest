@@ -1,6 +1,7 @@
 import Navbar from "@/layout/Navbar";
 import Footer from "@/layout/Footer";
 import { Outlet, useLocation } from "react-router-dom";
+import PlatformGuide from "@/components/ui/PlatformGuide";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -35,6 +36,7 @@ const MainLayout = () => {
         <Outlet />
       </main>
 
+      {!hideFooter && <PlatformGuide />}
       {!hideFooter && <Footer />}
     </div>
   );

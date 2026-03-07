@@ -1,7 +1,10 @@
 import { User } from "../models/user.model.js";
 import { Post } from "../models/Post.js";
+import PlaygroundProgress from "../models/PlaygroundProgress.js";
+import { CompetitionResult } from "../models/CompetitionResult.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs/promises";
+import { checkStreak } from "../utils/streak.js";
 
 export const getUser = async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -20,6 +23,11 @@ export const getMe = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
+    }
+
+    // Check/Reset stale streak before returning profile data
+    if (user.dayStreak > 0) {
+      user = await checkStreak(user);
     }
 
     return res.status(200).json({ success: true, user });
@@ -218,24 +226,30 @@ export const unfriend = async (req, res) => {
 export const uploadAvatar = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No image file provided" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No image file provided" });
     }
     const filePath = req.file.path;
     const result = await uploadOnCloudinary(filePath);
     await fs.unlink(filePath).catch(() => {});
 
     if (!result || !result.secure_url) {
-      return res.status(500).json({ success: false, message: "Failed to upload image" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to upload image" });
     }
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { avatarUrl: result.secure_url },
-      { new: true }
+      { new: true },
     ).select("-password");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.status(200).json({ success: true, user, avatarUrl: user.avatarUrl });
@@ -249,24 +263,30 @@ export const uploadAvatar = async (req, res) => {
 export const uploadBanner = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No image file provided" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No image file provided" });
     }
     const filePath = req.file.path;
     const result = await uploadOnCloudinary(filePath);
     await fs.unlink(filePath).catch(() => {});
 
     if (!result || !result.secure_url) {
-      return res.status(500).json({ success: false, message: "Failed to upload image" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to upload image" });
     }
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { bannerUrl: result.secure_url },
-      { new: true }
+      { new: true },
     ).select("-password");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.status(200).json({ success: true, user, bannerUrl: user.bannerUrl });
@@ -291,12 +311,99 @@ export const updateProfile = async (req, res) => {
     }).select("-password");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.status(200).json({ success: true, user });
   } catch (error) {
     console.error("updateProfile error:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// --- GLOBAL ALL-PLATFORM ANALYTICS ---
+export const getUserAnalytics = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select("-password").lean();
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Fetch Playground Progress
+    const playgroundProgress = await PlaygroundProgress.find({ userId }).lean();
+    let totalProblemsSolved = 0;
+    const languageDistribution = playgroundProgress.map((p) => {
+      totalProblemsSolved += (p.completedProblems || []).length;
+      return {
+        language: p.language,
+        solvedCount: (p.completedProblems || []).length,
+        xpEarned: p.totalXpEarned || 0,
+      };
+    });
+
+    // Fetch Competition Results
+    const competitionResults = await CompetitionResult.find({ userId })
+      .sort({ timestamp: -1 })
+      .lean();
+
+    const totalCompetitions = competitionResults.length;
+    let totalWins = 0;
+    const competitionScores = [];
+
+    competitionResults.forEach((comp, idx) => {
+      if (comp.rank === 1 && comp.status === "completed") {
+        totalWins++;
+      }
+      // Keep last 10 for charts
+      if (idx < 10) {
+        competitionScores.push({
+          date: new Date(comp.timestamp).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+          score: comp.score || 0,
+          rank: comp.rank || 0,
+          status: comp.status,
+          category: comp.category,
+        });
+      }
+    });
+
+    const competitionWinRate =
+      totalCompetitions > 0
+        ? ((totalWins / totalCompetitions) * 100).toFixed(1)
+        : 0;
+
+    // Build unified payload
+    const analyticsPayload = {
+      global: {
+        totalXP: user.xp || 0,
+        level: user.level || 1,
+        rank: user.rank || "Bronze",
+        dayStreak: user.dayStreak || 0,
+        badges: user.badges || [],
+      },
+      playground: {
+        totalProblemsSolved,
+        languageDistribution,
+      },
+      competitions: {
+        totalGamesPlayed: totalCompetitions,
+        totalWins,
+        winRate: Number(competitionWinRate),
+        recentHistory: competitionScores.reverse(), // Chronological for charts
+      },
+    };
+
+    return res.status(200).json({ success: true, analytics: analyticsPayload });
+  } catch (error) {
+    console.error("Error fetching global analytics:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
