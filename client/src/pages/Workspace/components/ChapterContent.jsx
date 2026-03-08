@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import api from "@/features/auth/authApi";
 import { useDispatch, useSelector } from "react-redux";
-import { grantXP } from "./../../../../../server/utils/gamificationHelper";
+import { grantXP } from "@/utils/gamificationHelper.js";
 
 function ChapterContent({
   chapter,

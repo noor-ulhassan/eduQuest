@@ -265,9 +265,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             </div>
 
             {/* Vertical Learning Path */}
-            <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-8 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
+            <div className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-8 shadow-lg shadow-slate-200/50 dark:shadow-black/20 z-0">
               <h4 className="text-lg font-bold mb-8">Learning Path</h4>
-              <div className="space-y-0">
+              <div className="space-y-0 z-0">
                 {chapters.map((chap, idx) => {
                   const isCompleted = enrollment?.completedChapters?.includes(
                     chap.chapterName,
@@ -284,7 +284,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                       )}
                       onClick={() => !isLocked && onResume(idx, 0)}
                     >
-                      <div className="flex flex-col items-center">
+                      <div className="flex flex-col items-center z-0">
                         {isCompleted ? (
                           <div className="w-12 h-12 rounded-full bg-[#8c2bee] flex items-center justify-center text-white ring-8 ring-[#8c2bee]/10 z-10 transition-transform hover:scale-110">
                             <Check className="w-6 h-6" strokeWidth={3} />
@@ -493,7 +493,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             </section>
 
             {/* Help/Support Banner */}
-            <div className="bg-gradient-to-br from-[#8c2bee] to-[#6b1fb8] rounded-2xl p-6 relative overflow-hidden group mt-6 shadow-lg shadow-[#8c2bee]/30">
+            <div className="bg-gradient-to-br from-[#8c2bee] to-[#6b1fb8] rounded-2xl p-6 relative overflow-hidden group mt-6 shadow-lg shadow-[#8c2bee]/30 z-0">
               <div className="z-10 relative">
                 <h4 className="text-white font-bold mb-1">Need help?</h4>
                 <p className="text-white/80 text-xs mb-4">

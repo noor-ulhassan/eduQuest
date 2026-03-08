@@ -26,7 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import api from "@/features/auth/authApi";
 import { useDispatch } from "react-redux";
-import { grantXP } from "../../../../../server/utils/gamificationHelper.js";
+import { grantXP } from "@/utils/gamificationHelper.js";
 import FlashcardViewer from "./FlashcardViewer";
 import CourseMentor from "./CourseMentor";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";

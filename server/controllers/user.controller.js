@@ -42,7 +42,10 @@ export const getPublicProfile = async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId)
-      .select("name username avatarUrl xp level dayStreak friends rank")
+      .select(
+        "name username avatarUrl bannerUrl xp level dayStreak friends rank createdAt",
+      )
+      .populate("friends", "name username avatarUrl")
       .lean();
 
     if (!user) {
