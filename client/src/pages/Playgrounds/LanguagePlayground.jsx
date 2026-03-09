@@ -46,6 +46,19 @@ import {
   AnimatedSpan,
 } from "@/components/ui/terminal";
 
+// ─── Helper: Format Task Text ──────────────────────────────────────────────
+const formatTaskText = (text, isMobile = false) => {
+  if (!text) return "";
+  // Escape angle brackets so things like <div> or <CustomComponent> are visible text, not DOM nodes
+  const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Wrap text in backticks with syntax-highlighted spans
+  const spanClass = isMobile
+    ? "text-purple-400 bg-purple-500/10 px-1 py-0.5 rounded font-mono"
+    : "bg-[#2d2755] text-purple-300 px-1.5 py-0.5 rounded font-mono text-sm";
+
+  return safeText.replace(/`([^`]+)`/g, `<span class="${spanClass}">$1</span>`);
+};
+
 // ─── React iframe document builder ─────────────────────────────────────────
 const buildReactDoc = (userCode) => `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
@@ -84,6 +97,7 @@ const LanguagePlayground = () => {
   const isMobile = useIsMobile();
   const pendingTestRef = useRef(null);
   const currentProblemRef = useRef(null);
+  const [dsaLang, setDsaLang] = useState("javascript");
   const reactDebounceRef = useRef(null);
 
   const data = PLAYGROUND_DATA[language?.toLowerCase()];
@@ -114,7 +128,11 @@ const LanguagePlayground = () => {
             }
             if (firstUnsolved) {
               setCurrentProblem(firstUnsolved);
-              setCode(firstUnsolved.starterCode);
+              if (typeof firstUnsolved.starterCode === "object") {
+                setCode(firstUnsolved.starterCode[dsaLang] || "");
+              } else {
+                setCode(firstUnsolved.starterCode || "");
+              }
               setOutput(null);
               setTestResult(null);
               setShowHints(false);
@@ -141,21 +159,32 @@ const LanguagePlayground = () => {
       const firstProblem = firstChapter.problems[0];
       setCurrentProblem(firstProblem);
       setExpandedChapterId(firstChapter.id);
-      setCode(firstProblem.starterCode);
+      if (typeof firstProblem.starterCode === "object") {
+        setCode(firstProblem.starterCode[dsaLang] || "");
+      } else {
+        setCode(firstProblem.starterCode);
+      }
       setOutput(null);
       setTestResult(null);
       setShowHints(false);
     }
   }, [language, data, currentProblem]);
 
-  const selectProblem = useCallback((prob, chapterId) => {
-    setCurrentProblem(prob);
-    if (chapterId) setExpandedChapterId(chapterId);
-    setCode(prob.starterCode);
-    setOutput(null);
-    setTestResult(null);
-    setShowHints(false);
-  }, []);
+  const selectProblem = useCallback(
+    (prob, chapterId) => {
+      setCurrentProblem(prob);
+      if (chapterId) setExpandedChapterId(chapterId);
+      if (typeof prob.starterCode === "object") {
+        setCode(prob.starterCode[dsaLang] || "");
+      } else {
+        setCode(prob.starterCode);
+      }
+      setOutput(null);
+      setTestResult(null);
+      setShowHints(false);
+    },
+    [dsaLang],
+  );
 
   useEffect(() => {
     currentProblemRef.current = currentProblem;
@@ -233,7 +262,11 @@ const LanguagePlayground = () => {
 
   const resetCode = useCallback(() => {
     if (currentProblem) {
-      setCode(currentProblem.starterCode);
+      if (typeof currentProblem.starterCode === "object") {
+        setCode(currentProblem.starterCode[dsaLang] || "");
+      } else {
+        setCode(currentProblem.starterCode);
+      }
       setOutput(null);
       setTestResult(null);
     }
@@ -304,10 +337,14 @@ const LanguagePlayground = () => {
 
     // Piston execution
     let codeToRun = code;
+    // For DSA multi-language problems, send the exact dsaLang instead of the playground's overarching language
+    const execLanguage =
+      typeof currentProblem.starterCode === "object" ? dsaLang : language;
+
     if (currentProblem.testFunction)
       codeToRun = code + "\n" + currentProblem.testFunction;
     try {
-      const result = await executeCode(language, codeToRun);
+      const result = await executeCode(execLanguage, codeToRun);
       let displayOutput = result.output || "";
       let parsedTest = null;
       if (displayOutput) {
@@ -469,8 +506,13 @@ const LanguagePlayground = () => {
     html: "html",
     css: "css",
     react: "jsx",
+    java: "java",
   };
-  const fileName = `main.${fileExtMap[language?.toLowerCase()] || language}`;
+  const activeLang =
+    typeof currentProblem?.starterCode === "object"
+      ? dsaLang
+      : language?.toLowerCase();
+  const fileName = `main.${fileExtMap[activeLang] || activeLang}`;
 
   // Go to next problem
   const goToNextProblem = () => {
@@ -485,21 +527,27 @@ const LanguagePlayground = () => {
 
   // ── Editor language mapping ────────────────────────────
   const editorLang =
-    isReact || language === "javascript"
-      ? "javascript"
-      : language === "css"
-        ? "css"
-        : language === "python"
+    typeof currentProblem?.starterCode === "object"
+      ? dsaLang === "java"
+        ? "java"
+        : dsaLang === "python"
           ? "python"
-          : "html";
+          : "javascript"
+      : isReact || language === "javascript"
+        ? "javascript"
+        : language === "css"
+          ? "css"
+          : language === "python"
+            ? "python"
+            : "html";
 
   // ── Loading state ──────────────────────────────────────
-  if (isLoadingProgress) {
+  if (isLoadingProgress || !currentProblem) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0b1a] text-white">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-          <span className="text-sm text-zinc-400">Loading your progress…</span>
+          <span className="text-sm text-zinc-400">Loading workspace…</span>
         </div>
       </div>
     );
@@ -674,22 +722,8 @@ const LanguagePlayground = () => {
                     completedProblems.has(p.id),
                   );
 
-                  // A chapter is locked if: no progress in it, it's not active, and previous chapters aren't done
-                  let isLocked = false;
-                  if (
-                    !isActiveChapter &&
-                    !chapterDone &&
-                    !chapterHasProgress &&
-                    idx > 0
-                  ) {
-                    const prevDone = data.chapters[idx - 1].problems.every(
-                      (p) => completedProblems.has(p.id),
-                    );
-                    const prevHasProgress = data.chapters[
-                      idx - 1
-                    ].problems.some((p) => completedProblems.has(p.id));
-                    if (!prevDone && !prevHasProgress) isLocked = true;
-                  }
+                  // All chapters are now fully unlocked for open exploration
+                  const isLocked = false;
 
                   const isExpanded = expandedChapterId === chapter.id;
 
@@ -770,13 +804,8 @@ const LanguagePlayground = () => {
                                   prob.id,
                                 );
 
-                                // Check if problem is locked (previous problem in chapter not done)
-                                let isProbLocked = false;
-                                if (pIdx > 0 && !isProbActive && !isProbDone) {
-                                  isProbLocked = !completedProblems.has(
-                                    chapter.problems[pIdx - 1].id,
-                                  );
-                                }
+                                // All problems unlocked globally
+                                const isProbLocked = false;
 
                                 return (
                                   <button
@@ -903,18 +932,11 @@ const LanguagePlayground = () => {
               <h1
                 className={cn(
                   "font-bold text-white leading-tight",
-                  isMobile ? "text-xl" : "text-3xl",
+                  isMobile ? "text-xl mb-4" : "text-3xl mb-6",
                 )}
               >
                 {currentProblem?.title}
               </h1>
-
-              {/* Desktop: description paragraph */}
-              {!isMobile && (
-                <p className="text-zinc-400 text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {currentProblem?.description}
-                </p>
-              )}
 
               {/* ── Task Card ── */}
               <div
@@ -942,9 +964,9 @@ const LanguagePlayground = () => {
                       <div
                         className="text-zinc-300 text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
                         dangerouslySetInnerHTML={{
-                          __html: currentProblem?.description?.replace(
-                            /`([^`]+)`/g,
-                            '<span class="text-purple-400 bg-purple-500/10 px-1 py-0.5 rounded font-mono">$1</span>',
+                          __html: formatTaskText(
+                            currentProblem?.description,
+                            true,
                           ),
                         }}
                       />
@@ -958,9 +980,9 @@ const LanguagePlayground = () => {
                     <div
                       className="text-white text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
                       dangerouslySetInnerHTML={{
-                        __html: currentProblem?.description?.replace(
-                          /`([^`]+)`/g,
-                          '<span class="bg-[#2d2755] text-purple-300 px-1.5 py-0.5 rounded font-mono text-sm">$1</span>',
+                        __html: formatTaskText(
+                          currentProblem?.description,
+                          false,
                         ),
                       }}
                     />
@@ -1098,6 +1120,27 @@ const LanguagePlayground = () => {
                             <FileCode2 className="w-4 h-4 text-zinc-400" />
                             {fileName}
                           </div>
+
+                          {typeof currentProblem?.starterCode === "object" && (
+                            <select
+                              value={dsaLang}
+                              onChange={(e) => {
+                                const newLang = e.target.value;
+                                setDsaLang(newLang);
+                                setCode(
+                                  currentProblem.starterCode[newLang] || "",
+                                );
+                                setOutput(null);
+                                setTestResult(null);
+                              }}
+                              className="ml-4 bg-[#13112a] border border-[#2d2755] text-zinc-300 text-xs px-2 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            >
+                              <option value="javascript">JavaScript</option>
+                              <option value="python">Python</option>
+                              <option value="java">Java</option>
+                            </select>
+                          )}
+
                           <div className="flex items-center gap-3 ml-auto">
                             <button
                               onClick={resetCode}

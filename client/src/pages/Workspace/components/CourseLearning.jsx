@@ -297,10 +297,8 @@ export default function CourseLearning({
                   chap.chapterName,
                 );
                 const isActive = idx === currentChapterIndex;
-                const isLocked =
-                  idx > enrollment?.completedChapters?.length &&
-                  !isCompleted &&
-                  !isActive;
+                // Unlock all lessons for open exploration
+                const isLocked = false;
 
                 // Icon mapping
                 let IconClass = Info;

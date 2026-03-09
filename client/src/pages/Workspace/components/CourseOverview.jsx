@@ -21,6 +21,20 @@ import {
   Medal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarRadiusAxis,
+} from "recharts";
 
 export default function CourseOverview({ course, enrollment, onResume }) {
   const navigate = useNavigate();
@@ -61,6 +75,29 @@ export default function CourseOverview({ course, enrollment, onResume }) {
     chapters.length - 1,
   );
   const currentChapter = chapters[currentChapterIndex];
+
+  // Chart Config
+  const chartData = [
+    { name: "Progress", value: progressPercent, fill: "#8c2bee" },
+  ];
+  const chartConfig = {
+    progress: {
+      label: "Course Progress",
+      color: "#8c2bee",
+    },
+    skills: {
+      label: "Skill Level",
+      color: "#8c2bee",
+    },
+  };
+
+  const radarData = [
+    { subject: "Logic", A: 85, fullMark: 100 },
+    { subject: "Syntax", A: 70, fullMark: 100 },
+    { subject: "Design", A: 90, fullMark: 100 },
+    { subject: "Speed", A: 65, fullMark: 100 },
+    { subject: "Testing", A: 50, fullMark: 100 },
+  ];
 
   return (
     <div className="bg-slate-100 dark:bg-[#12091b] text-slate-900 dark:text-slate-100 min-h-screen flex font-space-grotesk">
@@ -103,7 +140,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
               Pro Access
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-              Unlock all 120+ courses & certificates.
+              Unlock unlimited course generation.
             </p>
             <button className="w-full bg-gradient-to-r from-[#8c2bee] to-[#6b1fb8] py-2.5 rounded-lg text-sm font-bold text-white hover:shadow-lg hover:shadow-[#8c2bee]/30 transition-all hover:-translate-y-0.5">
               Upgrade Now
@@ -174,33 +211,40 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                   <Play className="w-5 h-5" fill="currentColor" /> Resume Module
                 </button>
               </div>
-              <div className="flex items-center gap-8 z-10 mr-10 relative">
-                <div className="relative flex items-center justify-center w-40 h-40">
-                  <svg className="absolute w-full h-full transform -rotate-90">
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      stroke="currentColor"
-                      strokeWidth="16"
-                      fill="transparent"
-                      className="text-slate-200 dark:text-[#362348]"
-                    />
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      stroke="currentColor"
-                      strokeWidth="16"
-                      fill="transparent"
-                      strokeDasharray={2 * Math.PI * 70}
-                      strokeDashoffset={
-                        2 * Math.PI * 70 * (1 - progressPercent / 100)
-                      }
-                      className="text-[#8c2bee] transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                  <span className="text-4xl font-bold text-slate-900 dark:text-white relative z-10">
+              <div className="flex items-center gap-8 z-10 mr-4 lg:mr-10 relative">
+                <div className="relative flex items-center justify-center w-36 h-36 lg:w-48 lg:h-48 drop-shadow-2xl">
+                  <ChartContainer
+                    config={chartConfig}
+                    className="w-full h-full absolute inset-0"
+                  >
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="75%"
+                      outerRadius="100%"
+                      barSize={16}
+                      data={chartData}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      <PolarAngleAxis
+                        type="number"
+                        domain={[0, 100]}
+                        angleAxisId={0}
+                        tick={false}
+                      />
+                      <RadialBar
+                        background={{
+                          fill: "var(--tw-colors-slate-200)",
+                          opacity: 0.2,
+                        }}
+                        dataKey="value"
+                        cornerRadius={10}
+                        className="transition-all duration-1000 ease-out"
+                      />
+                    </RadialBarChart>
+                  </ChartContainer>
+                  <span className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white relative z-10 drop-shadow-md">
                     {progressPercent}%
                   </span>
                 </div>
@@ -273,15 +317,13 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     chap.chapterName,
                   );
                   const isCurrent = idx === currentChapterIndex;
-                  const isLocked = idx > currentChapterIndex;
+                  // Unlock all modules
+                  const isLocked = false;
 
                   return (
                     <div
                       key={idx}
-                      className={cn(
-                        "flex gap-6 group cursor-pointer",
-                        isLocked && "opacity-50",
-                      )}
+                      className="flex gap-6 group cursor-pointer"
                       onClick={() => !isLocked && onResume(idx, 0)}
                     >
                       <div className="flex flex-col items-center z-0">
@@ -297,8 +339,8 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                             />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 z-10">
-                            <Lock className="w-5 h-5" />
+                          <div className="w-12 h-12 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-[#191022] flex items-center justify-center text-slate-500 dark:text-slate-400 z-10 transition-transform hover:scale-110">
+                            <Play className="w-4 h-4 ml-0.5" />
                           </div>
                         )}
                         {/* Line connecting nodes */}
@@ -425,6 +467,44 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     </div>
                   </>
                 )}
+              </div>
+            </section>
+
+            {/* Skill Radar */}
+            <section className="bg-white dark:bg-[#1e1230] border border-slate-200/80 dark:border-[#8c2bee]/15 rounded-2xl p-6 shadow-lg shadow-slate-200/50 dark:shadow-black/20">
+              <h4 className="font-bold mb-4">Skill Analysis</h4>
+              <div className="h-48 w-full -ml-2">
+                <ChartContainer config={chartConfig} className="w-full h-full">
+                  <RadarChart
+                    cx="50%"
+                    cy="50%"
+                    outerRadius="70%"
+                    data={radarData}
+                  >
+                    <PolarGrid
+                      stroke="var(--tw-colors-slate-200)"
+                      opacity={0.2}
+                    />
+                    <PolarAngleAxis
+                      dataKey="subject"
+                      tick={{
+                        fill: "var(--tw-colors-slate-500)",
+                        fontSize: 10,
+                      }}
+                    />
+                    <Radar
+                      dataKey="A"
+                      stroke="#8c2bee"
+                      fill="#8c2bee"
+                      fillOpacity={0.3}
+                      dot={{ r: 3, fillOpacity: 1 }}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="line" />}
+                    />
+                  </RadarChart>
+                </ChartContainer>
               </div>
             </section>
 

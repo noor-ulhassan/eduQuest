@@ -82,6 +82,18 @@ const LANG_META = {
     levelColor: "text-cyan-600",
     levelBg: "bg-cyan-50 border-cyan-300",
   },
+  dsa: {
+    title: "Data Structures",
+    subtitle: "Master algorithmic problem solving",
+    img: "/dsa.png",
+    accent: "from-purple-500 to-fuchsia-500",
+    accentBg: "bg-purple-500",
+    accentText: "text-purple-600",
+    accentBorder: "border-purple-500",
+    accentRing: "ring-purple-400/40",
+    levelColor: "text-purple-600",
+    levelBg: "bg-purple-50 border-purple-300",
+  },
 };
 
 const PlaygroundTopics = () => {
@@ -169,15 +181,10 @@ const PlaygroundTopics = () => {
     if (!isEnrolled) return "preview";
     const allDone = chapter.problems.every((p) => completedProblems.has(p.id));
     if (allDone) return "completed";
+    // All chapters are unlocked for open exploration
     const anyDone = chapter.problems.some((p) => completedProblems.has(p.id));
     if (anyDone) return "current";
-    // Find the first incomplete chapter
-    const firstIncomplete = data.chapters.findIndex(
-      (ch) => !ch.problems.every((p) => completedProblems.has(p.id)),
-    );
-    if (idx === firstIncomplete) return "current";
-    if (idx < firstIncomplete) return "completed";
-    return "locked";
+    return "unlocked";
   };
 
   const completedChapters = data.chapters.filter((ch) =>
@@ -366,7 +373,7 @@ const PlaygroundTopics = () => {
                         {idx + 1}
                       </span>
                     ) : (
-                      <Lock size={18} />
+                      <Play size={18} className="ml-1" />
                     )}
                   </button>
 

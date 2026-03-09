@@ -116,7 +116,11 @@ const Playground = () => {
         <SkillCard
           title="Data Structures & Algorithms"
           img="/dsa.png"
-          href="/Problems"
+          href={
+            progressData.dsa?.enrolled
+              ? "/playground/dsa"
+              : "/playground/dsa/topics"
+          }
         />
         <SkillCard
           title="React"
