@@ -17,7 +17,6 @@ import {
   FileCode2,
   GraduationCap,
   HelpCircle,
-  Lightbulb,
   Loader2,
   Lock,
   MessageCircle,
@@ -30,6 +29,9 @@ import {
   Users,
   X,
   Zap,
+  Cpu,
+  RefreshCw,
+  Video,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -692,13 +694,13 @@ const LanguagePlayground = () => {
               <div className="px-4 pb-3">
                 <div className="flex items-center justify-between text-xs uppercase tracking-widest font-semibold mb-2">
                   <span className="text-zinc-500">Course Progress</span>
-                  <span className="text-white font-bold">
+                  <span className="text-[#2cf09d] font-bold">
                     {progressPercent}%
                   </span>
                 </div>
                 <div className="h-1.5 bg-[#1e1b38] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                    className="h-full bg-[#2cf09d] rounded-full transition-all duration-500 "
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -772,7 +774,7 @@ const LanguagePlayground = () => {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {chapterDone && (
-                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                            <CheckCircle className="w-4 h-4 text[#2cf07d]" />
                           )}
                           {isLocked && (
                             <Lock className="w-3.5 h-3.5 text-zinc-600" />
@@ -826,14 +828,14 @@ const LanguagePlayground = () => {
                                         "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
                                       isProbDone &&
                                         !isProbActive &&
-                                        "text-emerald-400/70",
+                                        "text-[#2cf07d] ",
                                     )}
                                   >
                                     <span className="truncate">
                                       {prob.title}
                                     </span>
                                     {isProbDone && (
-                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-2" />
+                                      <CheckCircle className="w-3.5 h-3.5 text[#2cf07d] shrink-0 ml-2" />
                                     )}
                                     {isProbLocked && (
                                       <Lock className="w-3 h-3 text-zinc-600 shrink-0 ml-2" />
@@ -921,9 +923,9 @@ const LanguagePlayground = () => {
                   <span className="bg-[#2d1b69] text-purple-400 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
                     Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
                   </span>
-                  <span className="text-emerald-400 text-sm font-bold flex items-center gap-1.5">
-                    <Award className="w-4 h-4" /> +{currentProblem?.xp} XP
-                    Reward
+                  <span className="text-[#2cf07d] text-sm font-bold flex items-center gap-1">
+                    <img src="/xp.svg" className="w-7 h-7 animate-bounce"></img>{" "}
+                    +{currentProblem?.xp} XP Reward
                   </span>
                 </div>
               )}
@@ -974,8 +976,8 @@ const LanguagePlayground = () => {
                   </>
                 ) : (
                   <div className="bg-[#1a1730]/40 border border-[#2d2755]/50 rounded-xl p-5 mb-2">
-                    <span className="text-purple-400 text-[14px] font-bold flex items-center gap-2 mb-3">
-                      <CheckCircle className="w-4 h-4" /> Your Task:
+                    <span className="text-[#8c2bee] text-[16px] font-bold flex items-center gap-2 mb-3">
+                      <img src="/task.svg" className="w-7 h-7"></img> Your Task:
                     </span>
                     <div
                       className="text-white text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
@@ -999,7 +1001,11 @@ const LanguagePlayground = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-[#2d1b69] flex items-center justify-center shrink-0">
-                          <Lightbulb className="w-6 h-6 text-white" />
+                          <img
+                            src="/hint2.svg"
+                            alt="Hint"
+                            className="w-20 h-20 object-contain"
+                          />
                         </div>
                         <div>
                           <h4 className="text-[17px] font-bold text-white mb-0.5">
@@ -1050,16 +1056,20 @@ const LanguagePlayground = () => {
                 ) : (
                   /* Desktop: tip text */
                   <div>
-                    <p className="text-emerald-400/80 text-sm italic">
+                    <p className="text-[#2cf07d] text-md font-hand">
                       Tip: {currentProblem.hints[0]}
                     </p>
                     {currentProblem.hints.length > 1 && (
                       <>
                         <button
                           onClick={() => setShowHints(!showHints)}
-                          className="text-amber-400 hover:text-amber-300 text-xs mt-2 flex items-center gap-1"
+                          className="text-amber-400 hover:text-amber-300 text-s font-bold font-hand mt-2 flex items-center"
                         >
-                          <Lightbulb className="w-3 h-3" />
+                          <img
+                            src="/hint2.svg"
+                            alt="Hint"
+                            className="w-12 h-12 object-contain"
+                          />
                           {showHints ? "Hide" : "Show"}{" "}
                           {currentProblem.hints.length - 1} more hint
                           {currentProblem.hints.length > 2 ? "s" : ""}
@@ -1075,7 +1085,7 @@ const LanguagePlayground = () => {
                               {currentProblem.hints.slice(1).map((hint, i) => (
                                 <p
                                   key={i}
-                                  className="text-emerald-400/60 text-sm italic"
+                                  className="text-[#2cf07d] text-md font-hand"
                                 >
                                   Tip: {hint}
                                 </p>
@@ -1144,7 +1154,7 @@ const LanguagePlayground = () => {
                           <div className="flex items-center gap-3 ml-auto">
                             <button
                               onClick={resetCode}
-                              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               Reset
@@ -1154,7 +1164,7 @@ const LanguagePlayground = () => {
                               {testResult?.success && (
                                 <button
                                   onClick={goToNextProblem}
-                                  className="flex items-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-black font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+                                  className="flex items-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-black font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-[#2cf07d] "
                                 >
                                   Next Question{" "}
                                   <ChevronRight className="w-4 h-4" />
@@ -1163,7 +1173,7 @@ const LanguagePlayground = () => {
                               <button
                                 onClick={handleRunCode}
                                 disabled={isRunning || testResult?.success}
-                                className="flex items-center gap-2 bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-50 text-white font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-purple-500/20"
+                                className="flex items-center gap-2 bg-[#2cf07d] hover:bg-[#2cf04d] disabled:opacity-50 text-black font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-purple-500/20 "
                               >
                                 {isRunning ? (
                                   <>
@@ -1172,8 +1182,8 @@ const LanguagePlayground = () => {
                                   </>
                                 ) : (
                                   <>
-                                    <Play className="w-4 h-4 fill-white" /> Run
-                                    Code
+                                    <Play className="w-4 h-4 fill-white text-black" />{" "}
+                                    Run Code
                                   </>
                                 )}
                               </button>
@@ -1226,7 +1236,7 @@ const LanguagePlayground = () => {
                             className={cn(
                               "text-[10px] font-bold px-2 py-0.5 rounded",
                               testResult.success
-                                ? "bg-emerald-100 text-emerald-700"
+                                ? "bg-emerald-100 text[#2cf07d] "
                                 : "bg-red-100 text-red-700",
                             )}
                           >
@@ -1436,7 +1446,17 @@ const LanguagePlayground = () => {
           <div className="hidden lg:flex flex-col gap-3 py-6 pr-4 pl-2 shrink-0">
             {[
               { icon: MessageCircle, color: "text-zinc-400" },
-              { icon: Lightbulb, color: "text-yellow-400" },
+              {
+                icon: (props) => (
+                  <img
+                    src="/hint.svg"
+                    alt="Hint"
+                    {...props}
+                    className={cn(props.className, "object-contain")}
+                  />
+                ),
+                color: "",
+              },
               { icon: Users, color: "text-zinc-400" },
               { icon: HelpCircle, color: "text-zinc-400" },
             ].map((fab, i) => (
