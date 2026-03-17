@@ -3,8 +3,9 @@ import { useSelector } from "react-redux";
 import SkillCard from "./components/SkillCard";
 import { getPlaygroundProgress } from "../../features/playground/playgroundApi";
 import { PLAYGROUND_DATA } from "../../data/playground";
+import { Terminal } from "lucide-react";
 
-const Playground = () => {
+export default function Playground() {
   const user = useSelector((state) => state.auth.user);
   const [progressData, setProgressData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -15,127 +16,139 @@ const Playground = () => {
         setIsLoading(false);
         return;
       }
-
       try {
         const { progress } = await getPlaygroundProgress();
-
-        // Transform progress array into a map for easy lookup
         const progressMap = {};
-        progress.forEach((p) => {
-          const langData = PLAYGROUND_DATA[p.language];
-          if (langData) {
-            const totalProblems = langData.chapters.reduce(
-              (sum, ch) => sum + ch.problems.length,
-              0,
-            );
-            progressMap[p.language] = {
-              enrolled: true,
-              completed: p.completedProblems.length,
-              total: totalProblems,
-              xpEarned: p.totalXpEarned,
-            };
-          }
-        });
-
+        if (progress && Array.isArray(progress)) {
+          progress.forEach((p) => {
+            const langData = PLAYGROUND_DATA[p.language];
+            if (langData) {
+              const totalProblems = langData.chapters.reduce(
+                (sum, ch) => sum + ch.problems.length,
+                0,
+              );
+              progressMap[p.language] = {
+                enrolled: true,
+                completed: p.completedProblems?.length || 0,
+                total: totalProblems,
+              };
+            }
+          });
+        }
         setProgressData(progressMap);
       } catch (error) {
-        console.error("Error fetching progress:", error);
+        console.error(error);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchProgress();
   }, [user]);
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-10 px-4 sm:px-6 md:px-12 py-4 sm:py-6 mb-6 sm:mb-8 md:mb-12">
-        <img
-          src="/cs.png"
-          alt="cs"
-          height={70}
-          width={70}
-          className="border-r-full rounded-lg flex-shrink-0"
-        />
-        <div className="flex-1 min-w-0">
-          <h1 className="font-bold text-xl sm:text-2xl">
-            Foundations of Development
-          </h1>
-          <p className="mt-2 sm:mt-4 text-sm text-zinc-600">
-            Strengthen your fundamentals
-          </p>
+    <div className="min-h-screen bg-[#0a0a0a] font-sans pb-24 text-white">
+      {/* Hero Banner Area */}
+      <div className="relative border-b border-white/5 bg-[#111111] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent mix-blend-overlay"></div>
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24 relative z-10 flex flex-col md:flex-row items-center gap-10">
+          <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-3xl bg-black border border-white/10 flex items-center justify-center shadow-2xl shrink-0">
+            <Terminal className="w-12 h-12 lg:w-16 lg:h-16 text-red-500" />
+          </div>
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+              Code Playgrounds
+            </h1>
+            <p className="text-lg text-gray-400 max-w-2xl">
+              Master programming languages through interactive, test-driven
+              coding challenges. Practice your fundamentals, earn XP, and level
+              up your skills.
+            </p>
+          </div>
         </div>
       </div>
-      <div className="mt-8 sm:mt-12 md:mt-18 flex bg-zinc-100 border rounded-2xl sm:rounded-3xl px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-12 mx-4 sm:mx-6 my-4 sm:my-6 gap-4 sm:gap-6 items-start overflow-x-auto pb-6 sm:pb-8 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
-        <SkillCard
-          title="Html"
-          img="/html5.png"
-          href={
-            progressData.html?.enrolled
-              ? "/playground/html"
-              : "/playground/html/topics"
-          }
-          progress={progressData.html}
-          isLoading={isLoading}
-        />
-        <SkillCard
-          title="Css"
-          img="/css.png"
-          href={
-            progressData.css?.enrolled
-              ? "/playground/css"
-              : "/playground/css/topics"
-          }
-          progress={progressData.css}
-          isLoading={isLoading}
-        />
 
-        <SkillCard
-          title="JavaScript"
-          img="/javascript.png"
-          href={
-            progressData.javascript?.enrolled
-              ? "/playground/javascript"
-              : "/playground/javascript/topics"
-          }
-          progress={progressData.javascript}
-          isLoading={isLoading}
-        />
-        <SkillCard
-          title="Python"
-          img="/python.png"
-          href={
-            progressData.python?.enrolled
-              ? "/playground/python"
-              : "/playground/python/topics"
-          }
-          progress={progressData.python}
-          isLoading={isLoading}
-        />
-        <SkillCard
-          title="Data Structures & Algorithms"
-          img="/dsa.png"
-          href={
-            progressData.dsa?.enrolled
-              ? "/playground/dsa"
-              : "/playground/dsa/topics"
-          }
-        />
-        <SkillCard
-          title="React"
-          img="/react.png"
-          href={
-            progressData.react?.enrolled
-              ? "/playground/react"
-              : "/playground/react/topics"
-          }
-          progress={progressData.react}
-          isLoading={isLoading}
-        />
+      {/* Grid Area */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 pt-16">
+        <div className="flex items-center justify-between mb-10">
+          <h2
+            className="text-4xl font-hand font-bold tracking-tight text-white/90"
+            style={{
+              letterSpacing: "0.1rem",
+            }}
+          >
+            Available Languages & Frameworks
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 justify-items-center">
+          <SkillCard
+            title="Html"
+            img="/html1.png"
+            href={
+              progressData.html?.enrolled
+                ? "/playground/html"
+                : "/playground/html/topics"
+            }
+            progress={progressData.html}
+            isLoading={isLoading}
+          />
+          <SkillCard
+            title="Css"
+            img="/css1.png"
+            href={
+              progressData.css?.enrolled
+                ? "/playground/css"
+                : "/playground/css/topics"
+            }
+            progress={progressData.css}
+            isLoading={isLoading}
+          />
+          <SkillCard
+            title="JavaScript"
+            img="/js2.png"
+            href={
+              progressData.javascript?.enrolled
+                ? "/playground/javascript"
+                : "/playground/javascript/topics"
+            }
+            progress={progressData.javascript}
+            isLoading={isLoading}
+          />
+          <SkillCard
+            title="Python"
+            img="/python1.png"
+            href={
+              progressData.python?.enrolled
+                ? "/playground/python"
+                : "/playground/python/topics"
+            }
+            progress={progressData.python}
+            isLoading={isLoading}
+          />
+          <SkillCard
+            title="React"
+            img="/react.png"
+            href={
+              progressData.react?.enrolled
+                ? "/playground/react"
+                : "/playground/react/topics"
+            }
+            progress={progressData.react}
+            isLoading={isLoading}
+          />
+          <SkillCard
+            title="Data Structures & Algorithms"
+            img="/dsa1.jpg"
+            href={
+              progressData.dsa?.enrolled
+                ? "/playground/dsa"
+                : "/playground/dsa/topics"
+            }
+            progress={progressData.dsa}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
     </div>
   );
-};
-
-export default Playground;
+}

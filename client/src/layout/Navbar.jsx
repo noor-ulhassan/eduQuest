@@ -21,9 +21,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 
-// ---------------------------------------------------------------------------
-// Static data — courses listed in the mega-menu
-// ---------------------------------------------------------------------------
 const courses = [
   {
     id: 1,
@@ -81,9 +78,6 @@ const courses = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Top-level navigation links (shared between desktop + mobile)
-// ---------------------------------------------------------------------------
 const navLinks = [
   { label: "Create & Learn", path: "/workspace" },
   { label: "Compete", path: "/competition" },
@@ -92,18 +86,12 @@ const navLinks = [
   { label: "Community", path: "/community" },
 ];
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
-
-  // Transparent dark navbar on homepage when not logged in (Codewars style)
-  const isHeroPage = location.pathname === "/" && !user;
 
   // Close mobile menu on route change
   React.useEffect(() => {
@@ -120,24 +108,16 @@ const Navbar = () => {
   return (
     <motion.nav
       initial={false}
-      className={`h-14 fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
-        isHeroPage
-          ? "bg-[#171717] border-b border-white/10"
-          : "bg-background/95 backdrop-blur-md border-b border-border shadow-sm"
-      }`}
+      className="h-14 fixed top-0 left-0 right-0 z-50 transition-colors duration-300 bg-[#171717] border-b border-white/10"
     >
       {/* ── Desktop ─────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo1.png" alt="" width={35} height={35} />
-          <span className="font-Inter text-2xl tracking-tight">
-            <span className={isHeroPage ? "text-red-500" : "text-yellow-500"}>
-              Edu
-            </span>
-            <span className={isHeroPage ? "text-white" : "text-gray-800"}>
-              Quest
-            </span>
+          <span className="font-Inter font-bold text-2xl tracking-tight">
+            <span className="text-red-500">Edu</span>
+            <span className="text-white">Quest</span>
           </span>
         </Link>
 
@@ -146,13 +126,7 @@ const Navbar = () => {
           <NavigationMenuList className="flex gap-8">
             {/* Courses mega-menu */}
             <NavigationMenuItem>
-              <NavigationMenuTrigger
-                className={
-                  isHeroPage
-                    ? "text-sm text-gray-300 hover:text-white data-[state=open]:text-white bg-transparent hover:bg-white/10"
-                    : "hover:bg-yellow-300 data-[state=open] text-sm"
-                }
-              >
+              <NavigationMenuTrigger className="text-sm text-gray-300 hover:text-white data-[state=open]:text-white bg-transparent hover:bg-white/10">
                 Courses
               </NavigationMenuTrigger>
               <NavigationMenuContent className="bg-[#1a1730] shadow-2xl border border-white/10 rounded-lg">
@@ -177,11 +151,7 @@ const Navbar = () => {
                 <NavigationMenuLink asChild>
                   <Link
                     to={link.path}
-                    className={`text-sm transition-colors ${
-                      isHeroPage
-                        ? "text-gray-300 hover:text-white"
-                        : "hover:text-yellow-600"
-                    }`}
+                    className="text-sm transition-colors text-gray-300 hover:text-white"
                   >
                     {link.label}
                   </Link>
@@ -194,21 +164,17 @@ const Navbar = () => {
         {/* Notification Bell + Auth */}
         <div className="flex items-center gap-3 shrink-0">
           <NotificationBellConditional />
-          {isHeroPage ? <HeroAuthButtons /> : <AuthButtons />}
+          <NavbarAuthButtons />
         </div>
       </div>
 
       {/* ── Mobile ──────────────────────────────────────────────────────── */}
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <Link to="/" className="flex items-center gap-2">
-          <img src="logo1.png" alt="" />
+          <img src="logo1.png" alt="" width={20} height={20} />
           <span className="font-hand font-bold text-xl">
-            <span className={isHeroPage ? "text-red-500" : "text-yellow-500"}>
-              Edu
-            </span>
-            <span className={isHeroPage ? "text-white" : "text-gray-800"}>
-              Quest
-            </span>
+            <span className="text-red-500">Edu</span>
+            <span className="text-white">Quest</span>
           </span>
         </Link>
 
@@ -218,11 +184,7 @@ const Navbar = () => {
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <button
-                className={`p-2 rounded-md transition-colors ${
-                  isHeroPage
-                    ? "text-white hover:bg-white/10"
-                    : "hover:bg-gray-100"
-                }`}
+                className="p-2 rounded-md transition-colors text-white hover:bg-white/10"
                 aria-label="Open navigation menu"
               >
                 <Menu className="h-5 w-5" />
@@ -307,7 +269,7 @@ const Navbar = () => {
 
               {/* Auth Buttons */}
               <div className="mt-8 pt-6 border-t border-white/10">
-                <HeroAuthButtons />
+                <NavbarAuthButtons />
               </div>
             </SheetContent>
           </Sheet>
@@ -317,10 +279,7 @@ const Navbar = () => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// Codewars-style bordered auth buttons (used on hero page)
-// ---------------------------------------------------------------------------
-const HeroAuthButtons = () => {
+const NavbarAuthButtons = () => {
   const { user, status } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 

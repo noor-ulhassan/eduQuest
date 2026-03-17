@@ -558,14 +558,22 @@ const LanguagePlayground = () => {
   // ── Language Icon Helper ───────────────────────────────
   const getLanguageIconUrl = (lang) => {
     switch (lang?.toLowerCase()) {
-      case "python": return "/python.png";
-      case "javascript": return "/js.png";
-      case "react": return "/react.png";
-      case "html": return "/html.png";
-      case "css": return "/css.png";
-      case "java": return "/java.png";
-      case "dsa": return "/dsa.png";
-      default: return null;
+      case "python":
+        return "/python.png";
+      case "javascript":
+        return "/js.png";
+      case "react":
+        return "/react.png";
+      case "html":
+        return "/html.png";
+      case "css":
+        return "/css.png";
+      case "java":
+        return "/java.png";
+      case "dsa":
+        return "/dsa.png";
+      default:
+        return null;
     }
   };
 
@@ -581,7 +589,11 @@ const LanguagePlayground = () => {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
               {getLanguageIconUrl(language) ? (
-                <img src={getLanguageIconUrl(language)} alt={language} className="w-5 h-5 object-contain drop-shadow-md" />
+                <img
+                  src={getLanguageIconUrl(language)}
+                  alt={language}
+                  className="w-5 h-5 object-contain drop-shadow-md"
+                />
               ) : (
                 <Terminal className="w-5 h-5 text-white" />
               )}
@@ -689,7 +701,11 @@ const LanguagePlayground = () => {
               <div className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 drop-shadow-sm">
                   {getLanguageIconUrl(language) ? (
-                    <img src={getLanguageIconUrl(language)} alt={language} className="w-6 h-6 object-contain drop-shadow-md" />
+                    <img
+                      src={getLanguageIconUrl(language)}
+                      alt={language}
+                      className="w-6 h-6 object-contain drop-shadow-md"
+                    />
                   ) : (
                     <FileCode2 className="w-5 h-5 text-purple-400" />
                   )}
@@ -882,7 +898,6 @@ const LanguagePlayground = () => {
                   onClick={() => navigate(`/playground/${language}/topics`)}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#2d1b69]/40 hover:bg-[#2d1b69]/60 text-purple-400 text-sm font-medium transition-colors"
                 >
-                  <BookOpen className="w-4 h-4" />
                   View Curriculum
                 </button>
               </div>
