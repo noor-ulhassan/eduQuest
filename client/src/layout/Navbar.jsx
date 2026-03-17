@@ -122,15 +122,16 @@ const Navbar = () => {
       initial={false}
       className={`h-14 fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
         isHeroPage
-          ? "bg-[#0d0b1a] border-b border-white/10"
+          ? "bg-[#171717] border-b border-white/10"
           : "bg-background/95 backdrop-blur-md border-b border-border shadow-sm"
       }`}
     >
       {/* ── Desktop ─────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 shrink-0">
-          <span className="font-hand font-bold text-4xl tracking-tight">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <img src="/logo1.png" alt="" width={35} height={35} />
+          <span className="font-Inter text-2xl tracking-tight">
             <span className={isHeroPage ? "text-red-500" : "text-yellow-500"}>
               Edu
             </span>
@@ -200,6 +201,7 @@ const Navbar = () => {
       {/* ── Mobile ──────────────────────────────────────────────────────── */}
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <Link to="/" className="flex items-center gap-2">
+          <img src="logo1.png" alt="" />
           <span className="font-hand font-bold text-xl">
             <span className={isHeroPage ? "text-red-500" : "text-yellow-500"}>
               Edu
@@ -346,7 +348,7 @@ const HeroAuthButtons = () => {
       </button>
       <button
         onClick={() => navigate("/signup")}
-        className="px-5 py-1.5 rounded text-sm font-semibold text-white border border-red-500 bg-red-600 hover:bg-red-500 transition-all cursor-pointer"
+        className="px-5 py-1.5 rounded text-sm font-semibold text-white border border-red-400 bg-red-600 hover:bg-red-500 transition-all cursor-pointer"
         style={{
           boxShadow: "0 2px 12px rgba(220, 38, 38, 0.3)",
         }}

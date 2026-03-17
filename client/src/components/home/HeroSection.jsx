@@ -306,7 +306,7 @@ const HeroSection = () => {
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
           <span
-            className="font-hand text-8xl"
+            className="font-inter text-7xl"
             style={{
               background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
               WebkitBackgroundClip: "text",
@@ -317,7 +317,7 @@ const HeroSection = () => {
             Achieve mastery
           </span>
           <span
-            className="block text-white mt-1 font-hand "
+            className="block text-white mt-1 font-inter "
             style={{
               letterSpacing: "0.3rem",
             }}
