@@ -555,6 +555,20 @@ const LanguagePlayground = () => {
     );
   }
 
+  // ── Language Icon Helper ───────────────────────────────
+  const getLanguageIconUrl = (lang) => {
+    switch (lang?.toLowerCase()) {
+      case "python": return "/python.png";
+      case "javascript": return "/js.png";
+      case "react": return "/react.png";
+      case "html": return "/html.png";
+      case "css": return "/css.png";
+      case "java": return "/java.png";
+      case "dsa": return "/dsa.png";
+      default: return null;
+    }
+  };
+
   /* ════════════════════════════════════════════════════════
    *  RENDER
    * ════════════════════════════════════════════════════════ */
@@ -565,8 +579,12 @@ const LanguagePlayground = () => {
         <header className="h-[60px] shrink-0 border-b border-[#2d2755] bg-[#0d0b1a] flex items-center justify-between px-6 z-10">
           {/* Logo & title */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shrink-0">
-              <Terminal className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+              {getLanguageIconUrl(language) ? (
+                <img src={getLanguageIconUrl(language)} alt={language} className="w-5 h-5 object-contain drop-shadow-md" />
+              ) : (
+                <Terminal className="w-5 h-5 text-white" />
+              )}
             </div>
             <span className="font-bold text-lg tracking-wide">
               {language.charAt(0).toUpperCase() + language.slice(1)} Playground
@@ -669,8 +687,12 @@ const LanguagePlayground = () => {
             >
               {/* Course header */}
               <div className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-600/20 flex items-center justify-center shrink-0">
-                  <FileCode2 className="w-5 h-5 text-purple-400" />
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 drop-shadow-sm">
+                  {getLanguageIconUrl(language) ? (
+                    <img src={getLanguageIconUrl(language)} alt={language} className="w-6 h-6 object-contain drop-shadow-md" />
+                  ) : (
+                    <FileCode2 className="w-5 h-5 text-purple-400" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold text-sm text-white truncate">

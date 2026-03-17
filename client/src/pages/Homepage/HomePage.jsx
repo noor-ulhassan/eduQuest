@@ -1,10 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import HeroSection from "../../components/home/HeroSection";
-import LearningSection from "../../components/home/LearningSection";
-import PracticeSection from "../../components/home/PracticeSection";
-import PortfolioSection from "../../components/home/PortfolioSection";
-import CommunitySection from "../../components/home/CommunitySection";
+import FeaturesSection from "../../components/home/FeaturesSection";
 import UserStats from "@/components/user/UserStatus";
 
 import Streak from "../../components/home/streak";
@@ -105,11 +102,8 @@ const HomePage = () => {
       ) : (
         <>
           <HeroSection />
-          <div className="bg-[#0b0f1a]">
-            <LearningSection />
-            <PracticeSection />
-            <PortfolioSection />
-            <CommunitySection />
+          <div className="bg-[#171717]">
+            <FeaturesSection />
           </div>
         </>
       )}

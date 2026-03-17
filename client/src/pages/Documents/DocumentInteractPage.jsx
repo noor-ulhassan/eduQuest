@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import api from "@/features/auth/authApi";
 import { grantXP } from "@/utils/gamificationHelper.js";
+import confetti from "canvas-confetti";
 
 import {
   BrainCircuit,
@@ -13,13 +14,39 @@ import {
   Target,
   Search,
   X,
+  ArrowLeft,
+  Trophy,
+  Award,
+  Zap,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
-// --- IMPORT YOUR NEW VIEWER COMPONENT ---
 import HighlightPDFViewer from "./HighlightPDFViewer.jsx";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300 } },
+};
+
+const PAIR_COLORS = [
+  "bg-red-500",
+  "bg-blue-500",
+  "bg-yellow-500",
+  "bg-emerald-500",
+];
 
 const DocumentInteractPage = () => {
   const { id } = useParams();
@@ -37,8 +64,9 @@ const DocumentInteractPage = () => {
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [savingResult, setSavingResult] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  // --- NEW: REVIEW MODE STATE ---
+  // --- REVIEW MODE STATE ---
   const [reviewingAttempt, setReviewingAttempt] = useState(null);
   const [activeQuote, setActiveQuote] = useState("");
 
@@ -76,7 +104,8 @@ const DocumentInteractPage = () => {
       setQuiz(res.data.data);
       setAnswers({});
       setResult(null);
-      toast.success("Quiz generated!");
+      setCurrentQuestionIndex(0);
+      toast.success("Quiz generated successfully!");
     } catch (error) {
       toast.error("Failed to generate quiz. Try again.");
     } finally {
@@ -89,7 +118,6 @@ const DocumentInteractPage = () => {
     setSavingResult(true);
     let score = 0;
 
-    // --- CRITICAL UPDATE: ADD sourceQuote HERE ---
     const qaPairs = quiz.questions.map((q, index) => {
       const isCorrect = answers[index] === q.correctAnswer;
       if (isCorrect) score++;
@@ -100,7 +128,7 @@ const DocumentInteractPage = () => {
         correctAnswer: q.correctAnswer,
         userAnswer: answers[index] || "",
         isCorrect: isCorrect,
-        sourceQuote: q.sourceQuote, // This saves the sentence to MongoDB!
+        sourceQuote: q.sourceQuote,
       };
     });
 
@@ -119,11 +147,26 @@ const DocumentInteractPage = () => {
       setPastAttempts([attemptRes.data.data, ...pastAttempts]);
 
       if (percentage >= 80) {
-        // await grantXP(dispatch, 100);
-        toast.success(`Excellent! You earned 100 XP`);
+        // Trigger generic confetti explosion
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: [
+            "#26ccff",
+            "#a25afd",
+            "#ff5e7e",
+            "#88ff5a",
+            "#fcff42",
+            "#ffa62d",
+            "#ff36ff",
+          ],
+        });
+        toast.success(`Incredible! You earned 100 XP 🏆`);
+      } else if (percentage >= 50) {
+        toast.success(`Good effort! You earned 50 XP ⚡`);
       } else {
-        // await grantXP(dispatch, 20);
-        toast.success(`Good effort! You earned 20 XP`);
+        toast.success(`Keep studying! You earned 10 XP`);
       }
     } catch (error) {
       toast.error("Failed to save quiz results.");
@@ -132,351 +175,670 @@ const DocumentInteractPage = () => {
     }
   };
 
+  const getRankBadge = (percentage) => {
+    if (percentage >= 90)
+      return {
+        icon: <Trophy className="w-5 h-5 text-yellow-400" />,
+        bg: "bg-yellow-100",
+        border: "border-yellow-200",
+        text: "text-yellow-700",
+        label: "Gold Pass",
+      };
+    if (percentage >= 75)
+      return {
+        icon: <Award className="w-5 h-5 text-slate-400" />,
+        bg: "bg-slate-100",
+        border: "border-slate-200",
+        text: "text-slate-700",
+        label: "Silver Pass",
+      };
+    if (percentage >= 50)
+      return {
+        icon: <Award className="w-5 h-5 text-amber-700" />,
+        bg: "bg-amber-100",
+        border: "border-amber-200",
+        text: "text-amber-800",
+        label: "Bronze Pass",
+      };
+    return {
+      icon: <Target className="w-5 h-5 text-red-400" />,
+      bg: "bg-red-50",
+      border: "border-red-100",
+      text: "text-red-700",
+      label: "Needs Review",
+    };
+  };
+
   if (loading)
     return (
-      <div className="p-20 flex justify-center">
-        <Loader2 className="animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-20 space-y-4 bg-slate-50">
+        <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
+        <p className="text-slate-500 font-medium animate-pulse">
+          Establishing secure link to the Knowledge Vault...
+        </p>
       </div>
     );
   if (!doc) return null;
 
   return (
-    <div className="max-w-7xl mx-auto p-8 mt-10 min-h-screen">
-      <Button
-        variant="ghost"
-        onClick={() => navigate("/documents")}
-        className="mb-6 pl-0 hover:bg-transparent hover:text-blue-600"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Library
-      </Button>
-
-      {/* Document Header (Hide when reviewing to save space for the PDF) */}
-      {!reviewingAttempt && (
-        <div className="flex justify-between items-start mb-8 bg-white p-6 rounded-2xl border shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-blue-50 text-blue-600 rounded-xl">
-              <FileText className="w-8 h-8" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold font-jersey text-zinc-900">
-                {doc.title}
-              </h1>
-              <p className="text-zinc-500 mt-1">
-                Uploaded on {new Date(doc.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
+    <div className="bg-slate-50 min-h-screen pb-20 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {!quiz && !reviewingAttempt && (
           <Button
-            variant="outline"
-            onClick={() => window.open(doc.filePath, "_blank")}
+            variant="ghost"
+            onClick={() => navigate("/documents")}
+            className="mb-4 pl-0 hover:bg-transparent text-slate-500 hover:text-indigo-600 transition-colors"
           >
-            View PDF
+            <ArrowLeft className="mr-2 h-4 w-4" /> Return to Vault
           </Button>
-        </div>
-      )}
+        )}
 
-      {/* --- STATE D: REVIEWING PAST ATTEMPT (SPLIT SCREEN) --- */}
-      {reviewingAttempt ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[85vh]">
-          {/* LEFT COLUMN: PDF Viewer */}
-          <div className="lg:col-span-1 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg flex items-center">
-                <FileText className="mr-2 w-5 h-5 text-blue-600" /> Source
-                Document
-              </h3>
-              {activeQuote && (
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full animate-pulse font-medium">
-                  Highlighting Active
-                </span>
-              )}
-            </div>
-            <div className="flex-grow border rounded-xl overflow-hidden shadow-lg bg-zinc-100">
-              <HighlightPDFViewer
-                fileUrl={doc.filePath}
-                highlightQuote={activeQuote}
-              />
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Quiz Review */}
-          <div className="lg:col-span-1 flex flex-col h-full overflow-hidden">
-            <div className="flex justify-between items-center bg-zinc-900 text-white p-4 rounded-xl mb-4 shadow-md">
-              <div>
-                <h2 className="text-xl font-bold">Review Mode</h2>
-                <p className="text-zinc-400 text-sm">
-                  Score: {reviewingAttempt.percentage}%
-                </p>
+        {/* Document Header */}
+        {!reviewingAttempt && !quiz && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm"
+          >
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                <FileText className="w-8 h-8 text-indigo-600" />
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setReviewingAttempt(null);
-                  setActiveQuote("");
-                }}
-              >
-                <X className="w-4 h-4 mr-2" /> Close Review
-              </Button>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight line-clamp-1">
+                  {doc.title}
+                </h1>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge
+                    variant="secondary"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                  >
+                    {(doc.fileSize / 1024 / 1024).toFixed(1)} MB
+                  </Badge>
+                  <span className="text-slate-400 text-sm">
+                    Uploaded on {new Date(doc.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => window.open(doc.filePath, "_blank")}
+              className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 w-full sm:w-auto h-12 px-6 font-bold shadow-sm"
+            >
+              View Original PDF
+            </Button>
+          </motion.div>
+        )}
+
+        {/* --- STATE D: REVIEWING PAST ATTEMPT (SPLIT SCREEN) --- */}
+        {reviewingAttempt ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[85vh]"
+          >
+            {/* LEFT COLUMN: PDF Viewer */}
+            <div className="lg:col-span-1 flex flex-col h-full bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+              <div className="flex flex-wrap justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <FileText className="mr-2 w-5 h-5 text-indigo-600" /> Source
+                  Context
+                </h3>
+                {activeQuote && (
+                  <span className="text-[11px] font-bold bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full animate-pulse border border-amber-200 flex items-center gap-1">
+                    <Search className="w-3 h-3" /> Locating Highlight...
+                  </span>
+                )}
+              </div>
+              <div className="flex-grow bg-slate-100 overflow-hidden relative">
+                <HighlightPDFViewer
+                  fileUrl={doc.filePath}
+                  highlightQuote={activeQuote}
+                />
+                {!activeQuote && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-slate-900/5 backdrop-blur-[1px]">
+                    <div className="bg-white/90 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 border border-slate-200 shadow-sm flex items-center gap-2">
+                      <Search className="w-4 h-4 text-indigo-500" /> Click a
+                      "Find Source" button on the right to jump to the text.
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="overflow-y-auto pr-2 space-y-4 pb-10">
-              {reviewingAttempt.qaPairs.map((qa, idx) => (
-                <Card
-                  key={idx}
-                  className={`border-l-4 shadow-sm ${qa.isCorrect ? "border-l-green-500" : "border-l-red-500"}`}
+            {/* RIGHT COLUMN: Quiz Review */}
+            <div className="lg:col-span-1 flex flex-col h-full overflow-hidden bg-white rounded-3xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center bg-slate-900 text-white p-5 shrink-0">
+                <div>
+                  <h2 className="text-xl font-black flex items-center gap-2">
+                    <History className="w-5 h-5 text-indigo-400" /> Reviewing
+                    Attempt
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-slate-400 text-sm font-medium">
+                      Accurancy:{" "}
+                    </span>
+                    <span
+                      className={`text-sm font-bold ${reviewingAttempt.percentage >= 80 ? "text-emerald-400" : "text-amber-400"}`}
+                    >
+                      {reviewingAttempt.percentage}%
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="rounded-xl border-slate-700 bg-slate-800 hover:bg-slate-700 hover:text-white text-slate-300"
+                  onClick={() => {
+                    setReviewingAttempt(null);
+                    setActiveQuote("");
+                  }}
                 >
-                  <CardContent className="p-5">
-                    <div className="flex justify-between items-start">
-                      <p className="font-bold mb-2 text-zinc-800 w-[90%]">
-                        Q{idx + 1}. {qa.question}
-                      </p>
+                  <X className="w-4 h-4 mr-2" /> Exit Review
+                </Button>
+              </div>
+
+              <div className="overflow-y-auto p-5 space-y-6">
+                {reviewingAttempt.qaPairs.map((qa, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-5 rounded-2xl border-2 transition-all hover:shadow-md ${qa.isCorrect ? "bg-emerald-50/30 border-emerald-100 text-emerald-900" : "bg-red-50/30 border-red-100 text-red-900"}`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex gap-3 items-start">
+                        <span
+                          className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 font-black text-sm ${qa.isCorrect ? "bg-emerald-200 text-emerald-700" : "bg-red-200 text-red-700"}`}
+                        >
+                          {idx + 1}
+                        </span>
+                        <p className="font-bold text-slate-800 pt-1 leading-snug">
+                          {qa.question}
+                        </p>
+                      </div>
                       {qa.isCorrect ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0 mt-1" />
                       ) : (
-                        <X className="w-5 h-5 text-red-500" />
+                        <X className="w-6 h-6 text-red-500 shrink-0 mt-1" />
                       )}
                     </div>
 
-                    <div className="mt-2 space-y-1 text-sm">
-                      <p className="text-zinc-500">
-                        Your Answer:{" "}
+                    <div className="ml-11 space-y-2 text-sm bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-slate-500 w-16 shrink-0 underline decoration-slate-200 underline-offset-4">
+                          You:
+                        </span>
                         <span
                           className={
                             qa.isCorrect
-                              ? "text-green-600 font-bold"
-                              : "text-red-600 font-bold"
+                              ? "text-emerald-600 font-bold"
+                              : "text-red-500 font-bold line-through decoration-red-300"
                           }
                         >
-                          {qa.userAnswer}
+                          {qa.userAnswer || "Skipped"}
                         </span>
-                      </p>
+                      </div>
                       {!qa.isCorrect && (
-                        <p className="text-green-600 font-bold">
-                          Correct: {qa.correctAnswer}
-                        </p>
+                        <div className="flex items-start gap-2 pt-2 border-t border-slate-50 mt-2">
+                          <span className="font-semibold text-slate-500 w-16 shrink-0">
+                            Correct:
+                          </span>
+                          <span className="text-emerald-600 font-bold flex items-center gap-1">
+                            {qa.correctAnswer}{" "}
+                            <CheckCircle className="w-3 h-3" />
+                          </span>
+                        </div>
                       )}
                     </div>
 
                     {/* HIGHLIGHT TRIGGER BUTTON */}
                     {qa.sourceQuote && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-4 w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all group"
-                        onClick={() => {
-                          toast.success("Locating in document...");
-                          setActiveQuote(qa.sourceQuote);
-                        }}
-                      >
-                        <Search className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
-                        Locate Source Context
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* --- NON-REVIEW STATES (A, B, C) --- */
-        <>
-          {/* --- STATE A: Default View --- */}
-          {!quiz && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Generate New Quiz Banner */}
-              <div className="lg:col-span-3 text-center py-12 bg-purple-50 rounded-3xl border-2 border-dashed border-purple-200">
-                <div className="bg-white p-4 rounded-full inline-block shadow-sm mb-4">
-                  <BrainCircuit className="w-10 h-10 text-purple-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-zinc-800 mb-2">
-                  Test Your Knowledge
-                </h2>
-                <p className="text-zinc-600 mb-6 max-w-md mx-auto">
-                  Ready to learn? Generate a fresh AI quiz based on this
-                  document's contents.
-                </p>
-                <Button
-                  size="lg"
-                  onClick={handleGenerateQuiz}
-                  disabled={generating || doc.status !== "ready"}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-6 rounded-xl text-lg shadow-md"
-                >
-                  {generating ? (
-                    <Loader2 className="animate-spin mr-2" />
-                  ) : (
-                    <BrainCircuit className="mr-2" />
-                  )}
-                  {generating ? "AI is Generating..." : "Generate New AI Quiz"}
-                </Button>
-                {doc.status !== "ready" && (
-                  <p className="text-yellow-600 mt-4 text-sm font-medium">
-                    Document is still processing...
-                  </p>
-                )}
-              </div>
-
-              {/* Past Attempts Grid */}
-              <div className="lg:col-span-3 mt-4">
-                <h3 className="text-2xl font-bold font-jersey mb-6 flex items-center">
-                  <History className="mr-2 text-zinc-400" /> Past Attempts
-                </h3>
-
-                {pastAttempts.length === 0 ? (
-                  <div className="text-center py-10 bg-zinc-50 rounded-2xl border text-zinc-500">
-                    No previous attempts. Take a quiz to establish your
-                    baseline!
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {pastAttempts.map((attempt) => (
-                      <Card
-                        key={attempt._id}
-                        className="hover:border-purple-300 transition-colors"
-                      >
-                        <CardContent className="p-5">
-                          <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-2">
-                              <Target
-                                className={`w-5 h-5 ${attempt.percentage >= 80 ? "text-green-500" : "text-yellow-500"}`}
-                              />
-                              <span className="font-bold text-lg">
-                                {attempt.percentage}%
-                              </span>
-                            </div>
-                            <span className="text-xs text-zinc-400 font-medium">
-                              {new Date(attempt.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-zinc-600 text-sm mb-4">
-                            Score: {attempt.score} out of{" "}
-                            {attempt.totalQuestions}
-                          </p>
-                          {/* THIS BUTTON NOW OPENS REVIEW MODE */}
-                          <Button
-                            variant="secondary"
-                            className="w-full text-xs font-bold hover:bg-purple-100 hover:text-purple-700 transition-colors"
-                            onClick={() => setReviewingAttempt(attempt)}
-                          >
-                            Review Highlights
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* --- STATE B: Active Quiz --- */}
-          {quiz && !result && (
-            <div className="space-y-6 max-w-3xl mx-auto">
-              <div className="flex justify-between items-center bg-zinc-900 text-white p-4 rounded-xl">
-                <h2 className="text-xl font-bold">Live Quiz Session</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setQuiz(null)}
-                  className="text-red-400 hover:text-red-300 hover:bg-zinc-800"
-                >
-                  Abandon Quiz
-                </Button>
-              </div>
-
-              {quiz.questions.map((q, qIdx) => (
-                <Card
-                  key={qIdx}
-                  className="border-l-4 border-l-purple-500 shadow-sm"
-                >
-                  <CardContent className="p-6">
-                    <p className="font-semibold text-lg mb-4 text-zinc-800">
-                      <span className="text-purple-600 mr-2">Q{qIdx + 1}.</span>{" "}
-                      {q.question}
-                    </p>
-                    <div className="grid grid-cols-1 gap-3">
-                      {q.options.map((opt, oIdx) => (
-                        <div
-                          key={oIdx}
-                          onClick={() =>
-                            setAnswers({ ...answers, [qIdx]: opt })
-                          }
-                          className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                            answers[qIdx] === opt
-                              ? "bg-purple-50 border-purple-500"
-                              : "bg-white border-zinc-200 hover:border-purple-200"
-                          }`}
+                      <div className="ml-11 mt-4">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 font-semibold border border-indigo-100 rounded-lg group"
+                          onClick={() => {
+                            setActiveQuote(qa.sourceQuote);
+                          }}
                         >
-                          <div className="flex items-center">
-                            <div
-                              className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center ${
-                                answers[qIdx] === opt
-                                  ? "border-purple-600 bg-purple-600"
-                                  : "border-zinc-300"
-                              }`}
-                            >
-                              {answers[qIdx] === opt && (
-                                <div className="w-2 h-2 bg-white rounded-full" />
-                              )}
-                            </div>
-                            {opt}
-                          </div>
-                        </div>
+                          <Search className="w-3.5 h-3.5 mr-2 text-indigo-400 group-hover:text-indigo-600" />
+                          Find Source in PDF
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          /* --- NON-REVIEW STATES (A, B, C) --- */
+          <>
+            {/* --- STATE A: Default View --- */}
+            {!quiz && (
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+              >
+                {/* Generate New Quiz Banner */}
+                <motion.div
+                  variants={itemVariants}
+                  className="lg:col-span-3 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 rounded-[2rem] p-10 sm:p-14 text-center shadow-xl"
+                >
+                  {/* Decorative faint icons */}
+                  <div className="absolute top-10 left-10 opacity-10">
+                    <BrainCircuit className="w-32 h-32 text-white" />
+                  </div>
+                  <div className="absolute bottom-10 right-10 opacity-10">
+                    <Zap className="w-32 h-32 text-white" />
+                  </div>
+
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl inline-block mb-6 border border-white/20 shadow-inner">
+                      <BrainCircuit className="w-12 h-12 text-white" />
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4 tracking-tight drop-shadow-md">
+                      Test Your Knowledge
+                    </h2>
+                    <p className="text-indigo-100 text-lg sm:text-xl mb-10 max-w-2xl mx-auto font-medium">
+                      Challenge yourself. Let our AI instantly generate a
+                      targeted quiz utilizing context directly from this
+                      document.
+                    </p>
+                    <Button
+                      size="lg"
+                      onClick={handleGenerateQuiz}
+                      disabled={generating || doc.status !== "ready"}
+                      className="bg-white hover:bg-slate-50 text-indigo-700 font-black px-10 py-7 rounded-2xl text-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(255,255,255,0.2)] hover:-translate-y-1 transition-all"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="animate-spin mr-3 hidden sm:inline-block h-6 w-6" />
+                          Neural Engine Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="mr-3 fill-indigo-500 h-6 w-6" />
+                          Start Deep Learning Quiz
+                        </>
+                      )}
+                    </Button>
+                    {doc.status !== "ready" && (
+                      <div className="mt-6 flex items-center gap-2 bg-amber-500/20 text-yellow-300 px-4 py-2 rounded-full border border-amber-400/30 backdrop-blur-sm text-sm font-bold">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Document
+                        index processing. Please wait...
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* Past Attempts Grid */}
+                <motion.div
+                  variants={itemVariants}
+                  className="lg:col-span-3 mt-6"
+                >
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-3xl font-black text-slate-800 flex items-center gap-3">
+                      <Trophy className="w-8 h-8 text-indigo-500 fill-indigo-100" />
+                      Trophy Room
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="text-slate-500 border-slate-300 font-bold bg-white"
+                    >
+                      {pastAttempts.length} Attempts
+                    </Badge>
+                  </div>
+
+                  {pastAttempts.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Star className="w-8 h-8 text-slate-300" />
+                      </div>
+                      <h4 className="text-xl font-bold text-slate-800 mb-2">
+                        No attempts yet
+                      </h4>
+                      <p className="text-slate-500 max-w-md mx-auto">
+                        Take your first quiz above to establish your baseline
+                        and earn your first trophy!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {pastAttempts.map((attempt) => {
+                        const rank = getRankBadge(attempt.percentage);
+                        return (
+                          <Card
+                            key={attempt._id}
+                            className={`hover:-translate-y-1.5 transition-all duration-300 cursor-default bg-white border-2 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl ${rank.border}`}
+                          >
+                            <div className={`h-2 w-full ${rank.bg}`} />
+                            <CardContent className="p-6">
+                              <div className="flex justify-between items-start mb-6">
+                                <div className={`flex flex-col gap-1`}>
+                                  <div className="flex items-center gap-2">
+                                    {rank.icon}
+                                    <span className="font-black text-3xl text-slate-900 tracking-tighter">
+                                      {attempt.percentage}%
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full w-max ${rank.bg} ${rank.text}`}
+                                  >
+                                    {rank.label}
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
+                                    Score
+                                  </p>
+                                  <p className="text-lg font-bold text-slate-700 bg-slate-50 px-3 py-1 rounded-lg">
+                                    {attempt.score}
+                                    <span className="text-slate-400 font-medium text-sm">
+                                      /{attempt.totalQuestions}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mb-5">
+                                <History className="w-3.5 h-3.5" />
+                                {new Date(
+                                  attempt.createdAt,
+                                ).toLocaleDateString()}{" "}
+                                at{" "}
+                                {new Date(attempt.createdAt).toLocaleTimeString(
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )}
+                              </div>
+                              <Button
+                                className={`w-full font-bold h-11 rounded-xl shadow-none hover:shadow-md transition-all ${rank.bg} ${rank.text} hover:${rank.bg} hover:brightness-95`}
+                                onClick={() => setReviewingAttempt(attempt)}
+                              >
+                                Review Performance
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+
+            {/* --- STATE B: Active Quiz (Quizizz Style) --- */}
+            {quiz && !result && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-4xl mx-auto space-y-6 pt-4"
+              >
+                {/* Gamified Header */}
+                <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                      <BrainCircuit className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-800">
+                        Knowledge Check
+                      </h2>
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                        Question {currentQuestionIndex + 1} of{" "}
+                        {quiz.questions.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="hidden sm:flex items-center gap-1 text-slate-300">
+                      {quiz.questions.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-8 h-2.5 rounded-full transition-all duration-500 ${i === currentQuestionIndex ? "bg-indigo-500" : i < currentQuestionIndex ? "bg-indigo-200" : "bg-slate-100"}`}
+                        />
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <div className="w-px h-8 bg-slate-200 hidden sm:block mx-1"></div>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Are you sure you want to abandon the quiz? Progress will be lost.",
+                          )
+                        )
+                          setQuiz(null);
+                      }}
+                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold"
+                    >
+                      <X className="w-4 h-4 sm:mr-2" />{" "}
+                      <span className="hidden sm:inline">Exit</span>
+                    </Button>
+                  </div>
+                </div>
 
-              <Button
-                onClick={handleSubmitQuiz}
-                className="w-full py-6 text-lg font-bold bg-green-600 hover:bg-green-700 mt-4"
-                disabled={
-                  Object.keys(answers).length < quiz.questions.length ||
-                  savingResult
-                }
+                {/* Giant Centered Question */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentQuestionIndex}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-12 mb-6 min-h-[250px] flex items-center justify-center text-center">
+                      <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">
+                        {quiz.questions[currentQuestionIndex].question}
+                      </h3>
+                    </div>
+
+                    {/* 2x2 Vibrant Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      {quiz.questions[currentQuestionIndex].options.map(
+                        (opt, oIdx) => {
+                          const isSelected =
+                            answers[currentQuestionIndex] === opt;
+                          const colorClass =
+                            PAIR_COLORS[oIdx % PAIR_COLORS.length];
+
+                          return (
+                            <motion.div
+                              key={oIdx}
+                              whileHover={{ scale: 1.02, y: -4 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() =>
+                                setAnswers({
+                                  ...answers,
+                                  [currentQuestionIndex]: opt,
+                                })
+                              }
+                              className={`cursor-pointer rounded-2xl p-6 sm:p-8 min-h-[160px] flex items-center justify-center text-center transition-all ${
+                                isSelected
+                                  ? `${colorClass} text-white shadow-[0_0_40px_rgba(0,0,0,0.2)] scale-[1.02] ring-4 ring-offset-2 ring-${colorClass.split("-")[1]}-400`
+                                  : `${colorClass} text-white opacity-90 shadow-lg hover:shadow-xl`
+                              }`}
+                              style={{
+                                // Giving them that slight 3D Quizizz pillowed look
+                                boxShadow: isSelected
+                                  ? "inset 0 -8px 0 rgba(0,0,0,0.1)"
+                                  : "inset 0 -6px 0 rgba(0,0,0,0.15)",
+                              }}
+                            >
+                              <span className="text-xl sm:text-2xl font-bold tracking-tight px-4 leading-snug drop-shadow-md">
+                                {opt}
+                              </span>
+                            </motion.div>
+                          );
+                        },
+                      )}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Navigation Footer */}
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 mt-8 shadow-sm">
+                  <Button
+                    variant="outline"
+                    disabled={currentQuestionIndex === 0}
+                    onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
+                    className="font-bold border-slate-200 rounded-xl h-12 px-6"
+                  >
+                    Previous
+                  </Button>
+
+                  {currentQuestionIndex < quiz.questions.length - 1 ? (
+                    <Button
+                      onClick={() => {
+                        if (!answers[currentQuestionIndex]) {
+                          toast.error("Please select an answer to continue!");
+                          return;
+                        }
+                        setCurrentQuestionIndex((prev) => prev + 1);
+                      }}
+                      className="font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 px-8 shadow-md"
+                    >
+                      Next Question
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSubmitQuiz}
+                      disabled={
+                        Object.keys(answers).length < quiz.questions.length ||
+                        savingResult
+                      }
+                      className="font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 px-10 shadow-lg shadow-emerald-500/20 text-lg group"
+                    >
+                      {savingResult ? (
+                        <Loader2 className="animate-spin mr-2" />
+                      ) : (
+                        <CheckCircle className="mr-2 group-hover:scale-110 transition-transform" />
+                      )}
+                      {savingResult ? "Finalizing..." : "Submit All Answers"}
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* --- STATE C: Post-Quiz Results --- */}
+            {result && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+                className="bg-white p-10 sm:p-16 rounded-[3rem] text-center shadow-2xl shadow-indigo-500/10 border border-slate-100 max-w-3xl mx-auto mt-10 relative overflow-hidden"
               >
-                {savingResult ? (
-                  <Loader2 className="animate-spin mr-2" />
-                ) : null}
-                {savingResult ? "Saving Results..." : "Submit Answers"}
-              </Button>
-            </div>
-          )}
+                {/* Background decorative flair */}
+                <div
+                  className={`absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl opacity-20 ${result.percentage >= 80 ? "bg-emerald-500" : result.percentage >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                />
+                <div
+                  className={`absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl opacity-20 bg-indigo-500`}
+                />
 
-          {/* --- STATE C: Post-Quiz Results --- */}
-          {result && (
-            <div className="bg-zinc-900 text-white p-10 rounded-3xl text-center shadow-2xl max-w-2xl mx-auto">
-              <div className="mb-6">
-                {result.percentage >= 80 ? (
-                  <CheckCircle className="w-20 h-20 text-green-400 mx-auto" />
-                ) : (
-                  <BrainCircuit className="w-20 h-20 text-yellow-400 mx-auto" />
-                )}
-              </div>
-              <h2 className="text-4xl font-bold mb-2">
-                {result.score} / {result.total}
-              </h2>
-              <p className="text-zinc-400 text-xl mb-8">
-                You scored {result.percentage}% accuracy
-              </p>
-              <div className="flex justify-center gap-4">
-                <Button
-                  onClick={() => {
-                    setQuiz(null);
-                    setResult(null);
-                  }}
-                  variant="secondary"
-                  className="px-8 text-zinc-900 font-bold"
-                >
-                  Back to Document
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+                <div className="relative z-10">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                    className="mb-8 flex justify-center"
+                  >
+                    <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center p-4 border-4 border-white shadow-[0_20px_50px_rgba(8,_112,_184,_0.1)]">
+                      {result.percentage >= 80 ? (
+                        <div className="relative">
+                          <Trophy className="w-16 h-16 text-yellow-400 fill-yellow-100" />
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              duration: 10,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
+                            className="absolute -inset-8 -z-10"
+                          >
+                            <Sparkles className="w-full h-full text-yellow-300 opacity-50" />
+                          </motion.div>
+                        </div>
+                      ) : result.percentage >= 50 ? (
+                        <Award className="w-16 h-16 text-slate-400 fill-slate-100" />
+                      ) : (
+                        <Target className="w-16 h-16 text-red-400 fill-red-50" />
+                      )}
+                    </div>
+                  </motion.div>
+
+                  <h3 className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-2">
+                    Final Score
+                  </h3>
+                  <div className="flex items-end justify-center gap-2 mb-4">
+                    <motion.h2
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-6xl sm:text-8xl font-black text-slate-900 tracking-tighter"
+                    >
+                      {result.score}
+                    </motion.h2>
+                    <span className="text-3xl sm:text-5xl font-black text-slate-300 mb-2 sm:mb-4">
+                      /{result.total}
+                    </span>
+                  </div>
+
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <div className="inline-flex items-center gap-2 bg-slate-100 px-6 py-3 rounded-2xl mb-12">
+                      <BrainCircuit
+                        className={`w-5 h-5 ${result.percentage >= 80 ? "text-emerald-500" : "text-indigo-500"}`}
+                      />
+                      <span className="text-slate-600 font-bold text-lg">
+                        Accuracy:{" "}
+                      </span>
+                      <span
+                        className={`font-black text-xl ${result.percentage >= 80 ? "text-emerald-500" : "text-slate-800"}`}
+                      >
+                        {result.percentage}%
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                      <Button
+                        onClick={() => {
+                          setQuiz(null);
+                          setResult(null);
+                        }}
+                        variant="outline"
+                        className="px-8 py-6 rounded-2xl text-lg font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                      >
+                        Return to Vault
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Automatically open the review mode for the attempt we just created
+                          const newlyCreatedAttempt = pastAttempts[0];
+                          if (newlyCreatedAttempt)
+                            setReviewingAttempt(newlyCreatedAttempt);
+                          setQuiz(null);
+                          setResult(null);
+                        }}
+                        className="px-8 py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-lg font-bold shadow-lg shadow-indigo-500/20"
+                      >
+                        <Search className="mr-2" /> Review Mistakes
+                      </Button>
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
