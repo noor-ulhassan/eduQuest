@@ -167,6 +167,21 @@ export const generateChapterContent = async (req, res) => {
   try {
     const { courseId, chapter, index } = req.body;
 
+    // ── Guard: skip regeneration if content already exists in DB ──
+    const existingCourse = await Course.findOne({ courseId });
+    if (existingCourse) {
+      const existingChapter = existingCourse.courseOutput?.chapters?.[index];
+      const existingTopics = existingChapter?.topics || [];
+      // If topics are already objects (not raw strings), content was previously generated
+      if (existingTopics.length > 0 && typeof existingTopics[0] === "object") {
+        return res.status(200).json({
+          success: true,
+          data: existingChapter,
+          cached: true,
+        });
+      }
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 

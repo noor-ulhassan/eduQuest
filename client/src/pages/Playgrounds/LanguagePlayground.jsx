@@ -28,10 +28,7 @@ import {
   User,
   Users,
   X,
-  Zap,
-  Cpu,
-  RefreshCw,
-  Video,
+  Menu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -55,8 +52,8 @@ const formatTaskText = (text, isMobile = false) => {
   const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   // Wrap text in backticks with syntax-highlighted spans
   const spanClass = isMobile
-    ? "text-purple-400 bg-purple-500/10 px-1 py-0.5 rounded font-mono"
-    : "bg-[#2d2755] text-purple-300 px-1.5 py-0.5 rounded font-mono text-sm";
+    ? "text-red-400 bg-red-500/10 px-1 py-0.5 rounded font-mono"
+    : "bg-white/10 text-red-300 px-1.5 py-0.5 rounded font-mono text-sm";
 
   return safeText.replace(/`([^`]+)`/g, `<span class="${spanClass}">$1</span>`);
 };
@@ -90,13 +87,13 @@ const LanguagePlayground = () => {
   const [output, setOutput] = useState(null);
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [completedProblems, setCompletedProblems] = useState(new Set());
   const [showHints, setShowHints] = useState(false);
   const [expandedChapterId, setExpandedChapterId] = useState(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const iframeRef = useRef(null);
-  const isMobile = useIsMobile();
   const pendingTestRef = useRef(null);
   const currentProblemRef = useRef(null);
   const [dsaLang, setDsaLang] = useState("javascript");
@@ -457,8 +454,8 @@ const LanguagePlayground = () => {
   // ── Not found ──────────────────────────────────────────
   if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0d0b1a] text-white p-6">
-        <div className="w-full max-w-md border border-[#2d2755] bg-[#13112a] rounded-2xl shadow-2xl p-8 text-center space-y-4">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white p-6">
+        <div className="w-full max-w-md border border-white/10 bg-[#111111] rounded-2xl shadow-2xl p-8 text-center space-y-4">
           <h1 className="text-2xl font-semibold tracking-tight text-white">
             Language Not Found
           </h1>
@@ -467,7 +464,7 @@ const LanguagePlayground = () => {
           </p>
           <button
             onClick={() => navigate("/playground")}
-            className="bg-purple-600 hover:bg-purple-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
+            className="bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
           >
             Back to Playgrounds
           </button>
@@ -546,9 +543,9 @@ const LanguagePlayground = () => {
   // ── Loading state ──────────────────────────────────────
   if (isLoadingProgress || !currentProblem) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0d0b1a] text-white">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          <Loader2 className="w-8 h-8 animate-spin text-red-400" />
           <span className="text-sm text-zinc-400">Loading workspace…</span>
         </div>
       </div>
@@ -581,13 +578,18 @@ const LanguagePlayground = () => {
    *  RENDER
    * ════════════════════════════════════════════════════════ */
   return (
-    <div className="flex flex-col h-screen min-h-dvh bg-[#0d0b1a] text-white overflow-hidden">
+    <div className="flex flex-col h-screen min-h-dvh bg-[#0a0a0a] text-white overflow-hidden">
       {/* ═══════════ DESKTOP NAVBAR ═══════════ */}
       {!isMobile && (
-        <header className="h-[60px] shrink-0 border-b border-[#2d2755] bg-[#0d0b1a] flex items-center justify-between px-6 z-10">
-          {/* Logo & title */}
+        <header className="h-[60px] shrink-0 border-b border-white/10 bg-[#0a0a0a] flex items-center justify-between px-6 z-10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-zinc-400 hover:text-white"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 ml-1">
               {getLanguageIconUrl(language) ? (
                 <img
                   src={getLanguageIconUrl(language)}
@@ -598,56 +600,18 @@ const LanguagePlayground = () => {
                 <Terminal className="w-5 h-5 text-white" />
               )}
             </div>
-            <span className="font-bold text-lg tracking-wide">
+            <span className="font-bold text-lg tracking-wide hidden sm:block">
               {language.charAt(0).toUpperCase() + language.slice(1)} Playground
             </span>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-8 h-full">
-            {["Home", "Courses", "Playgrounds", "Community"].map((link) => {
-              const isActive = link === "Courses";
-              return (
-                <button
-                  key={link}
-                  onClick={() => {
-                    if (link === "Home") navigate("/");
-                    if (link === "Playgrounds") navigate("/playground");
-                    if (link === "Community") navigate("/community");
-                  }}
-                  className={cn(
-                    "h-full px-1 text-[13px] font-bold tracking-wide transition-colors relative flex items-center",
-                    isActive
-                      ? "text-purple-400"
-                      : "text-zinc-400 hover:text-white",
-                  )}
-                >
-                  {link}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-t-full" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
 
           {/* User actions */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 bg-[#2d1b69] border border-purple-500/20 px-3 py-1.5 rounded-full">
-              <Zap className="w-3.5 h-3.5 text-purple-400 fill-purple-400" />
-              <span className="text-purple-300 font-bold text-xs tracking-wide">
-                {(user?.stats?.totalXp || 0).toLocaleString()} XP
-              </span>
-            </div>
-            <button className="w-9 h-9 rounded-full bg-[#1e1b38] hover:bg-[#2d2755] flex items-center justify-center transition-colors">
-              <Bell className="w-4 h-4 text-purple-400" />
-            </button>
-            <button className="w-9 h-9 rounded-full bg-[#1e1b38] hover:bg-[#2d2755] flex items-center justify-center transition-colors">
-              <Settings className="w-4 h-4 text-purple-400" />
-            </button>
             <button
               onClick={() => navigate("/profile")}
-              className="w-9 h-9 rounded-full overflow-hidden border border-[#2d2755] flex items-center justify-center"
+              className="w-9 h-9 rounded-full overflow-hidden border border-white/10 flex items-center justify-center"
             >
               {user?.imageUrl ? (
                 <img
@@ -656,7 +620,7 @@ const LanguagePlayground = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-indigo-500 flex items-center justify-center">
+                <div className="w-full h-full bg-red-600 flex items-center justify-center">
                   <span className="text-white text-xs font-bold">
                     {user?.name?.charAt(0) || "U"}
                   </span>
@@ -683,18 +647,24 @@ const LanguagePlayground = () => {
         </AnimatePresence>
 
         {/* ═══════════ LEFT SIDEBAR ═══════════ */}
-        <AnimatePresence>
-          {(isSidebarOpen || !isMobile) && (
+        <AnimatePresence initial={false}>
+          {(isSidebarOpen || isMobile) && (
             <motion.aside
-              initial={isMobile ? { x: -280, opacity: 0 } : false}
-              animate={isMobile ? { x: 0, opacity: 1 } : false}
-              exit={isMobile ? { x: -280, opacity: 0 } : undefined}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              initial={
+                isMobile ? { x: -280, opacity: 0 } : { width: 0, opacity: 0 }
+              }
+              animate={
+                isMobile ? { x: 0, opacity: 1 } : { width: 250, opacity: 1 }
+              }
+              exit={
+                isMobile ? { x: -280, opacity: 0 } : { width: 0, opacity: 0 }
+              }
+              transition={{ duration: 0.25, ease: "easeInOut" }}
               className={cn(
-                "h-full flex flex-col overflow-hidden shrink-0 bg-[#13112a] border-r border-[#2d2755]",
+                "h-full flex flex-col overflow-hidden shrink-0 bg-[#111111] border-r border-white/10",
                 isMobile
                   ? "fixed inset-y-0 left-0 z-50 w-[280px] shadow-2xl"
-                  : "w-[250px] hidden md:flex",
+                  : "hidden md:flex",
               )}
             >
               {/* Course header */}
@@ -707,7 +677,7 @@ const LanguagePlayground = () => {
                       className="w-6 h-6 object-contain drop-shadow-md"
                     />
                   ) : (
-                    <FileCode2 className="w-5 h-5 text-purple-400" />
+                    <FileCode2 className="w-5 h-5 text-red-400" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -736,7 +706,7 @@ const LanguagePlayground = () => {
                     {progressPercent}%
                   </span>
                 </div>
-                <div className="h-1.5 bg-[#1e1b38] rounded-full overflow-hidden">
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#2cf09d] rounded-full transition-all duration-500 "
                     style={{ width: `${progressPercent}%` }}
@@ -747,10 +717,10 @@ const LanguagePlayground = () => {
                 </span>
               </div>
 
-              <div className="h-px bg-[#2d2755]" />
+              <div className="h-px bg-white/10" />
 
               {/* Topic / chapter list */}
-              <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2d2755]">
+              <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10">
                 {data.chapters.map((chapter, idx) => {
                   const isActiveChapter = chapter.problems.some(
                     (p) => p.id === currentProblem?.id,
@@ -777,16 +747,16 @@ const LanguagePlayground = () => {
                         disabled={isLocked}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left",
-                          isActiveChapter && "text-purple-300",
+                          isActiveChapter && "text-red-300",
                           chapterDone &&
                             !isActiveChapter &&
-                            "text-zinc-400 hover:bg-[#1e1b38]",
+                            "text-zinc-400 hover:bg-white/5",
                           isLocked &&
                             "text-zinc-600 cursor-not-allowed opacity-60",
                           !isActiveChapter &&
                             !chapterDone &&
                             !isLocked &&
-                            "text-zinc-300 hover:bg-[#1e1b38]",
+                            "text-zinc-300 hover:bg-white/5",
                         )}
                       >
                         <div className="flex items-center gap-3 truncate">
@@ -794,14 +764,14 @@ const LanguagePlayground = () => {
                             className={cn(
                               "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px]",
                               isActiveChapter
-                                ? "bg-[#2d1b69] text-purple-400"
-                                : "bg-[#1e1b38] text-zinc-500",
+                                ? "bg-red-500/20 text-red-400"
+                                : "bg-white/5 text-zinc-500",
                             )}
                           >
                             {chapterDone ? (
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                             ) : isActiveChapter ? (
-                              <Play className="w-3.5 h-3.5 text-purple-400 fill-purple-400" />
+                              <Play className="w-3.5 h-3.5 text-red-400 fill-red-400" />
                             ) : (
                               <BookOpen className="w-3.5 h-3.5" />
                             )}
@@ -860,8 +830,8 @@ const LanguagePlayground = () => {
                                     className={cn(
                                       "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg text-sm transition-colors",
                                       isProbActive
-                                        ? "bg-[#2d1b69]/40 text-purple-300 font-semibold border border-purple-500/20"
-                                        : "text-zinc-400 hover:text-zinc-200 hover:bg-[#1e1b38]",
+                                        ? "bg-red-500/20/40 text-red-300 font-semibold border border-red-500/20"
+                                        : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
                                       isProbLocked &&
                                         "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
                                       isProbDone &&
@@ -890,13 +860,13 @@ const LanguagePlayground = () => {
                 })}
               </div>
 
-              <div className="h-px bg-[#2d2755]" />
+              <div className="h-px bg-white/10" />
 
               {/* View Curriculum */}
               <div className="p-3">
                 <button
                   onClick={() => navigate(`/playground/${language}/topics`)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#2d1b69]/40 hover:bg-[#2d1b69]/60 text-purple-400 text-sm font-medium transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/20/40 hover:bg-red-500/20/60 text-red-400 text-sm font-medium transition-colors"
                 >
                   View Curriculum
                 </button>
@@ -909,7 +879,7 @@ const LanguagePlayground = () => {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* ── Mobile top bar ── */}
           {isMobile && (
-            <header className="flex items-center justify-between px-4 py-3 bg-[#0d0b1a] shrink-0">
+            <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => navigate(-1)}
@@ -921,7 +891,7 @@ const LanguagePlayground = () => {
                   {data.title}
                 </h1>
               </div>
-              <span className="flex items-center gap-2 bg-[#2d1b69] text-[#b794f4] text-xs font-bold px-3 py-1.5 rounded-full border border-purple-500/20 shrink-0">
+              <span className="flex items-center gap-2 bg-red-500/20 text-red-400 text-xs font-bold px-3 py-1.5 rounded-full border border-red-500/20 shrink-0">
                 <span className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
                   <Star className="w-2.5 h-2.5 text-black fill-current" />
                 </span>
@@ -934,12 +904,12 @@ const LanguagePlayground = () => {
           {isMobile && (
             <div className="px-4 pb-3 shrink-0">
               <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.15em] font-bold mb-2">
-                <span className="text-purple-500">Lesson Progress</span>
+                <span className="text-red-500">Lesson Progress</span>
                 <span className="text-white">{progressPercent}%</span>
               </div>
-              <div className="h-2.5 bg-[#1e1b38] rounded-full overflow-hidden">
+              <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  className="h-full bg-red-500 rounded-full transition-all duration-500"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -947,7 +917,7 @@ const LanguagePlayground = () => {
           )}
 
           {/* ── Scrollable content ── */}
-          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2d2755]">
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10">
             <div
               className={cn(
                 "mx-auto space-y-5",
@@ -957,7 +927,7 @@ const LanguagePlayground = () => {
               {/* Desktop: Lesson badge + XP reward */}
               {!isMobile && (
                 <div className="flex items-center justify-between">
-                  <span className="bg-[#2d1b69] text-purple-400 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
+                  <span className="bg-red-500/20 text-red-400 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
                     Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
                   </span>
                   <span className="text-[#2cf07d] text-sm font-bold flex items-center gap-1">
@@ -982,17 +952,17 @@ const LanguagePlayground = () => {
                 className={cn(
                   "rounded-[24px]",
                   isMobile
-                    ? "bg-[#1f1b38] border border-[#2d2755] p-5"
+                    ? "bg-[#1a1a1a] border border-white/10 p-5"
                     : "bg-transparent p-0",
                 )}
               >
                 {isMobile ? (
                   <>
                     <div className="flex items-start justify-between gap-3 mb-4">
-                      <span className="inline-block bg-[#a855f7] text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
+                      <span className="inline-block bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
                         Task
                       </span>
-                      <div className="w-12 h-10 rounded-xl bg-[#2d2755] flex items-center justify-center shrink-0">
+                      <div className="w-12 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
                         <Terminal className="w-6 h-6 text-zinc-500" />
                       </div>
                     </div>
@@ -1012,8 +982,8 @@ const LanguagePlayground = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="bg-[#1a1730]/40 border border-[#2d2755]/50 rounded-xl p-5 mb-2">
-                    <span className="text-[#8c2bee] text-[16px] font-bold flex items-center gap-2 mb-3">
+                  <div className="bg-[#111111]/40 border border-white/10/50 rounded-xl p-5 mb-2">
+                    <span className="text-red-500 text-[16px] font-bold flex items-center gap-2 mb-3">
                       <img src="/task.svg" className="w-7 h-7"></img> Your Task:
                     </span>
                     <div
@@ -1034,10 +1004,10 @@ const LanguagePlayground = () => {
                 currentProblem.hints.length > 0 &&
                 (isMobile ? (
                   /* Mobile: hint card with toggle */
-                  <div className="bg-[#1f1b38] border border-[#2d2755] rounded-[24px] p-5">
+                  <div className="bg-[#1a1a1a] border border-white/10 rounded-[24px] p-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-[#2d1b69] flex items-center justify-center shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
                           <img
                             src="/hint2.svg"
                             alt="Hint"
@@ -1058,8 +1028,8 @@ const LanguagePlayground = () => {
                         className={cn(
                           "w-12 h-7 rounded-full transition-colors relative shrink-0",
                           showHints
-                            ? "bg-purple-500"
-                            : "bg-[#2d1b69] border border-white/10",
+                            ? "bg-red-500"
+                            : "bg-red-500/20 border border-white/10",
                         )}
                       >
                         <span
@@ -1081,7 +1051,7 @@ const LanguagePlayground = () => {
                           {currentProblem.hints.map((hint, i) => (
                             <p
                               key={i}
-                              className="text-sm text-purple-200/90 pl-3 border-l-2 border-purple-500 py-1"
+                              className="text-sm text-red-200/90 pl-3 border-l-2 border-purple-500 py-1"
                             >
                               {hint}
                             </p>
@@ -1137,7 +1107,7 @@ const LanguagePlayground = () => {
 
               {/* ── Code Editor / Interactive Problem ── */}
               {currentProblem?.type === "interactive" ? (
-                <div className="bg-[#1a1730] border border-[#2d2755] rounded-xl overflow-hidden p-1">
+                <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden p-1">
                   <InteractiveProblem
                     key={currentProblem.id}
                     problem={currentProblem}
@@ -1146,9 +1116,9 @@ const LanguagePlayground = () => {
                   />
                 </div>
               ) : (
-                <div className="bg-[#1f1b38] rounded-2xl border border-[#2d2755]/60 overflow-hidden shadow-lg">
+                <div className="bg-[#1a1a1a] rounded-2xl border border-white/10/60 overflow-hidden shadow-lg">
                   {/* Editor toolbar */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d2755]/60 bg-[#1f1b38]/80">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10/60 bg-[#1a1a1a]/80">
                     <div className="flex items-center gap-3 w-full">
                       {isMobile ? (
                         <>
@@ -1180,7 +1150,7 @@ const LanguagePlayground = () => {
                                 setOutput(null);
                                 setTestResult(null);
                               }}
-                              className="ml-4 bg-[#13112a] border border-[#2d2755] text-zinc-300 text-xs px-2 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500"
+                              className="ml-4 bg-[#111111] border border-white/10 text-zinc-300 text-xs px-2 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                             >
                               <option value="javascript">JavaScript</option>
                               <option value="python">Python</option>
@@ -1262,7 +1232,7 @@ const LanguagePlayground = () => {
               {/* ── Live Preview (HTML/CSS/React) ── */}
               {(isLivePreview || isReact) &&
                 currentProblem?.type !== "interactive" && (
-                  <div className="bg-white rounded-xl border border-[#2d2755] overflow-hidden">
+                  <div className="bg-white rounded-xl border border-white/10 overflow-hidden">
                     <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
                       <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
                         Live Preview
@@ -1337,7 +1307,7 @@ const LanguagePlayground = () => {
                     {output && !isRunning && (
                       <div className="space-y-4 my-2">
                         {output.text && (
-                          <MagicTerminal className="w-full max-w-full bg-[#13112a] border-[#2d2755]/60 shadow-xl">
+                          <MagicTerminal className="w-full max-w-full bg-[#111111] border-white/10/60 shadow-xl">
                             <AnimatedSpan className="text-zinc-400 mb-2 font-mono">
                               Output:
                             </AnimatedSpan>
@@ -1388,7 +1358,7 @@ const LanguagePlayground = () => {
               {completedProblems.has(currentProblem?.id) && (
                 <button
                   onClick={goToNextProblem}
-                  className="flex items-center gap-2 text-sm font-semibold text-purple-300 hover:text-purple-200 transition-colors group"
+                  className="flex items-center gap-2 text-sm font-semibold text-red-300 hover:text-red-200 transition-colors group"
                 >
                   Next Problem
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -1399,7 +1369,7 @@ const LanguagePlayground = () => {
 
           {/* ── Mobile: Fixed RUN CODE button ── */}
           {isMobile && currentProblem?.type !== "interactive" && (
-            <div className="px-4 pb-4 pt-2 bg-[#0d0b1a] shrink-0 flex gap-3">
+            <div className="px-4 pb-4 pt-2 bg-[#0a0a0a] shrink-0 flex gap-3">
               <button
                 onClick={handleRunCode}
                 disabled={isRunning || testResult?.success}
@@ -1428,7 +1398,7 @@ const LanguagePlayground = () => {
 
           {/* ── Mobile: Bottom navigation ── */}
           {isMobile && (
-            <nav className="flex items-center justify-around py-3 border-t border-[#2d2755] bg-[#13112a] shrink-0">
+            <nav className="flex items-center justify-around py-3 border-t border-white/10 bg-[#111111] shrink-0">
               {[
                 {
                   icon: GraduationCap,
@@ -1461,15 +1431,12 @@ const LanguagePlayground = () => {
                   className={cn(
                     "flex flex-col items-center gap-1.5 text-[10px] font-bold tracking-widest transition-colors",
                     item.active
-                      ? "text-purple-400"
+                      ? "text-red-400"
                       : "text-zinc-500 hover:text-zinc-400",
                   )}
                 >
                   <item.icon
-                    className={cn(
-                      "w-6 h-6",
-                      item.active && "fill-purple-400/20",
-                    )}
+                    className={cn("w-6 h-6", item.active && "fill-red-400/20")}
                   />
                   {item.label}
                 </button>
@@ -1479,33 +1446,6 @@ const LanguagePlayground = () => {
         </div>
 
         {/* ═══════════ RIGHT FABs (desktop) ═══════════ */}
-        {!isMobile && (
-          <div className="hidden lg:flex flex-col gap-3 py-6 pr-4 pl-2 shrink-0">
-            {[
-              { icon: MessageCircle, color: "text-zinc-400" },
-              {
-                icon: (props) => (
-                  <img
-                    src="/hint.svg"
-                    alt="Hint"
-                    {...props}
-                    className={cn(props.className, "object-contain")}
-                  />
-                ),
-                color: "",
-              },
-              { icon: Users, color: "text-zinc-400" },
-              { icon: HelpCircle, color: "text-zinc-400" },
-            ].map((fab, i) => (
-              <button
-                key={i}
-                className="w-12 h-12 rounded-full bg-[#1a1730] border border-[#2d2755] flex items-center justify-center hover:bg-[#1e1b38] transition-colors"
-              >
-                <fab.icon className={cn("w-5 h-5", fab.color)} />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

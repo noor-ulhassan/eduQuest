@@ -155,12 +155,12 @@ const PlaygroundTopics = () => {
   /* ── redirect if no data ── */
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold">Playground Not Found</h1>
+          <h1 className="text-2xl font-bold text-white">Playground Not Found</h1>
           <button
             onClick={() => navigate("/playground")}
-            className="px-6 py-2 bg-orange-500 text-white rounded-lg"
+            className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors border border-red-400 shadow-[0_2px_12px_rgba(220,38,38,0.3)]"
           >
             Back to Playgrounds
           </button>
@@ -194,13 +194,13 @@ const PlaygroundTopics = () => {
   if (loading) return <TopicsSkeleton />;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0a0a0a] pt-14">
       {/* Top Bar */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-200">
+      <div className="sticky top-14 z-10 bg-[#171717]/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => navigate("/playground")}
-            className="p-1.5 hover:bg-zinc-100 rounded-lg transition text-zinc-500"
+            className="p-1.5 hover:bg-white/10 rounded-lg transition text-zinc-400 hover:text-white"
           >
             <ChevronLeft size={20} />
           </button>
@@ -209,9 +209,9 @@ const PlaygroundTopics = () => {
             alt={meta.title}
             className="w-7 h-7 object-contain"
           />
-          <span className="font-bold text-zinc-800">{meta.title}</span>
+          <span className="font-bold text-white">{meta.title}</span>
           {isEnrolled && (
-            <span className="ml-auto text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+            <span className="ml-auto text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
               {completedChapters}/{totalLessons} Chapters
             </span>
           )}
@@ -221,14 +221,14 @@ const PlaygroundTopics = () => {
       <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-10">
         {/* ── Left Info Card ── */}
         <div className="lg:w-[320px] shrink-0">
-          <div className="sticky top-20">
+          <div className="sticky top-32">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border-2 border-zinc-200 p-6 bg-white"
+              className="rounded-2xl border border-white/10 p-6 bg-[#111111]"
             >
               <div className="flex justify-center mb-4">
-                <div className="w-28 h-28 rounded-2xl bg-zinc-50 flex items-center justify-center">
+                <div className="w-28 h-28 rounded-2xl bg-[#1a1a1a] flex items-center justify-center border border-white/5">
                   <img
                     src={meta.img}
                     alt={meta.title}
@@ -237,33 +237,33 @@ const PlaygroundTopics = () => {
                 </div>
               </div>
 
-              <h1 className="text-2xl font-black text-zinc-900 text-center">
+              <h1 className="text-2xl font-black text-white text-center">
                 {data.title}
               </h1>
-              <p className="text-sm text-zinc-500 text-center mt-2">
+              <p className="text-sm text-zinc-400 text-center mt-2">
                 {data.subtitle}
               </p>
 
-              <div className="flex justify-center gap-6 mt-5 text-sm text-zinc-600">
+              <div className="flex justify-center gap-6 mt-5 text-sm text-zinc-400">
                 <span className="flex items-center gap-1.5">
-                  <BookOpen size={14} className="text-zinc-400" />
+                  <BookOpen size={14} className="text-zinc-500" />
                   {totalLessons} Chapters
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Star size={14} className="text-zinc-400" />
+                  <Star size={14} className="text-zinc-500" />
                   {totalExercises} Exercises
                 </span>
               </div>
 
               {isEnrolled && (
                 <div className="mt-5">
-                  <div className="flex justify-between text-xs text-zinc-500 mb-1.5">
+                  <div className="flex justify-between text-xs text-zinc-400 mb-1.5">
                     <span>Progress</span>
                     <span>
                       {Math.round((completedChapters / totalLessons) * 100)}%
                     </span>
                   </div>
-                  <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#1a1a1a] rounded-full overflow-hidden border border-white/5">
                     <div
                       className={`h-full rounded-full bg-gradient-to-r ${meta.accent} transition-all duration-700`}
                       style={{
@@ -327,14 +327,14 @@ const PlaygroundTopics = () => {
                       status === "completed"
                         ? `${meta.accentBg}`
                         : status === "current"
-                          ? "bg-gradient-to-b from-zinc-300 to-zinc-200"
-                          : "bg-zinc-200 border-dashed"
+                          ? "bg-gradient-to-b from-white/20 to-white/10"
+                          : "bg-white/10 border-dashed"
                     }`}
                     style={
                       status !== "completed" && status !== "current"
                         ? {
                             backgroundImage:
-                              "repeating-linear-gradient(to bottom, #e4e4e7, #e4e4e7 6px, transparent 6px, transparent 12px)",
+                              "repeating-linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.1) 6px, transparent 6px, transparent 12px)",
                             backgroundColor: "transparent",
                           }
                         : {}
@@ -358,8 +358,8 @@ const PlaygroundTopics = () => {
                       status === "completed"
                         ? `${meta.accentBg} text-white shadow-md ring-4 ${meta.accentRing}`
                         : status === "current"
-                          ? `bg-white border-[3px] ${meta.accentBorder} shadow-lg ring-4 ${meta.accentRing} animate-pulse`
-                          : "bg-zinc-100 border-2 border-zinc-200 text-zinc-400"
+                          ? `bg-[#0a0a0a] border-[3px] ${meta.accentBorder} shadow-lg ring-4 ${meta.accentRing} animate-pulse`
+                          : "bg-[#111111] border border-white/20 text-zinc-500"
                     }`}
                   >
                     {status === "completed" ? (
@@ -369,7 +369,7 @@ const PlaygroundTopics = () => {
                         className={`w-4 h-4 rounded-sm rotate-45 ${meta.accentBg}`}
                       />
                     ) : status === "preview" ? (
-                      <span className="text-lg font-bold text-zinc-400">
+                      <span className="text-lg font-bold text-zinc-600">
                         {idx + 1}
                       </span>
                     ) : (
@@ -403,19 +403,19 @@ const PlaygroundTopics = () => {
                       <h3
                         className={`font-bold text-base transition-colors ${
                           status === "completed" || status === "current"
-                            ? "text-zinc-900"
+                            ? "text-white"
                             : "text-zinc-500"
-                        } ${status !== "locked" ? "group-hover:text-zinc-700" : ""}`}
+                        } ${status !== "locked" ? "group-hover:text-zinc-300" : ""}`}
                       >
                         {chapter.title}
                       </h3>
-                      <p className="text-xs text-zinc-400 mt-0.5">
+                      <p className="text-xs text-zinc-500 mt-0.5">
                         {chapter.problems.length} exercises · {chapter.totalXp}{" "}
                         XP
                         {isEnrolled &&
                           status !== "locked" &&
                           status !== "preview" && (
-                            <span className="ml-2 text-zinc-500">
+                            <span className="ml-2 text-zinc-400">
                               {chapterCompleted}/{chapter.problems.length} done
                             </span>
                           )}
@@ -430,8 +430,8 @@ const PlaygroundTopics = () => {
                         exit={{ height: 0, opacity: 0 }}
                         className="mt-3 overflow-hidden"
                       >
-                        <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4">
-                          <p className="text-sm text-zinc-600 mb-3">
+                        <div className="bg-[#111111] rounded-xl border border-white/10 p-4">
+                          <p className="text-sm text-zinc-400 mb-3">
                             {chapter.description}
                           </p>
                           <div className="space-y-1.5">
@@ -448,13 +448,13 @@ const PlaygroundTopics = () => {
                                       className="text-emerald-500 shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 shrink-0" />
+                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-zinc-600 shrink-0" />
                                   )}
                                   <span
                                     className={
                                       isDone
                                         ? "text-zinc-500 line-through"
-                                        : "text-zinc-700"
+                                        : "text-zinc-300"
                                     }
                                   >
                                     {prob.title}
@@ -462,10 +462,10 @@ const PlaygroundTopics = () => {
                                   <span
                                     className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                                       prob.difficulty === "Easy"
-                                        ? "bg-green-50 text-green-600"
+                                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
                                         : prob.difficulty === "Medium"
-                                          ? "bg-amber-50 text-amber-600"
-                                          : "bg-red-50 text-red-600"
+                                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                          : "bg-red-500/10 text-red-400 border border-red-500/20"
                                     }`}
                                   >
                                     {prob.difficulty}
@@ -515,7 +515,7 @@ const PlaygroundTopics = () => {
               className="flex items-center justify-center gap-3 py-6 text-center"
             >
               <Trophy className="text-yellow-500" size={28} />
-              <span className="text-lg font-bold text-zinc-800">
+              <span className="text-lg font-bold text-white">
                 Course Completed!
               </span>
             </motion.div>
@@ -528,18 +528,18 @@ const PlaygroundTopics = () => {
 
 /* ── Skeleton ── */
 const TopicsSkeleton = () => (
-  <div className="min-h-screen bg-white">
+  <div className="min-h-screen bg-[#0a0a0a] pt-14">
     <div className="max-w-5xl mx-auto px-4 py-24 flex gap-10">
       <div className="w-[320px] shrink-0">
-        <div className="h-[380px] bg-zinc-100 rounded-2xl animate-pulse" />
+        <div className="h-[380px] bg-[#111111] rounded-2xl animate-pulse" />
       </div>
       <div className="flex-1 space-y-6">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex gap-4">
-            <div className="w-14 h-14 rounded-full bg-zinc-100 animate-pulse shrink-0" />
+            <div className="w-14 h-14 rounded-full bg-[#111111] animate-pulse shrink-0" />
             <div className="flex-1 space-y-2 pt-2">
-              <div className="h-5 bg-zinc-100 rounded w-40 animate-pulse" />
-              <div className="h-3 bg-zinc-100 rounded w-60 animate-pulse" />
+              <div className="h-5 bg-[#111111] rounded w-40 animate-pulse" />
+              <div className="h-3 bg-[#111111] rounded w-60 animate-pulse" />
             </div>
           </div>
         ))}

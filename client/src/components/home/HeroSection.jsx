@@ -308,9 +308,7 @@ const HeroSection = () => {
           <span
             className="font-inter text-7xl"
             style={{
-              background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: "#f97316",
               letterSpacing: "0.2rem",
             }}
           >
