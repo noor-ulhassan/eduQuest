@@ -26,7 +26,6 @@ import {
   Play,
   RotateCcw,
   Loader2,
-  Lightbulb,
   FileCode2,
   FolderOpen,
   Folder,
@@ -562,7 +561,11 @@ const ReactPlayground = () => {
                               onClick={() => setShowHints(!showHints)}
                               className="flex items-center gap-1.5 text-[11px] text-[#dabb7c] hover:text-[#e5c57d] transition-colors"
                             >
-                              <Lightbulb className="h-3.5 w-3.5" />
+                              <img
+                                src="/hint.svg"
+                                alt="Hint"
+                                className="h-4 w-4 object-contain drop-shadow-sm"
+                              />
                               {showHints ? "Hide" : "Show"} Hints (
                               {currentProblem.hints.length})
                             </button>

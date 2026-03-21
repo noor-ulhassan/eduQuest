@@ -3,6 +3,7 @@ import { User } from "../models/user.model.js";
 import { generateCompetitionQuestions } from "../utils/competitionQuestions.js";
 import { CompetitionResult } from "../models/CompetitionResult.model.js";
 import { registerVoiceEvents } from "./voiceHandler.js";
+import { addXP } from "../utils/progression.js";
 
 // In-memory room storage
 const rooms = new Map();
@@ -989,17 +990,24 @@ function endGame(io, roomCode, room) {
 
 async function awardXP(leaderboard) {
   try {
+    // First, determine total wins for context (how many #1 finishes they have, strictly optional context to pass down but good for accurate badge checking)
     for (let i = 0; i < leaderboard.length; i++) {
       const playerEntry = leaderboard[i];
       if (playerEntry.score <= 0) continue; // No XP for 0 score
 
       const xpReward = i === 0 ? 100 : i === 1 ? 50 : 25;
-      const user = await User.findById(playerEntry.id);
+      const totalEarned = xpReward + Math.floor(playerEntry.score / 10);
+
+      let user = await User.findById(playerEntry.id);
       if (user) {
-        user.xp =
-          (user.xp || 0) + xpReward + Math.floor(playerEntry.score / 10); // Add match score (scaled) + bonus
-        user.level = Math.floor(user.xp / 1000) + 1;
-        await user.save();
+        // Find their total historic wins to pass to achievement evaluator
+        const totalWins = await CompetitionResult.countDocuments({
+          userId: user._id,
+          rank: 1,
+          status: "completed",
+        });
+
+        await addXP(user, totalEarned, { totalWins });
       }
     }
   } catch (err) {

@@ -21,7 +21,6 @@ const trainingLinks = [
   { label: "Workspace", path: "/workspace" },
   { label: "My Learning", path: "/my-learning" },
   { label: "Upload PDF", path: "/uploadpdf" },
-  { label: "Problems", path: "/problems" },
 ];
 
 const skillTreeLinks = [

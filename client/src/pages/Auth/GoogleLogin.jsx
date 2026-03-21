@@ -30,9 +30,16 @@ export default function GoogleAuthButton({ setError }) {
   };
 
   return (
-    <GoogleLogin
-      onSuccess={handleGoogleLogin}
-      onError={() => setError("Google login failed")}
-    />
+    <div className="w-full flex justify-center [&>div]:w-full [&>div>div]:w-full rounded-lg bg-zinc-400">
+      <GoogleLogin
+        theme="filled_white"
+        shape="rectangular"
+        size="large"
+        text="white"
+        width="340"
+        onSuccess={handleGoogleLogin}
+        onError={() => setError("Google login failed")}
+      />
+    </div>
   );
 }

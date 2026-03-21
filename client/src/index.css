@@ -38,6 +38,9 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  .theme {
+    --animate-shine: shine var(--duration) infinite linear;
+  }
 }
 @layer base {
   :root {
@@ -65,4 +68,60 @@
 ::view-transition-old(root), ::view-transition-new(root) {
     animation: none;
     mix-blend-mode: normal;
+}
+
+@theme inline {
+  @keyframes shine {
+  0% {
+    background-position: 0% 0%;
+    }
+  50% {
+    background-position: 100% 100%;
+    }
+  to {
+    background-position: 0% 0%;
+    }
+  }
+}
+
+/* ── Force light text inside prose-invert (Course content from Gemini) ── */
+.prose-invert,
+.prose-invert * {
+  color: #d4d4d8 !important;
+}
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3,
+.prose-invert h4,
+.prose-invert h5,
+.prose-invert h6 {
+  color: #ffffff !important;
+}
+.prose-invert strong,
+.prose-invert b {
+  color: #ffffff !important;
+}
+.prose-invert a {
+  color: #f87171 !important;
+}
+.prose-invert code {
+  color: #fbbf24 !important;
+  background-color: rgba(255,255,255,0.05) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.prose-invert pre {
+  background-color: #0a0a0a !important;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.prose-invert pre code {
+  background-color: transparent !important;
+  padding: 0;
+}
+.prose-invert blockquote {
+  border-left-color: #ef4444 !important;
+  color: #a1a1aa !important;
+}
+.prose-invert li::marker {
+  color: #ef4444 !important;
 }

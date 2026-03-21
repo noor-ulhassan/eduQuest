@@ -21,9 +21,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 
-// ---------------------------------------------------------------------------
-// Static data — courses listed in the mega-menu
-// ---------------------------------------------------------------------------
 const courses = [
   {
     id: 1,
@@ -81,9 +78,6 @@ const courses = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Top-level navigation links (shared between desktop + mobile)
-// ---------------------------------------------------------------------------
 const navLinks = [
   { label: "Create & Learn", path: "/workspace" },
   { label: "Compete", path: "/competition" },
@@ -92,9 +86,6 @@ const navLinks = [
   { label: "Community", path: "/community" },
 ];
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
@@ -117,15 +108,16 @@ const Navbar = () => {
   return (
     <motion.nav
       initial={false}
-      className="h-14 bg-background/95 backdrop-blur-md border-b border-border fixed top-0 left-0 right-0 z-50 shadow-sm"
+      className="h-14 fixed top-0 left-0 right-0 z-50 transition-colors duration-300 bg-[#171717] border-b border-white/10"
     >
       {/* ── Desktop ─────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 shrink-0">
-          <span className="font-hand font-bold text-4xl tracking-tight">
-            <span className="text-yellow-500">Edu</span>
-            <span className="text-gray-800">Quest</span>
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <img src="/logo1.png" alt="" width={35} height={35} />
+          <span className="font-Inter font-bold text-2xl tracking-tight">
+            <span className="text-red-500">Edu</span>
+            <span className="text-white">Quest</span>
           </span>
         </Link>
 
@@ -134,20 +126,18 @@ const Navbar = () => {
           <NavigationMenuList className="flex gap-8">
             {/* Courses mega-menu */}
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="hover:bg-yellow-300 data-[state=open] text-sm">
+              <NavigationMenuTrigger className="text-sm text-gray-300 hover:text-white data-[state=open]:text-white bg-transparent hover:bg-white/10">
                 Courses
               </NavigationMenuTrigger>
-              <NavigationMenuContent className="bg-background shadow-lg border border-border rounded-lg">
+              <NavigationMenuContent className="bg-[#1a1730] shadow-2xl border border-white/10 rounded-lg">
                 <ul className="grid md:grid-cols-2 gap-2 sm:w-400px md:w-[500px] lg:w-[500px] p-4 max-h-[90vh] overflow-y-auto">
                   {courses.map((course) => (
                     <Link key={course.id} to={course.path}>
-                      <div className="p-2 hover:bg-accent rounded-xl cursor-pointer">
-                        <h2 className="font-medium text-foreground">
+                      <div className="p-2 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
+                        <h2 className="font-medium text-white">
                           {course.name}
                         </h2>
-                        <p className="text-sm text-muted-foreground">
-                          {course.desc}
-                        </p>
+                        <p className="text-sm text-gray-400">{course.desc}</p>
                       </div>
                     </Link>
                   ))}
@@ -161,7 +151,7 @@ const Navbar = () => {
                 <NavigationMenuLink asChild>
                   <Link
                     to={link.path}
-                    className="text-sm hover:text-yellow-600 transition-colors"
+                    className="text-sm transition-colors text-gray-300 hover:text-white"
                   >
                     {link.label}
                   </Link>
@@ -174,16 +164,17 @@ const Navbar = () => {
         {/* Notification Bell + Auth */}
         <div className="flex items-center gap-3 shrink-0">
           <NotificationBellConditional />
-          <AuthButtons />
+          <NavbarAuthButtons />
         </div>
       </div>
 
       {/* ── Mobile ──────────────────────────────────────────────────────── */}
       <div className="flex md:hidden justify-between items-center px-4 h-full">
         <Link to="/" className="flex items-center gap-2">
+          <img src="logo1.png" alt="" width={20} height={20} />
           <span className="font-hand font-bold text-xl">
-            <span className="text-yellow-500">Edu</span>
-            <span className="text-gray-800">Quest</span>
+            <span className="text-red-500">Edu</span>
+            <span className="text-white">Quest</span>
           </span>
         </Link>
 
@@ -193,7 +184,7 @@ const Navbar = () => {
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <button
-                className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-md transition-colors text-white hover:bg-white/10"
                 aria-label="Open navigation menu"
               >
                 <Menu className="h-5 w-5" />
@@ -202,16 +193,12 @@ const Navbar = () => {
 
             <SheetContent
               side="right"
-              className="w-[85vw] sm:w-[400px] overflow-y-auto bg-background"
+              className="w-[85vw] sm:w-[400px] overflow-y-auto bg-[#131127] border-l border-white/10"
             >
-              <SheetHeader className="pb-4 border-b border-border">
+              <SheetHeader className="pb-4 border-b border-white/10">
                 <SheetTitle className="text-left">
-                  <span className="text-yellow-500 font-hand text-2xl">
-                    Edu
-                  </span>
-                  <span className="text-gray-800 font-hand text-2xl">
-                    Quest
-                  </span>
+                  <span className="text-red-500 font-hand text-2xl">Edu</span>
+                  <span className="text-white font-hand text-2xl">Quest</span>
                 </SheetTitle>
               </SheetHeader>
 
@@ -220,25 +207,25 @@ const Navbar = () => {
                 <div>
                   <button
                     onClick={() => setCoursesOpen(!coursesOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg hover:bg-yellow-50 transition-colors font-medium text-gray-900"
+                    className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
                   >
                     <span>Courses</span>
                     {coursesOpen ? (
-                      <ChevronDown className="h-4 w-4 text-gray-600" />
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-gray-600" />
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
                     )}
                   </button>
 
                   {coursesOpen && (
-                    <div className="ml-4 mt-2 mb-2 space-y-1 border-l-2 border-yellow-400 pl-4">
+                    <div className="ml-4 mt-2 mb-2 space-y-1 border-l-2 border-red-500/40 pl-4">
                       {courses.map((course) => (
                         <button
                           key={course.id}
                           onClick={() => handleLinkClick(course.path)}
-                          className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-yellow-50 transition-colors block"
+                          className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors block"
                         >
-                          <div className="font-medium text-sm text-gray-900">
+                          <div className="font-medium text-sm text-white">
                             {course.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
@@ -255,7 +242,7 @@ const Navbar = () => {
                   <button
                     key={link.path}
                     onClick={() => handleLinkClick(link.path)}
-                    className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 transition-colors font-medium text-gray-900"
+                    className="w-full px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
                   >
                     {link.label}
                   </button>
@@ -263,16 +250,16 @@ const Navbar = () => {
 
                 {/* Authenticated-only links */}
                 {user && (
-                  <div className="pt-2 mt-2 border-t border-gray-200">
+                  <div className="pt-2 mt-2 border-t border-white/10">
                     <button
                       onClick={() => handleLinkClick("/profile")}
-                      className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 transition-colors font-medium text-gray-900"
+                      className="w-full px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
                     >
                       Profile
                     </button>
                     <button
                       onClick={() => handleLinkClick("/my-learning")}
-                      className="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 transition-colors font-medium text-gray-900"
+                      className="w-full px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
                     >
                       My Learning
                     </button>
@@ -281,14 +268,53 @@ const Navbar = () => {
               </div>
 
               {/* Auth Buttons */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <AuthButtons />
+              <div className="mt-8 pt-6 border-t border-white/10">
+                <NavbarAuthButtons />
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </div>
     </motion.nav>
+  );
+};
+
+const NavbarAuthButtons = () => {
+  const { user, status } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+
+  if (status === "loading" || status === "idle") {
+    return (
+      <div className="flex gap-3">
+        <div className="px-5 py-1.5 rounded border border-white/20 text-gray-500 text-sm">
+          Loading…
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <AuthButtons />;
+  }
+
+  return (
+    <div className="flex gap-3">
+      <button
+        onClick={() => navigate("/login")}
+        className="px-5 py-1.5 rounded text-sm font-semibold text-white border border-white/30 hover:border-white/60 bg-transparent hover:bg-white/5 transition-all cursor-pointer"
+      >
+        Log in
+      </button>
+      <button
+        onClick={() => navigate("/signup")}
+        className="px-5 py-1.5 rounded text-sm font-semibold text-white border border-red-400 bg-red-600 hover:bg-red-500 transition-all cursor-pointer"
+        style={{
+          boxShadow: "0 2px 12px rgba(220, 38, 38, 0.3)",
+        }}
+      >
+        Sign Up
+      </button>
+    </div>
   );
 };
 

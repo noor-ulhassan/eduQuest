@@ -8,6 +8,7 @@ export default {
         inter: ["Inter", "sans-serif"],
         jersey: ['"Jersey 10"', "sans-serif"],
         hand: ["Patrick Hand"],
+        "space-grotesk": ['"Space Grotesk"', "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -53,6 +54,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "animate-pulse": "animate-pulse 2s",
       },
     },
   },

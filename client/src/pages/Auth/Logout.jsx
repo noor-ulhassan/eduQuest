@@ -3,7 +3,7 @@ import { authLogout } from "../../features/auth/authSlice";
 import api from "../../features/auth/authApi";
 import { Button } from "@/components/ui/button";
 
-export default function LogoutButton() {
+export default function LogoutButton({ className }) {
   const dispatch = useDispatch();
   const handleLogout = async () => {
     try {
@@ -15,5 +15,5 @@ export default function LogoutButton() {
     }
   };
 
-  return <Button onClick={handleLogout}>Logout</Button>;
+  return <button className={className} onClick={handleLogout}>Logout</button>;
 }

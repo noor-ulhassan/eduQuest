@@ -50,6 +50,7 @@ import {
   playWrongSound,
   playVictorySound,
 } from "@/lib/sound";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 
 const CompetitionLobby = () => {
   const navigate = useNavigate();
@@ -805,23 +806,28 @@ const CompetitionLobby = () => {
 
   // ─── RENDER: Generating ─────────────────────────────────
   if (gameState === "generating") {
+    const loadingStates = [
+      { text: "Waking up Gemini..." },
+      { text: "Analyzing your selected topic..." },
+      { text: "Drafting unique challenges..." },
+      { text: "Injecting interactive elements..." },
+      { text: "Verifying question formats..." },
+      { text: "Applying gamification mechanics..." },
+      { text: "Finalizing the arena..." },
+    ];
+
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-4"
-        >
-          <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center mx-auto relative overflow-hidden">
-            <Loader2
-              size={32}
-              className="text-orange-500 animate-spin relative z-10"
-            />
-            <div className="absolute inset-0 bg-orange-500/20 blur-xl animate-pulse" />
-          </div>
-          <h2 className="text-2xl font-bold">Crafting Questions...</h2>
-          <p className="text-zinc-400">Gemini AI is preparing the challenge</p>
-        </motion.div>
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 relative">
+        <MultiStepLoader
+          loadingStates={loadingStates}
+          loading={true}
+          duration={2000}
+          loop={false}
+        />
+        {/* Optional fallback overlay text just in case the loader takes up the whole screen */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-zinc-500 text-sm animate-pulse">
+          Hold tight, AI is at work...
+        </div>
       </div>
     );
   }
@@ -1168,13 +1174,13 @@ const CompetitionLobby = () => {
         />
 
         {/* Animated Timer Bar */}
-        <div className="fixed top-0 left-0 w-full h-1.5 z-30 bg-zinc-800">
+        <div className="fixed top-0 left-0 w-full h-2 z-30 bg-zinc-900/80 backdrop-blur-sm">
           <motion.div
-            className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-500 to-orange-500" : "bg-gradient-to-r from-green-500 to-emerald-400"}`}
+            className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
             animate={{
               width: `${(timeRemaining / (settings.timerDuration || 300)) * 100}%`,
             }}
-            transition={{ duration: 0.5 }}
+            transition={{ ease: "linear", duration: 1 }}
           />
           {timeRemaining <= 30 && (
             <motion.div
@@ -1199,7 +1205,7 @@ const CompetitionLobby = () => {
           </motion.div>
         )}
 
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="max-w-[1400px] mx-auto space-y-4 md:space-y-6 mt-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

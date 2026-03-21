@@ -23,8 +23,6 @@ import LearnPage from "./pages/Learn/LearnPage";
 import QuizPage from "./pages/student/QuizPage";
 
 // ─── Lazily loaded (heavy pages, code-split on demand) ──────────────────────
-const ProblemsPage = lazy(() => import("./pages/Problems/ProblemsPage"));
-const ProblemPage = lazy(() => import("./pages/Problems/ProblemPage"));
 const MyLearning = lazy(() => import("./pages/student/MyLearning"));
 const Profile = lazy(() => import("./pages/student/Profile"));
 const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
@@ -81,22 +79,6 @@ const appRouter = createBrowserRouter([
       { path: "community", element: <Lazy element={CommunityHome} /> },
 
       // Protected routes
-      {
-        path: "problems",
-        element: (
-          <ProtectedRoute>
-            <Lazy element={ProblemsPage} />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "problem/:id",
-        element: (
-          <ProtectedRoute>
-            <Lazy element={ProblemPage} />
-          </ProtectedRoute>
-        ),
-      },
       {
         path: "my-learning",
         element: (

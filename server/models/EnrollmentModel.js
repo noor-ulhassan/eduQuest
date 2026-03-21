@@ -16,6 +16,11 @@ const EnrollmentSchema = new mongoose.Schema({
     default: [],
   },
 
+  unlockedAchievements: {
+    type: Array, // Strings of achievement titles unlocked
+    default: [],
+  },
+
   enrolledAt: {
     type: Date,
     default: Date.now,

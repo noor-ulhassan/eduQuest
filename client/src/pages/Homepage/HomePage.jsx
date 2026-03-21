@@ -1,11 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import HeroSection from "../../components/home/HeroSection";
-import LearningSection from "../../components/home/LearningSection";
-import PracticeSection from "../../components/home/PracticeSection";
-import PortfolioSection from "../../components/home/PortfolioSection";
-import CommunitySection from "../../components/home/CommunitySection";
-import MascotTweet from "@/components/home/MascottTweet";
+import FeaturesSection from "../../components/home/FeaturesSection";
 import UserStats from "@/components/user/UserStatus";
 
 import Streak from "../../components/home/streak";
@@ -34,7 +30,6 @@ const HomePage = () => {
     <div className="bg-white min-h-screen">
       {user ? (
         <div className="flex flex-col">
-          <MascotTweet />
           <main className="flex-grow w-full pb-6 sm:pb-10 md:pb-14 px-4 sm:px-6">
             <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
               <audio ref={audioRef} src="/ui2.mp3"></audio>
@@ -107,11 +102,8 @@ const HomePage = () => {
       ) : (
         <>
           <HeroSection />
-          <div className="bg-[#0b0f1a]">
-            <LearningSection />
-            <PracticeSection />
-            <PortfolioSection />
-            <CommunitySection />
+          <div className="bg-[#171717]">
+            <FeaturesSection />
           </div>
         </>
       )}

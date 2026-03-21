@@ -855,7 +855,7 @@ const PredictOutputQuestion = ({
   );
 };
 
-// ─── COMPONENT: Classic MCQ ────────────────────────────────
+// ─── COMPONENT: Classic MCQ (Quizizz Style) ─────────────────
 const MCQQuestion = ({
   question,
   onSubmit,
@@ -863,24 +863,80 @@ const MCQQuestion = ({
   isSubmitting,
   selectedAnswer,
 }) => {
+  // Quizizz style brilliant brand colors for standard 4-option grids
+  const quizizzColors = [
+    {
+      base: "bg-red-500",
+      hover: "hover:bg-red-600",
+      border: "border-red-600",
+      activeBg: "bg-red-400",
+      text: "text-white",
+      shadow: "shadow-[0_8px_0_0_#991b1b]",
+      activeShadow: "shadow-[0_2px_0_0_#991b1b]",
+    },
+    {
+      base: "bg-blue-500",
+      hover: "hover:bg-blue-600",
+      border: "border-blue-600",
+      activeBg: "bg-blue-400",
+      text: "text-white",
+      shadow: "shadow-[0_8px_0_0_#1e3a8a]",
+      activeShadow: "shadow-[0_2px_0_0_#1e3a8a]",
+    },
+    {
+      base: "bg-yellow-400",
+      hover: "hover:bg-yellow-500",
+      border: "border-yellow-500",
+      activeBg: "bg-yellow-300",
+      text: "text-black",
+      shadow: "shadow-[0_8px_0_0_#a16207]",
+      activeShadow: "shadow-[0_2px_0_0_#a16207]",
+    },
+    {
+      base: "bg-green-500",
+      hover: "hover:bg-green-600",
+      border: "border-green-600",
+      activeBg: "bg-green-400",
+      text: "text-white",
+      shadow: "shadow-[0_8px_0_0_#166534]",
+      activeShadow: "shadow-[0_2px_0_0_#166534]",
+    },
+  ];
+
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="w-full max-w-2xl flex flex-col h-full"
+      className="w-full h-full flex flex-col"
     >
-      <motion.h3
-        variants={itemVariants}
-        className="text-xl font-semibold mb-6 leading-relaxed"
-      >
-        {question.question}
-      </motion.h3>
+      {/* Centralized Gamified Question Layout */}
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[150px] mb-8 w-full">
+        <motion.h3
+          variants={itemVariants}
+          className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center leading-tight tracking-tight drop-shadow-md select-text"
+        >
+          {question.question}
+        </motion.h3>
+
+        {question.imageUrl && (
+          <motion.div
+            variants={itemVariants}
+            className="mt-6 w-full max-w-lg mx-auto rounded-2xl overflow-hidden border-4 border-zinc-800 shadow-2xl"
+          >
+            <img
+              src={question.imageUrl}
+              alt="Question Visual"
+              className="w-full h-auto object-contain max-h-[300px] bg-black/40"
+            />
+          </motion.div>
+        )}
+      </div>
 
       {question.scenario && (
         <motion.div
           variants={itemVariants}
-          className="bg-zinc-800/30 border-l-4 border-orange-500 rounded-r-xl p-5 mb-6"
+          className="bg-zinc-800/30 border-l-4 border-orange-500 rounded-r-xl p-5 mb-6 max-w-4xl mx-auto w-full"
         >
           <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
             {question.scenario}
@@ -891,71 +947,80 @@ const MCQQuestion = ({
       {(question.buggyCode || question.contextCode) && (
         <motion.div
           variants={itemVariants}
-          className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden mb-6"
+          className="bg-zinc-950 border-2 border-zinc-800 rounded-2xl overflow-hidden mb-8 max-w-4xl mx-auto w-full shadow-lg"
         >
-          <div className="px-4 py-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center gap-2">
-            <Code size={14} className="text-orange-400" />
-            <span className="text-xs text-zinc-500 uppercase font-semibold">
+          <div className="px-4 py-3 bg-zinc-900 border-b border-zinc-800 flex items-center gap-2">
+            <Code size={16} className="text-orange-400" />
+            <span className="text-[11px] text-zinc-400 uppercase tracking-widest font-black">
               {question.buggyCode ? "Code to Review" : "System Context"}
             </span>
           </div>
-          <pre className="p-4 text-sm text-zinc-300 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed custom-scrollbar">
+          <pre className="p-5 text-[15px] text-zinc-300 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed custom-scrollbar">
             {question.buggyCode || question.contextCode}
           </pre>
         </motion.div>
       )}
 
-      <div className="grid gap-3 mb-6">
+      {/* 2x2 Vibrant Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 max-w-5xl mx-auto w-full mb-6">
         {question.options?.map((option, i) => {
           const isSelected = selectedAnswer === option;
           const isCorrect = result?.correctAnswer === option;
           const showResult = !!result;
 
-          let cardStyle =
-            "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/80 hover:border-zinc-700 text-zinc-300";
+          const theme = quizizzColors[i % 4];
 
-          if (showResult && isCorrect) {
-            cardStyle = "border-green-500/50 bg-green-500/10 text-green-400";
-          } else if (showResult && isSelected && !isCorrect) {
-            cardStyle = "border-red-500/50 bg-red-500/10 text-red-400";
+          let cardStyle = `${theme.base} ${theme.border} ${theme.text} ${theme.hover} ${theme.shadow} hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgba(0,0,0,0.5)] active:translate-y-2 active:shadow-[0_0px_0_0_rgba(0,0,0,0)]`;
+
+          if (showResult) {
+            if (isCorrect) {
+              cardStyle =
+                "bg-green-500 border-green-600 text-white shadow-[0_8px_0_0_#166534] scale-[1.02] ring-4 ring-green-400/50 z-10";
+            } else if (isSelected && !isCorrect) {
+              cardStyle =
+                "bg-red-500 border-red-600 text-white shadow-[0_4px_0_0_#991b1b] opacity-90 translate-y-2 opacity-50 grayscale-[50%]";
+            } else {
+              cardStyle =
+                "bg-zinc-800 border-zinc-700 text-zinc-500 shadow-none opacity-40 grayscale pointer-events-none";
+            }
           } else if (isSelected) {
-            cardStyle = "border-orange-500/50 bg-orange-500/10 text-orange-400";
+            cardStyle = `${theme.activeBg} border-white text-white translate-y-2 ${theme.activeShadow} ring-4 ring-white/30`;
           }
 
           return (
             <motion.div
               key={i}
               variants={itemVariants}
-              whileHover={!result ? { scale: 1.01, x: 4 } : {}}
-              whileTap={!result ? { scale: 0.99 } : {}}
+              className="h-full flex flex-col"
             >
               <button
-                className={`w-full text-left p-4 rounded-xl border transition-all flex gap-3 items-start ${cardStyle} ${
-                  result ? "pointer-events-none" : "cursor-pointer"
-                }`}
+                className={`w-full h-full min-h-[100px] text-center p-6 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center relative overflow-hidden group ${
+                  result
+                    ? "pointer-events-none cursor-default"
+                    : "cursor-pointer"
+                } ${cardStyle}`}
                 onClick={() => !result && onSubmit(option)}
                 disabled={!!result || isSubmitting}
               >
-                <span
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                    showResult && isCorrect
-                      ? "bg-green-500/20 text-green-400"
-                      : showResult && isSelected && !isCorrect
-                        ? "bg-red-500/20 text-red-400"
-                        : isSelected
-                          ? "bg-orange-500/20 text-orange-400"
-                          : "bg-zinc-800 text-zinc-500"
-                  }`}
-                >
-                  {showResult && isCorrect ? (
-                    <Check size={14} />
-                  ) : showResult && isSelected && !isCorrect ? (
-                    <X size={14} />
-                  ) : (
-                    String.fromCharCode(65 + i)
-                  )}
-                </span>
-                <span className="flex-1 whitespace-normal break-words text-[15px] leading-relaxed pt-0.5">
+                {/* Subtle shine effect on hover */}
+                {!result && (
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                )}
+
+                {/* Status Indicator Icon */}
+                {showResult && (isCorrect || (isSelected && !isCorrect)) && (
+                  <div
+                    className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-sm border-2 border-white text-white drop-shadow-md`}
+                  >
+                    {isCorrect ? (
+                      <Check size={18} strokeWidth={4} />
+                    ) : (
+                      <X size={18} strokeWidth={4} />
+                    )}
+                  </div>
+                )}
+
+                <span className="w-full break-words text-lg md:text-xl xl:text-2xl font-black drop-shadow-md select-none px-4">
                   {option}
                 </span>
               </button>
@@ -964,7 +1029,9 @@ const MCQQuestion = ({
         })}
       </div>
 
-      <Feedback result={result} correctAnswerData={result?.correctAnswer} />
+      {!isSubmitting && (
+        <Feedback result={result} correctAnswerData={result?.correctAnswer} />
+      )}
     </motion.div>
   );
 };

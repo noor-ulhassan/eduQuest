@@ -3,6 +3,7 @@ import { User } from "../models/user.model.js";
 import { createToken } from "../utils/createTokens.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { checkStreak } from "../utils/streak.js";
 
 const cookieOptions = {
   httpOnly: true,
@@ -47,6 +48,11 @@ export const googleAuth = async (req, res) => {
         avatarUrl: picture,
         provider: "google",
       });
+    }
+
+    // Check/Reset stale streak before returning
+    if (user.dayStreak > 0) {
+      user = await checkStreak(user);
     }
 
     // Create token
@@ -155,6 +161,11 @@ export const login = async (req, res) => {
         success: false,
         message: "Incorrect Password",
       });
+    }
+
+    // Check/Reset stale streak before returning
+    if (user.dayStreak > 0) {
+      user = await checkStreak(user);
     }
 
     const token = createToken(user);

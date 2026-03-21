@@ -14,36 +14,37 @@ export function DraggableCards() {
 
   // Language to display name and image mapping
   const languageMap = {
-    html: {
-      title: "HTML",
-      img: "/html5.png",
-      color: "bg-orange-500",
-      border: "border-orange-500",
-    },
-    css: {
-      title: "CSS",
-      img: "/csss.png",
-      color: "bg-blue-500",
-      border: "border-blue-500",
+    react: {
+      title: "React",
+      img: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
+      color: "bg-cyan-500",
     },
     javascript: {
       title: "JavaScript",
       img: "/javascript.png",
       color: "bg-yellow-400",
-      border: "border-yellow-400",
     },
     python: {
       title: "Python",
       img: "/python1.png",
       color: "bg-green-500",
-      border: "border-green-500",
-    }, // Added visual props
+    },
+    css: {
+      title: "CSS",
+      img: "/csss.png",
+      color: "bg-blue-500",
+    },
+    html: {
+      title: "HTML",
+      img: "/html5.png",
+      color: "bg-orange-500",
+    },
   };
 
   useEffect(() => {
     const fetchPlaygroundsData = async () => {
       // Always define all supported languages
-      const allLanguages = ["html", "css", "javascript", "python"];
+      const allLanguages = ["react", "javascript", "python", "css", "html"];
       let progressMap = {};
 
       if (user) {
@@ -134,7 +135,7 @@ export function DraggableCards() {
   // NOTE: No empty state check anymore since we always show cards
 
   return (
-    <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-transparent ">
+    <div className="relative flex h-[700px] w-[600px] items-center justify-center overflow-hidden rounded-3xl bg-white dark:bg-[#1a1730]">
       <div className="relative w-[560px] h-[520px] ">
         <AnimatePresence>
           {cards.map((card, index) => {
@@ -153,21 +154,26 @@ export function DraggableCards() {
                     sendToBack(card.id);
                   }
                 }}
+                initial={false}
                 animate={{
-                  scale: 1 - (cards.length - 1 - index) * 0.04,
-                  y: (cards.length - 1 - index) * -20,
+                  scale: 1 - (cards.length - 1 - index) * 0.05,
+                  y: (cards.length - 1 - index) * -25,
                   opacity: 1,
-                  rotate: isTop ? 0 : index % 2 === 0 ? 2 : -2,
+                  rotate: isTop ? 0 : index % 2 === 0 ? 3 : -3,
                 }}
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                className="absolute inset-0 cursor-pointer active:cursor-pointer"
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="absolute inset-0 cursor-grab active:cursor-grabbing hover:-translate-y-2 transition-transform duration-300 ease-out"
                 style={{ zIndex: index }}
               >
-                <div
-                  className="w-full h-full bg-zinc-50 rounded-2xl p-8 flex flex-col border-[2px] border-zinc-300 border-t-2  
-                border-r-4 shadow-sm"
-                >
-                  <div>
+                <div className="w-full h-full bg-white dark:bg-[#1a1730] rounded-[2rem] p-8 flex flex-col border border-zinc-200 dark:border-zinc-800 shadow-[0_10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4)] overflow-hidden relative group">
+                  <div
+                    className={`absolute -top-32 -right-32 w-64 h-64 ${card.color} opacity-10 dark:opacity-20 rounded-full blur-[80px] pointer-events-none group-hover:opacity-20 transition-all duration-700`}
+                  />
+                  <div
+                    className={`absolute -bottom-32 -left-32 w-64 h-64 ${card.color} opacity-10 dark:opacity-20 rounded-full blur-[80px] pointer-events-none group-hover:opacity-20 transition-all duration-700`}
+                  />
+
+                  <div className="flex justify-between items-start mb-6 relative z-10">
                     {card.isEnrolled ? (
                       <span className="text-xs font-bold text-white uppercase bg-indigo-600 tracking-tight border border-indigo-400 rounded-full px-2 py-1">
                         In Progress
@@ -189,7 +195,13 @@ export function DraggableCards() {
                     </p>
                   </div>
                   <div className="flex-1 flex items-center justify-center mb-4 overflow-hidden">
-                    <img
+                    <motion.img
+                      whileHover={{ scale: 1.05, rotate: 2 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      }}
                       src={card.img}
                       alt="Course Illustration"
                       className="max-h-40 w-40 object-cover rounded-4xl "
@@ -233,17 +245,19 @@ export function DraggableCards() {
                         ? navigate(`/playground/${card.language}`)
                         : navigate(`/playground/${card.language}/topics`)
                     }
-                    className={`w-full text-black font-bold mt-4 py-5 rounded-2xl border-b-4 flex items-center justify-center gap-3 text-sm group transition-all
+                    className={`w-full font-bold mt-auto py-4 rounded-xl flex items-center justify-center gap-3 text-sm group transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md
                         ${
                           card.isEnrolled
-                            ? "bg-yellow-400 hover:bg-yellow-500 border-yellow-600"
-                            : "bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-900 hover:border-zinc-300"
+                            ? "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-400 hover:to-orange-400 text-black border-none"
+                            : "bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 dark:text-black text-white border-none"
                         }`}
                   >
-                    {card.status}{" "}
-                    <Play
-                      className={`w-5 h-5 ${card.isEnrolled ? "fill-black" : "fill-zinc-400"}`}
-                    />
+                    <span className="relative z-10 flex items-center gap-2 tracking-wide uppercase">
+                      {card.status}
+                      <Play
+                        className={`w-4 h-4 transition-transform group-hover:translate-x-1 ${card.isEnrolled ? "fill-black" : "fill-white dark:fill-black"}`}
+                      />
+                    </span>
                   </button>
                 </div>
               </motion.div>

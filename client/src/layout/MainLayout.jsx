@@ -1,16 +1,8 @@
 import Navbar from "@/layout/Navbar";
 import Footer from "@/layout/Footer";
 import { Outlet, useLocation } from "react-router-dom";
+import PlatformGuide from "@/components/ui/PlatformGuide";
 
-/**
- * MainLayout — root shell shared by all public + protected pages.
- *
- * Layout contract:
- *  - Navbar is fixed at the top (h-14 = 3.5rem).
- *  - <main> has pt-14 so page content always starts below the navbar.
- *    Individual pages must NOT add their own top margin/padding for this offset.
- *  - Footer is hidden on full-screen pages (workspace, problem solver, etc.).
- */
 const MainLayout = () => {
   const location = useLocation();
 
@@ -21,15 +13,21 @@ const MainLayout = () => {
   const hideNavbar =
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||
-    location.pathname === "/leaderboard";
-
+    location.pathname.startsWith("/course/") ||
+    location.pathname === "/leaderboard" ||
+    location.pathname === "/login" ||
+    location.pathname === "/signup";
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||
     location.pathname.startsWith("/course/") ||
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||
-    location.pathname === "/leaderboard";
+    location.pathname === "/leaderboard" ||
+    location.pathname === "/login" ||
+    location.pathname === "/signup" ||
+    location.pathname === "/profile" ||
+    location.pathname === "/profile/";
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -40,6 +38,7 @@ const MainLayout = () => {
         <Outlet />
       </main>
 
+      {!hideFooter && <PlatformGuide />}
       {!hideFooter && <Footer />}
     </div>
   );

@@ -1,14 +1,7 @@
 import PlaygroundProgress from "../models/PlaygroundProgress.js";
 import { User } from "../models/user.model.js";
-
-// Helper: Calculate rank based on level
-const calculateRank = (level) => {
-  if (level <= 2) return "Novice";
-  if (level <= 5) return "Apprentice";
-  if (level <= 9) return "Journeyman";
-  if (level <= 14) return "Expert";
-  return "Master";
-};
+import { incrementStreak } from "../utils/streak.js";
+import { addXP } from "../utils/progression.js";
 
 // GET /api/v1/playground/progress - Get all playground progress for user
 export const getProgress = async (req, res) => {
@@ -28,7 +21,11 @@ export const enrollPlayground = async (req, res) => {
     const userId = req.user._id;
     const { language } = req.body;
 
-    if (!["html", "css", "javascript", "python", "react"].includes(language)) {
+    if (
+      !["html", "css", "javascript", "python", "react", "dsa"].includes(
+        language,
+      )
+    ) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid language" });
@@ -105,36 +102,14 @@ export const completeProblem = async (req, res) => {
     progress.totalXpEarned += xp;
     await progress.save();
 
-    // Update user XP, level, and rank
-    const user = await User.findById(userId);
-    user.xp = (user.xp || 0) + xp;
-    user.level = Math.floor(user.xp / 1000) + 1;
-    user.rank = calculateRank(user.level);
+    // Increment Streak
+    let user = await User.findById(userId);
+    user = await incrementStreak(user);
 
-    // Calculate and update streak
-    const today = new Date().setHours(0, 0, 0, 0);
-    const lastSolved = user.lastSolvedDate
-      ? new Date(user.lastSolvedDate).setHours(0, 0, 0, 0)
-      : null;
-    const daysDiff = lastSolved
-      ? Math.floor((today - lastSolved) / (1000 * 60 * 60 * 24))
-      : null;
-
-    if (daysDiff === 0) {
-      // Same day. Ensure streak is at least 1 (fixes migration issue)
-      if (!user.dayStreak || user.dayStreak < 1) {
-        user.dayStreak = 1;
-      }
-    } else if (daysDiff === 1) {
-      // Yesterday, increment streak
-      user.dayStreak = (user.dayStreak || 0) + 1;
-    } else {
-      // Streak broken or first time, reset to 1
-      user.dayStreak = 1;
-    }
-    user.lastSolvedDate = new Date();
-
-    await user.save();
+    // Give XP and calculate new levels / ranks / badges globally
+    user = await addXP(user, xp, {
+      totalSolved: progress.completedProblems.length,
+    });
 
     // Return updated user stats (without sensitive fields)
     const updatedUser = {
