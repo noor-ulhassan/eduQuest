@@ -165,7 +165,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader, Loader2Icon, Sparkle } from "lucide-react";
+import { Loader, Loader2Icon, Layers } from "lucide-react";
 import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
 import api from "@/features/auth/authApi";
 
@@ -227,7 +227,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
 
    <DialogContent>
     <DialogHeader>
-     <DialogTitle>Create new Course using AI</DialogTitle>
+     <DialogTitle>Create Custom Course</DialogTitle>
 
      <DialogDescription asChild>
       <div className="flex flex-col gap-4 mt-3">
@@ -307,12 +307,12 @@ function AddCourseDialog({ children, setCourseList, user }) {
          {loading ? (
           <span className="flex items-center gap-2">
            <Loader2Icon className="animate-spin" />
-           Generating...
+           Creating...
           </span>
          ) : (
           <span className="flex items-center gap-2">
-           <Sparkle />
-           Generate
+           <Layers />
+           Create Course
           </span>
          )}
         </Button>

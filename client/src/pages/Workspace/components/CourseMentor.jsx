@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import api from "@/features/auth/authApi";
 
 /**
- * CourseMentor — A slide-in AI chat panel with full chapter context.
+ * CourseMentor — A slide-in Course Guide panel with full chapter context.
  *
  * Props:
  * - courseId: string
@@ -28,7 +28,7 @@ export default function CourseMentor({
  const [messages, setMessages] = useState([
   {
    role: "assistant",
-   content: `Hey! 👋 I'm your AI mentor for **"${chapterName}"**. Ask me anything about this chapter — concepts, code, or clarifications. I'm here to help!`,
+   content: `Hey! 👋 I'm your Guide for **"${chapterName}"**. Ask me anything about this chapter — concepts, code, or clarifications. I'm here to help!`,
   },
  ]);
  const [input, setInput] = useState("");
@@ -103,10 +103,10 @@ export default function CourseMentor({
    <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-red-600/5 dark:bg-red-600/10">
     <div className="flex items-center gap-3">
      <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-      <Bot className="text-white w-5 h-5" />
+      <BookOpen className="text-white w-5 h-5" />
      </div>
      <div>
-      <h3 className="font-bold text-sm">AI Mentor</h3>
+      <h3 className="font-bold text-sm">Course Guide</h3>
       <p className="text-[11px] text-zinc-400 line-clamp-1">
        {chapterName}
       </p>
@@ -145,7 +145,7 @@ export default function CourseMentor({
        {msg.role === "user" ? (
         <UserIcon className="w-4 h-4" />
        ) : (
-        <Sparkles className="w-4 h-4" />
+        <BookOpen className="w-4 h-4" />
        )}
       </div>
 
@@ -187,7 +187,7 @@ export default function CourseMentor({
     {isTyping && (
      <div className="flex gap-3">
       <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
-       <Sparkles className="w-4 h-4" />
+       <BookOpen className="w-4 h-4" />
       </div>
       <div className="bg-[#0a0a0a] dark:bg-[#111111]/5 border border-white/10 rounded-2xl rounded-tl-md px-4 py-3 flex items-center gap-1.5">
        <Loader2 className="w-4 h-4 animate-spin text-red-400" />
@@ -217,7 +217,7 @@ export default function CourseMentor({
      </button>
     </div>
     <p className="text-[10px] text-slate-400 mt-2 text-center">
-     AI responses are based on this chapter's content
+     Responses are based on this chapter's content
     </p>
    </div>
   </div>

@@ -116,14 +116,14 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center text-white">
         <EmptyState message="Loading profile..." />
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-4 sm:py-6">
+    <div className="bg-[#0A0A0B] text-white selection:bg-purple-500/30 font-sans min-h-screen py-4 sm:py-6">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <ProfileHeader
           displayName={user.name}
@@ -143,12 +143,12 @@ const Profile = () => {
             className="space-y-8"
             onValueChange={setActiveTab}
           >
-            <TabsList className="bg-transparent border-b border-zinc-200 dark:border-zinc-800 rounded-none w-full justify-start h-12 p-0 space-x-8">
+            <TabsList className="bg-transparent border-b border-zinc-800 rounded-none w-full justify-start h-12 p-0 space-x-8">
               {["Overview", "Projects", "Posts", "Friends"].map((tab) => (
                 <TabsTrigger
                   key={tab}
                   value={tab}
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-yellow-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-semibold text-zinc-500 data-[state=active]:text-yellow-600 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-bold uppercase tracking-wider text-sm text-zinc-500 data-[state=active]:text-white hover:text-zinc-300 transition-colors"
                 >
                   {tab}
                 </TabsTrigger>
@@ -180,8 +180,8 @@ const Profile = () => {
               className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 outline-none"
             >
               {/* Create Post Section */}
-              <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
-                <h3 className="text-lg font-bold tracking-tight mb-4 text-zinc-900 dark:text-zinc-100">
+              <div className="bg-[#121214] rounded-xl border border-zinc-800/60 p-4 shadow-lg">
+                <h3 className="text-lg font-bold tracking-tight mb-4 text-white">
                   Create a Post
                 </h3>
                 <CreatePost onPostCreated={handlePostCreated} />
@@ -191,12 +191,12 @@ const Profile = () => {
               <div className="space-y-4">
                 {loadingPosts ? (
                   <div className="space-y-4">
-                    <div className="h-40 bg-zinc-100 dark:bg-zinc-900 rounded-xl animate-pulse" />
-                    <div className="h-40 bg-zinc-100 dark:bg-zinc-900 rounded-xl animate-pulse" />
+                    <div className="h-40 bg-zinc-800/50 rounded-xl animate-pulse" />
+                    <div className="h-40 bg-zinc-800/50 rounded-xl animate-pulse" />
                   </div>
                 ) : posts.length > 0 ? (
                   posts.map((post) => (
-                    <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div className="bg-[#121214] rounded-xl border border-zinc-800/60 shadow-xl overflow-hidden">
                       <TweetCard
                         key={post._id}
                         post={post}
@@ -229,17 +229,17 @@ const Profile = () => {
                     {requests.map((req) => (
                       <div
                         key={req._id}
-                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/80"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60"
                       >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
-                          <Avatar className="h-12 w-12 border-2 border-white dark:border-zinc-800 shadow-sm">
+                          <Avatar className="h-12 w-12 border-2 border-[#121214] bg-zinc-900 shadow-sm">
                             <AvatarImage src={req.from?.avatarUrl} />
                             <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
                               {req.from?.name?.[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                            <p className="font-bold text-sm text-white truncate">
                               {req.from?.name}
                             </p>
                             <p className="text-xs font-medium text-zinc-500 mt-0.5 uppercase tracking-wide">
@@ -267,17 +267,17 @@ const Profile = () => {
                     {friends.map((friend) => (
                       <div
                         key={friend._id}
-                        className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/80 cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-sm transition-all group"
+                        className="flex items-center gap-4 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60 cursor-pointer hover:border-zinc-500 hover:shadow-md transition-all group"
                         onClick={() => navigate(`/profile/${friend._id}`)}
                       >
-                        <Avatar className="h-12 w-12 border-2 border-white dark:border-zinc-800 shadow-sm group-hover:scale-105 transition-transform">
+                        <Avatar className="h-12 w-12 border-2 border-[#121214] bg-zinc-900 shadow-sm group-hover:scale-105 transition-transform">
                           <AvatarImage src={friend.avatarUrl} />
                           <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
                             {friend.name?.[0]}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate transition-colors">
+                          <p className="font-bold text-sm text-white group-hover:text-indigo-400 truncate transition-colors">
                             {friend.name}
                           </p>
                           <p className="text-xs font-medium text-zinc-500 mt-0.5 truncate">
@@ -321,7 +321,7 @@ const Profile = () => {
                       <Badge
                         key={skill}
                         variant="secondary"
-                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-900/50 px-3 py-1 font-bold tracking-wide"
+                        className="bg-white/10 text-white hover:bg-white/20 border border-white/10 px-3 py-1 font-bold tracking-wide"
                       >
                         {skill}
                       </Badge>
@@ -331,7 +331,7 @@ const Profile = () => {
                   <Button
                     onClick={() => setIsSkillsDialogOpen(true)}
                     variant="outline"
-                    className="mt-6 w-full border-dashed border-2 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    className="mt-6 w-full border-dashed border-2 border-zinc-800/80 text-zinc-400 hover:text-white bg-transparent hover:bg-white/5"
                   >
                     + Add More Skills
                   </Button>

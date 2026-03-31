@@ -6,7 +6,6 @@ import { grantXP } from "@/utils/gamificationHelper.js";
 import confetti from "canvas-confetti";
 
 import {
-  BrainCircuit,
   Loader2,
   CheckCircle,
   History,
@@ -38,14 +37,35 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300 } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300 },
+  },
 };
 
-const PAIR_COLORS = [
-  "bg-red-500",
-  "bg-blue-500",
-  "bg-yellow-500",
-  "bg-emerald-500",
+// Static color maps — fully spelled out so Tailwind can tree-shake correctly
+const OPTION_STYLES = [
+  {
+    base: "bg-red-500",
+    selected: "bg-red-600 ring-4 ring-red-300 ring-offset-2",
+    dimmed: "bg-red-500/50",
+  },
+  {
+    base: "bg-blue-500",
+    selected: "bg-blue-600 ring-4 ring-blue-300 ring-offset-2",
+    dimmed: "bg-blue-500/50",
+  },
+  {
+    base: "bg-yellow-500",
+    selected: "bg-yellow-600 ring-4 ring-yellow-300 ring-offset-2",
+    dimmed: "bg-yellow-500/50",
+  },
+  {
+    base: "bg-emerald-500",
+    selected: "bg-emerald-600 ring-4 ring-emerald-300 ring-offset-2",
+    dimmed: "bg-emerald-500/50",
+  },
 ];
 
 const DocumentInteractPage = () => {
@@ -101,12 +121,28 @@ const DocumentInteractPage = () => {
         numberOfQuestions: 5,
         difficulty: "medium",
       });
-      setQuiz(res.data.data);
+
+      const quizData = res.data.data;
+
+      // Guard: if Gemini returned an empty or invalid questions array, bail
+      if (
+        !quizData?.questions ||
+        !Array.isArray(quizData.questions) ||
+        quizData.questions.length === 0
+      ) {
+        toast.error(
+          "System returned an empty quiz. Please try again!",
+        );
+        return;
+      }
+
+      setQuiz(quizData);
       setAnswers({});
       setResult(null);
       setCurrentQuestionIndex(0);
       toast.success("Quiz generated successfully!");
     } catch (error) {
+      console.error("Quiz generation error:", error);
       toast.error("Failed to generate quiz. Try again.");
     } finally {
       setGenerating(false);
@@ -115,6 +151,23 @@ const DocumentInteractPage = () => {
 
   // 3. Submit Quiz & Save to DB
   const handleSubmitQuiz = async () => {
+    // Find any unanswered questions first
+    const totalQ = quiz.questions.length;
+    const unanswered = [];
+    for (let i = 0; i < totalQ; i++) {
+      if (answers[i] === undefined || answers[i] === null) {
+        unanswered.push(i + 1);
+      }
+    }
+    if (unanswered.length > 0) {
+      toast.error(
+        `You missed Question${unanswered.length > 1 ? "s" : ""} ${unanswered.join(", ")}! Go back and answer ${unanswered.length > 1 ? "them" : "it"}.`,
+      );
+      // Jump to the first unanswered question
+      setCurrentQuestionIndex(unanswered[0] - 1);
+      return;
+    }
+
     setSavingResult(true);
     let score = 0;
 
@@ -147,7 +200,6 @@ const DocumentInteractPage = () => {
       setPastAttempts([attemptRes.data.data, ...pastAttempts]);
 
       if (percentage >= 80) {
-        // Trigger generic confetti explosion
         confetti({
           particleCount: 150,
           spread: 70,
@@ -208,6 +260,10 @@ const DocumentInteractPage = () => {
       label: "Needs Review",
     };
   };
+
+  // Helper: count answered questions
+  const answeredCount = Object.keys(answers).length;
+  const currentQuestion = quiz?.questions?.[currentQuestionIndex];
 
   if (loading)
     return (
@@ -300,7 +356,8 @@ const DocumentInteractPage = () => {
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-slate-900/5 backdrop-blur-[1px]">
                     <div className="bg-white/90 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 border border-slate-200 shadow-sm flex items-center gap-2">
                       <Search className="w-4 h-4 text-indigo-500" /> Click a
-                      "Find Source" button on the right to jump to the text.
+                      &quot;Find Source&quot; button on the right to jump to the
+                      text.
                     </div>
                   </div>
                 )}
@@ -317,7 +374,7 @@ const DocumentInteractPage = () => {
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-slate-400 text-sm font-medium">
-                      Accurancy:{" "}
+                      Accuracy:{" "}
                     </span>
                     <span
                       className={`text-sm font-bold ${reviewingAttempt.percentage >= 80 ? "text-emerald-400" : "text-amber-400"}`}
@@ -429,7 +486,7 @@ const DocumentInteractPage = () => {
                 >
                   {/* Decorative faint icons */}
                   <div className="absolute top-10 left-10 opacity-10">
-                    <BrainCircuit className="w-32 h-32 text-white" />
+                    <Target className="w-32 h-32 text-white" />
                   </div>
                   <div className="absolute bottom-10 right-10 opacity-10">
                     <Zap className="w-32 h-32 text-white" />
@@ -437,13 +494,13 @@ const DocumentInteractPage = () => {
 
                   <div className="relative z-10 flex flex-col items-center">
                     <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl inline-block mb-6 border border-white/20 shadow-inner">
-                      <BrainCircuit className="w-12 h-12 text-white" />
+                      <Target className="w-12 h-12 text-white" />
                     </div>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4 tracking-tight drop-shadow-md">
                       Test Your Knowledge
                     </h2>
                     <p className="text-indigo-100 text-lg sm:text-xl mb-10 max-w-2xl mx-auto font-medium">
-                      Challenge yourself. Let our AI instantly generate a
+                      Challenge yourself. Instantly generate a
                       targeted quiz utilizing context directly from this
                       document.
                     </p>
@@ -456,12 +513,12 @@ const DocumentInteractPage = () => {
                       {generating ? (
                         <>
                           <Loader2 className="animate-spin mr-3 hidden sm:inline-block h-6 w-6" />
-                          Neural Engine Generating...
+                          Preparing Quiz...
                         </>
                       ) : (
                         <>
                           <Zap className="mr-3 fill-indigo-500 h-6 w-6" />
-                          Start Deep Learning Quiz
+                          Start Practice Quiz
                         </>
                       )}
                     </Button>
@@ -517,7 +574,7 @@ const DocumentInteractPage = () => {
                             <div className={`h-2 w-full ${rank.bg}`} />
                             <CardContent className="p-6">
                               <div className="flex justify-between items-start mb-6">
-                                <div className={`flex flex-col gap-1`}>
+                                <div className="flex flex-col gap-1">
                                   <div className="flex items-center gap-2">
                                     {rank.icon}
                                     <span className="font-black text-3xl text-slate-900 tracking-tighter">
@@ -554,7 +611,8 @@ const DocumentInteractPage = () => {
                                 )}
                               </div>
                               <Button
-                                className={`w-full font-bold h-11 rounded-xl shadow-none hover:shadow-md transition-all ${rank.bg} ${rank.text} hover:${rank.bg} hover:brightness-95`}
+                                variant="outline"
+                                className={`w-full font-bold h-11 rounded-xl transition-all border-2 ${rank.border} ${rank.text} hover:bg-slate-50`}
                                 onClick={() => setReviewingAttempt(attempt)}
                               >
                                 Review Performance
@@ -570,7 +628,7 @@ const DocumentInteractPage = () => {
             )}
 
             {/* --- STATE B: Active Quiz (Quizizz Style) --- */}
-            {quiz && !result && (
+            {quiz && !result && currentQuestion && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -580,7 +638,7 @@ const DocumentInteractPage = () => {
                 <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                      <BrainCircuit className="w-5 h-5 text-indigo-600" />
+                      <Target className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
                       <h2 className="text-lg font-black text-slate-800">
@@ -594,15 +652,26 @@ const DocumentInteractPage = () => {
                   </div>
 
                   <div className="flex items-center gap-4">
+                    {/* Progress dots */}
                     <div className="hidden sm:flex items-center gap-1 text-slate-300">
                       {quiz.questions.map((_, i) => (
                         <div
                           key={i}
-                          className={`w-8 h-2.5 rounded-full transition-all duration-500 ${i === currentQuestionIndex ? "bg-indigo-500" : i < currentQuestionIndex ? "bg-indigo-200" : "bg-slate-100"}`}
+                          className={`w-8 h-2.5 rounded-full transition-all duration-500 ${
+                            i === currentQuestionIndex
+                              ? "bg-indigo-500"
+                              : answers[i] !== undefined
+                                ? "bg-indigo-200"
+                                : "bg-slate-100"
+                          }`}
                         />
                       ))}
                     </div>
-                    <div className="w-px h-8 bg-slate-200 hidden sm:block mx-1"></div>
+                    <div className="w-px h-8 bg-slate-200 hidden sm:block mx-1" />
+                    {/* Answered counter */}
+                    <span className="text-xs font-bold text-slate-400 hidden sm:block">
+                      {answeredCount}/{quiz.questions.length}
+                    </span>
                     <Button
                       variant="ghost"
                       onClick={() => {
@@ -610,8 +679,11 @@ const DocumentInteractPage = () => {
                           window.confirm(
                             "Are you sure you want to abandon the quiz? Progress will be lost.",
                           )
-                        )
+                        ) {
                           setQuiz(null);
+                          setAnswers({});
+                          setCurrentQuestionIndex(0);
+                        }
                       }}
                       className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold"
                     >
@@ -630,51 +702,56 @@ const DocumentInteractPage = () => {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-12 mb-6 min-h-[250px] flex items-center justify-center text-center">
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-12 mb-6 min-h-[200px] flex items-center justify-center text-center">
                       <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">
-                        {quiz.questions[currentQuestionIndex].question}
+                        {currentQuestion.question}
                       </h3>
                     </div>
 
                     {/* 2x2 Vibrant Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                      {quiz.questions[currentQuestionIndex].options.map(
-                        (opt, oIdx) => {
-                          const isSelected =
-                            answers[currentQuestionIndex] === opt;
-                          const colorClass =
-                            PAIR_COLORS[oIdx % PAIR_COLORS.length];
+                      {currentQuestion.options.map((opt, oIdx) => {
+                        const isSelected =
+                          answers[currentQuestionIndex] === opt;
+                        const hasSelection =
+                          answers[currentQuestionIndex] !== undefined;
+                        const style =
+                          OPTION_STYLES[oIdx % OPTION_STYLES.length];
 
-                          return (
-                            <motion.div
-                              key={oIdx}
-                              whileHover={{ scale: 1.02, y: -4 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() =>
-                                setAnswers({
-                                  ...answers,
-                                  [currentQuestionIndex]: opt,
-                                })
-                              }
-                              className={`cursor-pointer rounded-2xl p-6 sm:p-8 min-h-[160px] flex items-center justify-center text-center transition-all ${
-                                isSelected
-                                  ? `${colorClass} text-white shadow-[0_0_40px_rgba(0,0,0,0.2)] scale-[1.02] ring-4 ring-offset-2 ring-${colorClass.split("-")[1]}-400`
-                                  : `${colorClass} text-white opacity-90 shadow-lg hover:shadow-xl`
-                              }`}
-                              style={{
-                                // Giving them that slight 3D Quizizz pillowed look
-                                boxShadow: isSelected
-                                  ? "inset 0 -8px 0 rgba(0,0,0,0.1)"
-                                  : "inset 0 -6px 0 rgba(0,0,0,0.15)",
-                              }}
-                            >
-                              <span className="text-xl sm:text-2xl font-bold tracking-tight px-4 leading-snug drop-shadow-md">
-                                {opt}
-                              </span>
-                            </motion.div>
-                          );
-                        },
-                      )}
+                        let cardClass;
+                        if (isSelected) {
+                          cardClass = style.selected;
+                        } else if (hasSelection) {
+                          // Dim the unselected cards when something IS selected
+                          cardClass = style.dimmed;
+                        } else {
+                          cardClass = style.base;
+                        }
+
+                        return (
+                          <motion.div
+                            key={oIdx}
+                            whileHover={{ scale: 1.02, y: -4 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() =>
+                              setAnswers({
+                                ...answers,
+                                [currentQuestionIndex]: opt,
+                              })
+                            }
+                            className={`cursor-pointer rounded-2xl p-6 sm:p-8 min-h-[140px] flex items-center justify-center text-center text-white transition-all duration-200 ${cardClass}`}
+                            style={{
+                              boxShadow: isSelected
+                                ? "inset 0 -8px 0 rgba(0,0,0,0.15), 0 0 30px rgba(255,255,255,0.15)"
+                                : "inset 0 -6px 0 rgba(0,0,0,0.15)",
+                            }}
+                          >
+                            <span className="text-lg sm:text-xl font-bold tracking-tight px-4 leading-snug drop-shadow-md">
+                              {opt}
+                            </span>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -684,7 +761,9 @@ const DocumentInteractPage = () => {
                   <Button
                     variant="outline"
                     disabled={currentQuestionIndex === 0}
-                    onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
+                    onClick={() =>
+                      setCurrentQuestionIndex((prev) => prev - 1)
+                    }
                     className="font-bold border-slate-200 rounded-xl h-12 px-6"
                   >
                     Previous
@@ -693,8 +772,10 @@ const DocumentInteractPage = () => {
                   {currentQuestionIndex < quiz.questions.length - 1 ? (
                     <Button
                       onClick={() => {
-                        if (!answers[currentQuestionIndex]) {
-                          toast.error("Please select an answer to continue!");
+                        if (answers[currentQuestionIndex] === undefined) {
+                          toast.error(
+                            "Please select an answer to continue!",
+                          );
                           return;
                         }
                         setCurrentQuestionIndex((prev) => prev + 1);
@@ -706,10 +787,7 @@ const DocumentInteractPage = () => {
                   ) : (
                     <Button
                       onClick={handleSubmitQuiz}
-                      disabled={
-                        Object.keys(answers).length < quiz.questions.length ||
-                        savingResult
-                      }
+                      disabled={savingResult}
                       className="font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 px-10 shadow-lg shadow-emerald-500/20 text-lg group"
                     >
                       {savingResult ? (
@@ -736,32 +814,23 @@ const DocumentInteractPage = () => {
                 <div
                   className={`absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl opacity-20 ${result.percentage >= 80 ? "bg-emerald-500" : result.percentage >= 50 ? "bg-amber-500" : "bg-red-500"}`}
                 />
-                <div
-                  className={`absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl opacity-20 bg-indigo-500`}
-                />
+                <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl opacity-20 bg-indigo-500" />
 
                 <div className="relative z-10">
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 200,
+                      delay: 0.2,
+                    }}
                     className="mb-8 flex justify-center"
                   >
                     <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center p-4 border-4 border-white shadow-[0_20px_50px_rgba(8,_112,_184,_0.1)]">
                       {result.percentage >= 80 ? (
                         <div className="relative">
                           <Trophy className="w-16 h-16 text-yellow-400 fill-yellow-100" />
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{
-                              duration: 10,
-                              repeat: Infinity,
-                              ease: "linear",
-                            }}
-                            className="absolute -inset-8 -z-10"
-                          >
-                            <Sparkles className="w-full h-full text-yellow-300 opacity-50" />
-                          </motion.div>
                         </div>
                       ) : result.percentage >= 50 ? (
                         <Award className="w-16 h-16 text-slate-400 fill-slate-100" />
@@ -794,7 +863,7 @@ const DocumentInteractPage = () => {
                     transition={{ delay: 0.6 }}
                   >
                     <div className="inline-flex items-center gap-2 bg-slate-100 px-6 py-3 rounded-2xl mb-12">
-                      <BrainCircuit
+                      <Target
                         className={`w-5 h-5 ${result.percentage >= 80 ? "text-emerald-500" : "text-indigo-500"}`}
                       />
                       <span className="text-slate-600 font-bold text-lg">
@@ -812,6 +881,8 @@ const DocumentInteractPage = () => {
                         onClick={() => {
                           setQuiz(null);
                           setResult(null);
+                          setAnswers({});
+                          setCurrentQuestionIndex(0);
                         }}
                         variant="outline"
                         className="px-8 py-6 rounded-2xl text-lg font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -820,12 +891,13 @@ const DocumentInteractPage = () => {
                       </Button>
                       <Button
                         onClick={() => {
-                          // Automatically open the review mode for the attempt we just created
                           const newlyCreatedAttempt = pastAttempts[0];
                           if (newlyCreatedAttempt)
                             setReviewingAttempt(newlyCreatedAttempt);
                           setQuiz(null);
                           setResult(null);
+                          setAnswers({});
+                          setCurrentQuestionIndex(0);
                         }}
                         className="px-8 py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-lg font-bold shadow-lg shadow-indigo-500/20"
                       >

@@ -47,7 +47,7 @@ const ProfileHeader = ({
   return (
     <>
       <div className="relative w-full max-w-6xl mx-auto mt-4 sm:mt-6 px-4 sm:px-6">
-        <div className="rounded-lg overflow-hidden shadow-md bg-white">
+        <div className="rounded-2xl overflow-hidden shadow-2xl bg-[#121214] border border-zinc-800">
           {/* Banner */}
           <div className="relative h-32 sm:h-48 md:h-60 lg:h-72 w-full bg-gradient-to-r from-yellow-400 to-orange-500">
             {profile.bannerUrl ? (
@@ -66,7 +66,7 @@ const ProfileHeader = ({
           {/* Content */}
           <div className="relative px-4 sm:px-6 pb-4 sm:pb-6 pt-3 sm:pt-4">
             <div className="absolute -top-12 sm:-top-16 left-4 sm:left-6">
-              <div className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 border-4 border-white rounded-full shadow-md overflow-hidden">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 border-[4px] border-[#121214] rounded-full shadow-lg overflow-hidden bg-zinc-900">
                 <img
                   src={profile.avatarUrl || "/Avatar.png"}
                   alt={profile.displayName}
@@ -88,18 +88,18 @@ const ProfileHeader = ({
             <div className="pt-8 sm:pt-10 md:pt-12 pl-0 sm:pl-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                  <h1 className="text-2xl sm:text-3xl font-black text-white truncate drop-shadow-sm">
                     {profile.displayName}
                   </h1>
-                  <p className="text-gray-600 text-xs sm:text-sm truncate">@{profile.username}</p>
-                  <p className="text-gray-500 text-xs mt-1">
+                  <p className="text-zinc-400 text-sm sm:text-base font-medium tracking-wide truncate">@{profile.username}</p>
+                  <p className="text-zinc-500 text-xs sm:text-sm font-semibold mt-1">
                     Joined {joinedDate}
                   </p>
                 </div>
 
                 <button
                   onClick={() => setIsEditOpen(true)}
-                  className="w-full sm:w-auto border border-yellow-600 text-yellow-700 hover:bg-yellow-100 font-medium px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base whitespace-nowrap"
+                  className="w-full sm:w-auto bg-white/5 border border-white/10 text-white hover:bg-white hover:text-black font-bold px-4 py-2 rounded-full text-sm sm:text-base uppercase tracking-wider transition-all"
                 >
                   Edit Profile
                 </button>

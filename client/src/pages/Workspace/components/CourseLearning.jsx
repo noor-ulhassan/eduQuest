@@ -264,7 +264,7 @@ export default function CourseLearning({
           <div className="text-center flex flex-col items-center">
             <Loader2 className="w-16 h-16 text-red-400 animate-spin mb-4" />
             <h3 className="text-2xl font-bold text-white mb-2">
-              Gemini AI is crafting this lesson...
+              Building this lesson...
             </h3>
             <p className="text-slate-400">
               Generating pro tips, conceptual cards, and image assets.
@@ -377,18 +377,17 @@ export default function CourseLearning({
           >
             <CreditCard className="w-5 h-5" />
             <span className="flex-1 text-left">
-              {generatingFlashcards ? "Generating..." : "Generate Flashcards"}
+              {generatingFlashcards ? "Creating..." : "Generate Flashcards"}
             </span>
-            <Sparkles className="w-4 h-4 opacity-60" />
           </button>
 
-          {/* 🤖 AI Mentor Button */}
+          {/* Course Guide Button */}
           <button
             onClick={() => setShowMentor(true)}
             className="w-full flex items-center gap-3 px-5 py-4 bg-[#111111] dark:bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-2xl font-bold text-sm hover:-translate-y-0.5 transition-all active:scale-[0.98] shadow-md shadow-black/50 hover:shadow-lg"
           >
-            <Bot className="w-5 h-5" />
-            <span className="flex-1 text-left">AI Mentor</span>
+            <HelpCircle className="w-5 h-5" />
+            <span className="flex-1 text-left">Course Guide</span>
             <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
               LIVE
             </span>
@@ -559,7 +558,7 @@ export default function CourseLearning({
         />
       )}
 
-      {/* AI Mentor Chat Panel */}
+      {/* Course Guide Chat Panel */}
       {showMentor && (
         <CourseMentor
           courseId={course?.courseId}

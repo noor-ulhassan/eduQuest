@@ -265,18 +265,7 @@ const HeroSection = () => {
       }}
     >
       {/* Radial glow behind text */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: "30%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "700px",
-          height: "500px",
-          background:
-            "radial-gradient(ellipse at center, rgba(249,115,22,0.10) 0%, rgba(220,38,38,0.06) 40%, transparent 70%)",
-        }}
-      />
+      {/* Removed Radial glow behind text for cleaner UI */}
 
       {/* Grid dots */}
       <GridDots />
@@ -344,16 +333,7 @@ const HeroSection = () => {
           className="mt-10 relative"
         >
           {/* Glowing rising sun effect */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[-1]"
-            style={{
-              width: "700px",
-              height: "400px",
-              background:
-                "radial-gradient(ellipse at center, rgba(220, 38, 38, 0.45) 0%, rgba(239, 68, 68, 0.15) 45%, transparent 70%)",
-              filter: "blur(24px)",
-            }}
-          />
+          {/* Removed Glowing rising sun effect */}
           <Link to="/login">
             <button
               className="relative cursor-pointer border border-orange-600 rounded-[6px] bg-gradient-to-br from-[#dc2626] to-[#b91c1c] text-white font-semibold tracking-wider hover:bg-none hover:bg-red-600"

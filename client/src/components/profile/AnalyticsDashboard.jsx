@@ -17,8 +17,7 @@ import {
 import { Trophy, Code, Target, Flame, Activity, Star } from "lucide-react";
 import api from "@/features/auth/authApi";
 
-// Aceternity UI
-import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+
 
 // Shadcn UI
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,11 +78,11 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* 1. Global Progression Header - Aceternity Background Beams */}
-      <BackgroundBeamsWithCollision className="h-[22rem] md:h-[20rem] rounded-2xl">
+      {/* 1. Global Progression Header */}
+      <div className="bg-zinc-950 border border-zinc-800 h-[22rem] md:h-[20rem] rounded-2xl relative overflow-hidden flex items-center shadow-sm">
         <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-8 items-center justify-between">
           <div className="flex items-center justify-center gap-6">
-            <div className="w-24 h-24 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center backdrop-blur-md shadow-[0_0_40px_rgba(255,255,255,0.1)] hover:scale-105 transition-transform">
+            <div className="w-24 h-24 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center backdrop-blur-md shadow-sm transition-transform">
               <Trophy
                 className="w-12 h-12 text-yellow-500 drop-shadow-lg"
                 strokeWidth={1.5}
@@ -121,7 +120,7 @@ const AnalyticsDashboard = () => {
             </CardContent>
           </Card>
         </div>
-      </BackgroundBeamsWithCollision>
+      </div>
 
       {/* 2. Key Metrics Grid - 8 Ball Pool Style Stat Card */}
       <div className="pt-2">
@@ -259,7 +258,7 @@ const AnalyticsDashboard = () => {
 
         {/* Competition History Line Chart */}
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
+
           <CardHeader className="pb-2 relative z-10">
             <CardTitle className="text-lg flex items-center gap-2">
               <Trophy className="w-5 h-5 text-emerald-500" /> Recent Competition

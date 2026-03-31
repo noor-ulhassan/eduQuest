@@ -9,11 +9,11 @@ const SectionCard = ({
 }) => {
   return (
     <Card
-      className={`w-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border-zinc-200 dark:border-zinc-800 ${variant === "dark" ? "bg-zinc-950 text-white" : "bg-white dark:bg-zinc-950"} ${className}`}
+      className={`w-full overflow-hidden shadow-lg transition-all duration-300 border-zinc-800/60 bg-[#121214] text-white ${className}`}
     >
       {title && (
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+          <CardTitle className="text-xl font-bold tracking-tight text-white">
             {title}
           </CardTitle>
         </CardHeader>

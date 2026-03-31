@@ -174,7 +174,7 @@ const PublicProfile = () => {
           onClick={() => navigate(-1)}
           className="bg-white text-black hover:bg-zinc-200 rounded-full font-bold px-8"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" /> Return to Orbit
+          <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
         </Button>
       </div>
     );
@@ -254,7 +254,7 @@ const PublicProfile = () => {
             <div className="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 text-xs sm:text-sm font-medium text-zinc-300">
               <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full backdrop-blur-sm shadow-sm">
                 <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />{" "}
-                Earth
+                Global
               </span>
               <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full backdrop-blur-sm shadow-sm">
                 <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
@@ -382,11 +382,10 @@ const PublicProfile = () => {
                         <MessageSquare className="w-8 h-8 text-zinc-500" />
                       </div>
                       <h3 className="text-xl font-bold text-white">
-                        No transmissions yet
+                        No posts yet
                       </h3>
                       <p className="text-zinc-400 max-w-sm">
-                        This explorer is currently focusing on their journey
-                        through the cosmos.
+                        This user hasn't posted anything recently.
                       </p>
                     </CardContent>
                   </Card>
@@ -466,10 +465,10 @@ const PublicProfile = () => {
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <Users className="w-16 h-16 text-zinc-700 mb-4" />
                     <h3 className="text-xl font-bold text-white mb-2">
-                      Lone Wolf
+                      No Friends
                     </h3>
                     <p className="text-zinc-400">
-                      This user is forging their path solo for now.
+                      This user hasn't added any friends yet.
                     </p>
                   </div>
                 )}

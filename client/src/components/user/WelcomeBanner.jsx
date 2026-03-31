@@ -11,27 +11,21 @@
 //   );
 // };
 
-// export default WelcomeBanner;import React from "react";
-import { Sparkles, Trophy } from "lucide-react";
+import { Zap, Trophy, Target } from "lucide-react";
 
 const WelcomeBanner = () => {
   return (
     <div
-      className="relative flex items-center gap-5 rounded-2xl border-1 border-black/80 bg-white border border-zinc-300
-  p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+      className="relative flex items-center gap-5 rounded-2xl bg-white border border-zinc-200 p-6 shadow-sm"
     >
-      <div className="absolute -top-3 -right-3 flex items-center gap-1 rounded-full bg-black px-3 py-1 text-xs font-bold text-white">
-        <Sparkles className="h-4 w-4 text-yellow-400" />
+      <div className="absolute -top-3 -right-3 flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold text-zinc-900 shadow-sm">
+        <Zap className="h-4 w-4 text-yellow-500 fill-yellow-500" />
         +10 XP
       </div>
 
-      <img
-        src="/machine.webp"
-        alt="robo"
-        width={90}
-        height={90}
-        className="shrink-0 drop-shadow-md"
-      />
+      <div className="flex items-center justify-center w-14 h-14 bg-indigo-50 rounded-xl shrink-0">
+        <Target className="w-8 h-8 text-indigo-500" />
+      </div>
 
       <div>
         <h2 className="flex items-center gap-2 text-2xl font-bold text-zinc-900">
