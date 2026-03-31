@@ -356,29 +356,29 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <div
-        className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden my-auto max-h-[90vh] flex flex-col"
+        className="w-full max-w-md bg-[#121214] border border-zinc-800/60 rounded-2xl shadow-xl overflow-hidden my-auto max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-800">Edit Profile</h2>
+        <div className="px-6 py-4 border-b border-zinc-800/60 flex-shrink-0">
+          <h2 className="text-lg font-black text-white tracking-tight">Edit Profile</h2>
         </div>
 
         <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-bold tracking-wide uppercase text-zinc-500 mb-1">
               Header / Banner
             </label>
             <input
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handleBannerChange}
-              className="text-sm text-gray-600 file:mr-2 file:px-3 file:py-1 file:text-sm file:font-medium file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
+              className="text-sm text-zinc-500 file:mr-2 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:tracking-wide file:bg-white/10 file:border file:border-white/5 file:text-white file:rounded-md hover:file:bg-white/20 transition-all cursor-pointer"
             />
             {bannerPreview && (
               <img
                 src={bannerPreview}
                 alt="Banner Preview"
-                className="mt-2 h-20 w-full object-cover rounded-md"
+                className="mt-2 h-20 w-full object-cover rounded-lg border border-zinc-800/60"
               />
             )}
           </div>
@@ -389,7 +389,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
                 <img
                   src={avatarPreview}
                   alt="Preview"
-                  className="h-20 w-20 rounded-full object-cover border-2 border-gray-300"
+                  className="h-20 w-20 rounded-full object-cover border-[4px] border-[#121214] bg-zinc-900 shadow-lg"
                   onError={(e) => {
                     e.target.style.display = "none";
                     e.target.nextSibling.style.display = "flex";
@@ -397,7 +397,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
                 />
               ) : null}
               <div
-                className={`h-20 w-20 rounded-full bg-yellow-600 text-white flex items-center justify-center text-sm font-medium ${avatarPreview ? "hidden" : ""}`}
+                className={`h-20 w-20 rounded-full bg-[#0A0A0B] border-[4px] border-[#121214] text-white flex items-center justify-center text-sm font-bold shadow-lg ${avatarPreview ? "hidden" : ""}`}
               >
                 {displayName
                   .split(" ")
@@ -411,41 +411,41 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handleAvatarChange}
-              className="text-sm text-gray-600 file:mr-2 file:px-3 file:py-1 file:text-sm file:font-medium file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
+              className="text-sm text-zinc-500 file:mr-2 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:tracking-wide file:bg-white/10 file:border file:border-white/5 file:text-white file:rounded-md hover:file:bg-white/20 transition-all cursor-pointer"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-bold tracking-wide uppercase text-zinc-500 mb-1">
               Name
             </label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800/60 text-white placeholder-zinc-500 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-600 transition-all font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-bold tracking-wide uppercase text-zinc-500 mb-1">
               Username
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800/60 text-white placeholder-zinc-500 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-600 transition-all font-medium"
             />
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 py-3 bg-gray-50 flex justify-end gap-3 flex-shrink-0 border-t">
+        <div className="px-4 sm:px-6 py-4 bg-zinc-950/50 flex justify-end gap-3 flex-shrink-0 border-t border-zinc-800/60">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md disabled:opacity-50"
+            className="px-4 py-2 text-sm font-bold text-zinc-400 hover:bg-zinc-800 hover:text-white rounded-full disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>
@@ -453,7 +453,7 @@ const EditProfileModal = ({ isOpen, onClose, initialData }) => {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md disabled:opacity-50"
+            className="px-6 py-2 text-sm font-bold text-black bg-white hover:bg-zinc-200 rounded-full shadow-md disabled:opacity-50 transition-colors"
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>
