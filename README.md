@@ -21,14 +21,14 @@
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [ About EduQuest](#-about-eduquest)
 - [ Key Features](#-key-features)
-- [ Architecture](#️-architecture)
+- [ Architecture](-architecture)
 - [ Quick Start](#-quick-start)
 - [Installation](#-installation)
-- [ Configuration](#️-configuration)
+- [ Configuration](-configuration)
 - [ I Features](#-ai-features)
 - [ API Documentation](#-api-documentation)
 - [ Testing](#-testing)
@@ -50,7 +50,7 @@
 - **Community Driven**: Connect with peers, share knowledge, and grow together
 - **Gamified Progress**: Earn XP, level up, and unlock achievements
 
-### 🎓 Our Mission
+###  Our Mission
 
 > To democratize computer science education by providing an accessible, engaging, and intelligent learning platform that empowers students to become confident programmers and problem solvers.
 
@@ -107,7 +107,7 @@
 
 ## Architecture
 
-### 📐 System Architecture
+###  System Architecture
 
 ```mermaid
 graph TB
@@ -199,7 +199,7 @@ npm run setup
 npm run dev
 ```
 
-### 🌐 Access Points
+###  Access Points
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:5000
@@ -340,11 +340,11 @@ We're developing **5 custom AI models** to enhance the learning experience:
 
 | Model                      | Purpose                                 | Status            |
 | -------------------------- | --------------------------------------- | ----------------- |
-| Adaptive Difficulty Engine | Personalize problem difficulty          | 🔄 In Development |
-| Code Quality Feedback      | Instant code improvement suggestions    | 📋 Planned        |
-| Performance Predictor      | Predict student outcomes and churn risk | 📋 Planned        |
-| Intelligent Hint Generator | Context-aware progressive hints         | 📋 Planned        |
-| Code Similarity Detector   | Ensure academic integrity               | 📋 Planned        |
+| Adaptive Difficulty Engine | Personalize problem difficulty          |  In Development |
+| Code Quality Feedback      | Instant code improvement suggestions    |  Planned        |
+| Performance Predictor      | Predict student outcomes and churn risk |  Planned        |
+| Intelligent Hint Generator | Context-aware progressive hints         |  Planned        |
+| Code Similarity Detector   | Ensure academic integrity               |  Planned        |
 
 For detailed AI model specifications, see [AI_MODELS_REQUIREMENTS.md](./ai_model_requirements.md).
 
@@ -544,7 +544,7 @@ A huge thank you to all the open-source projects that make EduQuest possible:
 
 ---
 
-## 📞 Contact & Support
+##  Contact & Support
 
 ### Stay Connected
 
@@ -553,7 +553,7 @@ A huge thank you to all the open-source projects that make EduQuest possible:
 - **Twitter**: [@EduQuestApp](https://twitter.com/EduQuestApp)
 - **Discord**: [Join our community](https://discord.gg/eduquest)
 
-### 📧 Get in Touch
+###  Get in Touch
 
 - **Support**: support@eduquest.dev
 - **Business**: business@eduquest.dev
@@ -567,7 +567,7 @@ Found a bug or have a feature request? Please [open an issue](https://github.com
 
 <div align="center">
 
-**⭐ Star this repository if it helped you!**
+** Star this repository if it helped you!**
 
 Made with ❤️ by the [EduQuest Team](https://github.com/orgs/eduquest/people)
 
