@@ -6,7 +6,7 @@ import UserStats from "@/components/user/UserStatus";
 
 import Streak from "../../components/home/streak";
 import ExplorePremium from "../../components/home/explorePremium";
-import TopCommunityPosts from "../../components/social/TopCommunityPosts";
+
 import DraggableCards from "../../components/home/draggableCards";
 import ExploreMore from "@/components/user/ExploreMore";
 import { Highlighter } from "@/components/ui/highlighter";
@@ -79,23 +79,6 @@ const HomePage = () => {
               </div>
               <CompetitionStats />
               <LiveCompetitions />
-
-              <section>
-                <div className="mb-6 sm:mb-8">
-                  <Highlighter action="underline" color="orange">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-hand">
-                      Community{" "}
-                      <Highlighter action="highlight" color="skyblue">
-                        Posts
-                      </Highlighter>{" "}
-                    </h1>
-                  </Highlighter>
-                  <p className="text-gray-500 mt-2 text-sm sm:text-base">
-                    See what others are sharing
-                  </p>
-                </div>
-                <TopCommunityPosts />
-              </section>
             </div>
           </main>
         </div>

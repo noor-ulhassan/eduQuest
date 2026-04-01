@@ -10,13 +10,10 @@ import EditProfileModal from "@/components/profile/EditProfileModal";
 import SkillsDialog from "@/components/profile/SkillsDialog";
 import api from "@/features/auth/authApi";
 import {
-  getUserPosts,
   getFriends,
   getFriendRequests,
   acceptFriendRequest,
 } from "@/features/social/socialApi";
-import CreatePost from "@/components/social/CreatePost";
-import TweetCard from "@/components/social/TweetCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +29,6 @@ const Profile = () => {
   const [skills, setSkills] = useState(user?.skills || []);
   const navigate = useNavigate();
 
-  // Posts State
-  const [posts, setPosts] = useState([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
 
   // Friends State
   const [friends, setFriends] = useState([]);
@@ -42,20 +36,6 @@ const Profile = () => {
 
   // Fetch posts when Posts tab is active
   useEffect(() => {
-    const fetchPosts = async () => {
-      setLoadingPosts(true);
-      try {
-        const response = await getUserPosts(user._id);
-        if (response.success) {
-          setPosts(response.posts);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user posts", error);
-      } finally {
-        setLoadingPosts(false);
-      }
-    };
-
     const fetchFriendsData = async () => {
       try {
         const [friendsRes, requestsRes] = await Promise.all([
@@ -69,9 +49,7 @@ const Profile = () => {
       }
     };
 
-    if (activeTab === "Posts" && user) {
-      fetchPosts();
-    } else if (activeTab === "Friends" && user) {
+    if (activeTab === "Friends" && user) {
       fetchFriendsData();
     }
   }, [activeTab, user]);
@@ -94,9 +72,6 @@ const Profile = () => {
     }
   }, [user]);
 
-  const handlePostCreated = (newPost) => {
-    setPosts([newPost, ...posts]);
-  };
 
   const handleAcceptRequest = async (requestId) => {
     try {
@@ -144,7 +119,7 @@ const Profile = () => {
             onValueChange={setActiveTab}
           >
             <TabsList className="bg-transparent border-b border-zinc-800 rounded-none w-full justify-start h-12 p-0 space-x-8">
-              {["Overview", "Projects", "Posts", "Friends"].map((tab) => (
+              {["Overview", "Projects", "Friends"].map((tab) => (
                 <TabsTrigger
                   key={tab}
                   value={tab}
@@ -175,48 +150,6 @@ const Profile = () => {
               </SectionCard>
             </TabsContent>
 
-            <TabsContent
-              value="Posts"
-              className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 outline-none"
-            >
-              {/* Create Post Section */}
-              <div className="bg-[#121214] rounded-xl border border-zinc-800/60 p-4 shadow-lg">
-                <h3 className="text-lg font-bold tracking-tight mb-4 text-white">
-                  Create a Post
-                </h3>
-                <CreatePost onPostCreated={handlePostCreated} />
-              </div>
-
-              {/* Posts List */}
-              <div className="space-y-4">
-                {loadingPosts ? (
-                  <div className="space-y-4">
-                    <div className="h-40 bg-zinc-800/50 rounded-xl animate-pulse" />
-                    <div className="h-40 bg-zinc-800/50 rounded-xl animate-pulse" />
-                  </div>
-                ) : posts.length > 0 ? (
-                  posts.map((post) => (
-                    <div className="bg-[#121214] rounded-xl border border-zinc-800/60 shadow-xl overflow-hidden">
-                      <TweetCard
-                        key={post._id}
-                        post={post}
-                        onDelete={(id) =>
-                          setPosts((prev) => prev.filter((p) => p._id !== id))
-                        }
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <SectionCard title="Posts">
-                    <EmptyState
-                      message="You haven't posted anything yet."
-                      actionText="Create your first post!"
-                      onAction={() => {}}
-                    />
-                  </SectionCard>
-                )}
-              </div>
-            </TabsContent>
 
             <TabsContent
               value="Friends"

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 
-import TweetCard from "@/components/social/TweetCard";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ import {
 import {
   getPublicProfile,
   sendFriendRequest,
-  getUserPosts,
   unfriend,
 } from "@/features/social/socialApi";
 
@@ -49,7 +48,6 @@ const PublicProfile = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useSelector((state) => state.auth);
   const [profile, setProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [friendStatus, setFriendStatus] = useState("none"); // none | sent | friends
 
@@ -68,7 +66,6 @@ const PublicProfile = () => {
         const res = await getPublicProfile(userId);
         if (res.success) {
           setProfile(res.user);
-          setPosts(res.posts || []);
 
           if (currentUser && res.user.friends) {
             const isFriend = res.user.friends.some(
@@ -364,32 +361,19 @@ const PublicProfile = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
               {/* Timeline Feed */}
               <div className="space-y-6">
-                {posts.length > 0 ? (
-                  posts.map((post) => (
-                    <motion.div
-                      key={post._id}
-                      variants={fadeInFadeOut}
-                      initial="hidden"
-                      animate="visible"
-                    >
-                      <TweetCard post={post} />
-                    </motion.div>
-                  ))
-                ) : (
-                  <Card className="bg-[#121214] border-zinc-800 shadow-2xl overflow-hidden text-center py-20 px-6">
-                    <CardContent className="flex flex-col items-center justify-center space-y-4">
-                      <div className="w-16 h-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-2">
-                        <MessageSquare className="w-8 h-8 text-zinc-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-white">
-                        No posts yet
-                      </h3>
-                      <p className="text-zinc-400 max-w-sm">
-                        This user hasn't posted anything recently.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
+                <Card className="bg-[#121214] border-zinc-800 shadow-2xl overflow-hidden text-center py-20 px-6">
+                  <CardContent className="flex flex-col items-center justify-center space-y-4">
+                    <div className="w-16 h-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-2">
+                      <MessageSquare className="w-8 h-8 text-zinc-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">
+                      Activity Feed
+                    </h3>
+                    <p className="text-zinc-400 max-w-sm">
+                      Check out the playground discussions to see what this user has been working on.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Badges & Achievements Sidebar */}

@@ -39,6 +39,7 @@ import {
   completeProblem as completeProb,
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
+import DiscussionPanel from "@/components/playground/DiscussionPanel";
 import {
   Terminal as MagicTerminal,
   TypingAnimation,
@@ -98,6 +99,7 @@ const LanguagePlayground = () => {
   const currentProblemRef = useRef(null);
   const [dsaLang, setDsaLang] = useState("javascript");
   const reactDebounceRef = useRef(null);
+  const [showDiscussion, setShowDiscussion] = useState(false);
 
   const data = PLAYGROUND_DATA[language?.toLowerCase()];
   const isLivePreview = data?.livePreview === true;
@@ -1353,6 +1355,31 @@ const LanguagePlayground = () => {
                     )}
                   </div>
                 )}
+
+              {/* ── Discussion Section ── */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowDiscussion(!showDiscussion)}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-semibold transition-colors px-4 py-2.5 rounded-xl border",
+                    showDiscussion
+                      ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
+                      : "bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-white/10",
+                  )}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Discussion
+                </button>
+                {showDiscussion && (
+                  <div className="mt-3 rounded-xl border border-white/10 overflow-hidden h-[500px]">
+                    <DiscussionPanel
+                      language={language}
+                      problemId={currentProblem?.id}
+                      problemTitle={currentProblem?.title}
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* ── Next problem button (after completion) ── */}
               {completedProblems.has(currentProblem?.id) && (
