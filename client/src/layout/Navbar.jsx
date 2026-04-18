@@ -83,7 +83,6 @@ const navLinks = [
   { label: "Compete", path: "/competition" },
   { label: "Playground", path: "/playground" },
   { label: "Documents", path: "/documents" },
-  { label: "Community", path: "/community" },
 ];
 
 const Navbar = () => {
