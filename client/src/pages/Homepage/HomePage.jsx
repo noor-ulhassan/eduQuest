@@ -3,15 +3,9 @@ import { useSelector } from "react-redux";
 import HeroSection from "../../components/home/HeroSection";
 import FeaturesSection from "../../components/home/FeaturesSection";
 import UserStats from "@/components/user/UserStatus";
-
 import Streak from "../../components/home/streak";
-import ExplorePremium from "../../components/home/explorePremium";
-
 import DraggableCards from "../../components/home/draggableCards";
-import ExploreMore from "@/components/user/ExploreMore";
 import { Highlighter } from "@/components/ui/highlighter";
-import LiveCompetitions from "../../components/home/LiveCompetitions";
-import CompetitionStats from "../../components/home/CompetitionStats";
 
 const HomePage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -77,8 +71,8 @@ const HomePage = () => {
                   View Global Leaderboard
                 </button>
               </div>
-              <CompetitionStats />
-              <LiveCompetitions />
+              {/* <CompetitionStats /> */}
+              {/* <LiveCompetitions /> */}
             </div>
           </main>
         </div>

@@ -11,12 +11,11 @@ function CourseView() {
 
  const [course, setCourse] = useState(null);
  const [enrollment, setEnrollment] = useState(null);
- const [loading, setLoading] = useState(true);
-
- // viewMode is either 'overview' or an integer corresponding to the chapter index
- const [viewMode, setViewMode] = useState("overview");
+ const [loading, setLoading] = useState(!!courseId);
 
  const fetchCourseData = useCallback(async () => {
+  if (!courseId || !user?.email) return;
+  setLoading(true);
   try {
    const res = await api.get(
     `http://localhost:8080/api/v1/ai/course/${courseId}`,
@@ -37,8 +36,12 @@ function CourseView() {
  useEffect(() => {
   if (courseId && user?.email) {
    fetchCourseData();
+  } else if (!courseId) {
+   setLoading(false);
+   setCourse(null);
+   setEnrollment(null);
   }
- }, [courseId, user, fetchCourseData]);
+ }, [courseId, user?.email, fetchCourseData]);
 
  if (loading) {
   return (
@@ -50,29 +53,37 @@ function CourseView() {
   );
  }
 
- if (viewMode === "overview") {
+ // Calculate active chapter
+ const chapters = course?.courseOutput?.chapters || [];
+ const completedChaptersCount = enrollment?.completedChapters?.length || 0;
+ const activeChapterIndex = Math.max(0, Math.min(
+  completedChaptersCount,
+  chapters.length > 0 ? chapters.length - 1 : 0
+ ));
+
+ if (!courseId) {
   return (
    <CourseOverview
-    course={course}
-    enrollment={enrollment}
-    onResume={(chapterIndex) => setViewMode(chapterIndex)}
+    course={null}
+    enrollment={null}
+    onResume={() => {}}
    />
   );
  }
 
- if (typeof viewMode === "number") {
-  return (
-   <CourseLearning
-    course={course}
-    enrollment={enrollment}
-    currentChapterIndex={viewMode}
-    onProgressUpdate={fetchCourseData}
-    onNavigate={(mode) => setViewMode(mode)}
-   />
-  );
- }
-
- return null;
+ return (
+  <CourseLearning
+   course={course}
+   enrollment={enrollment}
+   currentChapterIndex={activeChapterIndex}
+   onProgressUpdate={fetchCourseData}
+   onNavigate={(mode) => {
+    if (mode === "overview") {
+     window.location.href = "/workspace";
+    }
+   }}
+  />
+ );
 }
 
 export default CourseView;

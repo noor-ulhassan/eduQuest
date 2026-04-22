@@ -27,7 +27,6 @@ const MyLearning = lazy(() => import("./pages/student/MyLearning"));
 const Profile = lazy(() => import("./pages/student/Profile"));
 const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
 const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
-const Workspace = lazy(() => import("./pages/Workspace/Page"));
 const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
 const DocumentLibraryPage = lazy(
   () => import("./pages/Documents/DocumentLibraryPage"),
@@ -115,7 +114,7 @@ const appRouter = createBrowserRouter([
         path: "workspace",
         element: (
           <ProtectedRoute>
-            <Lazy element={Workspace} />
+            <Lazy element={CourseView} />
           </ProtectedRoute>
         ),
       },

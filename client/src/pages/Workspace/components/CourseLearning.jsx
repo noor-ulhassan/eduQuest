@@ -22,6 +22,7 @@ import {
   Sparkles,
   Bot,
   CreditCard,
+  Book,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/features/auth/authApi";
@@ -185,310 +186,298 @@ export default function CourseLearning({
   };
 
   return (
-    <div className="bg-[#0a0a0a] text-white min-h-screen flex flex-col font-space-grotesk">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111111]/90 /90 backdrop-blur-xl px-6 py-3 shadow-sm ">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <button
-              onClick={() => onNavigate("overview")}
-              className="flex items-center gap-3 text-red-400 hover:scale-105 transition-transform"
-            >
-              <img src="/logo1.png" alt="logo" width={35} height={35} />
-              <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
-                EduQuest
-              </h2>
-            </button>
-            <div className="hidden lg:flex items-center gap-6">
+    <div className="bg-[#0a0a0a] text-white min-h-screen flex font-space-grotesk">
+      <div className="flex-1 flex flex-col w-full min-h-screen">
+        {/* Top Navigation Bar */}
+        <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111111]/90 /90 backdrop-blur-xl px-6 py-3 shadow-sm ">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-8">
               <button
                 onClick={() => onNavigate("overview")}
-                className="text-sm font-medium hover:text-red-400 transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-white transition-colors"
               >
-                Dashboard
+                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
               </button>
-              <button className="text-sm font-medium text-red-400">
-                Courses
-              </button>
-              <button className="text-sm font-medium hover:text-red-400 transition-colors">
-                Community
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            {/* Gamification Elements */}
-            <div className="flex items-center gap-4 bg-red-600/10 px-4 py-1.5 rounded-full border border-red-500/20">
-              <div className="flex items-center gap-1.5">
-                <Zap className="text-yellow-500 w-4 h-4" fill="currentColor" />
-                <span className="text-sm font-bold">
-                  {user?.xp?.toLocaleString() || 0} XP
-                </span>
-              </div>
-              <div className="w-px h-4 bg-red-600/30"></div>
-              <div className="flex items-center gap-1.5">
-                <Flame
-                  className="text-orange-500 w-4 h-4"
-                  fill="currentColor"
-                />
-                <span className="text-sm font-bold">
-                  {user?.dayStreak || 0} Days
-                </span>
+              <div className="hidden lg:flex items-center gap-6">
+                <h2 className="text-xl font-bold tracking-tight text-white line-clamp-1">
+                  {course?.name || "Course Content"}
+                </h2>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="p-2 rounded-full hover:bg-red-600/10 transition-colors">
-                <Bell className="w-5 h-5" />
-              </button>
-              <div
-                className="w-10 h-10 rounded-full border-2 border-red-500 overflow-hidden cursor-pointer"
-                onClick={() => onNavigate("overview")}
-              >
-                <img
-                  src={
-                    user?.avatarUrl ||
-                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?._id}`
-                  }
-                  alt="User Avatar"
-                  className="w-full h-full object-cover"
-                />
+            <div className="flex items-center gap-6">
+              {/* Gamification Elements */}
+              <div className="flex items-center gap-4 bg-red-600/10 px-4 py-1.5 rounded-full border border-red-500/20">
+                <div className="flex items-center gap-1.5">
+                  <Zap
+                    className="text-yellow-500 w-4 h-4"
+                    fill="currentColor"
+                  />
+                  <span className="text-sm font-bold">
+                    {user?.xp?.toLocaleString() || 0} XP
+                  </span>
+                </div>
+                <div className="w-px h-4 bg-red-600/30"></div>
+                <div className="flex items-center gap-1.5">
+                  <Flame
+                    className="text-orange-500 w-4 h-4"
+                    fill="currentColor"
+                  />
+                  <span className="text-sm font-bold">
+                    {user?.dayStreak || 0} Days
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Full-screen Loading Overlay for Auto-Generation */}
-      {isGenerating && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#191022]/90 backdrop-blur-sm">
-          <div className="text-center flex flex-col items-center">
-            <Loader2 className="w-16 h-16 text-red-400 animate-spin mb-4" />
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Building this lesson...
-            </h3>
-            <p className="text-slate-400">
-              Generating pro tips, conceptual cards, and image assets.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-[1440px] mx-auto w-full flex-1 flex gap-0 lg:gap-8 p-0 lg:p-6 overflow-hidden">
-        {/* Sidebar Navigation */}
-        <aside className="hidden lg:flex flex-col w-80 shrink-0 gap-5">
-          <div className="bg-[#111111] rounded-2xl border border-white/10 p-5 shadow-lg shadow-black/50 ">
-            <div className="mb-6">
-              <h3 className="text-lg font-bold mb-1">Course Progress</h3>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-zinc-400 ">
-                  {completedChaptersCount}/{totalChapters} Lessons
-                </span>
-                <span className="font-bold text-red-400">
-                  {progressPercent}%
-                </span>
-              </div>
-              <div className="w-full h-2 bg-red-600/20 rounded-full overflow-hidden">
+              <div className="flex items-center gap-3">
+                <button className="p-2 rounded-full hover:bg-red-600/10 transition-colors">
+                  <Bell className="w-5 h-5" />
+                </button>
                 <div
-                  className="h-full bg-red-600"
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
+                  className="w-10 h-10 rounded-full border-2 border-red-500 overflow-hidden cursor-pointer"
+                  onClick={() => onNavigate("overview")}
+                >
+                  <img
+                    src={
+                      user?.avatarUrl ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?._id}`
+                    }
+                    alt="User Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
             </div>
+          </div>
+        </header>
 
-            <nav className="flex flex-col gap-1">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold mb-2 ml-2">
-                {course?.name}
+        {/* Full-screen Loading Overlay for Auto-Generation */}
+        {isGenerating && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#191022]/90 backdrop-blur-sm">
+            <div className="text-center flex flex-col items-center">
+              <Loader2 className="w-16 h-16 text-red-400 animate-spin mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Building this lesson...
+              </h3>
+              <p className="text-slate-400">
+                Generating pro tips, conceptual cards, and image assets.
               </p>
+            </div>
+          </div>
+        )}
 
-              {chapters.map((chap, idx) => {
-                const isCompleted = enrollment?.completedChapters?.includes(
-                  chap.chapterName,
-                );
-                const isActive = idx === currentChapterIndex;
-                // Unlock all lessons for open exploration
-                const isLocked = false;
+        <div className="max-w-[1440px] mx-auto w-full flex-1 flex gap-0 lg:gap-8 p-0 lg:p-6 items-start">
+          {/* Sidebar Navigation */}
+          <aside className="hidden lg:flex flex-col w-80 shrink-0 gap-5 sticky top-24 self-start max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl no-scrollbar">
+            <div className="bg-[#111111] rounded-2xl border border-white/10 p-5 shadow-lg shadow-black/50 ">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-1">Course Progress</h3>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-zinc-400 ">
+                    {completedChaptersCount}/{totalChapters} Lessons
+                  </span>
+                  <span className="font-bold text-red-400">
+                    {progressPercent}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-red-600/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-red-600"
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                </div>
+              </div>
 
-                // Icon mapping
-                let IconClass = Info;
-                if (idx === 1) IconClass = Cpu;
-                if (idx === 2) IconClass = Layers;
-                if (idx === chapters.length - 1) IconClass = HelpCircle;
+              <nav className="flex flex-col gap-1">
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold mb-2 ml-2">
+                  {course?.name}
+                </p>
 
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => !isLocked && onNavigate(idx)}
-                    disabled={isLocked}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group text-left w-full",
-                      isActive
-                        ? "bg-red-600 text-white shadow-lg shadow-[#8c2bee]/20"
-                        : isLocked
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-red-600/10 text-white ",
-                    )}
-                  >
-                    <IconClass
+                {chapters.map((chap, idx) => {
+                  const isCompleted = enrollment?.completedChapters?.includes(
+                    chap.chapterName,
+                  );
+                  const isActive = idx === currentChapterIndex;
+                  // Unlock all lessons for open exploration
+                  const isLocked = false;
+
+                  // Icon mapping
+                  let IconClass = Info;
+                  if (idx === 1) IconClass = Cpu;
+                  if (idx === 2) IconClass = Layers;
+                  if (idx === chapters.length - 1) IconClass = HelpCircle;
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => !isLocked && onNavigate(idx)}
+                      disabled={isLocked}
                       className={cn(
-                        "w-5 h-5",
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group text-left w-full",
                         isActive
-                          ? "text-white"
-                          : "text-slate-400 group-hover:text-red-400",
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-sm font-medium line-clamp-1 flex-1",
-                        isActive && "font-bold",
+                          ? "bg-red-600 text-white shadow-lg shadow-[#8c2bee]/20"
+                          : isLocked
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-red-600/10 text-white ",
                       )}
                     >
-                      {chap.chapterName}
-                    </span>
-                    {isCompleted && (
-                      <CheckCircle2 className="text-green-500 w-4 h-4 ml-auto" />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* Helpful Resources Card */}
-          <div className="bg-[#111111] border border-white/10 rounded-2xl p-5 shadow-md shadow-black/50 ">
-            <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-              <BookOpen className="text-red-400 w-5 h-5" />
-              Resources
-            </h4>
-            <ul className="text-xs space-y-2 text-zinc-400 ">
-              <li className="flex items-center gap-2 hover:text-red-400 cursor-pointer">
-                <Paperclip className="w-4 h-4" /> Course Spec.pdf
-              </li>
-              <li className="flex items-center gap-2 hover:text-red-400 cursor-pointer">
-                <LinkIcon className="w-4 h-4" /> Official Documentation
-              </li>
-            </ul>
-          </div>
-
-          {/* ⚡ Flashcards Button */}
-          <button
-            onClick={handleGenerateFlashcards}
-            disabled={generatingFlashcards}
-            className="w-full flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 hover:-translate-y-0.5 transition-all active:scale-[0.98] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
-          >
-            <CreditCard className="w-5 h-5" />
-            <span className="flex-1 text-left">
-              {generatingFlashcards ? "Creating..." : "Generate Flashcards"}
-            </span>
-          </button>
-
-          {/* Course Guide Button */}
-          <button
-            onClick={() => setShowMentor(true)}
-            className="w-full flex items-center gap-3 px-5 py-4 bg-[#111111] dark:bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-2xl font-bold text-sm hover:-translate-y-0.5 transition-all active:scale-[0.98] shadow-md shadow-black/50 hover:shadow-lg"
-          >
-            <HelpCircle className="w-5 h-5" />
-            <span className="flex-1 text-left">Course Guide</span>
-            <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
-              LIVE
-            </span>
-          </button>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 bg-[#111111] lg:rounded-2xl border border-white/10 overflow-y-auto flex flex-col shadow-xl shadow-black/50 ">
-          {/* Hero Image Section */}
-          <div className="relative h-72 w-full bg-slate-300 overflow-hidden shrink-0">
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 dark:from-[#12091b] via-[#8c2bee]/20 to-transparent z-10"></div>
-            {!imgError ? (
-              <img
-                src={heroImage}
-                alt={currentChapter?.chapterName || "Chapter hero"}
-                className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity"
-                onError={() => setImgError(true)}
-                crossOrigin="anonymous"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 to-[#12091b] flex items-center justify-center">
-                <BookOpen className="w-20 h-20 text-white/20" />
-              </div>
-            )}
-            <div className="absolute bottom-8 left-8 z-20">
-              <span className="bg-red-600 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest text-white mb-2 inline-block">
-                Module {currentChapterIndex + 1}
-              </span>
-              <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tight leading-none drop-shadow-md">
-                {currentChapter?.chapterName}
-              </h1>
+                      <IconClass
+                        className={cn(
+                          "w-5 h-5",
+                          isActive
+                            ? "text-white"
+                            : "text-slate-400 group-hover:text-red-400",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-sm font-medium line-clamp-1 flex-1",
+                          isActive && "font-bold",
+                        )}
+                      >
+                        {chap.chapterName}
+                      </span>
+                      {isCompleted && (
+                        <CheckCircle2 className="text-green-500 w-4 h-4 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
-          </div>
 
-          {/* Article Content */}
-          <div className="p-8 lg:p-12 max-w-4xl overflow-y-auto">
-            <div className="flex flex-col gap-10">
-              {topics.map((topicNode, idx) => (
-                <div key={idx} className="space-y-8">
-                  {/* Topic Title & Description */}
-                  <div className="flex flex-col gap-4">
-                    <h2 className="text-3xl font-bold tracking-tight text-white ">
-                      {typeof topicNode === "object"
-                        ? topicNode.topic
-                        : topicNode}
-                    </h2>
+            {/* Helpful Resources Card */}
+            <div className="bg-[#111111] border border-white/10 rounded-2xl p-5 shadow-md shadow-black/50 ">
+              <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <BookOpen className="text-red-400 w-5 h-5" />
+                Resources
+              </h4>
+              <ul className="text-xs space-y-2 text-zinc-400 ">
+                <li className="flex items-center gap-2 hover:text-red-400 cursor-pointer">
+                  <Paperclip className="w-4 h-4" /> Course Spec.pdf
+                </li>
+                <li className="flex items-center gap-2 hover:text-red-400 cursor-pointer">
+                  <LinkIcon className="w-4 h-4" /> Official Documentation
+                </li>
+              </ul>
+            </div>
 
-                    {/* Render raw HTML content from Gemini */}
-                    {topicNode.content && (
-                      <div className="prose prose-zinc prose-invert max-w-none prose-p:leading-relaxed prose-p:text-lg prose-headings:font-space-grotesk prose-a:text-red-400">
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: topicNode.content,
-                          }}
-                        />
+            {/* ⚡ Flashcards Button */}
+            <button
+              onClick={handleGenerateFlashcards}
+              disabled={generatingFlashcards}
+              className="w-full flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 hover:-translate-y-0.5 transition-all active:scale-[0.98] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+            >
+              <CreditCard className="w-5 h-5" />
+              <span className="flex-1 text-left">
+                {generatingFlashcards ? "Creating..." : "Generate Flashcards"}
+              </span>
+            </button>
+
+            {/* Course Guide Button */}
+            <button
+              onClick={() => setShowMentor(true)}
+              className="w-full flex items-center gap-3 px-5 py-4 bg-[#111111] dark:bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-2xl font-bold text-sm hover:-translate-y-0.5 transition-all active:scale-[0.98] shadow-md shadow-black/50 hover:shadow-lg"
+            >
+              <HelpCircle className="w-5 h-5" />
+              <span className="flex-1 text-left">Course Guide</span>
+              <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
+                LIVE
+              </span>
+            </button>
+          </aside>
+
+          {/* Main Content Area */}
+          <main className="flex-1 bg-[#111111] lg:rounded-2xl border border-white/10 flex flex-col shadow-xl shadow-black/50 mb-20">
+            
+            {/* Article Content */}
+            <article className="py-12 px-8 lg:px-12 max-w-3xl mx-auto w-full font-sans">
+              <header className="mb-16 border-b border-white/10 pb-10">
+                <span className="bg-red-600/10 text-red-400 px-4 py-1.5 rounded-full border border-red-500/20 text-sm font-bold mb-6 inline-block">
+                  MODULE {currentChapterIndex + 1}
+                </span>
+                <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight font-space-grotesk">
+                  {currentChapter?.chapterName}
+                </h1>
+              </header>
+
+              <div className="flex flex-col gap-16">
+                {topics.map((topicNode, idx) => (
+                  <div key={idx} className="space-y-8">
+                    {/* Topic Title & Description */}
+                    <div className="flex flex-col gap-4">
+                      <h2 className="text-2xl font-bold text-white mb-6 font-space-grotesk flex items-center gap-4">
+                        <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-red-600/20 text-red-400 text-sm border border-red-500/30">
+                          {idx + 1}
+                        </span>
+                        {typeof topicNode === "object"
+                          ? topicNode.topic
+                          : topicNode}
+                      </h2>
+
+                      {/* Render raw HTML content from Gemini */}
+                      {topicNode.content && (
+                        <div className="prose prose-zinc prose-invert max-w-none 
+                        prose-p:text-lg prose-p:leading-relaxed prose-p:text-zinc-300
+                        prose-headings:font-space-grotesk prose-headings:text-white
+                        prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
+                        prose-a:text-red-400 prose-a:no-underline hover:prose-a:underline
+                        prose-strong:text-white prose-strong:font-semibold
+                        prose-code:text-red-300 prose-code:bg-red-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+                        prose-pre:bg-[#111111] prose-pre:border prose-pre:border-white/10
+                        prose-ul:text-zinc-300 prose-li:marker:text-red-500">
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: topicNode.content,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pro Tip Callout */}
+                    {topicNode.proTip && (
+                      <div className="bg-gradient-to-r from-red-600/10 to-red-500/5 dark:from-red-600/15 dark:to-red-500/5 border-l-4 border-red-500 p-6 rounded-r-2xl shadow-md shadow-red-500/10">
+                        <div className="flex items-start gap-4">
+                          <Lightbulb className="text-red-400 w-8 h-8 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="font-bold text-red-400 text-sm uppercase tracking-wider mb-1">
+                              Pro Tip
+                            </h4>
+                            <p className="text-zinc-400 ">{topicNode.proTip}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Concept Cards Grid */}
+                    {topicNode.keyConcepts?.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        {topicNode.keyConcepts.map((concept, cidx) => (
+                          <div
+                            key={cidx}
+                            className="bg-[#111111] p-6 rounded-2xl border border-white/10 shadow-md shadow-black/50 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-red-500/30"
+                          >
+                            {/* Map Gemini icon string to basic Lucide or fallback */}
+                            {cidx % 2 === 0 ? (
+                              <Server className="text-red-400 mb-3 w-6 h-6" />
+                            ) : (
+                              <Activity className="text-red-400 mb-3 w-6 h-6" />
+                            )}
+                            <h5 className="font-bold mb-2">{concept.title}</h5>
+                            <p className="text-sm text-zinc-400 ">
+                              {concept.description}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-
-                  {/* Pro Tip Callout */}
-                  {topicNode.proTip && (
-                    <div className="bg-gradient-to-r from-red-600/10 to-red-500/5 dark:from-red-600/15 dark:to-red-500/5 border-l-4 border-red-500 p-6 rounded-r-2xl shadow-md shadow-red-500/10">
-                      <div className="flex items-start gap-4">
-                        <Lightbulb className="text-red-400 w-8 h-8 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-red-400 text-sm uppercase tracking-wider mb-1">
-                            Pro Tip
-                          </h4>
-                          <p className="text-zinc-400 ">{topicNode.proTip}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Concept Cards Grid */}
-                  {topicNode.keyConcepts?.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                      {topicNode.keyConcepts.map((concept, cidx) => (
-                        <div
-                          key={cidx}
-                          className="bg-[#111111] p-6 rounded-2xl border border-white/10 shadow-md shadow-black/50 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-red-500/30"
-                        >
-                          {/* Map Gemini icon string to basic Lucide or fallback */}
-                          {cidx % 2 === 0 ? (
-                            <Server className="text-red-400 mb-3 w-6 h-6" />
-                          ) : (
-                            <Activity className="text-red-400 mb-3 w-6 h-6" />
-                          )}
-                          <h5 className="font-bold mb-2">{concept.title}</h5>
-                          <p className="text-sm text-zinc-400 ">
-                            {concept.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
 
               {/* Footer Action */}
-              <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="mt-20 pt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() =>
@@ -509,7 +498,7 @@ export default function CourseLearning({
                     disabled={enrollment?.completedChapters?.includes(
                       currentChapter?.chapterName,
                     )}
-                    className="bg-gradient-to-r from-red-600 to-orange-600 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-red-500/30 transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0 disabled:hover:shadow-xl"
+                    className="bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 hover:-translate-y-0.5 hover:shadow-2xl transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0 disabled:hover:shadow-xl"
                   >
                     {enrollment?.completedChapters?.includes(
                       currentChapter?.chapterName,
@@ -536,37 +525,37 @@ export default function CourseLearning({
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </main>
+            </article>
+          </main>
+        </div>
+
+        {/* Multi-Step Loader for Flashcard Generation */}
+        <MultiStepLoader
+          loadingStates={flashcardLoadingStates}
+          loading={generatingFlashcards}
+          duration={999999}
+          loop={false}
+          value={flashcardGenStep}
+        />
+
+        {/* Flashcard Viewer Modal */}
+        {showFlashcards && flashcards.length > 0 && (
+          <FlashcardViewer
+            flashcards={flashcards}
+            onClose={() => setShowFlashcards(false)}
+          />
+        )}
+
+        {/* Course Guide Chat Panel */}
+        {showMentor && (
+          <CourseMentor
+            courseId={course?.courseId}
+            chapterIndex={currentChapterIndex}
+            chapterName={currentChapter?.chapterName}
+            onClose={() => setShowMentor(false)}
+          />
+        )}
       </div>
-
-      {/* Multi-Step Loader for Flashcard Generation */}
-      <MultiStepLoader
-        loadingStates={flashcardLoadingStates}
-        loading={generatingFlashcards}
-        duration={999999}
-        loop={false}
-        value={flashcardGenStep}
-      />
-
-      {/* Flashcard Viewer Modal */}
-      {showFlashcards && flashcards.length > 0 && (
-        <FlashcardViewer
-          flashcards={flashcards}
-          onClose={() => setShowFlashcards(false)}
-        />
-      )}
-
-      {/* Course Guide Chat Panel */}
-      {showMentor && (
-        <CourseMentor
-          courseId={course?.courseId}
-          chapterIndex={currentChapterIndex}
-          chapterName={currentChapter?.chapterName}
-          onClose={() => setShowMentor(false)}
-        />
-      )}
     </div>
   );
 }
