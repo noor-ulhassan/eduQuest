@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { connectSocket, disconnectSocket, getSocket } from "../../lib/socket";
@@ -92,6 +92,11 @@ const CompetitionLobby = () => {
   const [gameCategory, setGameCategory] = useState(null);
   const [gameChallengeMode, setGameChallengeMode] = useState("classic");
   const [finalResults, setFinalResults] = useState(null);
+  const confettiFired = useRef(false);
+  const gameStartTimeRef = useRef(null);
+  const gameDurationRef = useRef(null);
+  const timerIntervalRef = useRef(null);
+  const roomCodeRef = useRef("");
 
   // Gamification state
   const [showVS, setShowVS] = useState(false);
@@ -145,6 +150,11 @@ const CompetitionLobby = () => {
     return () => socket.off("connect", onConnect);
   }, [socket, roomCode]);
 
+  // Keep ref in sync for cleanup closure
+  useEffect(() => {
+    roomCodeRef.current = roomCode;
+  }, [roomCode]);
+
   // Connect socket on mount
   useEffect(() => {
     if (!user) return;
@@ -154,11 +164,60 @@ const CompetitionLobby = () => {
 
     return () => {
       const sock = getSocket();
-      if (sock && roomCode) {
-        sock.emit("leaveRoom", { roomCode });
+      if (sock && roomCodeRef.current) {
+        sock.emit("leaveRoom", { roomCode: roomCodeRef.current });
       }
     };
-  }, []);
+  }, [user]);
+
+  // CLI-3: Reconnection recovery — sync state from server if we reconnect mid-game
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReconnect = () => {
+      const code = roomCodeRef.current;
+      if (!code) return;
+
+      console.log("[Socket] Reconnected — syncing state...");
+      socket.emit("syncState", { roomCode: code }, (state) => {
+        if (!state?.success) return;
+
+        // Restore game state
+        setLeaderboard(state.leaderboard || []);
+        if (state.settings) setSettings(state.settings);
+
+        if (state.gameState === "active") {
+          setGameState("playing");
+          if (state.currentQuestion) {
+            setCurrentQuestion(state.currentQuestion);
+            setQuestionIndex(state.questionIndex || 0);
+          }
+          if (state.timeRemaining != null) {
+            setTimeRemaining(state.timeRemaining);
+            gameStartTimeRef.current = Date.now() - (state.settings.timerDuration - state.timeRemaining) * 1000;
+            gameDurationRef.current = state.settings.timerDuration;
+          }
+          setSelectedAnswer(null);
+          setAnswerResult(null);
+          toast.success("Reconnected to game!");
+        } else if (state.gameState === "finished") {
+          setGameState("finished");
+          setFinalResults(state.leaderboard);
+        } else {
+          setGameState("lobby");
+        }
+      });
+    };
+
+    socket.on("reconnect", handleReconnect);
+    // Also handle the io "connect" event which fires on reconnect for socket.io v4+
+    socket.io?.on("reconnect", handleReconnect);
+
+    return () => {
+      socket.off("reconnect", handleReconnect);
+      socket.io?.off("reconnect", handleReconnect);
+    };
+  }, [socket]);
 
   // Socket event listeners
   useEffect(() => {
@@ -177,9 +236,13 @@ const CompetitionLobby = () => {
       toast(`${newPlayer} joined the room!`);
     };
 
-    const onPlayerLeft = ({ players, leftPlayer }) => {
-      setRoom((prev) => (prev ? { ...prev, players } : prev));
-      if (leftPlayer) toast(`${leftPlayer} left the room`, { icon: "👋" });
+    const onPlayerLeft = ({ playerId }) => {
+      setRoom((prev) => {
+        if (!prev) return prev;
+        const updated = prev.players.filter((p) => p.id !== playerId);
+        return { ...prev, players: updated };
+      });
+      toast("A player left the room", { icon: "👋" });
     };
 
     const onSettingsUpdated = (newSettings) => {
@@ -244,7 +307,8 @@ const CompetitionLobby = () => {
       setLeaderboard(lb);
     };
 
-    const onTimerUpdate = ({ remaining }) => {
+    // timerSync: server sends a correction every 30s to fix drift
+    const onTimerSync = ({ remaining }) => {
       setTimeRemaining(remaining);
     };
 
@@ -273,7 +337,7 @@ const CompetitionLobby = () => {
     socket.on("gameStarted", onGameStarted);
     socket.on("nextQuestion", onNextQuestion);
     socket.on("leaderboardUpdate", onLeaderboardUpdate);
-    socket.on("timerUpdate", onTimerUpdate);
+    socket.on("timerSync", onTimerSync);
     socket.on("playerFinished", onPlayerFinished);
     socket.on("gameOver", onGameOver);
 
@@ -304,7 +368,7 @@ const CompetitionLobby = () => {
       socket.off("gameStarted", onGameStarted);
       socket.off("nextQuestion", onNextQuestion);
       socket.off("leaderboardUpdate", onLeaderboardUpdate);
-      socket.off("timerUpdate", onTimerUpdate);
+      socket.off("timerSync", onTimerSync);
       socket.off("playerFinished", onPlayerFinished);
       socket.off("gameOver", onGameOver);
       socket.off("joinRequest", onJoinRequest);
@@ -470,10 +534,12 @@ const CompetitionLobby = () => {
     copyToClipboard(link);
   };
 
-  const handleUpdateSettings = (key, value) => {
-    const newSettings = { ...settings, [key]: value };
+  const handleUpdateSettings = (keyOrObj, value) => {
+    // Support both single key-value and object of multiple settings
+    const updates = typeof keyOrObj === "string" ? { [keyOrObj]: value } : keyOrObj;
+    const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
-    socket?.emit("updateSettings", { roomCode, settings: { [key]: value } });
+    socket?.emit("updateSettings", { roomCode, settings: updates });
   };
 
   const handleStartGame = () => {
@@ -527,7 +593,7 @@ const CompetitionLobby = () => {
         setIsSubmitting(false);
 
         // Combo tracking + sound effects
-        if (result?.correct) {
+        if (result?.isCorrect) {
           setComboCount((prev) => prev + 1);
           playCorrectSound();
           setFeedbackResult({
@@ -565,7 +631,69 @@ const CompetitionLobby = () => {
     setComboCount(0);
     setFeedbackResult(null);
     setVsData(null);
+
+    // Start local timer countdown
+    gameStartTimeRef.current = Date.now();
+    gameDurationRef.current = vsData.timerDuration;
   };
+
+  // ─── Confetti + victory sound — fire once when game finishes ──
+  useEffect(() => {
+    if (gameState !== "finished" || !leaderboard.length || confettiFired.current) return;
+    confettiFired.current = true;
+
+    const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
+    const winnerId = sorted[0]?.id;
+
+    setTimeout(() => {
+      if (winnerId === user?._id) playVictorySound();
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#f97316", "#eab308", "#ef4444", "#22c55e"],
+      });
+      setTimeout(
+        () =>
+          confetti({
+            particleCount: 80,
+            spread: 120,
+            origin: { y: 0.3, x: 0.3 },
+          }),
+        400,
+      );
+      setTimeout(
+        () =>
+          confetti({
+            particleCount: 80,
+            spread: 120,
+            origin: { y: 0.3, x: 0.7 },
+          }),
+        700,
+      );
+    }, 300);
+  }, [gameState, leaderboard, user]);
+
+  // ─── Client-side timer — compute remaining time locally ──
+  useEffect(() => {
+    // Only run the timer when game is actively playing
+    if (gameState !== "playing" || !gameStartTimeRef.current || !gameDurationRef.current) {
+      return;
+    }
+
+    timerIntervalRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - gameStartTimeRef.current) / 1000);
+      const remaining = gameDurationRef.current - elapsed;
+      setTimeRemaining(Math.max(0, remaining));
+    }, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [gameState]);
 
   // ─── RENDER: VS Screen ─────────────────────────────────
   if (showVS && room?.players) {
@@ -1129,11 +1257,25 @@ const CompetitionLobby = () => {
             </button>
             <button
               onClick={() => {
-                setGameState("lobby");
-                setRoom((prev) => ({ ...prev, status: "waiting" }));
-                setFinalResults(null);
-                setLeaderboard([]);
-                setCurrentQuestion(null);
+                // Create a fresh room via socket to avoid client/server desync
+                if (!socket?.connected) return;
+                socket.emit("createRoom", (response) => {
+                  if (response.success) {
+                    setRoomCode(response.roomCode);
+                    setRoom({ ...response.room, hostId: user._id });
+                    setGameState("lobby");
+                    setFinalResults(null);
+                    setLeaderboard([]);
+                    setCurrentQuestion(null);
+                    setUserFinished(false);
+                    setFinishData(null);
+                    setComboCount(0);
+                    confettiFired.current = false;
+                    toast.success(`New room ${response.roomCode} created!`);
+                  } else {
+                    toast.error("Failed to create new room");
+                  }
+                });
               }}
               className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-pink-600 rounded-xl font-semibold transition"
             >
@@ -1713,6 +1855,7 @@ const CompetitionLobby = () => {
     );
   }
 
+
   // ─── RENDER: Game Finished (Results) ─────────────────────────────
   if (gameState === "finished") {
     const sortedLeaderboard = [...leaderboard].sort(
@@ -1724,37 +1867,6 @@ const CompetitionLobby = () => {
     const rest = sortedLeaderboard.slice(3);
     const isWinner = winner?.id === user?._id;
     const isHost = room?.host?._id === user?._id;
-
-    // Fire confetti + victory sound on mount
-    if (typeof window !== "undefined" && winner) {
-      setTimeout(() => {
-        if (isWinner) playVictorySound();
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ["#f97316", "#eab308", "#ef4444", "#22c55e"],
-        });
-        setTimeout(
-          () =>
-            confetti({
-              particleCount: 80,
-              spread: 120,
-              origin: { y: 0.3, x: 0.3 },
-            }),
-          400,
-        );
-        setTimeout(
-          () =>
-            confetti({
-              particleCount: 80,
-              spread: 120,
-              origin: { y: 0.3, x: 0.7 },
-            }),
-          700,
-        );
-      }, 300);
-    }
 
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 flex flex-col items-center justify-center">
@@ -2008,7 +2120,7 @@ const CompetitionLobby = () => {
                     </Button>
                   </div>
                   <Button
-                    onClick={handleCopyCode}
+                    onClick={handleCopyLink}
                     variant="secondary"
                     className="flex items-center justify-center gap-2 bg-white text-zinc-900 hover:bg-zinc-200 shrink-0 min-h-[46px]"
                   >
@@ -2051,8 +2163,7 @@ const CompetitionLobby = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => {
-                            handleUpdateSettings("category", "programming");
-                            handleUpdateSettings("challengeMode", "classic");
+                            handleUpdateSettings({ category: "programming", challengeMode: "classic" });
                           }}
                           className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
                             settings.category === "programming"
@@ -2072,8 +2183,7 @@ const CompetitionLobby = () => {
                         </button>
                         <button
                           onClick={() => {
-                            handleUpdateSettings("category", "general");
-                            handleUpdateSettings("challengeMode", "classic");
+                            handleUpdateSettings({ category: "general", challengeMode: "classic" });
                           }}
                           className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
                             settings.category === "general"

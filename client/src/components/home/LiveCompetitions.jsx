@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { connectSocket } from "../../lib/socket";
+import { connectSocket, getSocket } from "../../lib/socket";
 import api from "../../features/auth/authApi";
 import { playPlayerJoinedSound } from "@/lib/sound";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,9 +45,21 @@ const LiveCompetitions = () => {
 
   useEffect(() => {
     if (!user) return;
-    fetchRooms();
-    const interval = setInterval(fetchRooms, 5000); // 5s poll for faster updates
-    return () => clearInterval(interval);
+    fetchRooms(); // Initial load via HTTP
+
+    // Subscribe to real-time room list updates via socket
+    const token = localStorage.getItem("accessToken");
+    const s = connectSocket(token);
+
+    const onRoomListUpdate = ({ rooms: updatedRooms }) => {
+      setRooms(updatedRooms);
+      setLoading(false);
+    };
+    s.on("roomListUpdate", onRoomListUpdate);
+
+    return () => {
+      s.off("roomListUpdate", onRoomListUpdate);
+    };
   }, [user, fetchRooms]);
 
   // Refetch when user returns to tab (visibility change)
@@ -60,13 +72,28 @@ const LiveCompetitions = () => {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, [user, fetchRooms]);
 
+  // Track pending join listeners for cleanup
+  const joinListenersRef = useRef(null);
+
+  // Cleanup join listeners on unmount
+  useEffect(() => {
+    return () => {
+      if (joinListenersRef.current) {
+        const { socket: s, onApproved, onDenied } = joinListenersRef.current;
+        s.off("joinApproved", onApproved);
+        s.off("joinDenied", onDenied);
+        joinListenersRef.current = null;
+      }
+    };
+  }, []);
+
   const handleJoinRequest = (roomCode) => {
     const token = localStorage.getItem("accessToken");
     if (!token) return toast.error("Please login first");
 
     setRequestingRoom(roomCode);
 
-    const s = connectSocket(token);
+    const s = getSocket() || connectSocket(token);
     s.emit("requestJoin", { roomCode }, (response) => {
       setRequestingRoom(null);
       if (response.success) {
@@ -76,12 +103,20 @@ const LiveCompetitions = () => {
       }
     });
 
+    // Clean up any previous pending listeners
+    if (joinListenersRef.current) {
+      const { socket: prev, onApproved: prevA, onDenied: prevD } = joinListenersRef.current;
+      prev.off("joinApproved", prevA);
+      prev.off("joinDenied", prevD);
+    }
+
     // Listen for approval
-    const onApproved = ({ roomCode: rc, room }) => {
+    const onApproved = ({ roomCode: rc }) => {
       playPlayerJoinedSound();
       toast.success("Join request approved! Entering room...");
       s.off("joinApproved", onApproved);
       s.off("joinDenied", onDenied);
+      joinListenersRef.current = null;
       navigate(`/competition/${rc}`);
     };
 
@@ -89,10 +124,12 @@ const LiveCompetitions = () => {
       toast.error(message || "Join request denied");
       s.off("joinApproved", onApproved);
       s.off("joinDenied", onDenied);
+      joinListenersRef.current = null;
     };
 
     s.on("joinApproved", onApproved);
     s.on("joinDenied", onDenied);
+    joinListenersRef.current = { socket: s, onApproved, onDenied };
   };
 
   const handleSpectate = (roomCode) => {
