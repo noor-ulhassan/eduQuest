@@ -1,13 +1,22 @@
 import express from "express";
 import { execFile } from "child_process";
-import fs from "fs";
+import { promises as fsPromises } from "fs";
 import path from "path";
 import os from "os";
+import rateLimit from "express-rate-limit";
+import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/execute", async (req, res) => {
-  const { language, version, files } = req.body;
+const executeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.user._id.toString(),
+  message: { run: { output: "", stderr: "Too many execution requests, please slow down." } },
+});
+
+router.post("/execute", authenticate, executeLimiter, async (req, res) => {
+  const { language, files } = req.body;
 
   if (!language || !files || !files.length) {
     return res
@@ -16,9 +25,7 @@ router.post("/execute", async (req, res) => {
   }
 
   const code = files[0].content;
-  const fileName = files[0].name || "main.txt";
 
-  // Map language to command
   let cmd;
   let ext;
   switch (language) {
@@ -36,45 +43,37 @@ router.post("/execute", async (req, res) => {
       });
   }
 
-  // Write code to a temp file
   const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, `eduquest_${Date.now()}${ext}`);
+  const tmpFile = path.join(tmpDir, `eduquest_${Date.now()}_${req.user._id}${ext}`);
 
   try {
-    fs.writeFileSync(tmpFile, code, "utf8");
+    await fsPromises.writeFile(tmpFile, code, "utf8");
 
-    // Execute with a 10-second timeout
-    execFile(
-      cmd,
-      [tmpFile],
-      { timeout: 10000, maxBuffer: 1024 * 512 },
-      (error, stdout, stderr) => {
-        // Clean up temp file
-        try {
-          fs.unlinkSync(tmpFile);
-        } catch {}
+    const { stdout, stderr } = await new Promise((resolve) => {
+      execFile(
+        cmd,
+        [tmpFile],
+        { timeout: 10000, maxBuffer: 1024 * 512 },
+        (error, stdout, stderr) => {
+          if (error && error.killed) {
+            resolve({ stdout: "", stderr: "Execution timed out (10s limit)" });
+          } else {
+            resolve({
+              stdout: stdout || "",
+              stderr: stderr || (error ? error.message : ""),
+            });
+          }
+        },
+      );
+    });
 
-        if (error && error.killed) {
-          return res.json({
-            run: { output: "", stderr: "Execution timed out (10s limit)" },
-          });
-        }
-
-        return res.json({
-          run: {
-            output: stdout || "",
-            stderr: stderr || (error ? error.message : ""),
-          },
-        });
-      },
-    );
+    return res.json({ run: { output: stdout, stderr } });
   } catch (err) {
-    try {
-      fs.unlinkSync(tmpFile);
-    } catch {}
     return res.status(500).json({
       run: { output: "", stderr: `Server error: ${err.message}` },
     });
+  } finally {
+    fsPromises.unlink(tmpFile).catch(() => {});
   }
 });
 

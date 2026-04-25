@@ -3,6 +3,8 @@ import api from "../auth/authApi.js";
 const CACHE = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+export const clearPlaygroundCache = () => CACHE.clear();
+
 const fetchWithCache = async (key, fetcher) => {
   if (CACHE.has(key)) {
     const { data, timestamp } = CACHE.get(key);

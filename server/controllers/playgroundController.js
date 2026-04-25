@@ -136,13 +136,24 @@ export const completeProblem = async (req, res) => {
           user: req.user,
         });
       }
-      // Not enrolled — auto-enroll
-      await PlaygroundProgress.create({
-        userId,
-        language,
-        completedProblems: [problemId],
-        totalXpEarned: xp,
-      });
+      // Not enrolled — auto-enroll (guard against concurrent duplicate-key)
+      try {
+        await PlaygroundProgress.create({
+          userId,
+          language,
+          completedProblems: [problemId],
+          totalXpEarned: xp,
+        });
+      } catch (createErr) {
+        if (createErr.code !== 11000) throw createErr;
+        // Another concurrent request enrolled first — treat as already completed
+        return res.status(200).json({
+          success: true,
+          message: "Problem already completed",
+          alreadyCompleted: true,
+          user: req.user,
+        });
+      }
     }
 
     const progress = updatedProgress || await PlaygroundProgress.findOne({ userId, language });

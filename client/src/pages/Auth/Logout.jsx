@@ -2,6 +2,7 @@ import { useDispatch } from "react-redux";
 import { authLogout } from "../../features/auth/authSlice";
 import api from "../../features/auth/authApi";
 import { Button } from "@/components/ui/button";
+import { clearPlaygroundCache } from "../../features/playground/playgroundApi";
 
 export default function LogoutButton({ className }) {
   const dispatch = useDispatch();
@@ -9,6 +10,7 @@ export default function LogoutButton({ className }) {
     try {
       await api.post("/auth/logout");
       localStorage.removeItem("accessToken");
+      clearPlaygroundCache();
       dispatch(authLogout());
     } catch (err) {
       console.log(err);

@@ -8,6 +8,7 @@ export default function Playground() {
   const user = useSelector((state) => state.auth.user);
   const [progressData, setProgressData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -52,6 +53,7 @@ export default function Playground() {
         setProgressData(progressMap);
       } catch (error) {
         console.error(error);
+        setError("Failed to load progress. Please refresh the page.");
       } finally {
         setIsLoading(false);
       }
@@ -61,6 +63,11 @@ export default function Playground() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] font-sans pb-24 text-white">
+      {error && (
+        <div className="bg-red-900/40 border-b border-red-500/30 text-red-300 text-sm text-center py-2 px-4">
+          {error}
+        </div>
+      )}
       {/* Hero Banner Area */}
       <div className="relative border-b border-white/5 bg-[#111111] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent mix-blend-overlay"></div>

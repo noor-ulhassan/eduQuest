@@ -104,6 +104,7 @@ const PlaygroundTopics = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [completedProblems, setCompletedProblems] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [enrolling, setEnrolling] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(null);
 
@@ -113,30 +114,34 @@ const PlaygroundTopics = () => {
 
   /* ── fetch data and progress ── */
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch the curriculum data for this language
         const res = await getCurriculum(language);
+        if (!isMounted) return;
         if (res.success && res.curriculum) {
           setData(res.curriculum);
         }
 
-        // Fetch user progress if logged in
         if (user) {
           const { progress: current } = await getLanguageProgress(language);
+          if (!isMounted) return;
           if (current) {
             setIsEnrolled(true);
             setCompletedProblems(new Set(current.completedProblems));
           }
         }
       } catch (err) {
+        if (!isMounted) return;
         console.error("Error fetching playground data:", err);
+        setError("Failed to load playground data. Please try again.");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchData();
+    return () => { isMounted = false; };
   }, [user, language]);
 
   /* ── enroll handler ── */
@@ -198,6 +203,22 @@ const PlaygroundTopics = () => {
   ).length;
 
   if (loading) return <TopicsSkeleton />;
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(null); setLoading(true); }}
+            className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors border border-red-400"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pt-14">

@@ -5,7 +5,6 @@ import { User } from "../models/user.model.js";
 export const authenticate = async (req, res, next) => {
   try {
     const token = req.cookies.token;
-    // console.log("Extracted Token:", token);
     if (!token) return res.status(401).json({ message: "Login Required" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -17,7 +16,13 @@ export const authenticate = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
-    // If token expired or invalid
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+};
+
+export const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
 };
