@@ -14,8 +14,8 @@ import {
 export default function SkillCard({ title, img, href, progress, isLoading }) {
   const navigate = useNavigate();
   const isEnrolled = progress?.enrolled;
-  const progressPercent = progress
-    ? Math.round((progress.completed / progress.total) * 100)
+  const progressPercent = progress?.total
+    ? Math.min(100, Math.round((progress.completed / progress.total) * 100))
     : 0;
 
   return (
@@ -58,7 +58,12 @@ export default function SkillCard({ title, img, href, progress, isLoading }) {
 
           {/* Footer - Progress */}
           <CardFooter className="w-full p-0 flex flex-col pt-6">
-            {isEnrolled && !isLoading ? (
+            {isLoading ? (
+              <div className="w-full space-y-2">
+                <div className="h-4 bg-white/10 rounded animate-pulse w-3/4" />
+                <div className="h-2 bg-white/10 rounded animate-pulse" />
+              </div>
+            ) : isEnrolled ? (
               <div className="w-full">
                 <div className="flex justify-between items-center mb-3 text-sm text-gray-400 font-medium">
                   <span>{progressPercent}% <span className="text-gray-500 text-xs uppercase ml-1">Completed</span></span>
