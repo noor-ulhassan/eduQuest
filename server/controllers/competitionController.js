@@ -67,6 +67,12 @@ export const getUserStats = async (req, res) => {
               },
             },
           ],
+          // Streak: sorted recent results for JS iteration (eliminates second DB call)
+          streak: [
+            { $sort: { timestamp: -1 } },
+            { $limit: 100 },
+            { $project: { rank: 1, status: 1 } },
+          ],
         },
       },
     ]);
@@ -97,20 +103,10 @@ export const getUserStats = async (req, res) => {
     const losses = totalGames - wins - dnf;
     const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
 
-    // Streak: fetch recent results until streak breaks (lightweight cursor)
     let currentStreak = 0;
-    const streakCursor = CompetitionResult.find({ userId: userObjectId })
-      .sort({ timestamp: -1 })
-      .select("rank status")
-      .lean()
-      .cursor();
-
-    for await (const r of streakCursor) {
-      if (r.rank === 1 && r.status === "completed") {
-        currentStreak++;
-      } else {
-        break;
-      }
+    for (const r of pipeline.streak || []) {
+      if (r.rank === 1 && r.status === "completed") currentStreak++;
+      else break;
     }
 
     const categoryDistribution = pipeline.categories.map((c) => ({

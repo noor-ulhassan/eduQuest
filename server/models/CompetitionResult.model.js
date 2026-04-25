@@ -6,10 +6,6 @@ const competitionResultSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  roomId: {
-    type: String, // Determine if we need ObjectId or just roomCode string
-    required: false,
-  },
   roomCode: {
     type: String,
     required: true,
@@ -51,6 +47,7 @@ const competitionResultSchema = new mongoose.Schema({
 competitionResultSchema.index({ userId: 1, timestamp: -1 });
 competitionResultSchema.index({ userId: 1, rank: 1, status: 1 });
 competitionResultSchema.index({ roomCode: 1 });
+competitionResultSchema.index({ roomCode: 1, userId: 1 });
 
 export const CompetitionResult = mongoose.model(
   "CompetitionResult",

@@ -18,6 +18,15 @@ function getVoiceUsers(roomCode) {
   return set ? Array.from(set.values()) : [];
 }
 
+function findSocketRoom(socketId) {
+  for (const [roomCode, set] of voiceRooms) {
+    for (const user of set) {
+      if (user.socketId === socketId) return roomCode;
+    }
+  }
+  return null;
+}
+
 /**
  * Remove a user from the voice channel of a room
  * @param {string} roomCode
@@ -103,6 +112,9 @@ export function registerVoiceEvents(io, socket) {
 
   // ─── RELAY SDP OFFER ──────────────────────────────────────
   socket.on("voice:offer", ({ targetSocketId, offer }) => {
+    const callerRoom = findSocketRoom(socket.id);
+    const targetRoom = findSocketRoom(targetSocketId);
+    if (!callerRoom || callerRoom !== targetRoom) return;
     console.log(
       `[Voice] Relaying offer from ${socket.id} to ${targetSocketId}`,
     );
@@ -116,6 +128,9 @@ export function registerVoiceEvents(io, socket) {
 
   // ─── RELAY SDP ANSWER ─────────────────────────────────────
   socket.on("voice:answer", ({ targetSocketId, answer }) => {
+    const callerRoom = findSocketRoom(socket.id);
+    const targetRoom = findSocketRoom(targetSocketId);
+    if (!callerRoom || callerRoom !== targetRoom) return;
     console.log(
       `[Voice] Relaying answer from ${socket.id} to ${targetSocketId}`,
     );
@@ -127,6 +142,9 @@ export function registerVoiceEvents(io, socket) {
 
   // ─── RELAY ICE CANDIDATE ──────────────────────────────────
   socket.on("voice:ice-candidate", ({ targetSocketId, candidate }) => {
+    const callerRoom = findSocketRoom(socket.id);
+    const targetRoom = findSocketRoom(targetSocketId);
+    if (!callerRoom || callerRoom !== targetRoom) return;
     io.to(targetSocketId).emit("voice:ice-candidate", {
       fromSocketId: socket.id,
       candidate,

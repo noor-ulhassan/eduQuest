@@ -1,5 +1,33 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// ─── PROMPT INPUT SANITIZATION ────────────────────────────
+const ALLOWED_PROMPT_CHARS = /[^a-zA-Z0-9 .,'!?:()\-_#@&+/]/g;
+const INJECTION_PATTERNS = /\b(ignore|forget|disregard|override|system prompt|instruction)\b/gi;
+
+function sanitizePromptInput(str, maxLen = 200) {
+  if (!str || typeof str !== "string") return "";
+  return str
+    .replace(/[\r\n\t]/g, " ")
+    .replace(ALLOWED_PROMPT_CHARS, "")
+    .replace(INJECTION_PATTERNS, "")
+    .trim()
+    .slice(0, maxLen);
+}
+
+// ─── GEMINI CLIENT SINGLETON ──────────────────────────────
+let _genAI = null;
+let _model = null;
+function getModel() {
+  if (!_model) {
+    _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    _model = _genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      generationConfig: { temperature: 0.95 },
+    });
+  }
+  return _model;
+}
+
 // ─── DIFFICULTY TONE MAPPING ──────────────────────────────
 const DIFFICULTY_TONES = {
   easy: `Tone: Beginner-friendly and encouraging. Use simple, clear language.
@@ -647,11 +675,10 @@ export const generateCompetitionQuestions = async ({
   description = "",
   totalQuestions = 5,
 }) => {
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-flash-latest",
-    generationConfig: { temperature: 0.95 },
-  });
+  const model = getModel();
+
+  const safeTopic = sanitizePromptInput(topic);
+  const safeDescription = sanitizePromptInput(description, 400);
 
   // Resolve which prompt builder to use
   const modeBuilders =
@@ -661,8 +688,8 @@ export const generateCompetitionQuestions = async ({
   const prompt = buildPrompt({
     difficulty,
     language,
-    topic,
-    description,
+    topic: safeTopic,
+    description: safeDescription,
     totalQuestions,
     category,
   });

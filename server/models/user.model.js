@@ -57,4 +57,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+userSchema.index({ xp: -1 });
+
 export const User = mongoose.model("User", userSchema);

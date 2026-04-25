@@ -5,13 +5,17 @@ const SOCKET_URL =
   "http://localhost:8080";
 
 let socket = null;
+let socketToken = null;
 
 export const getSocket = () => socket;
 
 export const connectSocket = (token) => {
-  if (socket?.connected) return socket;
-
-  const authToken = token || localStorage.getItem("accessToken");
+  if (socket?.connected && token === socketToken) return socket;
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  socketToken = token || null;
 
   socket = io(SOCKET_URL, {
     withCredentials: true,
@@ -20,7 +24,7 @@ export const connectSocket = (token) => {
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
     auth: {
-      token: authToken,
+      token: token || undefined,
     },
   });
 

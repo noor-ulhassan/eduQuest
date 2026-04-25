@@ -7,6 +7,7 @@ import { addXP } from "../utils/progression.js";
 
 // In-memory room storage
 const rooms = new Map();
+const userRoomMap = new Map(); // userId → roomCode for O(1) disconnect lookup
 
 // Leaderboard broadcast throttle — max once per 500ms per room
 const leaderboardTimers = new Map();
@@ -37,41 +38,47 @@ function scheduleLeaderboardBroadcast(io, roomCode, room) {
   );
 }
 
-// Notify homepage listeners when room list changes
+let roomListBroadcastTimer = null;
+
+// Notify homepage listeners when room list changes — debounced 300ms
 function broadcastRoomListUpdate(io) {
-  const activeRooms = [];
-  for (const [code, room] of rooms) {
-    if (room.status === "waiting" || room.status === "active") {
-      const hostPlayer = room.players.find((p) => p.id === room.hostId);
-      activeRooms.push({
-        roomCode: code,
-        hostName: hostPlayer?.name || "Unknown",
-        hostAvatar: hostPlayer?.avatarUrl || null,
-        status: room.status,
-        category: room.category,
-        topic: room.topic || null,
-        description: room.description || null,
-        difficulty: room.difficulty,
-        language: room.language,
-        playerCount: room.players.length,
-        players: room.players.map((p) => ({
-          id: p.id,
-          name: p.name,
-          avatarUrl: p.avatarUrl || null,
-        })),
-        spectatorCount: (room.spectators || []).length,
-        maxPlayers: 20,
-        timerDuration: room.timerDuration,
-        createdAt: room.createdAt,
-      });
+  if (roomListBroadcastTimer) return;
+  roomListBroadcastTimer = setTimeout(() => {
+    roomListBroadcastTimer = null;
+    const activeRooms = [];
+    for (const [code, room] of rooms) {
+      if (room.status === "waiting" || room.status === "active") {
+        const hostPlayer = room.players.find((p) => p.id === room.hostId);
+        activeRooms.push({
+          roomCode: code,
+          hostName: hostPlayer?.name || "Unknown",
+          hostAvatar: hostPlayer?.avatarUrl || null,
+          status: room.status,
+          category: room.category,
+          topic: room.topic || null,
+          description: room.description || null,
+          difficulty: room.difficulty,
+          language: room.language,
+          playerCount: room.players.length,
+          players: room.players.map((p) => ({
+            id: p.id,
+            name: p.name,
+            avatarUrl: p.avatarUrl || null,
+          })),
+          spectatorCount: (room.spectators || []).length,
+          maxPlayers: 20,
+          timerDuration: room.timerDuration,
+          createdAt: room.createdAt,
+        });
+      }
     }
-  }
-  activeRooms.sort((a, b) => {
-    if (a.status === "active" && b.status !== "active") return -1;
-    if (b.status === "active" && a.status !== "active") return 1;
-    return b.createdAt - a.createdAt;
-  });
-  io.emit("roomListUpdate", { rooms: activeRooms });
+    activeRooms.sort((a, b) => {
+      if (a.status === "active" && b.status !== "active") return -1;
+      if (b.status === "active" && a.status !== "active") return 1;
+      return b.createdAt - a.createdAt;
+    });
+    io.emit("roomListUpdate", { rooms: activeRooms });
+  }, 300);
 }
 
 function generateRoomCode() {
@@ -129,9 +136,11 @@ export function initializeSocket(io) {
     // SEC-2: Per-socket rate limiting (30 events/sec, disconnect on sustained abuse)
     let eventCount = 0;
     let warnCount = 0;
+    let cleanWindows = 0;
     const rateLimitInterval = setInterval(() => {
       if (eventCount > 50) {
         warnCount++;
+        cleanWindows = 0;
         console.warn(`[RateLimit] ${socket.user.name} exceeded rate limit (${eventCount} events/sec)`);
         if (warnCount >= 3) {
           console.error(`[RateLimit] Disconnecting ${socket.user.name} for sustained abuse`);
@@ -139,7 +148,11 @@ export function initializeSocket(io) {
           clearInterval(rateLimitInterval);
         }
       } else {
-        warnCount = 0;
+        cleanWindows++;
+        if (cleanWindows >= 3) {
+          warnCount = 0;
+          cleanWindows = 0;
+        }
       }
       eventCount = 0;
     }, 1000);
@@ -204,7 +217,7 @@ export function initializeSocket(io) {
         const qIndex = player.currentQuestion || 0;
         const question = room.questions[qIndex];
         if (question) {
-          state.currentQuestion = sanitizeQuestion(question, room.category, room.challengeMode);
+          state.currentQuestion = sanitizeQuestion(question, room.category, room.challengeMode, room, qIndex);
           state.questionIndex = qIndex;
         }
         // Include time remaining
@@ -257,10 +270,11 @@ export function initializeSocket(io) {
 
       rooms.set(roomCode, room);
       socket.join(roomCode);
+      userRoomMap.set(socket.user.id, roomCode);
       console.log(`[Socket] Room ${roomCode} created by ${socket.user.name}`);
 
       if (typeof callback === "function") {
-        callback({ success: true, roomCode, room });
+        callback({ success: true, roomCode, room: safeRoomPayload(room) });
       }
       broadcastRoomListUpdate(io);
     });
@@ -281,7 +295,8 @@ export function initializeSocket(io) {
       if (existing) {
         existing.socketId = socket.id;
         socket.join(roomCode);
-        return callback?.({ success: true, room });
+        userRoomMap.set(socket.user.id, roomCode);
+        return callback?.({ success: true, room: safeRoomPayload(room) });
       }
 
       if (room.status !== "waiting") {
@@ -309,6 +324,7 @@ export function initializeSocket(io) {
       });
 
       socket.join(roomCode);
+      userRoomMap.set(socket.user.id, roomCode);
       io.to(roomCode).emit("playerJoined", {
         players: room.players,
         newPlayer: socket.user.name,
@@ -317,7 +333,7 @@ export function initializeSocket(io) {
       console.log(
         `[Socket] ${socket.user.name} joined room ${roomCode} (${room.players.length} players)`,
       );
-      callback?.({ success: true, room });
+      callback?.({ success: true, room: safeRoomPayload(room) });
       broadcastRoomListUpdate(io);
     });
 
@@ -461,6 +477,8 @@ export function initializeSocket(io) {
         room.questions[0],
         room.category,
         room.challengeMode,
+        room,
+        0,
       );
 
       io.to(roomCode).emit("gameStarted", {
@@ -518,6 +536,7 @@ export function initializeSocket(io) {
 
         const player = room.players.find((p) => p.id === socket.user.id);
         if (!player || player.finished) return;
+        if (questionIndex !== player.currentQuestion) return; // C-3: prevent double-submit
 
         const question = room.questions[questionIndex];
         if (!question) return;
@@ -682,6 +701,8 @@ export function initializeSocket(io) {
             room.questions[nextIndex],
             room.category,
             room.challengeMode,
+            room,
+            nextIndex,
           );
           socket.emit("nextQuestion", {
             question: nextQ,
@@ -934,13 +955,8 @@ export function initializeSocket(io) {
     // ─── DISCONNECT ──────────────────────────────────────────
     socket.on("disconnect", () => {
       console.log(`[Socket] ${socket.user.name} disconnected`);
-      // Find rooms this user is in
-      for (const [code, room] of rooms) {
-        const idx = room.players.findIndex((p) => p.id === socket.user.id);
-        if (idx !== -1) {
-          handleLeave(io, socket, code);
-        }
-      }
+      const code = userRoomMap.get(socket.user.id);
+      if (code) handleLeave(io, socket, code);
     });
   });
 }
@@ -963,7 +979,6 @@ const handleLeave = async (io, socket, roomCode) => {
       try {
         await CompetitionResult.create({
           userId: player.id,
-          roomId: roomCode,
           roomCode: roomCode,
           category: room.category,
           challengeMode: room.challengeMode || "classic",
@@ -981,6 +996,7 @@ const handleLeave = async (io, socket, roomCode) => {
     }
 
     room.players.splice(playerIndex, 1);
+    userRoomMap.delete(socket.user.id);
     io.to(roomCode).emit("playerLeft", {
       playerId: player.id,
       leftPlayer: player.name,
@@ -1014,7 +1030,27 @@ const handleLeave = async (io, socket, roomCode) => {
 
 // ─── HELPERS ──────────────────────────────────────────────────
 
-function sanitizeQuestion(question, category, challengeMode = "classic") {
+// Returns room data safe to send to players — never includes questions/answers
+function safeRoomPayload(room) {
+  return {
+    roomCode: room.roomCode,
+    hostId: room.hostId,
+    status: room.status,
+    category: room.category,
+    challengeMode: room.challengeMode,
+    difficulty: room.difficulty,
+    language: room.language,
+    topic: room.topic,
+    description: room.description,
+    totalQuestions: room.totalQuestions,
+    timerDuration: room.timerDuration,
+    pendingRequests: room.pendingRequests,
+    players: room.players,
+    createdAt: room.createdAt,
+  };
+}
+
+function sanitizeQuestion(question, category, challengeMode = "classic", room = null, questionIndex = 0) {
   // Base fields for general category
   if (category === "general" || challengeMode !== "classic") {
     // For scenario-based modes (debug, outage, refactor, missing) or interactive, include extra fields
@@ -1050,8 +1086,9 @@ function sanitizeQuestion(question, category, challengeMode = "classic") {
 
       let indices;
       // Use room-level shuffle maps to keep question objects immutable
+      if (!room) return base; // drag_match requires room context
       if (!room._shuffleMaps) room._shuffleMaps = {};
-      const mapKey = `q${room.questions.indexOf(question)}_dragMatch`;
+      const mapKey = `q${questionIndex}_dragMatch`;
 
       if (room._shuffleMaps[mapKey]) {
         // Reuse existing shuffle map (important for consistency across players/reconnects)
@@ -1163,7 +1200,6 @@ async function endGame(io, roomCode, room) {
 
     const results = finalLeaderboard.map((p, index) => ({
       userId: p.id,
-      roomId: roomCode,
       roomCode: roomCode,
       category: room.category,
       challengeMode: room.challengeMode || "classic",
@@ -1197,28 +1233,23 @@ async function endGame(io, roomCode, room) {
 }
 
 async function awardXP(leaderboard) {
-  try {
-    // First, determine total wins for context (how many #1 finishes they have, strictly optional context to pass down but good for accurate badge checking)
-    for (let i = 0; i < leaderboard.length; i++) {
-      const playerEntry = leaderboard[i];
-      if (playerEntry.score <= 0) continue; // No XP for 0 score
-
-      const xpReward = i === 0 ? 100 : i === 1 ? 50 : 25;
-      const totalEarned = xpReward + Math.floor(playerEntry.score / 10);
-
-      let user = await User.findById(playerEntry.id);
-      if (user) {
-        // Find their total historic wins to pass to achievement evaluator
+  await Promise.all(
+    leaderboard.map(async (playerEntry, i) => {
+      if (playerEntry.score <= 0) return;
+      try {
+        const xpReward = i === 0 ? 100 : i === 1 ? 50 : 25;
+        const totalEarned = xpReward + Math.floor(playerEntry.score / 10);
+        const user = await User.findById(playerEntry.id);
+        if (!user) return;
         const totalWins = await CompetitionResult.countDocuments({
           userId: user._id,
           rank: 1,
           status: "completed",
         });
-
         await addXP(user, totalEarned, { totalWins });
+      } catch (err) {
+        console.error(`[Socket] Error awarding XP for ${playerEntry.name}:`, err);
       }
-    }
-  } catch (err) {
-    console.error("[Socket] Error awarding XP:", err);
-  }
+    })
+  );
 }

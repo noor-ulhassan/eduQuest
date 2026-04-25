@@ -123,32 +123,7 @@ const CompetitionLobby = () => {
     toggleMute,
   } = useVoiceChat(socket, roomCode, user);
 
-  // Auto-rejoin on reconnection to update socket ID on server
-  useEffect(() => {
-    if (!socket) return;
-
-    const onConnect = () => {
-      console.log("Socket connected/reconnected, checking room:", roomCode);
-      if (roomCode) {
-        socket.emit("joinRoom", { roomCode }, (res) => {
-          if (res.success) {
-            console.log("Re-joined room successfully:", res.room);
-            setRoom(res.room);
-            setPendingRequests(res.room.pendingRequests || []);
-          }
-        });
-      }
-    };
-
-    socket.on("connect", onConnect);
-
-    // Also try immediately if already connected but maybe lost room state on server restart
-    if (socket.connected && roomCode) {
-      // Optional: could ping server here
-    }
-
-    return () => socket.off("connect", onConnect);
-  }, [socket, roomCode]);
+  // Reconnect recovery is handled by syncState below — no separate auto-rejoin needed
 
   // Keep ref in sync for cleanup closure
   useEffect(() => {
@@ -209,12 +184,10 @@ const CompetitionLobby = () => {
       });
     };
 
-    socket.on("reconnect", handleReconnect);
-    // Also handle the io "connect" event which fires on reconnect for socket.io v4+
+    // Socket.IO v4: "reconnect" fires on the Manager (socket.io), not the socket itself
     socket.io?.on("reconnect", handleReconnect);
 
     return () => {
-      socket.off("reconnect", handleReconnect);
       socket.io?.off("reconnect", handleReconnect);
     };
   }, [socket]);
@@ -236,12 +209,8 @@ const CompetitionLobby = () => {
       toast(`${newPlayer} joined the room!`);
     };
 
-    const onPlayerLeft = ({ playerId }) => {
-      setRoom((prev) => {
-        if (!prev) return prev;
-        const updated = prev.players.filter((p) => p.id !== playerId);
-        return { ...prev, players: updated };
-      });
+    const onPlayerLeft = ({ players }) => {
+      setRoom((prev) => prev ? { ...prev, players } : prev);
       toast("A player left the room", { icon: "👋" });
     };
 
@@ -475,7 +444,7 @@ const CompetitionLobby = () => {
           if (response.room.status === "active") newState = "playing";
           else if (response.room.status === "ready") {
             newState = "ready";
-            setReadyQuestionCount(response.room.questions?.length || 0);
+            setReadyQuestionCount(response.room.totalQuestions || 0);
           } else if (response.room.status === "generating") {
             newState = "generating";
           }
@@ -1271,6 +1240,7 @@ const CompetitionLobby = () => {
                     setFinishData(null);
                     setComboCount(0);
                     confettiFired.current = false;
+                    setSettings({ category: "general", challengeMode: "classic", difficulty: "medium", language: "javascript", totalQuestions: 5, timerDuration: 300, topic: "", description: "" });
                     toast.success(`New room ${response.roomCode} created!`);
                   } else {
                     toast.error("Failed to create new room");
@@ -1476,7 +1446,7 @@ const CompetitionLobby = () => {
           <motion.div
             className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
             animate={{
-              width: `${(timeRemaining / (settings.timerDuration || 300)) * 100}%`,
+              width: `${(timeRemaining / (gameDurationRef.current || settings.timerDuration || 300)) * 100}%`,
             }}
             transition={{ ease: "linear", duration: 1 }}
           />
@@ -1683,7 +1653,7 @@ const CompetitionLobby = () => {
           <motion.div
             className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-500 to-orange-500" : "bg-gradient-to-r from-green-500 to-emerald-400"}`}
             animate={{
-              width: `${(timeRemaining / (settings.timerDuration || 300)) * 100}%`,
+              width: `${(timeRemaining / (gameDurationRef.current || settings.timerDuration || 300)) * 100}%`,
             }}
             transition={{ duration: 0.5 }}
           />
