@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { connectSocket, disconnectSocket, getSocket } from "../../lib/socket";
@@ -92,6 +92,11 @@ const CompetitionLobby = () => {
   const [gameCategory, setGameCategory] = useState(null);
   const [gameChallengeMode, setGameChallengeMode] = useState("classic");
   const [finalResults, setFinalResults] = useState(null);
+  const confettiFired = useRef(false);
+  const gameStartTimeRef = useRef(null);
+  const gameDurationRef = useRef(null);
+  const timerIntervalRef = useRef(null);
+  const roomCodeRef = useRef("");
 
   // Gamification state
   const [showVS, setShowVS] = useState(false);
@@ -145,6 +150,11 @@ const CompetitionLobby = () => {
     return () => socket.off("connect", onConnect);
   }, [socket, roomCode]);
 
+  // Keep ref in sync for cleanup closure
+  useEffect(() => {
+    roomCodeRef.current = roomCode;
+  }, [roomCode]);
+
   // Connect socket on mount
   useEffect(() => {
     if (!user) return;
@@ -154,11 +164,60 @@ const CompetitionLobby = () => {
 
     return () => {
       const sock = getSocket();
-      if (sock && roomCode) {
-        sock.emit("leaveRoom", { roomCode });
+      if (sock && roomCodeRef.current) {
+        sock.emit("leaveRoom", { roomCode: roomCodeRef.current });
       }
     };
-  }, []);
+  }, [user]);
+
+  // CLI-3: Reconnection recovery — sync state from server if we reconnect mid-game
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReconnect = () => {
+      const code = roomCodeRef.current;
+      if (!code) return;
+
+      console.log("[Socket] Reconnected — syncing state...");
+      socket.emit("syncState", { roomCode: code }, (state) => {
+        if (!state?.success) return;
+
+        // Restore game state
+        setLeaderboard(state.leaderboard || []);
+        if (state.settings) setSettings(state.settings);
+
+        if (state.gameState === "active") {
+          setGameState("playing");
+          if (state.currentQuestion) {
+            setCurrentQuestion(state.currentQuestion);
+            setQuestionIndex(state.questionIndex || 0);
+          }
+          if (state.timeRemaining != null) {
+            setTimeRemaining(state.timeRemaining);
+            gameStartTimeRef.current = Date.now() - (state.settings.timerDuration - state.timeRemaining) * 1000;
+            gameDurationRef.current = state.settings.timerDuration;
+          }
+          setSelectedAnswer(null);
+          setAnswerResult(null);
+          toast.success("Reconnected to game!");
+        } else if (state.gameState === "finished") {
+          setGameState("finished");
+          setFinalResults(state.leaderboard);
+        } else {
+          setGameState("lobby");
+        }
+      });
+    };
+
+    socket.on("reconnect", handleReconnect);
+    // Also handle the io "connect" event which fires on reconnect for socket.io v4+
+    socket.io?.on("reconnect", handleReconnect);
+
+    return () => {
+      socket.off("reconnect", handleReconnect);
+      socket.io?.off("reconnect", handleReconnect);
+    };
+  }, [socket]);
 
   // Socket event listeners
   useEffect(() => {
@@ -177,9 +236,13 @@ const CompetitionLobby = () => {
       toast(`${newPlayer} joined the room!`);
     };
 
-    const onPlayerLeft = ({ players, leftPlayer }) => {
-      setRoom((prev) => (prev ? { ...prev, players } : prev));
-      if (leftPlayer) toast(`${leftPlayer} left the room`, { icon: "👋" });
+    const onPlayerLeft = ({ playerId }) => {
+      setRoom((prev) => {
+        if (!prev) return prev;
+        const updated = prev.players.filter((p) => p.id !== playerId);
+        return { ...prev, players: updated };
+      });
+      toast("A player left the room", { icon: "👋" });
     };
 
     const onSettingsUpdated = (newSettings) => {
@@ -244,7 +307,8 @@ const CompetitionLobby = () => {
       setLeaderboard(lb);
     };
 
-    const onTimerUpdate = ({ remaining }) => {
+    // timerSync: server sends a correction every 30s to fix drift
+    const onTimerSync = ({ remaining }) => {
       setTimeRemaining(remaining);
     };
 
@@ -273,7 +337,7 @@ const CompetitionLobby = () => {
     socket.on("gameStarted", onGameStarted);
     socket.on("nextQuestion", onNextQuestion);
     socket.on("leaderboardUpdate", onLeaderboardUpdate);
-    socket.on("timerUpdate", onTimerUpdate);
+    socket.on("timerSync", onTimerSync);
     socket.on("playerFinished", onPlayerFinished);
     socket.on("gameOver", onGameOver);
 
@@ -304,7 +368,7 @@ const CompetitionLobby = () => {
       socket.off("gameStarted", onGameStarted);
       socket.off("nextQuestion", onNextQuestion);
       socket.off("leaderboardUpdate", onLeaderboardUpdate);
-      socket.off("timerUpdate", onTimerUpdate);
+      socket.off("timerSync", onTimerSync);
       socket.off("playerFinished", onPlayerFinished);
       socket.off("gameOver", onGameOver);
       socket.off("joinRequest", onJoinRequest);
@@ -470,10 +534,12 @@ const CompetitionLobby = () => {
     copyToClipboard(link);
   };
 
-  const handleUpdateSettings = (key, value) => {
-    const newSettings = { ...settings, [key]: value };
+  const handleUpdateSettings = (keyOrObj, value) => {
+    // Support both single key-value and object of multiple settings
+    const updates = typeof keyOrObj === "string" ? { [keyOrObj]: value } : keyOrObj;
+    const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
-    socket?.emit("updateSettings", { roomCode, settings: { [key]: value } });
+    socket?.emit("updateSettings", { roomCode, settings: updates });
   };
 
   const handleStartGame = () => {
@@ -527,7 +593,7 @@ const CompetitionLobby = () => {
         setIsSubmitting(false);
 
         // Combo tracking + sound effects
-        if (result?.correct) {
+        if (result?.isCorrect) {
           setComboCount((prev) => prev + 1);
           playCorrectSound();
           setFeedbackResult({
@@ -565,7 +631,69 @@ const CompetitionLobby = () => {
     setComboCount(0);
     setFeedbackResult(null);
     setVsData(null);
+
+    // Start local timer countdown
+    gameStartTimeRef.current = Date.now();
+    gameDurationRef.current = vsData.timerDuration;
   };
+
+  // ─── Confetti + victory sound — fire once when game finishes ──
+  useEffect(() => {
+    if (gameState !== "finished" || !leaderboard.length || confettiFired.current) return;
+    confettiFired.current = true;
+
+    const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
+    const winnerId = sorted[0]?.id;
+
+    setTimeout(() => {
+      if (winnerId === user?._id) playVictorySound();
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#f97316", "#eab308", "#ef4444", "#22c55e"],
+      });
+      setTimeout(
+        () =>
+          confetti({
+            particleCount: 80,
+            spread: 120,
+            origin: { y: 0.3, x: 0.3 },
+          }),
+        400,
+      );
+      setTimeout(
+        () =>
+          confetti({
+            particleCount: 80,
+            spread: 120,
+            origin: { y: 0.3, x: 0.7 },
+          }),
+        700,
+      );
+    }, 300);
+  }, [gameState, leaderboard, user]);
+
+  // ─── Client-side timer — compute remaining time locally ──
+  useEffect(() => {
+    // Only run the timer when game is actively playing
+    if (gameState !== "playing" || !gameStartTimeRef.current || !gameDurationRef.current) {
+      return;
+    }
+
+    timerIntervalRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - gameStartTimeRef.current) / 1000);
+      const remaining = gameDurationRef.current - elapsed;
+      setTimeRemaining(Math.max(0, remaining));
+    }, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [gameState]);
 
   // ─── RENDER: VS Screen ─────────────────────────────────
   if (showVS && room?.players) {
@@ -694,116 +822,272 @@ const CompetitionLobby = () => {
   // ─── RENDER: No Room Yet (Create/Join) ──────────────────
   if (!room) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 bg-[url('/gladiator1.jpg')] bg-cover bg-center bg-no-repeat">
-        {/* Overlay for text readability */}
-        <div className="absolute inset-0 bg-black/50 z-0" />
-
-        {/* Content wrapper - centered, consistent spacing */}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 px-4 py-12">
+        {/* Main content */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full max-w-4xl flex flex-col items-center gap-10"
         >
-          {/* Header */}
-          <header className="text-center mb-8 sm:mb-10">
-            <h1 className="text-3xl sm:text-4xl font-bold text-yellow-400 mb-3">
-              EduQuest Arena
-            </h1>
-            <p className="text-zinc-300 text-base sm:text-lg">
-              Challenge your friends in coding battles & quizzes
-            </p>
-          </header>
+          {/* Top badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.08 }}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+            style={{
+              background: "rgba(249,115,22,0.1)",
+              border: "1px solid rgba(249,115,22,0.3)",
+              color: "#f97316",
+            }}
+          >
+            <Swords size={11} />
+            Live Competitions
+          </motion.div>
 
-          {/* Cards container */}
-          <div className="w-full space-y-5 sm:space-y-6">
-            {/* Create Room */}
-            <div className="border border-zinc-700/80 rounded-2xl p-6 bg-zinc-900/40 backdrop-blur-sm">
-              <div className="flex items-center gap-3 mb-3">
-                <img
-                  src="crown.jpg"
-                  alt=""
-                  width={40}
-                  height={48}
-                  className="rounded-lg object-contain"
-                />
+          {/* Headline */}
+          <div className="text-center space-y-3">
+            <motion.h1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="font-bold leading-tight text-white"
+              style={{
+                fontSize: "clamp(2rem, 5vw, 3.6rem)",
+                letterSpacing: "0.05rem",
+              }}
+            >
+              Compete. <span style={{ color: "#f97316" }}>Win.</span> Level Up.
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-zinc-400 max-w-md mx-auto leading-relaxed text-sm sm:text-base"
+            >
+              Host a room, invite your peers, and race through challenges in
+              real-time. Fastest and most accurate wins.
+            </motion.p>
+          </div>
+
+          {/* Stat pills */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.28 }}
+            className="flex items-center divide-x divide-zinc-800 rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900"
+          >
+            {[
+              { label: "Game Modes", value: "7" },
+              { label: "Max Players", value: "20" },
+              { label: "XP on Win", value: "100+" },
+              { label: "Voice Chat", value: "✓" },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex flex-col items-center gap-0.5 px-6 py-3"
+              >
+                <span
+                  className="text-xl font-black"
+                  style={{ color: "#f97316" }}
+                >
+                  {value}
+                </span>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest whitespace-nowrap">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Action cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+            className="w-full grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
+            {/* ── HOST A ROOM ── */}
+            <div
+              className="relative rounded-2xl p-7 flex flex-col gap-5 group overflow-hidden transition-all duration-300 hover:border-red-600/40"
+              style={{
+                background: "#111111",
+                border: "1px solid #1f1f1f",
+              }}
+            >
+              {/* Left accent line */}
+              <div
+                className="absolute left-0 top-6 bottom-6 w-[3px] rounded-full"
+                style={{
+                  background: "linear-gradient(180deg, #dc2626, #7f1d1d)",
+                }}
+              />
+
+              {/* Icon + title */}
+              <div className="flex items-center gap-4 pl-3">
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{
+                    background: "rgba(220,38,38,0.12)",
+                    border: "1px solid rgba(220,38,38,0.25)",
+                  }}
+                >
+                  <Crown size={20} className="text-red-400" />
+                </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    Create a Room
-                  </h2>
-                  <p className="text-sm text-zinc-400 mt-0.5">
-                    Share the code with your friends
+                  <h2 className="text-lg font-bold text-white">Host a Room</h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    You control the rules
                   </p>
                 </div>
               </div>
-              <Button
-                variant="pixel"
+
+              <p className="text-sm text-zinc-400 leading-relaxed pl-3">
+                Create a private room, configure difficulty, question type, and
+                time limit. Share a 6-character code to bring players in.
+              </p>
+
+              {/* Feature list */}
+              <ul className="space-y-2 pl-3">
+                {[
+                  "Pick from 7 challenge types",
+                  "Easy / Medium / Hard difficulty",
+                  "Set a custom time limit",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-center gap-2 text-xs text-zinc-400"
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: "#dc2626" }}
+                    />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <button
                 onClick={handleCreateRoom}
                 disabled={isConnecting}
-                className="w-full py-3 rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full rounded-xl font-semibold py-3.5 text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-50 mt-auto"
+                style={{
+                  background: "linear-gradient(135deg, #dc2626, #b91c1c)",
+                  border: "1px solid rgba(220,38,38,0.5)",
+                  letterSpacing: "0.03rem",
+                }}
               >
                 {isConnecting ? (
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={17} className="animate-spin" />
                 ) : (
-                  <Swords size={18} />
+                  <Crown size={17} />
                 )}
-                Create Room
-              </Button>
+                {isConnecting ? "Creating Room..." : "Create Room"}
+              </button>
             </div>
 
-            {/* Divider */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-zinc-500" />
-              <span className="text-zinc-200 text-xs font-bold uppercase tracking-wider">
-                or
-              </span>
-              <div className="flex-1 h-px bg-zinc-500" />
-            </div>
+            {/* ── JOIN A ROOM ── */}
+            <div
+              className="relative rounded-2xl p-7 flex flex-col gap-5 group overflow-hidden transition-all duration-300 hover:border-orange-500/40"
+              style={{
+                background: "#111111",
+                border: "1px solid #1f1f1f",
+              }}
+            >
+              {/* Left accent line */}
+              <div
+                className="absolute left-0 top-6 bottom-6 w-[3px] rounded-full"
+                style={{
+                  background: "linear-gradient(180deg, #f97316, #c2410c)",
+                }}
+              />
 
-            {/* Join Room */}
-            <div className="border border-zinc-700/80 rounded-2xl p-6 bg-zinc-900/40 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <Users size={20} className="text-blue-400 shrink-0" />
-                <h2 className="text-lg font-semibold text-white">
-                  Join a Room
-                </h2>
+              {/* Icon + title */}
+              <div className="flex items-center gap-4 pl-3">
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{
+                    background: "rgba(249,115,22,0.1)",
+                    border: "1px solid rgba(249,115,22,0.2)",
+                  }}
+                >
+                  <Users size={20} className="text-orange-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Join a Room</h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Got a code? Get in.
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-zinc-400 mb-4">
-                Enter the 6-character code shared by the host
+
+              <p className="text-sm text-zinc-400 leading-relaxed pl-3">
+                Enter the 6-character code your host shared. You'll drop
+                straight into the lobby and wait for the match to start.
               </p>
-              <div className="flex gap-2 sm:gap-3">
-                <Input
+
+              {/* Code input */}
+              <div className="flex flex-col gap-2 pl-3">
+                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
+                  Room Code
+                </label>
+                <input
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder="ABC123"
+                  onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
+                  placeholder="X 4 K Z 9 P"
                   maxLength={6}
-                  className="flex-1 h-12 text-center text-lg font-mono tracking-[0.25em] uppercase bg-zinc-800/80 border-zinc-600 text-white placeholder:text-zinc-500 focus-visible:ring-2 focus-visible:ring-orange-500"
+                  className="h-14 text-center text-2xl font-mono tracking-[0.5em] uppercase outline-none rounded-xl transition-all placeholder:text-zinc-700 placeholder:tracking-[0.3em]"
+                  style={{
+                    background: "#0a0a0a",
+                    border: "1px solid #2a2a2a",
+                    color: "#fff",
+                  }}
+                  onFocus={(e) =>
+                    (e.target.style.borderColor = "rgba(249,115,22,0.6)")
+                  }
+                  onBlur={(e) => (e.target.style.borderColor = "#2a2a2a")}
                 />
-                <Button
-                  variant={"pixel"}
-                  onClick={() => handleJoinRoom()}
-                  disabled={isConnecting || !joinCode.trim()}
-                  className="h-12 px-6 shrink-0 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-100"
-                >
-                  Join
-                </Button>
               </div>
+
+              <button
+                onClick={() => handleJoinRoom()}
+                disabled={isConnecting || !joinCode.trim()}
+                className="w-full rounded-xl font-semibold py-3.5 text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-40 mt-auto"
+                style={{
+                  background: joinCode.trim()
+                    ? "linear-gradient(135deg, #f97316, #ea580c)"
+                    : "rgba(249,115,22,0.1)",
+                  border: "1px solid rgba(249,115,22,0.3)",
+                  letterSpacing: "0.03rem",
+                }}
+              >
+                {isConnecting ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  <Zap size={17} />
+                )}
+                {isConnecting ? "Joining Room..." : "Enter Room"}
+              </button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Back link */}
-          <button
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
             onClick={() => navigate("/")}
-            className="mt-6 sm:mt-8 flex items-center font-bold justify-center gap-2 py-2 px-4 text-zinc-300 hover:text-white text-sm transition-colors"
+            className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-400 text-sm transition-colors"
           >
-            <ArrowLeft size={16} className="shrink-0" />
+            <ArrowLeft size={14} />
             Back to Home
-          </button>
+          </motion.button>
         </motion.div>
       </div>
     );
   }
-
   // ─── RENDER: Generating ─────────────────────────────────
   if (gameState === "generating") {
     const loadingStates = [
@@ -973,11 +1257,25 @@ const CompetitionLobby = () => {
             </button>
             <button
               onClick={() => {
-                setGameState("lobby");
-                setRoom((prev) => ({ ...prev, status: "waiting" }));
-                setFinalResults(null);
-                setLeaderboard([]);
-                setCurrentQuestion(null);
+                // Create a fresh room via socket to avoid client/server desync
+                if (!socket?.connected) return;
+                socket.emit("createRoom", (response) => {
+                  if (response.success) {
+                    setRoomCode(response.roomCode);
+                    setRoom({ ...response.room, hostId: user._id });
+                    setGameState("lobby");
+                    setFinalResults(null);
+                    setLeaderboard([]);
+                    setCurrentQuestion(null);
+                    setUserFinished(false);
+                    setFinishData(null);
+                    setComboCount(0);
+                    confettiFired.current = false;
+                    toast.success(`New room ${response.roomCode} created!`);
+                  } else {
+                    toast.error("Failed to create new room");
+                  }
+                });
               }}
               className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-pink-600 rounded-xl font-semibold transition"
             >
@@ -1557,6 +1855,7 @@ const CompetitionLobby = () => {
     );
   }
 
+
   // ─── RENDER: Game Finished (Results) ─────────────────────────────
   if (gameState === "finished") {
     const sortedLeaderboard = [...leaderboard].sort(
@@ -1568,37 +1867,6 @@ const CompetitionLobby = () => {
     const rest = sortedLeaderboard.slice(3);
     const isWinner = winner?.id === user?._id;
     const isHost = room?.host?._id === user?._id;
-
-    // Fire confetti + victory sound on mount
-    if (typeof window !== "undefined" && winner) {
-      setTimeout(() => {
-        if (isWinner) playVictorySound();
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ["#f97316", "#eab308", "#ef4444", "#22c55e"],
-        });
-        setTimeout(
-          () =>
-            confetti({
-              particleCount: 80,
-              spread: 120,
-              origin: { y: 0.3, x: 0.3 },
-            }),
-          400,
-        );
-        setTimeout(
-          () =>
-            confetti({
-              particleCount: 80,
-              spread: 120,
-              origin: { y: 0.3, x: 0.7 },
-            }),
-          700,
-        );
-      }, 300);
-    }
 
     return (
       <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 flex flex-col items-center justify-center">
@@ -1852,7 +2120,7 @@ const CompetitionLobby = () => {
                     </Button>
                   </div>
                   <Button
-                    onClick={handleCopyCode}
+                    onClick={handleCopyLink}
                     variant="secondary"
                     className="flex items-center justify-center gap-2 bg-white text-zinc-900 hover:bg-zinc-200 shrink-0 min-h-[46px]"
                   >
@@ -1895,8 +2163,7 @@ const CompetitionLobby = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => {
-                            handleUpdateSettings("category", "programming");
-                            handleUpdateSettings("challengeMode", "classic");
+                            handleUpdateSettings({ category: "programming", challengeMode: "classic" });
                           }}
                           className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
                             settings.category === "programming"
@@ -1916,8 +2183,7 @@ const CompetitionLobby = () => {
                         </button>
                         <button
                           onClick={() => {
-                            handleUpdateSettings("category", "general");
-                            handleUpdateSettings("challengeMode", "classic");
+                            handleUpdateSettings({ category: "general", challengeMode: "classic" });
                           }}
                           className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
                             settings.category === "general"

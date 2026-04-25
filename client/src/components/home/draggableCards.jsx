@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2, Lock, Star } from "lucide-react";
-import { getPlaygroundProgress } from "../../features/playground/playgroundApi";
-import { PLAYGROUND_DATA } from "../../data/playground";
+import { getPlaygroundProgress, getCurriculumsMetadata } from "../../features/playground/playgroundApi";
 
 export function DraggableCards() {
   const navigate = useNavigate();
@@ -47,45 +46,56 @@ export function DraggableCards() {
       const allLanguages = ["react", "javascript", "python", "css", "html"];
       let progressMap = {};
 
-      if (user) {
-        try {
-          const { progress } = await getPlaygroundProgress();
-          // Create a map for easy lookup: { 'html': progressObj, ... }
+      let curriculumMetaMap = {};
+
+      try {
+        const [{ progress }, { metadata }] = await Promise.all([
+           user ? getPlaygroundProgress() : { progress: [] },
+           getCurriculumsMetadata()
+        ]);
+        
+        if (metadata) {
+          curriculumMetaMap = metadata.reduce((acc, m) => {
+            acc[m.language] = m;
+            return acc;
+          }, {});
+        }
+
+        if (progress && Array.isArray(progress)) {
           progressMap = progress.reduce((acc, p) => {
             acc[p.language] = p;
             return acc;
           }, {});
-        } catch (error) {
-          console.error("Error fetching enrolled playgrounds:", error);
         }
+      } catch (error) {
+        console.error("Error fetching playgrounds data:", error);
       }
 
       // Generate cards for ALL languages
       const allCards = allLanguages
         .map((lang, index) => {
-          const langData = PLAYGROUND_DATA[lang];
+          const langMeta = curriculumMetaMap[lang];
           const langInfo = languageMap[lang];
           const userProgress = progressMap[lang];
 
-          if (!langData || !langInfo) return null;
+          if (!langMeta || !langInfo) return null;
 
-          const totalChapters = langData.chapters.length;
-          // Get first 2 chapter names for display
-          const lessons = langData.chapters.slice(0, 2).map((ch) => ch.title);
+          const totalChapters = langMeta.totalChapters;
+          const lessons = langMeta.lessons;
 
           if (userProgress) {
             // ENROLLED STATE
-            const completedChapters = langData.chapters.filter((ch) =>
-              ch.problems.every((prob) =>
-                userProgress.completedProblems.includes(prob.id),
-              ),
-            ).length;
+            // We just use a rough chapter count based on completed problems vs total problems
+            // Because calculating exact chapters requires the full curriculum
+            // A simple approximation for the card:
+            const completedChapters = Math.floor((userProgress.completedProblems?.length || 0) / (langMeta.totalProblems / totalChapters)) || 0;
+            const cappedCompleted = Math.min(completedChapters, totalChapters);
 
             return {
               id: index + 1,
               language: lang,
               title: langInfo.title,
-              level: `Chapter ${completedChapters}/${totalChapters}`,
+              level: `Chapter ${cappedCompleted}/${totalChapters}`,
               img: langInfo.img,
               lessons,
               isEnrolled: true,

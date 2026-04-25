@@ -11,10 +11,12 @@ import authRoute from "./routes/auth.routes.js";
 import documentRoute from "./routes/documentRoutes.js";
 import quizRoute from "./routes/quizRoutes.js";
 import playgroundRoute from "./routes/playgroundRoutes.js";
+import curriculumRoute from "./routes/curriculumRoutes.js";
 import leaderboardRoute from "./routes/leaderboardRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import competitionRoutes from "./routes/competitionRoutes.js";
 import codeRoute from "./routes/codeRoutes.js";
+import discussionRoutes from "./routes/discussionRoutes.js";
 import { initializeSocket } from "./socket/roomHandler.js";
 import quizAttemptRoute from "./routes/quizAttemptRoutes.js";
 
@@ -66,10 +68,12 @@ app.use("/api/v1/documents", documentRoute);
 app.use("/api/v1/quiz", quizRoute);
 app.use("/api/v1/quiz-attempts", quizAttemptRoute);
 app.use("/api/v1/playground", playgroundRoute);
+app.use("/api/v1/curriculum", curriculumRoute);
 app.use("/api/v1/leaderboard", leaderboardRoute);
 app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/competition", competitionRoutes);
 app.use("/api/v1/code", codeRoute);
+app.use("/api/v1/discussions", discussionRoutes);
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);

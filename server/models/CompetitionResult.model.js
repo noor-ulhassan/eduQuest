@@ -47,6 +47,11 @@ const competitionResultSchema = new mongoose.Schema({
   },
 });
 
+// Indexes for common query patterns
+competitionResultSchema.index({ userId: 1, timestamp: -1 });
+competitionResultSchema.index({ userId: 1, rank: 1, status: 1 });
+competitionResultSchema.index({ roomCode: 1 });
+
 export const CompetitionResult = mongoose.model(
   "CompetitionResult",
   competitionResultSchema,

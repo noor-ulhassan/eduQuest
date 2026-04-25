@@ -3,15 +3,9 @@ import { useSelector } from "react-redux";
 import HeroSection from "../../components/home/HeroSection";
 import FeaturesSection from "../../components/home/FeaturesSection";
 import UserStats from "@/components/user/UserStatus";
-
 import Streak from "../../components/home/streak";
-import ExplorePremium from "../../components/home/explorePremium";
-import TopCommunityPosts from "../../components/social/TopCommunityPosts";
 import DraggableCards from "../../components/home/draggableCards";
-import ExploreMore from "@/components/user/ExploreMore";
 import { Highlighter } from "@/components/ui/highlighter";
-import LiveCompetitions from "../../components/home/LiveCompetitions";
-import CompetitionStats from "../../components/home/CompetitionStats";
 
 const HomePage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -77,25 +71,8 @@ const HomePage = () => {
                   View Global Leaderboard
                 </button>
               </div>
-              <CompetitionStats />
-              <LiveCompetitions />
-
-              <section>
-                <div className="mb-6 sm:mb-8">
-                  <Highlighter action="underline" color="orange">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-hand">
-                      Community{" "}
-                      <Highlighter action="highlight" color="skyblue">
-                        Posts
-                      </Highlighter>{" "}
-                    </h1>
-                  </Highlighter>
-                  <p className="text-gray-500 mt-2 text-sm sm:text-base">
-                    See what others are sharing
-                  </p>
-                </div>
-                <TopCommunityPosts />
-              </section>
+              {/* <CompetitionStats /> */}
+              {/* <LiveCompetitions /> */}
             </div>
           </main>
         </div>

@@ -39,8 +39,8 @@ const COLOR = {
 const tokenCls = (color, filled = false) =>
   (COLOR[color] || COLOR.zinc)[filled ? "filled" : "chip"];
 
-// Shuffle helper
-const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+// Shuffle helper (guard against undefined/null)
+const shuffle = (arr) => (arr ? [...arr].sort(() => Math.random() - 0.5) : []);
 
 // ─── Main component ──────────────────────────────────────────────────────────
 const InteractiveProblem = ({ problem, onSolve, isAlreadySolved }) => {

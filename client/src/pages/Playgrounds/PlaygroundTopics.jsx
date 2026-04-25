@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { PLAYGROUND_DATA } from "../../data/playground";
 import {
-  getPlaygroundProgress,
+  getLanguageProgress,
   enrollInPlayground,
+  getCurriculum,
 } from "../../features/playground/playgroundApi";
 import { motion } from "framer-motion";
 import {
@@ -107,30 +107,36 @@ const PlaygroundTopics = () => {
   const [enrolling, setEnrolling] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(null);
 
-  const data = PLAYGROUND_DATA[language?.toLowerCase()];
+  const [data, setData] = useState(null);
+
   const meta = LANG_META[language?.toLowerCase()] || LANG_META.javascript;
 
-  /* ── fetch progress ── */
+  /* ── fetch data and progress ── */
   useEffect(() => {
-    const fetchProgress = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const { progress } = await getPlaygroundProgress();
-        const current = progress.find((p) => p.language === language);
-        if (current) {
-          setIsEnrolled(true);
-          setCompletedProblems(new Set(current.completedProblems));
+        // Fetch the curriculum data for this language
+        const res = await getCurriculum(language);
+        if (res.success && res.curriculum) {
+          setData(res.curriculum);
+        }
+
+        // Fetch user progress if logged in
+        if (user) {
+          const { progress: current } = await getLanguageProgress(language);
+          if (current) {
+            setIsEnrolled(true);
+            setCompletedProblems(new Set(current.completedProblems));
+          }
         }
       } catch (err) {
-        console.error("Error fetching progress:", err);
+        console.error("Error fetching playground data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProgress();
+    fetchData();
   }, [user, language]);
 
   /* ── enroll handler ── */
@@ -260,14 +266,14 @@ const PlaygroundTopics = () => {
                   <div className="flex justify-between text-xs text-zinc-400 mb-1.5">
                     <span>Progress</span>
                     <span>
-                      {Math.round((completedChapters / totalLessons) * 100)}%
+                      {totalExercises > 0 ? Math.round((completedProblems.size / totalExercises) * 100) : 0}%
                     </span>
                   </div>
                   <div className="h-2 bg-[#1a1a1a] rounded-full overflow-hidden border border-white/5">
                     <div
                       className={`h-full rounded-full bg-gradient-to-r ${meta.accent} transition-all duration-700`}
                       style={{
-                        width: `${(completedChapters / totalLessons) * 100}%`,
+                        width: `${totalExercises > 0 ? (completedProblems.size / totalExercises) * 100 : 0}%`,
                       }}
                     />
                   </div>

@@ -13,10 +13,10 @@ const MainLayout = () => {
   const hideNavbar =
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||
-    location.pathname.startsWith("/course/") ||
     location.pathname === "/leaderboard" ||
     location.pathname === "/login" ||
-    location.pathname === "/signup";
+    location.pathname === "/signup" ||
+    location.pathname.startsWith("/course/");
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
     location.pathname === "/workspace" ||

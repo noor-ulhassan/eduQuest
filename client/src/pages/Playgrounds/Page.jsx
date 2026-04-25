@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import SkillCard from "./components/SkillCard";
-import { getPlaygroundProgress } from "../../features/playground/playgroundApi";
-import { PLAYGROUND_DATA } from "../../data/playground";
+import { getPlaygroundProgress, getCurriculumsMetadata } from "../../features/playground/playgroundApi";
 import { Terminal } from "lucide-react";
 
 export default function Playground() {
@@ -17,21 +16,36 @@ export default function Playground() {
         return;
       }
       try {
-        const { progress } = await getPlaygroundProgress();
+        const [{ progress }, { metadata }] = await Promise.all([
+          getPlaygroundProgress(),
+          getCurriculumsMetadata()
+        ]);
+        
         const progressMap = {};
+        
+        // Default init with total problems
+        if (metadata) {
+          metadata.forEach((m) => {
+            progressMap[m.language] = {
+              enrolled: false,
+              completed: 0,
+              total: m.totalProblems,
+            };
+          });
+        }
+
         if (progress && Array.isArray(progress)) {
           progress.forEach((p) => {
-            const langData = PLAYGROUND_DATA[p.language];
-            if (langData) {
-              const totalProblems = langData.chapters.reduce(
-                (sum, ch) => sum + ch.problems.length,
-                0,
-              );
-              progressMap[p.language] = {
-                enrolled: true,
-                completed: p.completedProblems?.length || 0,
-                total: totalProblems,
-              };
+            if (progressMap[p.language]) {
+              progressMap[p.language].enrolled = true;
+              progressMap[p.language].completed = p.completedProblems?.length || 0;
+            } else {
+              // fallback if metadata is somehow missing for an enrolled language
+               progressMap[p.language] = {
+                 enrolled: true,
+                 completed: p.completedProblems?.length || 0,
+                 total: 0
+               }
             }
           });
         }

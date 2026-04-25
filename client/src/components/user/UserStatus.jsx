@@ -162,9 +162,8 @@ const UserStats = () => {
             <motion.div
               layoutId={`card-${id}`}
               ref={ref}
-              className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-white dark:bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl relative border border-zinc-200 dark:border-zinc-800 pointer-events-auto no-scrollbar"
+              className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden shadow-xl relative border border-zinc-200 dark:border-zinc-800 pointer-events-auto no-scrollbar"
             >
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-yellow-400/20 rounded-full blur-3xl transition-all duration-700" />
 
               <div className="p-6 sm:p-8 relative z-10">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 mb-6 sm:mb-8">
@@ -172,11 +171,10 @@ const UserStats = () => {
                     layoutId={`image-${id}`}
                     className="relative shrink-0 mx-auto sm:mx-0"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full blur-[6px] opacity-40"></div>
                     <img
                       src={avatarUrl}
                       alt={`${name}'s Avatar`}
-                      className="w-24 h-24 rounded-full border-2 border-white dark:border-zinc-900 relative z-10 object-cover shadow-sm"
+                      className="w-24 h-24 rounded-full border-4 border-zinc-100 dark:border-zinc-800 relative z-10 object-cover shadow-sm"
                       onError={(e) => {
                         e.target.style.display = "none";
                         e.target.nextSibling.style.display = "flex";
@@ -272,18 +270,16 @@ const UserStats = () => {
       <motion.div
         layoutId={`card-${id}`}
         onClick={() => setActive(!active)}
-        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg group relative bg-white dark:bg-zinc-950 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
+        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm group relative bg-white dark:bg-neutral-900 cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
       >
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-yellow-400/10 rounded-full blur-3xl group-hover:bg-yellow-400/20 transition-all duration-700 pointer-events-none" />
 
         <div className="p-6 relative z-10 pointer-events-none">
           <div className="flex items-center gap-5">
             <motion.div layoutId={`image-${id}`} className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full blur-[6px] opacity-40 md:opacity-100 transition-all"></div>
               <img
                 src={avatarUrl}
                 alt={`${name}'s Avatar`}
-                className="w-20 h-20 rounded-full border-2 border-white dark:border-zinc-900 relative z-10 object-cover shadow-sm transition-all"
+                className="w-20 h-20 rounded-full border-4 border-zinc-100 dark:border-zinc-800 relative z-10 object-cover shadow-sm transition-all"
                 onError={(e) => {
                   e.target.style.display = "none";
                   e.target.nextSibling.style.display = "flex";

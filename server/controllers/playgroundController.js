@@ -2,6 +2,7 @@ import PlaygroundProgress from "../models/PlaygroundProgress.js";
 import { User } from "../models/user.model.js";
 import { incrementStreak } from "../utils/streak.js";
 import { addXP } from "../utils/progression.js";
+import { Curriculum } from "../models/Curriculum.js";
 
 // GET /api/v1/playground/progress - Get all playground progress for user
 export const getProgress = async (req, res) => {
@@ -11,6 +12,19 @@ export const getProgress = async (req, res) => {
     return res.status(200).json({ success: true, progress });
   } catch (error) {
     console.error("Error fetching playground progress:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// GET /api/v1/playground/progress/:language - Get progress for a specific language
+export const getLanguageProgress = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { language } = req.params;
+    const progress = await PlaygroundProgress.findOne({ userId, language });
+    return res.status(200).json({ success: true, progress });
+  } catch (error) {
+    console.error("Error fetching language progress:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -65,51 +79,84 @@ export const enrollPlayground = async (req, res) => {
 export const completeProblem = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { language, problemId, xp } = req.body;
+    const { language, problemId } = req.body;
 
-    if (!language || !problemId || typeof xp !== "number") {
+    if (!language || !problemId) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
       });
     }
 
-    // Find or create progress document
-    let progress = await PlaygroundProgress.findOne({ userId, language });
+    // Bug #3 fix: Look up XP from server-side Curriculum Database
+    const curriculum = await Curriculum.findOne({ language });
+    if (!curriculum) {
+      return res.status(400).json({
+        success: false,
+        message: "Unknown language curriculum",
+      });
+    }
 
-    if (!progress) {
-      // Auto-enroll if not enrolled
-      progress = await PlaygroundProgress.create({
+    let xp = null;
+    for (const chapter of curriculum.chapters) {
+      const prob = chapter.problems.find(p => p.id === problemId);
+      if (prob) {
+        xp = prob.xp;
+        break;
+      }
+    }
+
+    if (xp === null) {
+      return res.status(400).json({
+        success: false,
+        message: "Unknown problem ID",
+      });
+    }
+
+    // Bug #4 fix (N6 perf): Single atomic findOneAndUpdate — prevents double XP race
+    // and eliminates 2 extra DB queries by returning the updated doc directly.
+    const updatedProgress = await PlaygroundProgress.findOneAndUpdate(
+      { userId, language, completedProblems: { $ne: problemId } },
+      {
+        $addToSet: { completedProblems: problemId },
+        $inc: { totalXpEarned: xp },
+      },
+      { new: true },
+    );
+
+    // modifiedCount === 0 means already completed or not enrolled
+    if (!updatedProgress) {
+      // Check if the problem was already completed
+      const existing = await PlaygroundProgress.findOne({ userId, language });
+      if (existing?.completedProblems.includes(problemId)) {
+        return res.status(200).json({
+          success: true,
+          message: "Problem already completed",
+          alreadyCompleted: true,
+          user: req.user,
+        });
+      }
+      // Not enrolled — auto-enroll
+      await PlaygroundProgress.create({
         userId,
         language,
-        completedProblems: [],
-        totalXpEarned: 0,
+        completedProblems: [problemId],
+        totalXpEarned: xp,
       });
     }
 
-    // Check if problem already completed (idempotent)
-    if (progress.completedProblems.includes(problemId)) {
-      return res.status(200).json({
-        success: true,
-        message: "Problem already completed",
-        alreadyCompleted: true,
-        user: req.user,
-      });
-    }
+    const progress = updatedProgress || await PlaygroundProgress.findOne({ userId, language });
 
-    // Add problem to completed list
-    progress.completedProblems.push(problemId);
-    progress.totalXpEarned += xp;
-    await progress.save();
-
-    // Increment Streak
+    // Increment Streak + Give XP (Batched to save once)
     let user = await User.findById(userId);
-    user = await incrementStreak(user);
+    user = await incrementStreak(user, { autoSave: false });
 
-    // Give XP and calculate new levels / ranks / badges globally
     user = await addXP(user, xp, {
       totalSolved: progress.completedProblems.length,
-    });
+    }, { autoSave: false });
+
+    // Final single save for the user document
+    await user.save();
 
     // Return updated user stats (without sensitive fields)
     const updatedUser = {
@@ -127,6 +174,7 @@ export const completeProblem = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: `+${xp} XP earned!`,
+      xp,
       user: updatedUser,
       progress,
     });

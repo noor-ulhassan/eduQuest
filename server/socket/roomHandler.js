@@ -8,6 +8,72 @@ import { addXP } from "../utils/progression.js";
 // In-memory room storage
 const rooms = new Map();
 
+// Leaderboard broadcast throttle — max once per 500ms per room
+const leaderboardTimers = new Map();
+
+function scheduleLeaderboardBroadcast(io, roomCode, room) {
+  if (leaderboardTimers.has(roomCode)) return; // Already scheduled
+
+  leaderboardTimers.set(
+    roomCode,
+    setTimeout(() => {
+      leaderboardTimers.delete(roomCode);
+      if (!room || room.status === "finished") return;
+
+      const leaderboard = room.players
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          avatarUrl: p.avatarUrl,
+          score: p.score,
+          currentQuestion: p.currentQuestion,
+          correctAnswers: p.correctAnswers || 0,
+          finished: p.finished,
+        }))
+        .sort((a, b) => b.score - a.score);
+
+      io.to(roomCode).emit("leaderboardUpdate", { leaderboard });
+    }, 500),
+  );
+}
+
+// Notify homepage listeners when room list changes
+function broadcastRoomListUpdate(io) {
+  const activeRooms = [];
+  for (const [code, room] of rooms) {
+    if (room.status === "waiting" || room.status === "active") {
+      const hostPlayer = room.players.find((p) => p.id === room.hostId);
+      activeRooms.push({
+        roomCode: code,
+        hostName: hostPlayer?.name || "Unknown",
+        hostAvatar: hostPlayer?.avatarUrl || null,
+        status: room.status,
+        category: room.category,
+        topic: room.topic || null,
+        description: room.description || null,
+        difficulty: room.difficulty,
+        language: room.language,
+        playerCount: room.players.length,
+        players: room.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          avatarUrl: p.avatarUrl || null,
+        })),
+        spectatorCount: (room.spectators || []).length,
+        maxPlayers: 20,
+        timerDuration: room.timerDuration,
+        createdAt: room.createdAt,
+      });
+    }
+  }
+  activeRooms.sort((a, b) => {
+    if (a.status === "active" && b.status !== "active") return -1;
+    if (b.status === "active" && a.status !== "active") return 1;
+    return b.createdAt - a.createdAt;
+  });
+  io.emit("roomListUpdate", { rooms: activeRooms });
+}
+
 function generateRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -60,9 +126,96 @@ export function initializeSocket(io) {
   io.on("connection", (socket) => {
     console.log(`[Socket] ${socket.user.name} connected (${socket.id})`);
 
+    // SEC-2: Per-socket rate limiting (30 events/sec, disconnect on sustained abuse)
+    let eventCount = 0;
+    let warnCount = 0;
+    const rateLimitInterval = setInterval(() => {
+      if (eventCount > 50) {
+        warnCount++;
+        console.warn(`[RateLimit] ${socket.user.name} exceeded rate limit (${eventCount} events/sec)`);
+        if (warnCount >= 3) {
+          console.error(`[RateLimit] Disconnecting ${socket.user.name} for sustained abuse`);
+          socket.disconnect(true);
+          clearInterval(rateLimitInterval);
+        }
+      } else {
+        warnCount = 0;
+      }
+      eventCount = 0;
+    }, 1000);
+
+    socket.use((packet, next) => {
+      eventCount++;
+      if (eventCount > 50) {
+        return next(new Error("Rate limit exceeded"));
+      }
+      next();
+    });
+
+    socket.on("disconnect", () => {
+      clearInterval(rateLimitInterval);
+    });
+
     // Register voice chat events for this socket
     registerVoiceEvents(io, socket);
 
+    // ─── CLI-3: SYNC STATE (reconnection recovery) ───────────
+    socket.on("syncState", ({ roomCode }, callback) => {
+      if (typeof roomCode !== "string") return;
+      const room = rooms.get(roomCode);
+      if (!room) return callback?.({ success: false, message: "Room not found" });
+
+      const player = room.players.find((p) => p.id === socket.user.id);
+      if (!player) return callback?.({ success: false, message: "Not in this room" });
+
+      // Update socket ID for reconnected player
+      player.socketId = socket.id;
+      socket.join(roomCode);
+
+      // Build current game state
+      const state = {
+        success: true,
+        gameState: room.status, // waiting | active | finished
+        leaderboard: room.players
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            avatarUrl: p.avatarUrl,
+            score: p.score,
+            currentQuestion: p.currentQuestion,
+            correctAnswers: p.correctAnswers || 0,
+            finished: p.finished,
+          }))
+          .sort((a, b) => b.score - a.score),
+        settings: {
+          category: room.category,
+          challengeMode: room.challengeMode,
+          difficulty: room.difficulty,
+          language: room.language,
+          topic: room.topic,
+          description: room.description,
+          totalQuestions: room.totalQuestions,
+          timerDuration: room.timerDuration,
+        },
+      };
+
+      // If game is active, include the player's current question
+      if (room.status === "active" && !player.finished) {
+        const qIndex = player.currentQuestion || 0;
+        const question = room.questions[qIndex];
+        if (question) {
+          state.currentQuestion = sanitizeQuestion(question, room.category, room.challengeMode);
+          state.questionIndex = qIndex;
+        }
+        // Include time remaining
+        const elapsed = Math.floor((Date.now() - room.startTime) / 1000);
+        state.timeRemaining = Math.max(0, room.timerDuration - elapsed);
+        state.startTime = room.startTime;
+      }
+
+      callback?.(state);
+      console.log(`[Socket] ${socket.user.name} synced state for room ${roomCode}`);
+    });
     // ─── CREATE ROOM ──────────────────────────────────────────
     socket.on("createRoom", (callback) => {
       let roomCode = generateRoomCode();
@@ -109,6 +262,7 @@ export function initializeSocket(io) {
       if (typeof callback === "function") {
         callback({ success: true, roomCode, room });
       }
+      broadcastRoomListUpdate(io);
     });
 
     // ─── JOIN ROOM ────────────────────────────────────────────
@@ -164,24 +318,44 @@ export function initializeSocket(io) {
         `[Socket] ${socket.user.name} joined room ${roomCode} (${room.players.length} players)`,
       );
       callback?.({ success: true, room });
+      broadcastRoomListUpdate(io);
     });
 
     // ─── UPDATE SETTINGS (host only) ─────────────────────────
     socket.on("updateSettings", ({ roomCode, settings }) => {
       const room = rooms.get(roomCode);
       if (!room || room.hostId !== socket.user.id) return;
+      if (!settings || typeof settings !== "object") return;
 
-      if (settings.category) room.category = settings.category;
-      if (settings.challengeMode) room.challengeMode = settings.challengeMode;
-      if (settings.difficulty) room.difficulty = settings.difficulty;
-      if (settings.language) room.language = settings.language;
-      if (settings.topic !== undefined) room.topic = settings.topic;
-      if (settings.description !== undefined)
-        room.description = settings.description;
-      if (settings.totalQuestions)
-        room.totalQuestions = Math.min(settings.totalQuestions, 10);
-      if (settings.timerDuration)
-        room.timerDuration = Math.min(settings.timerDuration, 3600);
+      // Validate and apply settings with allow-lists and bounds
+      const validCategories = ["programming", "general"];
+      const validModes = ["classic", "scenario", "debug", "outage", "refactor", "missing", "interactive"];
+      const validDifficulties = ["easy", "medium", "hard"];
+
+      if (settings.category && validCategories.includes(settings.category)) {
+        room.category = settings.category;
+      }
+      if (settings.challengeMode && validModes.includes(settings.challengeMode)) {
+        room.challengeMode = settings.challengeMode;
+      }
+      if (settings.difficulty && validDifficulties.includes(settings.difficulty)) {
+        room.difficulty = settings.difficulty;
+      }
+      if (typeof settings.language === "string") {
+        room.language = settings.language.slice(0, 30);
+      }
+      if (typeof settings.topic === "string") {
+        room.topic = settings.topic.slice(0, 200);
+      }
+      if (typeof settings.description === "string") {
+        room.description = settings.description.slice(0, 500);
+      }
+      if (typeof settings.totalQuestions === "number") {
+        room.totalQuestions = Math.max(1, Math.min(Math.floor(settings.totalQuestions), 10));
+      }
+      if (typeof settings.timerDuration === "number") {
+        room.timerDuration = Math.max(60, Math.min(Math.floor(settings.timerDuration), 3600));
+      }
 
       io.to(roomCode).emit("settingsUpdated", {
         category: room.category,
@@ -333,8 +507,14 @@ export function initializeSocket(io) {
     socket.on(
       "submitAnswer",
       ({ roomCode, questionIndex, answer }, callback) => {
+        // Input validation
+        if (typeof roomCode !== "string") return;
+        if (typeof questionIndex !== "number" || !Number.isInteger(questionIndex) || questionIndex < 0) return;
+        if (answer === undefined || answer === null) return;
+
         const room = rooms.get(roomCode);
         if (!room || room.status !== "active") return;
+        if (questionIndex >= (room.questions?.length || 0)) return;
 
         const player = room.players.find((p) => p.id === socket.user.id);
         if (!player || player.finished) return;
@@ -384,8 +564,9 @@ export function initializeSocket(io) {
             if (submitted && question.pairs) {
               // Correct mapping: index i on left matches index i on right (before shuffle)
               // Client sends { leftIdx: selectedRightIdx } using the shuffled right indices
-              // We need the shuffleMap from the sanitized question to validate
-              const shuffleMap = question._rightShuffleMap; // set during sanitize
+              // We need the shuffleMap from the room-level storage to validate
+              const mapKey = `q${questionIndex}_dragMatch`;
+              const shuffleMap = room._shuffleMaps?.[mapKey];
               if (shuffleMap) {
                 isCorrect = question.pairs.every((_, i) => {
                   const selectedRightIdx = submitted[i];
@@ -484,20 +665,8 @@ export function initializeSocket(io) {
         // Update lastQuestionTime for the next question's speed calculation
         player.lastQuestionTime = now;
 
-        // Broadcast leaderboard
-        const leaderboard = room.players
-          .map((p) => ({
-            id: p.id,
-            name: p.name,
-            avatarUrl: p.avatarUrl,
-            score: p.score,
-            currentQuestion: p.currentQuestion,
-            correctAnswers: p.correctAnswers || 0,
-            finished: p.finished,
-          }))
-          .sort((a, b) => b.score - a.score);
-
-        io.to(roomCode).emit("leaderboardUpdate", { leaderboard });
+        // Broadcast leaderboard (throttled — max once per 500ms)
+        scheduleLeaderboardBroadcast(io, roomCode, room);
 
         // Send result back to submitter
         callback?.({
@@ -638,12 +807,27 @@ export function initializeSocket(io) {
         finishTime: null,
       });
 
-      // Tell requester they're approved
+      // Tell requester they're approved (explicit allow-list — don't leak internals)
       io.to(requester.socketId).emit("joinApproved", {
         roomCode,
         room: {
-          ...room,
-          questions: [], // don't leak questions
+          roomCode: room.roomCode,
+          hostId: room.hostId,
+          status: room.status,
+          category: room.category,
+          challengeMode: room.challengeMode,
+          difficulty: room.difficulty,
+          language: room.language,
+          topic: room.topic,
+          description: room.description,
+          totalQuestions: room.totalQuestions,
+          timerDuration: room.timerDuration,
+          players: room.players.map((p) => ({
+            id: p.id,
+            name: p.name,
+            avatarUrl: p.avatarUrl,
+            score: p.score,
+          })),
         },
       });
 
@@ -656,6 +840,7 @@ export function initializeSocket(io) {
       // Join the socket room
       const requesterSocket = io.sockets.sockets.get(requester.socketId);
       if (requesterSocket) requesterSocket.join(roomCode);
+      broadcastRoomListUpdate(io);
 
       console.log(
         `[Socket] ${requester.name} approved to join room ${roomCode}`,
@@ -764,10 +949,10 @@ const handleLeave = async (io, socket, roomCode) => {
   const room = rooms.get(roomCode);
   if (!room) return;
 
-  // Check if player or spectator
-  const playerIndex = room.players.findIndex((p) => p.socketId === socket.id);
+  // Check if player or spectator — use user ID to avoid stale socket ID after reconnect
+  const playerIndex = room.players.findIndex((p) => p.id === socket.user.id);
   const spectatorIndex = room.spectators.findIndex(
-    (s) => s.socketId === socket.id,
+    (s) => s.id === socket.user.id,
   );
 
   if (playerIndex !== -1) {
@@ -796,7 +981,11 @@ const handleLeave = async (io, socket, roomCode) => {
     }
 
     room.players.splice(playerIndex, 1);
-    io.to(roomCode).emit("playerLeft", { playerId: player.id });
+    io.to(roomCode).emit("playerLeft", {
+      playerId: player.id,
+      leftPlayer: player.name,
+      players: room.players,
+    });
 
     // If host left, assign new host or close room
     if (player.id === room.hostId) {
@@ -813,6 +1002,7 @@ const handleLeave = async (io, socket, roomCode) => {
       } else {
         rooms.delete(roomCode); // Room empty
         console.log(`[Socket] Room ${roomCode} deleted (host left, empty)`);
+        broadcastRoomListUpdate(io);
       }
     }
   } else if (spectatorIndex !== -1) {
@@ -859,9 +1049,13 @@ function sanitizeQuestion(question, category, challengeMode = "classic") {
       const rightItems = question.pairs.map((p) => p.right);
 
       let indices;
-      if (question._rightShuffleMap) {
+      // Use room-level shuffle maps to keep question objects immutable
+      if (!room._shuffleMaps) room._shuffleMaps = {};
+      const mapKey = `q${room.questions.indexOf(question)}_dragMatch`;
+
+      if (room._shuffleMaps[mapKey]) {
         // Reuse existing shuffle map (important for consistency across players/reconnects)
-        indices = question._rightShuffleMap;
+        indices = room._shuffleMaps[mapKey];
       } else {
         // Shuffle right items and store mapping
         indices = rightItems.map((_, i) => i);
@@ -870,8 +1064,7 @@ function sanitizeQuestion(question, category, challengeMode = "classic") {
           const j = Math.floor(Math.random() * (i + 1));
           [indices[i], indices[j]] = [indices[j], indices[i]];
         }
-        // Store shuffle map on the question object for validation (TEMPORARY on the active room object)
-        question._rightShuffleMap = indices; // indices[newPos] = originalPos
+        room._shuffleMaps[mapKey] = indices;
       }
 
       const shuffledRight = indices.map((i) => rightItems[i]);
@@ -910,6 +1103,8 @@ function sanitizeQuestion(question, category, challengeMode = "classic") {
 }
 
 function startRoomTimer(io, roomCode, room) {
+  let lastSync = 0;
+
   const interval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - room.startTime) / 1000);
     const remaining = room.timerDuration - elapsed;
@@ -922,13 +1117,18 @@ function startRoomTimer(io, roomCode, room) {
       return;
     }
 
-    io.to(roomCode).emit("timerUpdate", { remaining });
+    // Sync timer to clients every 30 seconds to correct any drift
+    const now = Date.now();
+    if (now - lastSync >= 30000) {
+      lastSync = now;
+      io.to(roomCode).emit("timerSync", { remaining, serverTime: now });
+    }
   }, 1000);
 
   room._timerInterval = interval;
 }
 
-function endGame(io, roomCode, room) {
+async function endGame(io, roomCode, room) {
   if (room.status === "finished") return; // Prevent double-trigger
   room.status = "finished";
   room.endTime = Date.now();
@@ -950,41 +1150,49 @@ function endGame(io, roomCode, room) {
     }))
     .sort((a, b) => b.score - a.score);
 
-  // Save results to DB
-  (async () => {
-    try {
-      const results = finalLeaderboard.map((p, index) => ({
-        userId: p.id,
-        roomId: roomCode,
-        roomCode: roomCode,
-        category: room.category,
-        challengeMode: room.challengeMode || "classic",
-        difficulty: room.difficulty,
-        rank: index + 1,
-        score: p.score || 0, // Ensure strictly number
-        status: "completed",
-      }));
+  // Save results to DB — await to ensure data integrity before notifying clients
+  try {
+    // DATA-1: Remove any existing DNF records for these players in this room
+    // (prevents double-recording if a player disconnected then reconnected)
+    const playerIds = finalLeaderboard.map((p) => p.id);
+    await CompetitionResult.deleteMany({
+      roomCode: roomCode,
+      userId: { $in: playerIds },
+      status: "dnf",
+    });
 
-      if (results.length > 0) {
-        await CompetitionResult.insertMany(results);
-        console.log(
-          `[Result] Saved ${results.length} results for room ${roomCode}`,
-        );
-      }
-    } catch (err) {
-      console.error("Error saving game results:", err);
+    const results = finalLeaderboard.map((p, index) => ({
+      userId: p.id,
+      roomId: roomCode,
+      roomCode: roomCode,
+      category: room.category,
+      challengeMode: room.challengeMode || "classic",
+      difficulty: room.difficulty,
+      rank: p.finished ? index + 1 : null,
+      score: p.score || 0,
+      status: p.finished ? "completed" : "dnf",
+    }));
+
+    if (results.length > 0) {
+      await CompetitionResult.insertMany(results);
+      console.log(
+        `[Result] Saved ${results.length} results for room ${roomCode}`,
+      );
     }
-  })();
+  } catch (err) {
+    console.error("Error saving game results:", err);
+  }
 
   io.to(roomCode).emit("gameOver", { leaderboard: finalLeaderboard });
 
-  // Award XP to winner (async, no await needed for emit)
+  // Award XP to winner
   awardXP(finalLeaderboard);
 
   // Cleanup room after 60 seconds
   setTimeout(() => {
     rooms.delete(roomCode);
     console.log(`[Socket] Room ${roomCode} cleaned up`);
+    broadcastRoomListUpdate(io);
   }, 60000);
 }
 

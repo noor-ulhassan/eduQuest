@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import api from "@/features/auth/authApi";
 import { getGlobalLeaderboard } from "@/features/leaderboard/leaderboardApi";
 import {
   GraduationCap,
@@ -19,7 +20,16 @@ import {
   Bug,
   Zap,
   Medal,
+  Book,
+  BookOpen,
+  LayoutDashboard,
+  Plus,
 } from "lucide-react";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import WelcomeBanner from "./WelcomeBanner";
+import CourseList from "./CourseList";
+import AddCourseDialog from "./AddCourseDialog";
+import EnrollCourseList from "./EnrollCourseList";
 import { cn } from "@/lib/utils";
 import {
   ChartContainer,
@@ -45,6 +55,17 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLB, setLoadingLB] = useState(true);
+  const [recentCourse, setRecentCourse] = useState(null);
+  const [open, setOpen] = useState(false);
+  const currentPath = window.location.pathname;
+
+  const SidebarOptions = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/workspace" },
+    { title: "My Learning", icon: Book, path: "/my-learning" },
+    { title: "Explore Courses", icon: BookOpen, path: "/#" },
+    { title: "Billing", icon: BookOpen, path: "/#" },
+    { title: "Profile", icon: UserIcon, path: "/profile" },
+  ];
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -60,21 +81,42 @@ export default function CourseOverview({ course, enrollment, onResume }) {
       }
     };
     fetchLeaderboard();
-  }, []);
+
+    // Fetch recent course for workspace if no specific course is selected
+    if (!course && user?.email) {
+      api
+        .get(
+          `http://localhost:8080/api/v1/ai/user-enrollments?email=${user.email}`,
+        )
+        .then((res) => {
+          if (res.data.enrolledCourses && res.data.enrolledCourses.length > 0) {
+            setRecentCourse(res.data.enrolledCourses[0]);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch recent course", err));
+    }
+  }, [course, user?.email]);
+
+  const activeCourse = course || recentCourse;
+  const activeCourseLayout =
+    activeCourse?.courseOutput || activeCourse?.courseLayout;
+  const activeChapters = activeCourseLayout?.chapters || [];
 
   // Calculate progress
-  const totalChapters = course?.noOfChapters || chapters.length || 1;
+  const totalChapters =
+    activeCourse?.noOfChapters || activeChapters.length || 1;
   const completedChaptersCount = enrollment?.completedChapters?.length || 0;
-  const progressPercent = Math.round(
-    (completedChaptersCount / totalChapters) * 100,
-  );
+  // If recentCourse is used, we might not have exact enrollment data passed in.
+  // Fallback to progress field if available.
+  const progressPercent = course
+    ? Math.round((completedChaptersCount / totalChapters) * 100)
+    : activeCourse?.progress || 0;
 
   // Find the current active module
-  const currentChapterIndex = Math.min(
-    completedChaptersCount,
-    chapters.length - 1,
-  );
-  const currentChapter = chapters[currentChapterIndex];
+  const currentChapterIndex = course
+    ? Math.min(completedChaptersCount, activeChapters.length - 1)
+    : 0;
+  const currentChapter = activeChapters[currentChapterIndex];
 
   // Chart Config
   const chartData = [
@@ -102,155 +144,173 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   return (
     <div className="bg-[#0a0a0a] text-white min-h-screen flex font-space-grotesk">
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-white/10 bg-[#111111] flex flex-col fixed left-0 top-0 h-full z-20 shadow-xl shadow-black/50 ">
-        <div className="p-6 flex items-center gap-3">
-          <img src="/logo1.png" alt="logo" width={35} height={35} />
+      <Sidebar open={open} setOpen={setOpen}>
+        <SidebarBody className="bg-[#111111] border-r border-white/10 h-[calc(100vh-64px)] pb-10 px-3 z-40">
+          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden pt-4 -mx-1">
+            {/* Sidebar Header */}
+            <div className="flex items-center gap-3 mb-8">
+              <img
+                src="/logo1.png"
+                alt="logo"
+                width={30}
+                height={30}
+                className="shrink-0 shadow-lg rounded"
+              />
+              {open && (
+                <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent whitespace-pre animate-in fade-in">
+                  Workspace
+                </h2>
+              )}
+            </div>
 
-          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
-            EduQuest
-          </h1>
-        </div>
+            {/* Create New Course Button */}
+            <div className="mb-8">
+              <AddCourseDialog>
+                <button
+                  className={`flex items-center justify-start gap-3 transition-all rounded-lg font-bold text-white bg-gradient-to-r from-red-600 to-orange-600 shadow-lg shadow-red-500/20 hover:shadow-xl hover:-translate-y-0.5 ${open ? "w-full text-sm px-4 py-3" : "w-10 h-10 p-0 justify-center text-sm"}`}
+                >
+                  <Plus className="w-5 h-5 shrink-0" strokeWidth={3} />
+                  {open && (
+                    <span className="animate-in fade-in whitespace-pre">
+                      Create New Course
+                    </span>
+                  )}
+                </button>
+              </AddCourseDialog>
+            </div>
 
-        <nav className="flex-1 px-4 mt-4 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-red-600 text-white rounded-xl transition-all">
-            <Map className="w-5 h-5" />
-            <span className="font-medium">Path</span>
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-red-600/10 hover:text-red-400 rounded-xl transition-all">
-            <Trophy className="w-5 h-5" />
-            <span className="font-medium">Achievements</span>
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-red-600/10 hover:text-red-400 rounded-xl transition-all">
-            <Users className="w-5 h-5" />
-            <span className="font-medium">Community</span>
-          </button>
-          <button
-            onClick={() => navigate("/profile")}
-            className="w-full flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-red-600/10 hover:text-red-400 rounded-xl transition-all"
-          >
-            <UserIcon className="w-5 h-5" />
-            <span className="font-medium">Profile</span>
-          </button>
-        </nav>
+            {/* Sidebar Links */}
+            <div className="flex flex-col gap-3 mt-2">
+              {SidebarOptions.map((item, index) => (
+                <SidebarLink
+                  key={index}
+                  link={{
+                    label: item.title,
+                    href: item.path,
+                    icon: (
+                      <item.icon
+                        className={`h-6 w-6 shrink-0 ${
+                          currentPath === item.path ||
+                          (currentPath.startsWith(item.path) &&
+                            item.path !== "/#")
+                            ? "text-red-400"
+                            : "text-zinc-400 group-hover/sidebar:text-white"
+                        }`}
+                      />
+                    ),
+                  }}
+                  className={`font-bold transition-colors py-3 px-3 rounded-lg ${
+                    currentPath === item.path ||
+                    (currentPath.startsWith(item.path) && item.path !== "/#")
+                      ? "text-red-400 bg-white/10"
+                      : "hover:bg-white/5 text-zinc-300"
+                  }`}
+                />
+              ))}
+            </div>
 
-        <div className="p-4 mt-auto">
-          <div className="bg-gradient-to-br from-red-600/15 to-orange-600/10 rounded-xl p-4 border border-white/10">
-            <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
-              Pro Access
-            </p>
-            <p className="text-sm text-zinc-400 mb-3">
-              Unlock unlimited course generation.
-            </p>
-            <button className="w-full bg-red-600 py-2.5 rounded-lg border border-red-400 text-sm font-bold text-white   ">
-              Upgrade Now
-            </button>
+            <div className="mt-auto">
+              <div className="bg-gradient-to-br from-red-600/15 to-orange-600/10 rounded-xl p-4 border border-white/10 mt-8">
+                {open && (
+                  <>
+                    <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
+                      Pro Access
+                    </p>
+                    <p className="text-sm text-zinc-400 mb-3">
+                      Unlock unlimited course generation.
+                    </p>
+                  </>
+                )}
+                <button
+                  className={`w-full bg-[#111111] py-2 rounded-lg border border-red-500/30 text-xs font-bold text-red-400 hover:bg-red-600/10 transition-colors ${!open && "px-1 text-[10px]"}`}
+                >
+                  {open ? "Upgrade Now" : "PRO"}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </aside>
+        </SidebarBody>
+      </Sidebar>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 flex flex-col min-h-screen bg-[#0a0a0a] ">
-        {/* Header */}
-        <header className="flex items-center justify-between px-8 py-5 sticky top-0 bg-[#111111]/90 /90 backdrop-blur-xl z-10 border-b border-white/10 shadow-sm ">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-red-600/20 rounded-lg">
-              <Terminal className="text-red-400 w-6 h-6" />
-            </div>
-            <h2 className="text-2xl font-bold">
-              {course?.name || "Next-Gen Server Architecture"}
-            </h2>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="relative max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                className="pl-10 pr-4 py-2 bg-white/5 dark:bg-red-600/10 border-none rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none w-64 text-sm text-white dark:text-white"
-                placeholder="Search lessons..."
-                type="text"
-              />
-            </div>
-            <button className="relative p-2 text-slate-400 hover:text-red-400 transition-colors">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-600 rounded-full ring-2 ring-white dark:ring-[#191022]"></span>
-            </button>
-            <div className="w-10 h-10 rounded-full border-2 border-red-500 overflow-hidden">
-              <img
-                src={
-                  user?.avatarUrl ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?._id}`
-                }
-                alt="User Avatar"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-        </header>
-
+      <main className="flex-1 flex flex-col min-h-screen bg-[#0a0a0a] ">
         <div className="p-8 flex gap-8">
           {/* Left Column: Path & Progress */}
           <div className="flex-1 space-y-8">
-            {/* Progress Header Card */}
-            <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 flex items-center justify-between overflow-hidden relative shadow-lg shadow-black/50 hover:shadow-xl transition-shadow z-0">
-              <div className="z-10">
-                <span className="px-3 py-1 bg-red-600/20 text-red-400 text-xs font-bold rounded-full mb-4 inline-block">
-                  CONTINUE LEARNING
-                </span>
-                <h3 className="text-3xl font-bold mb-2">
-                  Module {currentChapterIndex + 1}:{" "}
-                  {currentChapter?.chapterName}
-                </h3>
-                <p className="text-zinc-400 max-w-sm mb-6">
-                  You're making great progress! Finish this module to unlock the
-                  next badge.
-                </p>
-                <button
-                  onClick={() => onResume(currentChapterIndex, 0)}
-                  className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg flex items-center gap-2 hover:bg-red-500 border border-red-400"
-                >
-                  <Play className="w-5 h-5" fill="currentColor" /> Resume Module
-                </button>
-              </div>
-              <div className="flex items-center gap-8 z-10 mr-4 lg:mr-10 relative">
-                <div className="relative flex items-center justify-center w-36 h-36 lg:w-48 lg:h-48 drop-shadow-2xl">
-                  <ChartContainer
-                    config={chartConfig}
-                    className="w-full h-full absolute inset-0"
-                  >
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="75%"
-                      outerRadius="100%"
-                      barSize={16}
-                      data={chartData}
-                      startAngle={90}
-                      endAngle={-270}
+            {activeCourse ? (
+              <>
+                {/* Progress Header Card */}
+                <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 flex items-center justify-between overflow-hidden relative shadow-lg shadow-black/50 hover:shadow-xl transition-shadow z-0">
+                  <div className="z-10">
+                    <span className="px-3 py-1 bg-red-600/20 text-red-400 text-xs font-bold rounded-full mb-4 inline-block">
+                      CONTINUE LEARNING
+                    </span>
+                    <h3 className="text-3xl font-bold mb-2">
+                      {course
+                        ? `Module ${currentChapterIndex + 1}: ${currentChapter?.chapterName}`
+                        : activeCourse.name}
+                    </h3>
+                    <p className="text-zinc-400 max-w-sm mb-6">
+                      You're making great progress! Finish this module to unlock
+                      the next badge.
+                    </p>
+                    <button
+                      onClick={() =>
+                        course
+                          ? onResume(currentChapterIndex, 0)
+                          : navigate(
+                              `/course/${activeCourse.courseId || activeCourse._id}`,
+                            )
+                      }
+                      className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg flex items-center gap-2 hover:bg-red-500 border border-red-400"
                     >
-                      <PolarAngleAxis
-                        type="number"
-                        domain={[0, 100]}
-                        angleAxisId={0}
-                        tick={false}
-                      />
-                      <RadialBar
-                        background={{
-                          fill: "var(--tw-colors-slate-200)",
-                          opacity: 0.2,
-                        }}
-                        dataKey="value"
-                        cornerRadius={10}
-                        className="transition-all duration-1000 ease-out"
-                      />
-                    </RadialBarChart>
-                  </ChartContainer>
-                  <span className="text-3xl lg:text-4xl font-black text-white dark:text-white relative z-10 drop-shadow-md">
-                    {progressPercent}%
-                  </span>
+                      <Play className="w-5 h-5" fill="currentColor" /> Resume
+                      Module
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-8 z-10 mr-4 lg:mr-10 relative">
+                    <div className="relative flex items-center justify-center w-36 h-36 lg:w-48 lg:h-48 drop-shadow-2xl">
+                      <ChartContainer
+                        config={chartConfig}
+                        className="w-full h-full absolute inset-0"
+                      >
+                        <RadialBarChart
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="75%"
+                          outerRadius="100%"
+                          barSize={16}
+                          data={chartData}
+                          startAngle={90}
+                          endAngle={-270}
+                        >
+                          <PolarAngleAxis
+                            type="number"
+                            domain={[0, 100]}
+                            angleAxisId={0}
+                            tick={false}
+                          />
+                          <RadialBar
+                            background={{
+                              fill: "var(--tw-colors-slate-200)",
+                              opacity: 0.2,
+                            }}
+                            dataKey="value"
+                            cornerRadius={10}
+                            className="transition-all duration-1000 ease-out"
+                          />
+                        </RadialBarChart>
+                      </ChartContainer>
+                      <span className="text-3xl lg:text-4xl font-black text-white dark:text-white relative z-10 drop-shadow-md">
+                        {progressPercent}%
+                      </span>
+                    </div>
+                  </div>
+                  {/* Decorative background shapes */}
+                  <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-red-600/10 rounded-full blur-3xl"></div>
                 </div>
-              </div>
-              {/* Decorative background shapes */}
-              <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-red-600/10 rounded-full blur-3xl"></div>
-            </div>
+              </>
+            ) : null}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-4">
@@ -307,83 +367,90 @@ export default function CourseOverview({ course, enrollment, onResume }) {
               </div>
             </div>
 
-            {/* Vertical Learning Path */}
-            <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 shadow-lg shadow-black/50 z-0">
-              <h4 className="text-lg font-bold mb-8">Learning Path</h4>
-              <div className="space-y-0 z-0">
-                {chapters.map((chap, idx) => {
-                  const isCompleted = enrollment?.completedChapters?.includes(
-                    chap.chapterName,
-                  );
-                  const isCurrent = idx === currentChapterIndex;
-                  // Unlock all modules
-                  const isLocked = false;
+            {course ? (
+              <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 shadow-lg shadow-black/50 z-0">
+                <h4 className="text-lg font-bold mb-8">Learning Path</h4>
+                <div className="space-y-0 z-0">
+                  {activeChapters.map((chap, idx) => {
+                    const isCompleted = enrollment?.completedChapters?.includes(
+                      chap.chapterName,
+                    );
+                    const isCurrent = idx === currentChapterIndex;
+                    // Unlock all modules
+                    const isLocked = false;
 
-                  return (
-                    <div
-                      key={idx}
-                      className="flex gap-6 group cursor-pointer"
-                      onClick={() => !isLocked && onResume(idx, 0)}
-                    >
-                      <div className="flex flex-col items-center z-0">
-                        {isCompleted ? (
-                          <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white ring-8 ring-red-500/10 z-10 transition-transform hover:scale-110">
-                            <Check className="w-6 h-6" strokeWidth={3} />
-                          </div>
-                        ) : isCurrent ? (
-                          <div className="w-12 h-12 rounded-full border-4 border-red-500 bg-[#111111] flex items-center justify-center text-red-400 ring-8 ring-red-500/20 z-10 transition-transform hover:scale-110">
-                            <Play
-                              className="w-5 h-5 ml-1 flex-shrink-0"
-                              fill="currentColor"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-12 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-[#0a0a0a] flex items-center justify-center text-zinc-400 z-10 transition-transform hover:scale-110">
-                            <Play className="w-4 h-4 ml-0.5" />
-                          </div>
-                        )}
-                        {/* Line connecting nodes */}
-                        {idx !== chapters.length - 1 && (
-                          <div
-                            className={cn(
-                              "w-1 h-full min-h-[5rem] -my-2 transition-colors",
-                              isCompleted
-                                ? "bg-red-600 opacity-30"
-                                : "bg-slate-300 dark:bg-slate-700",
-                            )}
-                          ></div>
-                        )}
-                      </div>
-                      <div className="flex-1 pb-12 pt-2">
-                        <span
-                          className={cn(
-                            "text-xs font-bold uppercase tracking-widest",
-                            isLocked ? "text-zinc-400" : "text-red-400",
+                    return (
+                      <div
+                        key={idx}
+                        className="flex gap-6 group cursor-pointer"
+                        onClick={() => !isLocked && onResume(idx, 0)}
+                      >
+                        <div className="flex flex-col items-center z-0">
+                          {isCompleted ? (
+                            <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white ring-8 ring-red-500/10 z-10 transition-transform hover:scale-110">
+                              <Check className="w-6 h-6" strokeWidth={3} />
+                            </div>
+                          ) : isCurrent ? (
+                            <div className="w-12 h-12 rounded-full border-4 border-red-500 bg-[#111111] flex items-center justify-center text-red-400 ring-8 ring-red-500/20 z-10 transition-transform hover:scale-110">
+                              <Play
+                                className="w-5 h-5 ml-1 flex-shrink-0"
+                                fill="currentColor"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-[#0a0a0a] flex items-center justify-center text-zinc-400 z-10 transition-transform hover:scale-110">
+                              <Play className="w-4 h-4 ml-0.5" />
+                            </div>
                           )}
-                        >
-                          Module {idx + 1}
-                        </span>
-                        <h5 className="text-lg font-bold">
-                          {chap.chapterName}
-                        </h5>
-                        <p className="text-sm text-zinc-400 mt-1">
-                          {chap.topics?.length} Topics •{" "}
-                          {chap.duration || "15 mins"}
-                        </p>
-                        {isCurrent && (
-                          <div className="flex items-center gap-2 mt-3">
-                            <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
-                            <span className="text-xs font-medium text-slate-400">
-                              Active Learning Session
-                            </span>
-                          </div>
-                        )}
+                          {/* Line connecting nodes */}
+                          {idx !== chapters.length - 1 && (
+                            <div
+                              className={cn(
+                                "w-1 h-full min-h-[5rem] -my-2 transition-colors",
+                                isCompleted
+                                  ? "bg-red-600 opacity-30"
+                                  : "bg-slate-300 dark:bg-slate-700",
+                              )}
+                            ></div>
+                          )}
+                        </div>
+                        <div className="flex-1 pb-12 pt-2">
+                          <span
+                            className={cn(
+                              "text-xs font-bold uppercase tracking-widest",
+                              isLocked ? "text-zinc-400" : "text-red-400",
+                            )}
+                          >
+                            Module {idx + 1}
+                          </span>
+                          <h5 className="text-lg font-bold">
+                            {chap.chapterName}
+                          </h5>
+                          <p className="text-sm text-zinc-400 mt-1">
+                            {chap.topics?.length} Topics •{" "}
+                            {chap.duration || "15 mins"}
+                          </p>
+                          {isCurrent && (
+                            <div className="flex items-center gap-2 mt-3">
+                              <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                              <span className="text-xs font-medium text-slate-400">
+                                Active Learning Session
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-8 z-0 w-full overflow-hidden">
+                <WelcomeBanner />
+                <EnrollCourseList userEmail={user?.email} />
+                <CourseList />
+              </div>
+            )}
           </div>
 
           {/* Right Column: Sidebar */}
@@ -397,8 +464,8 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {courseLayout?.achievements?.length > 0 ? (
-                  courseLayout.achievements.map((ach, i) => {
+                {activeCourseLayout?.achievements?.length > 0 ? (
+                  activeCourseLayout.achievements.map((ach, i) => {
                     const unlocked = enrollment?.unlockedAchievements?.includes(
                       ach.title,
                     );

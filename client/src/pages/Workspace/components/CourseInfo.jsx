@@ -15,7 +15,7 @@ export default function CourseInfo({ course }) {
  const chapters = courseLayout?.chapters || [];
  const loadingStates = [
   ...chapters.map((ch, i) => ({
-   text: `Generating content for Chapter ${i + 1}: ${ch.chapterName}`,
+   text: `Assembling Chapter ${i + 1}: ${ch.chapterName}`,
   })),
   { text: "Finalizing your course..." },
  ];
@@ -100,12 +100,12 @@ export default function CourseInfo({ course }) {
       onClick={GenerateCourseContent}
       disabled={loading}
      >
-      {loading ? "Generating..." : "Generate Content"}
+      {loading ? "Setting Up..." : "Start Course"}
      </Button>
     </div>
     <img
-     src="/machine.webp"
-     alt=""
+     src="/terminal.avif"
+     alt="Course Banner"
      width={400}
      height={400}
      className="w-full mt-5 md:mt-0 object-cover aspect-auto h-[240px] rounded-2xl"

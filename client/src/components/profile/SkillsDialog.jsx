@@ -53,15 +53,16 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#121214] border-zinc-800/60 shadow-2xl text-white">
         <DialogHeader>
-          <DialogTitle>Add Skills</DialogTitle>
+          <DialogTitle className="text-xl font-black tracking-tight text-white">Add Skills</DialogTitle>
         </DialogHeader>
 
         <Input
-          placeholder="Type a skill (comma separated for multiple)..."
+          placeholder="Type a skill (comma separated)..."
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          className="bg-zinc-900/60 text-white placeholder:text-zinc-500 border-zinc-800/60 focus:ring-1 focus:ring-zinc-600 focus:border-zinc-500 transition-all font-medium py-5"
         />
 
         {selectedSkills.length > 0 && (
@@ -69,11 +70,11 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
             {selectedSkills.map((skill) => (
               <span
                 key={skill}
-                className="flex items-center px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium"
+                className="flex items-center px-4 py-1.5 rounded-full bg-white/10 text-white border border-white/5 text-xs font-bold tracking-wide shadow-sm"
               >
                 {skill}
                 <button
-                  className="ml-1 text-yellow-900 hover:text-yellow-700 font-bold"
+                  className="ml-2 text-zinc-400 hover:text-white transition-colors"
                   onClick={() => removeSelectedSkill(skill)}
                 >
                   ×
@@ -88,10 +89,10 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
             <button
               key={skill}
               onClick={() => addSelectedSkill(skill)}
-              className={`px-2 py-1 text-sm rounded-md transition ${
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all border ${
                 selectedSkills.includes(skill)
-                  ? "bg-yellow-200"
-                  : "bg-gray-100 hover:bg-yellow-100"
+                  ? "bg-white text-black border-transparent shadow-sm"
+                  : "bg-zinc-900/40 text-zinc-400 border-zinc-800/60 hover:text-white hover:border-zinc-600 hover:bg-zinc-800/50"
               }`}
             >
               {skill}
@@ -99,7 +100,7 @@ const SkillsDialog = ({ open, onOpenChange, onAddSkill }) => {
           ))}
         </div>
 
-        <Button onClick={handleAdd} className="mt-4">
+        <Button onClick={handleAdd} className="mt-4 bg-white text-black hover:bg-zinc-200 font-bold rounded-full transition-colors w-full sm:w-auto self-end px-8">
           Add Skill
         </Button>
       </DialogContent>

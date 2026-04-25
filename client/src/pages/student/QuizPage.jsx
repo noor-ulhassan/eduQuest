@@ -4,7 +4,7 @@ import {
   Loader2Icon,
   PlayIcon,
   SparklesIcon,
-  BrainIcon,
+  TargetIcon,
   CheckIcon,
   XIcon,
   ChevronRightIcon,
@@ -96,7 +96,7 @@ function QuizPage() {
       setQuiz(parsed);
     } catch (err) {
       console.error("Quiz generation failed:", err);
-      if (showToast) toast.error("AI is busy — using backup quiz!");
+      if (showToast) toast.error("Service is busy — using backup quiz!");
 
       // Single safe fallback
       const fallbacks = [
@@ -138,8 +138,8 @@ function QuizPage() {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-3 bg-primary/10 px-4 py-2 rounded-full mb-4">
-            <BrainIcon className="size-5 text-primary" />
-            <span className="font-medium text-primary">AI Quiz</span>
+            <TargetIcon className="size-5 text-primary" />
+            <span className="font-medium text-primary">Practice Quiz</span>
           </div>
           <h1 className="text-3xl font-bold">Test Your Skills</h1>
         </div>
@@ -150,7 +150,7 @@ function QuizPage() {
               className="btn btn-primary btn-lg gap-2"
               onClick={() => generateQuiz(true)}
             >
-              <SparklesIcon className="size-5" /> Start Quiz
+              <PlayIcon className="size-5" /> Start Quiz
             </button>
           </div>
         )}

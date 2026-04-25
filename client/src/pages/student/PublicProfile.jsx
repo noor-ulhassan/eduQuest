@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 
-import TweetCard from "@/components/social/TweetCard";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ import {
 import {
   getPublicProfile,
   sendFriendRequest,
-  getUserPosts,
   unfriend,
 } from "@/features/social/socialApi";
 
@@ -49,7 +48,6 @@ const PublicProfile = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useSelector((state) => state.auth);
   const [profile, setProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [friendStatus, setFriendStatus] = useState("none"); // none | sent | friends
 
@@ -68,7 +66,6 @@ const PublicProfile = () => {
         const res = await getPublicProfile(userId);
         if (res.success) {
           setProfile(res.user);
-          setPosts(res.posts || []);
 
           if (currentUser && res.user.friends) {
             const isFriend = res.user.friends.some(
@@ -174,7 +171,7 @@ const PublicProfile = () => {
           onClick={() => navigate(-1)}
           className="bg-white text-black hover:bg-zinc-200 rounded-full font-bold px-8"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" /> Return to Orbit
+          <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
         </Button>
       </div>
     );
@@ -254,7 +251,7 @@ const PublicProfile = () => {
             <div className="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 text-xs sm:text-sm font-medium text-zinc-300">
               <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full backdrop-blur-sm shadow-sm">
                 <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />{" "}
-                Earth
+                Global
               </span>
               <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full backdrop-blur-sm shadow-sm">
                 <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
@@ -364,33 +361,19 @@ const PublicProfile = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
               {/* Timeline Feed */}
               <div className="space-y-6">
-                {posts.length > 0 ? (
-                  posts.map((post) => (
-                    <motion.div
-                      key={post._id}
-                      variants={fadeInFadeOut}
-                      initial="hidden"
-                      animate="visible"
-                    >
-                      <TweetCard post={post} />
-                    </motion.div>
-                  ))
-                ) : (
-                  <Card className="bg-[#121214] border-zinc-800 shadow-2xl overflow-hidden text-center py-20 px-6">
-                    <CardContent className="flex flex-col items-center justify-center space-y-4">
-                      <div className="w-16 h-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-2">
-                        <MessageSquare className="w-8 h-8 text-zinc-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-white">
-                        No transmissions yet
-                      </h3>
-                      <p className="text-zinc-400 max-w-sm">
-                        This explorer is currently focusing on their journey
-                        through the cosmos.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
+                <Card className="bg-[#121214] border-zinc-800 shadow-2xl overflow-hidden text-center py-20 px-6">
+                  <CardContent className="flex flex-col items-center justify-center space-y-4">
+                    <div className="w-16 h-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-2">
+                      <MessageSquare className="w-8 h-8 text-zinc-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">
+                      Activity Feed
+                    </h3>
+                    <p className="text-zinc-400 max-w-sm">
+                      Check out the playground discussions to see what this user has been working on.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Badges & Achievements Sidebar */}
@@ -466,10 +449,10 @@ const PublicProfile = () => {
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <Users className="w-16 h-16 text-zinc-700 mb-4" />
                     <h3 className="text-xl font-bold text-white mb-2">
-                      Lone Wolf
+                      No Friends
                     </h3>
                     <p className="text-zinc-400">
-                      This user is forging their path solo for now.
+                      This user hasn't added any friends yet.
                     </p>
                   </div>
                 )}
