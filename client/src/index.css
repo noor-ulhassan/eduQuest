@@ -125,24 +125,3 @@
 .prose-invert li::marker {
   color: #ef4444 !important;
 }
-
-/* ── Fix react-pdf text selection in eduQuest ── */
-.react-pdf__Page {
-  user-select: text !important;
-}
-
-.react-pdf__Page__textContent {
-  pointer-events: auto !important;
-  user-select: text !important;
-  z-index: 10 !important;
-}
-
-.react-pdf__Page__textContent > span {
-  pointer-events: auto !important;
-  user-select: text !important;
-  color: transparent !important;
-}
-
-.react-pdf__Page__annotations {
-  pointer-events: none !important;
-}

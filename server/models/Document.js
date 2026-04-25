@@ -25,18 +25,18 @@ const documentSchema = new Schema(
       type: Number,
       required: true,
     },
-    totalPages: {
-      type: Number,
-      default: 0,
+    extractedText: {
+      type: String,
+      default: "",
     },
-    chunksStored: {
-      type: Number,
-      default: 0,
-    },
-    chapters: {
-      type: [Number],
-      default: [],
-    },
+    chunks: [
+      {
+        content: { type: String, required: true },
+        pageNumber: { type: Number, default: 0 },
+        chunkIndex: { type: Number, required: true },
+      },
+    ],
+
     uploadDate: { type: Date, default: Date.now },
     lastAccess: { type: Date, default: Date.now },
     status: {
