@@ -71,9 +71,9 @@ export default function SkillCard({ title, img, href, progress, isLoading }) {
                 />
               </div>
             ) : (
-              <div className="w-full py-3 flex items-center justify-center bg-black/30 rounded-xl border border-white/5">
-                <span className="text-[11px] font-bold text-zinc-500 tracking-widest uppercase">
-                  Under Development
+              <div className="w-full py-3 flex items-center justify-center bg-red-500/10 rounded-xl border border-red-500/20 group-hover:bg-red-500/20 transition-colors">
+                <span className="text-[11px] font-bold text-red-500 tracking-widest uppercase">
+                  Start Learning
                 </span>
               </div>
             )}

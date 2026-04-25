@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import api from "@/features/auth/authApi";
 import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import GoogleAuthButton from "./GoogleLogin";
 import { User, Mail, Lock, Terminal } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
@@ -10,7 +11,9 @@ export default function Signup() {
     name: "",
     email: "",
     password: "",
+    adminPasscode: "",
   });
+  const [logoClicks, setLogoClicks] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
@@ -23,7 +26,11 @@ export default function Signup() {
     e.preventDefault();
     setError("");
     try {
-      const res = await api.post("/auth/register", formData);
+      const payload = { ...formData };
+      if (logoClicks < 5) {
+        delete payload.adminPasscode;
+      }
+      const res = await api.post("/auth/register", payload);
       setSuccess(res.data.message);
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
@@ -52,13 +59,16 @@ export default function Signup() {
         gradientSize={300}
         backgroundColor="#212121"
       >
-        {/* Logo */}
+        {/* Logo (Secret Admin Trigger) */}
         <div className="flex justify-center mb-6">
-          <Link to="/" className="flex items-center gap-2 group">
+          <div 
+            onClick={() => setLogoClicks(prev => prev + 1)}
+            className="flex items-center gap-2 group cursor-pointer"
+          >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <img src="logo1.png" alt="" width={50} height={50} />
+              <img src="logo1.png" alt="" width={50} height={50} className="pointer-events-none" />
             </div>
-          </Link>
+          </div>
         </div>
 
         <div className="text-center mb-8">
@@ -134,6 +144,25 @@ export default function Signup() {
               className="w-full pl-11 pr-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
             />
           </div>
+
+          {logoClicks >= 5 && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="relative"
+            >
+              <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
+              <input
+                type="password"
+                name="adminPasscode"
+                onChange={handleChange}
+                value={formData.adminPasscode}
+                placeholder="Secret Admin Passcode"
+                required={logoClicks >= 5}
+                className="w-full pl-11 pr-4 py-3 bg-[#1a1a1a] border border-red-500/30 rounded-xl text-red-400 placeholder:text-red-500/50 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
+              />
+            </motion.div>
+          )}
 
           <button
             type="submit"

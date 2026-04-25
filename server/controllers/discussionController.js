@@ -51,6 +51,14 @@ export const createDiscussion = async (req, res) => {
       });
     }
 
+    if (title.length > 200) {
+      return res.status(400).json({ success: false, message: "Title exceeds 200 characters" });
+    }
+    
+    if (content.length > 5000) {
+      return res.status(400).json({ success: false, message: "Content exceeds 5000 characters" });
+    }
+
     const discussion = await Discussion.create({
       author: req.user._id,
       title,
@@ -111,6 +119,10 @@ export const replyToDiscussion = async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: "Reply text is required" });
+    }
+
+    if (text.length > 2000) {
+      return res.status(400).json({ success: false, message: "Reply exceeds 2000 characters" });
     }
 
     const discussion = await Discussion.findById(id);

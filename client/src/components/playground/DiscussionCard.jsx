@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { ChevronUp, MessageSquare, Trash2, Send } from "lucide-react";
 import { voteDiscussion, replyToDiscussion, deleteDiscussion, deleteReply } from "../../features/playground/discussionApi";
 
 const DiscussionCard = ({ discussion: initial, onDelete }) => {
   const [discussion, setDiscussion] = useState(initial);
+  
+  useEffect(() => {
+    setDiscussion(initial);
+  }, [initial]);
+
   const [showReplies, setShowReplies] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);

@@ -74,6 +74,7 @@ export const googleAuth = async (req, res) => {
         rank: user.rank,
         badges: user.badges,
         dayStreak: user.dayStreak,
+        role: user.role,
       },
     });
   } catch (err) {
@@ -114,11 +115,29 @@ export const register = async (req, res) => {
       });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Default role
+    let role = "user";
+
+    // --- Admin Upgrade Logic ---
+    if (req.body.adminPasscode) {
+      const serverSecret = process.env.ADMIN_SECRET_KEY || "eduquest_admin_777";
+      if (req.body.adminPasscode === serverSecret) {
+        role = "admin";
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Admin Passcode",
+        });
+      }
+    }
+
     await User.create({
       name,
       email,
       password: hashedPassword,
       provider: "local",
+      role, // Add the role to the newly created user
     });
     return res.status(201).json({
       success: true,
@@ -163,6 +182,20 @@ export const login = async (req, res) => {
       });
     }
 
+    // --- Admin Upgrade Logic ---
+    if (req.body.adminPasscode) {
+      const serverSecret = process.env.ADMIN_SECRET_KEY || "eduquest_admin_777";
+      if (req.body.adminPasscode === serverSecret) {
+        user.role = "admin";
+        await user.save();
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Admin Passcode",
+        });
+      }
+    }
+
     // Check/Reset stale streak before returning
     if (user.dayStreak > 0) {
       user = await checkStreak(user);
@@ -187,6 +220,7 @@ export const login = async (req, res) => {
           rank: user.rank,
           badges: user.badges,
           dayStreak: user.dayStreak,
+          role: user.role,
         },
       });
   } catch (error) {

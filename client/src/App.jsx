@@ -13,6 +13,7 @@ import PageLoader from "./components/ui/PageLoader";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminRoute from "./components/auth/AdminRoute";
 
 // ─── Eagerly loaded (small / needed immediately) ────────────────────────────
 import HomePage from "./pages/Homepage/HomePage";
@@ -46,6 +47,8 @@ const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
 const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
+
+const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -177,6 +180,15 @@ const appRouter = createBrowserRouter([
           <ProtectedRoute>
             <Lazy element={LeaderboardPage} />
           </ProtectedRoute>
+        ),
+      },
+      // Admin Routes
+      {
+        path: "admin/curriculum",
+        element: (
+          <AdminRoute>
+            <Lazy element={AdminCurriculum} />
+          </AdminRoute>
         ),
       },
     ],

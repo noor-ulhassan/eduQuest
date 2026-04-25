@@ -122,9 +122,10 @@ export const evaluateAchievements = (user, context = {}) => {
  * @param {import('mongoose').Document} user - Mongoose User Document
  * @param {number} amount - Amount of XP to add
  * @param {Object} context - Optional context mapping user metrics to check achievements
+ * @param {Object} [options={ autoSave: true }] - Options object
  * @returns {Promise<import('mongoose').Document>} Updated user document
  */
-export const addXP = async (user, amount, context = {}) => {
+export const addXP = async (user, amount, context = {}, options = { autoSave: true }) => {
   if (!amount || amount <= 0) return user;
 
   // Increment XP
@@ -141,6 +142,8 @@ export const addXP = async (user, amount, context = {}) => {
   evaluateAchievements(user, context);
 
   // Save changes to DB
-  await user.save();
+  if (options.autoSave !== false) {
+    await user.save();
+  }
   return user;
 };

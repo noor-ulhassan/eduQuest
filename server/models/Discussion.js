@@ -21,10 +21,13 @@ const discussionSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 200,
     },
     content: {
       type: String,
       required: true,
+      trim: true,
+      maxlength: 5000,
     },
     votes: [
       {
@@ -42,6 +45,8 @@ const discussionSchema = new mongoose.Schema(
         text: {
           type: String,
           required: true,
+          trim: true,
+          maxlength: 2000,
         },
         createdAt: {
           type: Date,

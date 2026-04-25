@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
 
     bannerUrl: { type: String },
     provider: { type: String, enum: ["local", "google"], default: "local" },
+    role: { type: String, enum: ["user", "admin"], default: "user" },
 
     skills: [{ type: String, default: [] }],
 

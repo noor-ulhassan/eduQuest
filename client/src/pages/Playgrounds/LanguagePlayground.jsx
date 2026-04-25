@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { PLAYGROUND_DATA } from "../../data/playground";
 import Editor from "@monaco-editor/react";
 import { executeCode } from "../../lib/piston";
 import toast from "react-hot-toast";
@@ -29,14 +28,18 @@ import {
   Users,
   X,
   Menu,
+  ExternalLink,
+  Zap,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { updateUserStats } from "../../features/auth/authSlice";
 import {
-  getPlaygroundProgress,
+  getLanguageProgress,
   completeProblem as completeProb,
+  getCurriculum,
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
 import DiscussionPanel from "@/components/playground/DiscussionPanel";
@@ -46,17 +49,47 @@ import {
   AnimatedSpan,
 } from "@/components/ui/terminal";
 
+const getLanguageIconUrl = (lang) => {
+  switch (lang?.toLowerCase()) {
+    case "python":
+      return "/python.png";
+    case "javascript":
+      return "/js.png";
+    case "react":
+      return "/react.png";
+    case "html":
+      return "/html.png";
+    case "css":
+      return "/css.png";
+    case "java":
+      return "/java.png";
+    case "dsa":
+      return "/dsa.png";
+    default:
+      return null;
+  }
+};
+
 // ─── Helper: Format Task Text ──────────────────────────────────────────────
-const formatTaskText = (text, isMobile = false) => {
-  if (!text) return "";
-  // Escape angle brackets so things like <div> or <CustomComponent> are visible text, not DOM nodes
-  const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  // Wrap text in backticks with syntax-highlighted spans
-  const spanClass = isMobile
+const FormattedTaskText = ({ text, isMobile = false, className = "" }) => {
+  if (!text) return null;
+  const codeClass = isMobile
     ? "text-red-400 bg-red-500/10 px-1 py-0.5 rounded font-mono"
     : "bg-white/10 text-red-300 px-1.5 py-0.5 rounded font-mono text-sm";
-
-  return safeText.replace(/`([^`]+)`/g, `<span class="${spanClass}">$1</span>`);
+  const parts = text.split(/`([^`]+)`/);
+  return (
+    <div className={className}>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <code key={i} className={codeClass}>
+            {part}
+          </code>
+        ) : (
+          <React.Fragment key={i}>{part}</React.Fragment>
+        ),
+      )}
+    </div>
+  );
 };
 
 // ─── React iframe document builder ─────────────────────────────────────────
@@ -100,25 +133,28 @@ const LanguagePlayground = () => {
   const [dsaLang, setDsaLang] = useState("javascript");
   const reactDebounceRef = useRef(null);
   const [showDiscussion, setShowDiscussion] = useState(false);
-
-  const data = PLAYGROUND_DATA[language?.toLowerCase()];
-  const isLivePreview = data?.livePreview === true;
+  const [data, setData] = useState(null);
+  const isLivePreview =
+    language?.toLowerCase() === "html" || language?.toLowerCase() === "css";
   const isReact = language?.toLowerCase() === "react";
 
-  // Fetch progress; redirect to topics page if not yet enrolled
+  // Fetch curriculum and progress
   useEffect(() => {
-    const initProgress = async () => {
+    const initData = async () => {
       if (!user || !language) return;
       try {
         setIsLoadingProgress(true);
-        const { progress } = await getPlaygroundProgress();
-        const currentProgress = progress.find((p) => p.language === language);
-        if (currentProgress) {
-          const completedSet = new Set(currentProgress.completedProblems);
-          setCompletedProblems(completedSet);
-          if (data && data.chapters) {
+        const curRes = await getCurriculum(language);
+        if (curRes.success && curRes.curriculum) {
+          setData(curRes.curriculum);
+          const { progress: currentProgress } =
+            await getLanguageProgress(language);
+
+          if (currentProgress) {
+            const completedSet = new Set(currentProgress.completedProblems);
+            setCompletedProblems(completedSet);
             let firstUnsolved = null;
-            for (const chapter of data.chapters) {
+            for (const chapter of curRes.curriculum.chapters) {
               const found = chapter.problems.find(
                 (p) => !completedSet.has(p.id),
               );
@@ -129,47 +165,45 @@ const LanguagePlayground = () => {
             }
             if (firstUnsolved) {
               setCurrentProblem(firstUnsolved);
-              if (typeof firstUnsolved.starterCode === "object") {
-                setCode(firstUnsolved.starterCode[dsaLang] || "");
-              } else {
-                setCode(firstUnsolved.starterCode || "");
-              }
+              setCode(
+                typeof firstUnsolved.starterCode === "object"
+                  ? firstUnsolved.starterCode[dsaLang] || ""
+                  : firstUnsolved.starterCode || "",
+              );
               setOutput(null);
               setTestResult(null);
               setShowHints(false);
+            } else {
+              // All problems solved, default to the first one
+              const firstProblem = curRes.curriculum.chapters[0].problems[0];
+              setCurrentProblem(firstProblem);
+              setCode(
+                typeof firstProblem.starterCode === "object"
+                  ? firstProblem.starterCode[dsaLang] || ""
+                  : firstProblem.starterCode || "",
+              );
+              setOutput(null);
+              setTestResult(null);
+              setShowHints(false);
+              setExpandedChapterId(curRes.curriculum.chapters[0].id);
             }
+          } else {
+            navigate(`/playground/${language}/topics`, { replace: true });
           }
         } else {
-          navigate(`/playground/${language}/topics`, { replace: true });
+          toast.error("Curriculum not found");
+          navigate("/playground");
         }
       } catch (error) {
-        console.error(
-          "[Playground] Error loading progress:",
-          error?.response?.data || error.message,
-        );
+        console.error("[Playground] Error loading data:", error);
       } finally {
         setIsLoadingProgress(false);
       }
     };
-    initProgress();
-  }, [user, language]);
+    initData();
+  }, [user, language, navigate]);
 
-  useEffect(() => {
-    if (data && !currentProblem) {
-      const firstChapter = data.chapters[0];
-      const firstProblem = firstChapter.problems[0];
-      setCurrentProblem(firstProblem);
-      setExpandedChapterId(firstChapter.id);
-      if (typeof firstProblem.starterCode === "object") {
-        setCode(firstProblem.starterCode[dsaLang] || "");
-      } else {
-        setCode(firstProblem.starterCode);
-      }
-      setOutput(null);
-      setTestResult(null);
-      setShowHints(false);
-    }
-  }, [language, data, currentProblem]);
+
 
   const selectProblem = useCallback(
     (prob, chapterId) => {
@@ -202,25 +236,23 @@ const LanguagePlayground = () => {
     }
     if (!isLivePreview || !iframeRef.current) return;
     const iframe = iframeRef.current;
-    const doc = iframe.contentDocument;
-    if (!doc) return;
+    const testBridge = `<script>
+      window.__runTest__=function(s){try{var r=new Function("doc",s)(document);window.parent.postMessage({type:"TEST_RESULT",success:r.success,message:r.message},"*");}catch(e){window.parent.postMessage({type:"TEST_RESULT",success:false,message:"Test error: "+e.message},"*");}};
+      window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
+      window.parent.postMessage({type:"IFRAME_READY"},"*");
+    <\/script>`;
     if (language === "css") {
-      doc.open();
-      doc.write(
-        `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}</body></html>`,
-      );
-      doc.close();
+      iframe.srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}${testBridge}</body></html>`;
     } else {
-      doc.open();
-      doc.write(code);
-      doc.close();
+      iframe.srcdoc = `<!DOCTYPE html><html><head></head><body>${code}${testBridge}</body></html>`;
     }
   }, [code, currentProblem, isLivePreview, isReact, language]);
 
-  // React postMessage bridge
+  // postMessage bridge for iframe-based tests (React + HTML/CSS)
   useEffect(() => {
-    if (!isReact) return;
+    if (!isReact && !isLivePreview) return;
     const handler = async (e) => {
+      if (e.origin !== window.location.origin) return; // Fix Bug #26
       if (!e.data?.type) return;
       if (e.data.type === "IFRAME_READY" && pendingTestRef.current) {
         const fn = pendingTestRef.current;
@@ -271,7 +303,7 @@ const LanguagePlayground = () => {
       setOutput(null);
       setTestResult(null);
     }
-  }, [currentProblem]);
+  }, [currentProblem, dsaLang]);
 
   const handleRunCode = useCallback(async () => {
     if (!currentProblem || isRunning) return;
@@ -292,45 +324,23 @@ const LanguagePlayground = () => {
     if (isLivePreview) {
       try {
         const iframe = iframeRef.current;
-        const doc = iframe?.contentDocument;
-        if (!doc) throw new Error("Preview not ready");
+        if (!iframe) throw new Error("Preview not ready");
         if (currentProblem.testFunction) {
-          const testFn = new Function("doc", currentProblem.testFunction);
-          const result = testFn(doc);
-          setTestResult(result);
-          if (result.success) {
-            try {
-              const response = await completeProb(
-                language,
-                currentProblem.id,
-                currentProblem.xp,
-              );
-              if (!response.alreadyCompleted) {
-                dispatch(updateUserStats(response.user));
-                toast.success(`${result.message} +${currentProblem.xp} XP!`);
-                confetti({
-                  particleCount: 120,
-                  spread: 80,
-                  origin: { y: 0.7 },
-                });
-              } else {
-                toast.success("Problem solved! (XP already earned)");
-              }
-              setCompletedProblems(
-                (prev) => new Set([...prev, currentProblem.id]),
-              );
-            } catch (error) {
-              console.error("Error saving progress:", error);
-              toast.error("Tests passed but failed to save progress");
-            }
-          } else {
-            toast.error(result.message || "Tests failed");
-          }
+          pendingTestRef.current = currentProblem.testFunction;
+          // Trigger IFRAME_READY -> RUN_TEST flow
+          const testBridge = `<script>
+            window.__runTest__=function(s){try{var r=new Function("doc",s)(document);window.parent.postMessage({type:"TEST_RESULT",success:r.success,message:r.message},"*");}catch(e){window.parent.postMessage({type:"TEST_RESULT",success:false,message:"Test error: "+e.message},"*");}};
+            window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
+            window.parent.postMessage({type:"IFRAME_READY"},"*");
+          <\/script>`;
+          if (language === "css") iframe.srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}${testBridge}</body></html>`;
+          else iframe.srcdoc = `<!DOCTYPE html><html><head></head><body>${code}${testBridge}</body></html>`;
+        } else {
+          setIsRunning(false);
         }
       } catch (err) {
         setTestResult({ success: false, message: err.message });
         toast.error("Validation error");
-      } finally {
         setIsRunning(false);
       }
       return;
@@ -453,6 +463,54 @@ const LanguagePlayground = () => {
     if (isMobile) setIsSidebarOpen(false);
   }, [isMobile]);
 
+  // ── Computed values ────────────────────────────────────
+  const { totalProblems, completedCount, progressPercent } = useMemo(() => {
+    const total =
+      data?.chapters?.reduce((sum, ch) => sum + ch.problems.length, 0) || 0;
+    const completed = completedProblems.size;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return {
+      totalProblems: total,
+      completedCount: completed,
+      progressPercent: percent,
+    };
+  }, [data, completedProblems]);
+
+  // Lesson number (e.g. "2.1")
+  const { currentChapterIdx, currentProblemIdx } = useMemo(() => {
+    let cIdx = 0;
+    let pIdx = 0;
+    if (currentProblem && data) {
+      for (let ci = 0; ci < data.chapters.length; ci++) {
+        const pi = data.chapters[ci].problems.findIndex(
+          (p) => p.id === currentProblem.id,
+        );
+        if (pi !== -1) {
+          cIdx = ci;
+          pIdx = pi;
+          break;
+        }
+      }
+    }
+    return { currentChapterIdx: cIdx, currentProblemIdx: pIdx };
+  }, [currentProblem, data]);
+
+  const fileName = useMemo(() => {
+    const fileExtMap = {
+      python: "py",
+      javascript: "js",
+      html: "html",
+      css: "css",
+      react: "jsx",
+      java: "java",
+    };
+    const activeLang =
+      typeof currentProblem?.starterCode === "object"
+        ? dsaLang
+        : language?.toLowerCase();
+    return `main.${fileExtMap[activeLang] || activeLang}`;
+  }, [currentProblem, dsaLang, language]);
+
   // ── Not found ──────────────────────────────────────────
   if (!data) {
     return (
@@ -475,45 +533,7 @@ const LanguagePlayground = () => {
     );
   }
 
-  // ── Computed values ────────────────────────────────────
-  const totalProblems = data.chapters.reduce(
-    (sum, ch) => sum + ch.problems.length,
-    0,
-  );
-  const completedCount = completedProblems.size;
-  const progressPercent =
-    totalProblems > 0 ? Math.round((completedCount / totalProblems) * 100) : 0;
 
-  // Lesson number (e.g. "2.1")
-  let currentChapterIdx = 0;
-  let currentProblemIdx = 0;
-  if (currentProblem) {
-    for (let ci = 0; ci < data.chapters.length; ci++) {
-      const pi = data.chapters[ci].problems.findIndex(
-        (p) => p.id === currentProblem.id,
-      );
-      if (pi !== -1) {
-        currentChapterIdx = ci;
-        currentProblemIdx = pi;
-        break;
-      }
-    }
-  }
-
-  // Derive filename from language
-  const fileExtMap = {
-    python: "py",
-    javascript: "js",
-    html: "html",
-    css: "css",
-    react: "jsx",
-    java: "java",
-  };
-  const activeLang =
-    typeof currentProblem?.starterCode === "object"
-      ? dsaLang
-      : language?.toLowerCase();
-  const fileName = `main.${fileExtMap[activeLang] || activeLang}`;
 
   // Go to next problem
   const goToNextProblem = () => {
@@ -554,28 +574,6 @@ const LanguagePlayground = () => {
     );
   }
 
-  // ── Language Icon Helper ───────────────────────────────
-  const getLanguageIconUrl = (lang) => {
-    switch (lang?.toLowerCase()) {
-      case "python":
-        return "/python.png";
-      case "javascript":
-        return "/js.png";
-      case "react":
-        return "/react.png";
-      case "html":
-        return "/html.png";
-      case "css":
-        return "/css.png";
-      case "java":
-        return "/java.png";
-      case "dsa":
-        return "/dsa.png";
-      default:
-        return null;
-    }
-  };
-
   /* ════════════════════════════════════════════════════════
    *  RENDER
    * ════════════════════════════════════════════════════════ */
@@ -615,9 +613,9 @@ const LanguagePlayground = () => {
               onClick={() => navigate("/profile")}
               className="w-9 h-9 rounded-full overflow-hidden border border-white/10 flex items-center justify-center"
             >
-              {user?.imageUrl ? (
+              {user?.avatarUrl ? (
                 <img
-                  src={user.imageUrl}
+                  src={user.avatarUrl}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -972,14 +970,10 @@ const LanguagePlayground = () => {
                       <h3 className="text-xl font-bold text-white mb-3">
                         {currentProblem?.title}
                       </h3>
-                      <div
+                      <FormattedTaskText
+                        text={currentProblem?.description}
+                        isMobile={true}
                         className="text-zinc-300 text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
-                        dangerouslySetInnerHTML={{
-                          __html: formatTaskText(
-                            currentProblem?.description,
-                            true,
-                          ),
-                        }}
                       />
                     </div>
                   </>
@@ -988,14 +982,10 @@ const LanguagePlayground = () => {
                     <span className="text-red-500 text-[16px] font-bold flex items-center gap-2 mb-3">
                       <img src="/task.svg" className="w-7 h-7"></img> Your Task:
                     </span>
-                    <div
+                    <FormattedTaskText
+                      text={currentProblem?.description}
+                      isMobile={false}
                       className="text-white text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
-                      dangerouslySetInnerHTML={{
-                        __html: formatTaskText(
-                          currentProblem?.description,
-                          false,
-                        ),
-                      }}
                     />
                   </div>
                 )}
