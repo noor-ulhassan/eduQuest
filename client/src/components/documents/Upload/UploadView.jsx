@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, X, Clock } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
 import { uploadApi } from '@/services/apiService';
 
-function UploadView({ onUploadSuccess, allDocs = [], onSelectDocument, activeDocumentId }) {
+function UploadView({ onUploadSuccess }) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -124,9 +124,8 @@ function UploadView({ onUploadSuccess, allDocs = [], onSelectDocument, activeDoc
   // ─── Upload Form ─────────────────────────────────────
   return (
     <div className="h-[calc(100vh-180px)] overflow-y-auto">
-      <div className="max-w-3xl mx-auto py-6">
-        {/* Upload section */}
-        <div className="max-w-lg mx-auto mb-10">
+      <div className="max-w-lg mx-auto py-6">
+        <div>
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Upload size={32} className="text-indigo-600" />
@@ -218,62 +217,6 @@ function UploadView({ onUploadSuccess, allDocs = [], onSelectDocument, activeDoc
             </div>
           )}
         </div>
-
-        {/* ─── Previously Uploaded Documents ─── */}
-        {allDocs.length > 0 && (
-          <div className="border-t border-gray-200 pt-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Clock size={18} className="text-gray-500" />
-              Previously Uploaded Documents
-            </h3>
-            <div className="grid gap-3">
-              {allDocs.map((doc) => {
-                const isActive = doc.documentId === activeDocumentId;
-                return (
-                  <button
-                    key={doc.documentId || doc._id}
-                    onClick={() => onSelectDocument?.(doc)}
-                    className={`w-full text-left p-4 rounded-xl border transition-all ${
-                      isActive
-                        ? 'border-indigo-300 bg-indigo-50 ring-1 ring-indigo-200'
-                        : 'border-gray-200 bg-white hover:border-indigo-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            isActive ? 'bg-indigo-100' : 'bg-gray-100'
-                          }`}
-                        >
-                          <FileText
-                            size={18}
-                            className={isActive ? 'text-indigo-600' : 'text-gray-500'}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {doc.fileName}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {doc.totalPages} pages · {doc.chunksStored} chunks
-                            {doc.uploadedAt &&
-                              ` · ${new Date(doc.uploadedAt).toLocaleDateString()}`}
-                          </p>
-                        </div>
-                      </div>
-                      {isActive && (
-                        <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-medium flex-shrink-0">
-                          Active
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
