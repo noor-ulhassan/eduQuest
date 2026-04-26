@@ -2,11 +2,36 @@ import { count, error } from "console";
 import Document from "../models/Document.js";
 // import Flashcard from '../models/Flashcard.js';
 // import Quiz from '../models/Quiz.js';
-import { extractTextFromPDF } from "../utils/pdfParser.js";
-import { chunkText } from "../utils/textChunker.js";
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { getVectorStore } from "../database/dbConnect.js";
 import fs from "fs/promises";
 import mongoose from "mongoose";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+
+/**
+ * Detect chapter number from page text using common heading patterns.
+ * Returns the chapter number if found, or null.
+ */
+function detectChapterFromText(text) {
+  const patterns = [
+    /\bChapter\s+(\d+)/i,     // "Chapter 1", "chapter 12"
+    /\bCh[\.\s]+(\d+)/i,      // "Ch. 1", "Ch 3"
+    /^(\d+)\.\s+[A-Z]/m,      // "1. Introduction" at line start
+    /\bUnit\s+(\d+)/i,        // "Unit 1"
+    /\bModule\s+(\d+)/i,      // "Module 1"
+    /\bPart\s+(\d+)/i,        // "Part 1"
+    /\bSection\s+(\d+)/i,     // "Section 1"
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+  }
+  return null;
+}
 
 // @desc    Upload PDF document
 // @route   POST /api/documents/upload
@@ -20,13 +45,11 @@ export const uploadDocument = async (req, res, next) => {
         statusCode: 400,
       });
     }
-    // console.log("Uploaded file:", req.file);
+    
     let filePath = req.file.path; // The temp file on your disk
-
     const { title } = req.body;
 
     if (!title) {
-      // Delete uploaded file if no title provided
       return res.status(400).json({
         success: false,
         error: "Please provide a document title",
@@ -34,58 +57,105 @@ export const uploadDocument = async (req, res, next) => {
       });
     }
 
-    //  UPLOAD TO CLOUDINARY
-    // console.log("Step 1: Uploading to Cloudinary...");
+    // 1. Create an initial document record to get an ID
+    const document = await Document.create({
+      userId: req.user._id,
+      title,
+      fileName: req.file.originalname,
+      filePath: "pending", // Placeholder
+      fileSize: req.file.size,
+      status: "processing",
+    });
+
+    // 2. Load PDF pages with LangChain
+    console.log("Step 1: Loading PDF with LangChain...");
+    const loader = new PDFLoader(filePath);
+    const docs = await loader.load();
+    
+    // 3. Build chapter map
+    let currentChapter = 1;
+    const pageChapterMap = {};
+
+    for (const doc of docs) {
+      const pageNum = doc.metadata?.loc?.pageNumber || 1;
+      const detected = detectChapterFromText(doc.pageContent);
+      if (detected !== null) {
+        currentChapter = detected;
+      }
+      pageChapterMap[pageNum] = currentChapter;
+    }
+
+    // 4. Split into chunks
+    console.log("Step 2: Splitting text into chunks...");
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 700,
+      chunkOverlap: 100,
+    });
+    const splitDocs = await splitter.splitDocuments(docs);
+
+    // 5. Enrich chunks with metadata
+    splitDocs.forEach((doc, index) => {
+      const pageNum = doc.metadata?.loc?.pageNumber || 1;
+      doc.metadata = {
+        userId: req.user._id.toString(),
+        documentId: document._id.toString(),
+        chunkIndex: index,
+        pageNumber: pageNum,
+        chapterNumber: pageChapterMap[pageNum] || 1,
+        fileName: req.file.originalname,
+      };
+    });
+
+    // 6. Upload to Cloudinary
+    console.log("Step 3: Uploading to Cloudinary...");
     const cloudinaryResponse = await uploadOnCloudinary(filePath);
 
     if (!cloudinaryResponse) {
       throw new Error("Failed to upload to Cloudinary");
     }
-    // console.log("Upload Success. URL:", cloudinaryResponse.secure_url);
 
-    // --- STEP 2: EXTRACT TEXT (Sequential) ---
-    // We do this AFTER upload succeeds. If upload fails, this never runs.
-    console.log("Step 2: Extracting text...");
-    const { text } = await extractTextFromPDF(filePath);
+    // 7. Embed and store chunks in Vector Store
+    console.log("Step 4: Storing chunks in Vector DB...");
+    const vectorStore = getVectorStore();
+    // We must send chunks in small batches to respect Google API Rate Limits
+    const BATCH_SIZE = 50; // Keep this low for the free tier
+    
+    for (let i = 0; i < splitDocs.length; i += BATCH_SIZE) {
+      const batch = splitDocs.slice(i, i + BATCH_SIZE);
+      
+      console.log(`⏳ Embedding batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(splitDocs.length / BATCH_SIZE)}...`);
+      await vectorStore.addDocuments(batch);
 
-    // --- STEP 3: CHUNK TEXT ---
-    const chunks = chunkText(text, 500, 50);
+      // Force the server to pause for 4 seconds between batches
+      if (i + BATCH_SIZE < splitDocs.length) {
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+      }
+    }
 
-    // Create document record
-    const document = await Document.create({
-      userId: req.user._id,
-      title,
-      fileName: req.file.originalname,
-      filePath: cloudinaryResponse.secure_url, // Store the Cloud URL
-      fileSize: req.file.size,
-      extractedText: text,
-      chunks: chunks,
-      status: "ready",
-    });
+    // 8. Update document record with results
+    const chaptersArr = [...new Set(Object.values(pageChapterMap))].sort((a, b) => a - b);
+    
+    document.filePath = cloudinaryResponse.secure_url;
+    document.totalPages = docs.length;
+    document.chunksStored = splitDocs.length;
+    document.chapters = chaptersArr;
+    document.status = "ready";
+    await document.save();
 
     res.status(201).json({
       success: true,
       data: document,
-      message: "Document uploaded successfully. Processing in progress...",
+      message: "Document uploaded successfully.",
     });
   } catch (error) {
-    // Clean up file on error
-    // if (req.file) {
-    //   await fs.unlink(req.file.path).catch(() => {});
-    // }
     next(error);
   } finally {
-    // --- CRITICAL CLEANUP ---
-    // This block runs whether the upload succeeded OR failed.
-    // It guarantees your server disk never fills up.
     try {
-      console.log("Step 4: Cleaning up temp file...", req.file?.path);
-      let filePath = req.file?.path;
-
-      await fs.unlink(filePath);
-      console.log(`Cleanup: Deleted local file ${filePath}`);
+      if (req.file?.path) {
+        await fs.unlink(req.file.path);
+        console.log(`Cleanup: Deleted local file ${req.file.path}`);
+      }
     } catch (err) {
-      // If file was already deleted or doesn't exist, ignore error
       if (err.code !== "ENOENT")
         console.error("Error deleting temp file:", err);
     }
