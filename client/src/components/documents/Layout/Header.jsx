@@ -1,7 +1,9 @@
 import { FileText, User } from 'lucide-react';
-import { DUMMY_AUTH } from '../../utils/constants';
+import { useSelector } from 'react-redux';
 
 function Header({ documentName }) {
+  const user = useSelector((state) => state.auth.user);
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -17,10 +19,12 @@ function Header({ documentName }) {
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 text-gray-600">
-          <User size={16} />
-          <span className="text-sm">{DUMMY_AUTH.userName}</span>
-        </div>
+        {user && (
+          <div className="flex items-center gap-2 text-gray-600">
+            <User size={16} />
+            <span className="text-sm">{user.name || user.username || user.email}</span>
+          </div>
+        )}
       </div>
     </header>
   );

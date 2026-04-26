@@ -29,11 +29,8 @@ const Profile = lazy(() => import("./pages/student/Profile"));
 const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
 const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
 const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
-const DocumentLibraryPage = lazy(
-  () => import("./pages/Documents/DocumentLibraryPage"),
-);
-const DocumentInteractPage = lazy(
-  () => import("./pages/Documents/DocumentInteractPage"),
+const DocumentsPage = lazy(
+  () => import("./components/documents/DocumentsPage"),
 );
 const Playground = lazy(() => import("./pages/Playgrounds/Page"));
 const LanguagePlayground = lazy(
@@ -136,7 +133,7 @@ const appRouter = createBrowserRouter([
             index: true,
             element: (
               <ProtectedRoute>
-                <Lazy element={DocumentLibraryPage} />
+                <Lazy element={DocumentsPage} />
               </ProtectedRoute>
             ),
           },
@@ -144,7 +141,7 @@ const appRouter = createBrowserRouter([
             path: ":id",
             element: (
               <ProtectedRoute>
-                <Lazy element={DocumentInteractPage} />
+                <Lazy element={DocumentsPage} />
               </ProtectedRoute>
             ),
           },

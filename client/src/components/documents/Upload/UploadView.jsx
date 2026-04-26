@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, X, Clock } from 'lucide-react';
-import { uploadApi } from '../../services/apiService';
+import { uploadApi } from '@/services/apiService';
 
 function UploadView({ onUploadSuccess, allDocs = [], onSelectDocument, activeDocumentId }) {
   const [isDragging, setIsDragging] = useState(false);
