@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { playVSScreenSound, playStartGameSound } from "@/lib/sound";
+import {
+  playVSScreenSound,
+  playCountdownTickSound,
+  playCountdownGoSound,
+} from "@/lib/sound";
 
 /**
  * VSScreen — Animated "VS" screen with 3-2-1-GO countdown.
@@ -19,13 +24,13 @@ const VSScreen = ({ players = [], onComplete, settings }) => {
     playVSScreenSound();
 
     const timers = [];
-    timers.push(setTimeout(() => setPhase(3), 1500));
-    timers.push(setTimeout(() => setPhase(2), 2500));
-    timers.push(setTimeout(() => setPhase(1), 3500));
+    timers.push(setTimeout(() => { setPhase(3); playCountdownTickSound(); }, 1500));
+    timers.push(setTimeout(() => { setPhase(2); playCountdownTickSound(); }, 2500));
+    timers.push(setTimeout(() => { setPhase(1); playCountdownTickSound(); }, 3500));
     timers.push(
       setTimeout(() => {
         setPhase("go");
-        playStartGameSound();
+        playCountdownGoSound();
       }, 4500),
     );
     timers.push(setTimeout(() => onCompleteRef.current?.(), 5200));

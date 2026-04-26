@@ -30,6 +30,8 @@ function scheduleLeaderboardBroadcast(io, roomCode, room) {
           currentQuestion: p.currentQuestion,
           correctAnswers: p.correctAnswers || 0,
           finished: p.finished,
+          eliminated: p.eliminated || false,
+          team: room.playerTeam ? room.playerTeam[p.id] : null,
         }))
         .sort((a, b) => b.score - a.score);
 
@@ -203,6 +205,7 @@ export function initializeSocket(io) {
         settings: {
           category: room.category,
           challengeMode: room.challengeMode,
+          gameMode: room.gameMode || "classic",
           difficulty: room.difficulty,
           language: room.language,
           topic: room.topic,
@@ -241,6 +244,7 @@ export function initializeSocket(io) {
         status: "waiting", // waiting | active | finished
         category: null, // programming | general
         challengeMode: "classic", // classic | scenario | debug | outage | refactor | missing
+        gameMode: "classic", // classic | survival | blitz
         difficulty: "medium",
         language: "javascript",
         topic: "",
@@ -306,8 +310,9 @@ export function initializeSocket(io) {
         });
       }
 
-      if (room.players.length >= 20) {
-        return callback?.({ success: false, message: "Room is full" });
+      const maxPlayers = room.gameMode === "duel" ? 2 : 20;
+      if (room.players.length >= maxPlayers) {
+        return callback?.({ success: false, message: room.gameMode === "duel" ? "Duel rooms are limited to 2 players" : "Room is full" });
       }
 
       room.players.push({
@@ -346,6 +351,7 @@ export function initializeSocket(io) {
       // Validate and apply settings with allow-lists and bounds
       const validCategories = ["programming", "general"];
       const validModes = ["classic", "scenario", "debug", "outage", "refactor", "missing", "interactive"];
+      const validGameModes = ["classic", "survival", "blitz", "team", "duel", "practice"];
       const validDifficulties = ["easy", "medium", "hard"];
 
       if (settings.category && validCategories.includes(settings.category)) {
@@ -353,6 +359,9 @@ export function initializeSocket(io) {
       }
       if (settings.challengeMode && validModes.includes(settings.challengeMode)) {
         room.challengeMode = settings.challengeMode;
+      }
+      if (settings.gameMode && validGameModes.includes(settings.gameMode)) {
+        room.gameMode = settings.gameMode;
       }
       if (settings.difficulty && validDifficulties.includes(settings.difficulty)) {
         room.difficulty = settings.difficulty;
@@ -376,6 +385,7 @@ export function initializeSocket(io) {
       io.to(roomCode).emit("settingsUpdated", {
         category: room.category,
         challengeMode: room.challengeMode,
+        gameMode: room.gameMode || "classic",
         difficulty: room.difficulty,
         language: room.language,
         topic: room.topic,
@@ -414,7 +424,22 @@ export function initializeSocket(io) {
         });
       }
 
+      // If questions already generated, skip API call and re-notify
+      if (room.status === "ready" && room.questions?.length > 0) {
+        io.to(roomCode).emit("gameStatus", {
+          status: "ready",
+          totalQuestions: room.questions.length,
+        });
+        return callback?.({ success: true });
+      }
+
+      // Prevent concurrent generation for the same room
+      if (room.status === "generating") {
+        return callback?.({ success: false, message: "Questions are already being generated" });
+      }
+
       try {
+        room.status = "generating";
         io.to(roomCode).emit("gameStatus", { status: "generating" });
 
         // Generate questions via Gemini
@@ -443,11 +468,17 @@ export function initializeSocket(io) {
         callback?.({ success: true });
       } catch (err) {
         console.error("[Socket] Error generating questions:", err);
-        callback?.({
-          success: false,
-          message: "Failed to generate questions",
+        // Reset status so host can retry (unless quota — no point retrying)
+        if (rooms.has(roomCode)) rooms.get(roomCode).status = "lobby";
+        const isQuota = err.message === "QUOTA_EXCEEDED";
+        const message = isQuota
+          ? "AI quota exceeded. Please upgrade your Gemini API plan or try again later."
+          : "Failed to generate questions. Please try again.";
+        callback?.({ success: false, message });
+        io.to(roomCode).emit("gameStatus", {
+          status: "error",
+          message,
         });
-        io.to(roomCode).emit("gameStatus", { status: "error" });
       }
     });
 
@@ -473,6 +504,30 @@ export function initializeSocket(io) {
       room.status = "active";
       room.startTime = Date.now();
 
+      // Team Battle: auto-assign players to 2 teams
+      if (room.gameMode === "team") {
+        const half = Math.ceil(room.players.length / 2);
+        room.playerTeam = {};
+        room.players.forEach((p, i) => { room.playerTeam[p.id] = i < half ? 0 : 1; });
+      }
+
+      // Survival: require at least 2 players
+      if (room.gameMode === "survival" && room.players.length < 2) {
+        return callback?.({ success: false, message: "Survival mode requires at least 2 players" });
+      }
+
+      // Survival: initialize round tracking
+      if (room.gameMode === "survival") {
+        room.roundAnswers = {};
+        room.roundIndex = 0;
+        room._roundTimer = setTimeout(() => {
+          if (room.status !== "active") return;
+          room.players.filter(p => !p.eliminated && !p.finished)
+            .forEach(p => { if (!room.roundAnswers[p.id]) room.roundAnswers[p.id] = { isCorrect: false }; });
+          processSurvivalRound(io, roomCode, room);
+        }, 30000);
+      }
+
       const firstQuestion = sanitizeQuestion(
         room.questions[0],
         room.category,
@@ -488,10 +543,17 @@ export function initializeSocket(io) {
         questionIndex: 0,
         category: room.category,
         challengeMode: room.challengeMode || "classic",
+        gameMode: room.gameMode || "classic",
+        playerTeam: room.playerTeam || null,
         language: room.language,
       });
 
       startRoomTimer(io, roomCode, room);
+
+      // Blitz: set 15s per-question timer for each player's first question
+      if (room.gameMode === "blitz") {
+        room.players.forEach(p => setBlitzQuestionTimer(io, roomCode, room, p, 0));
+      }
 
       console.log(
         `[Socket] Game launched in room ${roomCode} - ${room.questions.length} questions`,
@@ -535,7 +597,7 @@ export function initializeSocket(io) {
         if (questionIndex >= (room.questions?.length || 0)) return;
 
         const player = room.players.find((p) => p.id === socket.user.id);
-        if (!player || player.finished) return;
+        if (!player || player.finished || player.eliminated) return;
         if (questionIndex !== player.currentQuestion) return; // C-3: prevent double-submit
 
         const question = room.questions[questionIndex];
@@ -549,11 +611,20 @@ export function initializeSocket(io) {
         const questionStartTime = player.lastQuestionTime || room.startTime;
         const questionElapsed = (now - questionStartTime) / 1000; // seconds for this question
 
+        // Blitz: clear the per-question 15s timer since player answered
+        if (room.gameMode === "blitz" && room._blitzTimers) {
+          clearTimeout(room._blitzTimers.get(player.id));
+          room._blitzTimers.delete(player.id);
+        }
+
+        // Blitz mode: speed decay is 3x faster (answer within ~10s for full bonus)
+        const decayFactor = room.gameMode === "blitz" ? 0.33 : 1;
+
         // Speed bonus calculation helper
         const calcSpeedBonus = (base, maxBonus, decayTime) => {
           const speedBonus = Math.max(
             0,
-            Math.floor(maxBonus * (1 - questionElapsed / decayTime)),
+            Math.floor(maxBonus * (1 - questionElapsed / (decayTime * decayFactor))),
           );
           return base + speedBonus;
         };
@@ -695,6 +766,17 @@ export function initializeSocket(io) {
           explanation: question.explanation || null,
         });
 
+        // Survival: record answer and wait for all active players before advancing
+        if (room.gameMode === "survival") {
+          if (!room.roundAnswers) room.roundAnswers = {};
+          room.roundAnswers[player.id] = { isCorrect, pointsEarned };
+          const active = room.players.filter(p => !p.eliminated && !p.finished);
+          if (active.length >= 2 && active.every(p => room.roundAnswers[p.id] !== undefined)) {
+            processSurvivalRound(io, roomCode, room);
+          }
+          return; // Don't use normal next-question flow
+        }
+
         // Send next question if available
         if (!player.finished) {
           const nextQ = sanitizeQuestion(
@@ -708,6 +790,7 @@ export function initializeSocket(io) {
             question: nextQ,
             questionIndex: nextIndex,
           });
+          if (room.gameMode === "blitz") setBlitzQuestionTimer(io, roomCode, room, player, nextIndex);
         } else {
           // Player finished all questions — send rich individual results
           const timeTaken = Math.floor(
@@ -732,8 +815,8 @@ export function initializeSocket(io) {
           });
         }
 
-        // Check if all players finished
-        if (room.players.every((p) => p.finished)) {
+        // Check if all players finished (or eliminated in survival)
+        if (room.players.every((p) => p.finished || p.eliminated)) {
           endGame(io, roomCode, room);
         }
       },
@@ -1038,6 +1121,7 @@ function safeRoomPayload(room) {
     status: room.status,
     category: room.category,
     challengeMode: room.challengeMode,
+    gameMode: room.gameMode || "classic",
     difficulty: room.difficulty,
     language: room.language,
     topic: room.topic,
@@ -1170,8 +1254,10 @@ async function endGame(io, roomCode, room) {
   room.status = "finished";
   room.endTime = Date.now();
   if (room._timerInterval) clearInterval(room._timerInterval);
+  if (room._roundTimer) { clearTimeout(room._roundTimer); room._roundTimer = null; }
+  if (room._blitzTimers) { room._blitzTimers.forEach(t => clearTimeout(t)); room._blitzTimers.clear(); }
 
-  // Sort leaderboard
+  // Sort leaderboard — eliminated players go after finishers, sorted by score
   const finalLeaderboard = room.players
     .map((p) => ({
       id: p.id,
@@ -1181,13 +1267,40 @@ async function endGame(io, roomCode, room) {
       currentQuestion: p.currentQuestion,
       correctAnswers: p.correctAnswers || 0,
       finished: p.finished,
+      eliminated: p.eliminated || false,
       timeTaken: p.finishTime
         ? Math.floor((p.finishTime - room.startTime) / 1000)
         : null,
     }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => {
+      if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+      return b.score - a.score;
+    });
 
-  // Save results to DB — await to ensure data integrity before notifying clients
+  let teamScores = null;
+  if (room.playerTeam) {
+    teamScores = { 0: 0, 1: 0 };
+    finalLeaderboard.forEach(p => {
+      const team = room.playerTeam[p.id];
+      if (team === 0 || team === 1) teamScores[team] += p.score;
+    });
+  }
+
+  io.to(roomCode).emit("gameOver", {
+    leaderboard: finalLeaderboard,
+    playerTeam: room.playerTeam || null,
+    teamScores,
+  });
+
+  // Award XP to winner (skip for practice mode)
+  if (room.gameMode !== "practice") awardXP(finalLeaderboard);
+
+  // Save results to DB — skip for practice (unranked)
+  if (room.gameMode === "practice") {
+    setTimeout(() => { rooms.delete(roomCode); broadcastRoomListUpdate(io); }, 60000);
+    return;
+  }
+
   try {
     // DATA-1: Remove any existing DNF records for these players in this room
     // (prevents double-recording if a player disconnected then reconnected)
@@ -1204,9 +1317,9 @@ async function endGame(io, roomCode, room) {
       category: room.category,
       challengeMode: room.challengeMode || "classic",
       difficulty: room.difficulty,
-      rank: p.finished ? index + 1 : null,
+      rank: (p.finished && !p.eliminated) ? index + 1 : null,
       score: p.score || 0,
-      status: p.finished ? "completed" : "dnf",
+      status: (p.finished && !p.eliminated) ? "completed" : "dnf",
     }));
 
     if (results.length > 0) {
@@ -1219,17 +1332,105 @@ async function endGame(io, roomCode, room) {
     console.error("Error saving game results:", err);
   }
 
-  io.to(roomCode).emit("gameOver", { leaderboard: finalLeaderboard });
-
-  // Award XP to winner
-  awardXP(finalLeaderboard);
-
   // Cleanup room after 60 seconds
   setTimeout(() => {
     rooms.delete(roomCode);
     console.log(`[Socket] Room ${roomCode} cleaned up`);
     broadcastRoomListUpdate(io);
   }, 60000);
+}
+
+// ─── SURVIVAL: Round-based elimination ────────────────────────
+function processSurvivalRound(io, roomCode, room) {
+  if (room._roundTimer) { clearTimeout(room._roundTimer); room._roundTimer = null; }
+  if (room.status !== "active") return;
+
+  const active = room.players.filter(p => !p.eliminated && !p.finished);
+  if (active.length <= 1) { endGame(io, roomCode, room); return; }
+
+  // Eliminate the player with the lowest cumulative score
+  const sorted = [...active].sort((a, b) => a.score - b.score);
+  const lowestPlayer = sorted[0];
+
+  lowestPlayer.eliminated = true;
+  lowestPlayer.finished = true;
+  lowestPlayer.finishTime = Date.now();
+
+  const lowestSocket = io.sockets.sockets.get(lowestPlayer.socketId);
+  if (lowestSocket) {
+    lowestSocket.emit("playerEliminated", {
+      score: lowestPlayer.score,
+      correctAnswers: lowestPlayer.correctAnswers || 0,
+      totalQuestions: room.questions.length,
+    });
+  }
+  io.to(roomCode).emit("playerEliminatedUpdate", { playerId: lowestPlayer.id, playerName: lowestPlayer.name });
+
+  room.roundAnswers = {};
+  room.roundIndex = (room.roundIndex || 0) + 1;
+
+  const stillActive = room.players.filter(p => !p.eliminated && !p.finished);
+  scheduleLeaderboardBroadcast(io, roomCode, room);
+
+  if (stillActive.length <= 1 || room.roundIndex >= room.questions.length) {
+    endGame(io, roomCode, room);
+    return;
+  }
+
+  // Send next question to all survivors simultaneously
+  const nextQ = room.questions[room.roundIndex];
+  const now = Date.now();
+  stillActive.forEach(p => {
+    p.currentQuestion = room.roundIndex;
+    p.lastQuestionTime = now;
+    const sanitized = sanitizeQuestion(nextQ, room.category, room.challengeMode, room, room.roundIndex);
+    const pSocket = io.sockets.sockets.get(p.socketId);
+    if (pSocket) pSocket.emit("nextQuestion", { question: sanitized, questionIndex: room.roundIndex });
+  });
+
+  // 30s per-round timer — auto-submit wrong for non-responders
+  room._roundTimer = setTimeout(() => {
+    if (room.status !== "active") return;
+    room.players.filter(p => !p.eliminated && !p.finished)
+      .forEach(p => { if (!room.roundAnswers[p.id]) room.roundAnswers[p.id] = { isCorrect: false }; });
+    processSurvivalRound(io, roomCode, room);
+  }, 30000);
+}
+
+// ─── BLITZ: 15s per-question timer ────────────────────────────
+function setBlitzQuestionTimer(io, roomCode, room, player, questionIndex) {
+  if (!room._blitzTimers) room._blitzTimers = new Map();
+  clearTimeout(room._blitzTimers.get(player.id));
+
+  const timer = setTimeout(() => {
+    if (room.status !== "active" || player.currentQuestion !== questionIndex || player.finished) return;
+    room._blitzTimers.delete(player.id);
+
+    player.currentQuestion = questionIndex + 1;
+    player.lastQuestionTime = Date.now();
+    scheduleLeaderboardBroadcast(io, roomCode, room);
+
+    const nextIndex = questionIndex + 1;
+    const playerSocket = io.sockets.sockets.get(player.socketId);
+
+    if (nextIndex >= room.questions.length) {
+      player.finished = true;
+      player.finishTime = Date.now();
+      const timeTaken = Math.floor((player.finishTime - room.startTime) / 1000);
+      const currentRank = room.players.filter(p => p.score > player.score).length + 1;
+      if (playerSocket) {
+        playerSocket.emit("playerFinished", { score: player.score, rank: currentRank, timeTaken, correctAnswers: player.correctAnswers || 0, totalQuestions: room.questions.length });
+      }
+      io.to(roomCode).emit("playerFinishedUpdate", { playerId: player.id, playerName: player.name, finished: true });
+      if (room.players.every(p => p.finished)) endGame(io, roomCode, room);
+    } else {
+      const nextQ = sanitizeQuestion(room.questions[nextIndex], room.category, room.challengeMode, room, nextIndex);
+      if (playerSocket) playerSocket.emit("nextQuestion", { question: nextQ, questionIndex: nextIndex });
+      setBlitzQuestionTimer(io, roomCode, room, player, nextIndex);
+    }
+  }, 15000);
+
+  room._blitzTimers.set(player.id, timer);
 }
 
 async function awardXP(leaderboard) {

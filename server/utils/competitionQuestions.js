@@ -2,7 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // ─── PROMPT INPUT SANITIZATION ────────────────────────────
 const ALLOWED_PROMPT_CHARS = /[^a-zA-Z0-9 .,'!?:()\-_#@&+/]/g;
-const INJECTION_PATTERNS = /\b(ignore|forget|disregard|override|system prompt|instruction)\b/gi;
+const INJECTION_PATTERNS =
+  /\b(ignore|forget|disregard|override|system prompt|instruction)\b/gi;
 
 function sanitizePromptInput(str, maxLen = 200) {
   if (!str || typeof str !== "string") return "";
@@ -21,7 +22,7 @@ function getModel() {
   if (!_model) {
     _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     _model = _genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       generationConfig: { temperature: 0.95 },
     });
   }
@@ -557,6 +558,7 @@ Schema:
 {
   "questions": [
     {
+      "interactionType": "code",
       "title": "",
       "description": "",
       "starterCode": "",
@@ -613,7 +615,14 @@ function validateQuestion(q, index) {
 
   const iType = q.interactionType;
 
-  if (!iType || iType === "mcq") {
+  if (iType === "code") {
+    if (!q.starterCode || !q.testCases) {
+      console.warn(`[Validation] Q${index + 1}: code question missing starterCode/testCases`);
+      return false;
+    }
+  } else if (!iType || iType === "mcq") {
+    // Fallback: if it looks like a code question but missing interactionType
+    if (q.starterCode && q.testCases) return true;
     // MCQ: must have options array with correctAnswer in it
     if (!Array.isArray(q.options) || q.options.length < 2) {
       console.warn(`[Validation] Q${index + 1}: MCQ missing options`);
@@ -625,16 +634,22 @@ function validateQuestion(q, index) {
     }
   } else if (iType === "type_answer") {
     if (!Array.isArray(q.acceptedAnswers) || q.acceptedAnswers.length === 0) {
-      console.warn(`[Validation] Q${index + 1}: type_answer missing acceptedAnswers`);
+      console.warn(
+        `[Validation] Q${index + 1}: type_answer missing acceptedAnswers`,
+      );
       return false;
     }
   } else if (iType === "drag_order") {
     if (!Array.isArray(q.items) || !Array.isArray(q.correctOrder)) {
-      console.warn(`[Validation] Q${index + 1}: drag_order missing items/correctOrder`);
+      console.warn(
+        `[Validation] Q${index + 1}: drag_order missing items/correctOrder`,
+      );
       return false;
     }
     if (q.items.length !== q.correctOrder.length) {
-      console.warn(`[Validation] Q${index + 1}: drag_order items/correctOrder length mismatch`);
+      console.warn(
+        `[Validation] Q${index + 1}: drag_order items/correctOrder length mismatch`,
+      );
       return false;
     }
   } else if (iType === "drag_match") {
@@ -643,12 +658,16 @@ function validateQuestion(q, index) {
       return false;
     }
     if (q.pairs.some((p) => !p.left || !p.right)) {
-      console.warn(`[Validation] Q${index + 1}: drag_match pair missing left/right`);
+      console.warn(
+        `[Validation] Q${index + 1}: drag_match pair missing left/right`,
+      );
       return false;
     }
   } else if (iType === "fill_blank") {
     if (!q.codeTemplate || !Array.isArray(q.blanks) || q.blanks.length === 0) {
-      console.warn(`[Validation] Q${index + 1}: fill_blank missing codeTemplate/blanks`);
+      console.warn(
+        `[Validation] Q${index + 1}: fill_blank missing codeTemplate/blanks`,
+      );
       return false;
     }
   } else if (iType === "slider_adjust") {
@@ -705,7 +724,10 @@ export const generateCompetitionQuestions = async ({
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Gemini API timed out after 30s")), 30000),
+        setTimeout(
+          () => reject(new Error("Gemini API timed out after 30s")),
+          30000,
+        ),
       );
 
       const result = await Promise.race([
@@ -724,7 +746,10 @@ export const generateCompetitionQuestions = async ({
       try {
         parsed = JSON.parse(cleanedText);
       } catch (e) {
-        console.error(`[CompetitionQuestions] Attempt ${attempt}: Failed to parse Gemini response:`, e);
+        console.error(
+          `[CompetitionQuestions] Attempt ${attempt}: Failed to parse Gemini response:`,
+          e,
+        );
         console.error(
           "[CompetitionQuestions] Raw text:",
           cleanedText.substring(0, 500),
@@ -743,7 +768,9 @@ export const generateCompetitionQuestions = async ({
         lastError = new Error("Invalid question format from AI");
         if (attempt < MAX_RETRIES) {
           const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(`[CompetitionQuestions] Invalid format, retrying in ${delay}ms...`);
+          console.log(
+            `[CompetitionQuestions] Invalid format, retrying in ${delay}ms...`,
+          );
           await new Promise((r) => setTimeout(r, delay));
           continue;
         }
@@ -762,12 +789,16 @@ export const generateCompetitionQuestions = async ({
       );
 
       // Validate each question before returning
-      const validQuestions = parsed.questions.filter((q, i) => validateQuestion(q, i));
+      const validQuestions = parsed.questions.filter((q, i) =>
+        validateQuestion(q, i),
+      );
       if (validQuestions.length === 0) {
         lastError = new Error("All generated questions failed validation");
         if (attempt < MAX_RETRIES) {
           const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(`[CompetitionQuestions] All questions invalid, retrying in ${delay}ms...`);
+          console.log(
+            `[CompetitionQuestions] All questions invalid, retrying in ${delay}ms...`,
+          );
           await new Promise((r) => setTimeout(r, delay));
           continue;
         }
@@ -782,10 +813,20 @@ export const generateCompetitionQuestions = async ({
       return validQuestions;
     } catch (err) {
       lastError = err;
+      if (err.status === 429) {
+        console.error(
+          `[CompetitionQuestions] Quota exceeded (429) — skipping retries`,
+        );
+        throw new Error("QUOTA_EXCEEDED");
+      }
       if (err.name === "AbortError") {
-        console.error(`[CompetitionQuestions] Attempt ${attempt}: Timed out after 30s`);
+        console.error(
+          `[CompetitionQuestions] Attempt ${attempt}: Timed out after 30s`,
+        );
       } else {
-        console.error(`[CompetitionQuestions] Attempt ${attempt}: ${err.message}`);
+        console.error(
+          `[CompetitionQuestions] Attempt ${attempt}: ${err.message}`,
+        );
       }
       if (attempt < MAX_RETRIES) {
         const delay = Math.pow(2, attempt - 1) * 1000;
@@ -795,7 +836,9 @@ export const generateCompetitionQuestions = async ({
     }
   }
 
-  throw lastError || new Error("Failed to generate questions after all retries");
+  throw (
+    lastError || new Error("Failed to generate questions after all retries")
+  );
 };
 
 // ─── AVAILABLE MODES PER CATEGORY ─────────────────────────

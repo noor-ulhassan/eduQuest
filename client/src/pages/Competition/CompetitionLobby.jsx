@@ -44,11 +44,13 @@ import VoiceControls from "../../components/competition/VoiceControls";
 import VoiceSpeakerIndicator from "../../components/competition/VoiceSpeakerIndicator";
 import VSScreen from "../../components/competition/VSScreen";
 import FloatingFeedback from "../../components/competition/FloatingFeedback";
+import AnimatedLeaderboard from "../../components/competition/AnimatedLeaderboard";
 import confetti from "canvas-confetti";
 import {
   playCorrectSound,
   playWrongSound,
   playVictorySound,
+  playTimerWarningSound,
 } from "@/lib/sound";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 
@@ -68,6 +70,7 @@ const CompetitionLobby = () => {
   const [settings, setSettings] = useState({
     category: "general",
     challengeMode: "classic",
+    gameMode: "classic",
     difficulty: "medium",
     language: "javascript",
     totalQuestions: 5,
@@ -91,8 +94,15 @@ const CompetitionLobby = () => {
   const [finishData, setFinishData] = useState(null);
   const [gameCategory, setGameCategory] = useState(null);
   const [gameChallengeMode, setGameChallengeMode] = useState("classic");
+  const [currentGameMode, setCurrentGameMode] = useState("classic");
+  const [isEliminated, setIsEliminated] = useState(false);
+  const [playerTeam, setPlayerTeam] = useState(null); // { [playerId]: 0 | 1 }
+  const [teamScores, setTeamScores] = useState(null); // { 0: number, 1: number }
+  const [blitzQuestionTime, setBlitzQuestionTime] = useState(15);
+  const pendingNextQuestion = useRef(null);
   const [finalResults, setFinalResults] = useState(null);
   const confettiFired = useRef(false);
+  const prevTimerRef = useRef(null);
   const gameStartTimeRef = useRef(null);
   const gameDurationRef = useRef(null);
   const timerIntervalRef = useRef(null);
@@ -223,7 +233,7 @@ const CompetitionLobby = () => {
       if (hostId === user?._id) toast.success("You are now the host!");
     };
 
-    const onGameStatus = ({ status, totalQuestions: tq }) => {
+    const onGameStatus = ({ status, totalQuestions: tq, message }) => {
       if (status === "generating") setGameState("generating");
       if (status === "ready") {
         setGameState("ready");
@@ -238,10 +248,11 @@ const CompetitionLobby = () => {
       if (status === "error") {
         setGameState("lobby");
         setIsStarting(false);
+        toast.error(message || "Failed to generate questions. Please try again.");
       }
     };
 
-    const onGameStarted = ({
+    const onGameStarted = ({ gameMode: gm, playerTeam: pt,
       totalQuestions: tq,
       timerDuration,
       question,
@@ -251,6 +262,7 @@ const CompetitionLobby = () => {
       language,
     }) => {
       // Store data and show VS screen first
+      if (pt) setPlayerTeam(pt);
       setVsData({
         totalQuestions: tq,
         timerDuration,
@@ -258,6 +270,7 @@ const CompetitionLobby = () => {
         questionIndex: qi,
         category,
         challengeMode: cm,
+        gameMode: gm || "classic",
         language,
       });
       setShowVS(true);
@@ -265,6 +278,11 @@ const CompetitionLobby = () => {
     };
 
     const onNextQuestion = ({ question, questionIndex: qi }) => {
+      // Practice: store pending, don't auto-advance until user clicks
+      if (currentGameMode === "practice") {
+        pendingNextQuestion.current = { question, questionIndex: qi };
+        return;
+      }
       setCurrentQuestion(question);
       setQuestionIndex(qi);
       setSelectedAnswer(null);
@@ -292,10 +310,22 @@ const CompetitionLobby = () => {
       setUserFinished(true);
     };
 
-    const onGameOver = ({ leaderboard: lb }) => {
+    const onGameOver = ({ leaderboard: lb, playerTeam: pt, teamScores: ts }) => {
       setGameState("finished");
       setFinalResults(lb);
       setLeaderboard(lb);
+      if (pt) setPlayerTeam(pt);
+      if (ts) setTeamScores(ts);
+    };
+
+    const onPlayerEliminated = ({ score, correctAnswers, totalQuestions: tq }) => {
+      setIsEliminated(true);
+      setUserFinished(true);
+      setFinishData((prev) => prev || { score, rank: null, correctAnswers, totalQuestions: tq, timeTaken: 0, eliminated: true });
+    };
+
+    const onPlayerEliminatedUpdate = ({ playerName }) => {
+      toast.error(`${playerName} was eliminated! 💀`);
     };
 
     socket.on("playerJoined", onPlayerJoined);
@@ -309,6 +339,8 @@ const CompetitionLobby = () => {
     socket.on("timerSync", onTimerSync);
     socket.on("playerFinished", onPlayerFinished);
     socket.on("gameOver", onGameOver);
+    socket.on("playerEliminated", onPlayerEliminated);
+    socket.on("playerEliminatedUpdate", onPlayerEliminatedUpdate);
 
     // Join request notification (host)
     const onJoinRequest = ({ roomCode: rc, requester }) => {
@@ -340,6 +372,8 @@ const CompetitionLobby = () => {
       socket.off("timerSync", onTimerSync);
       socket.off("playerFinished", onPlayerFinished);
       socket.off("gameOver", onGameOver);
+      socket.off("playerEliminated", onPlayerEliminated);
+      socket.off("playerEliminatedUpdate", onPlayerEliminatedUpdate);
       socket.off("joinRequest", onJoinRequest);
     };
   }, [socket, user]);
@@ -595,6 +629,11 @@ const CompetitionLobby = () => {
     setQuestionIndex(vsData.questionIndex);
     setGameCategory(vsData.category);
     setGameChallengeMode(vsData.challengeMode || "classic");
+    setCurrentGameMode(vsData.gameMode || "classic");
+    setIsEliminated(false);
+    setTeamScores(null);
+    setBlitzQuestionTime(15);
+    pendingNextQuestion.current = null;
     setSelectedAnswer(null);
     setAnswerResult(null);
     setComboCount(0);
@@ -642,6 +681,35 @@ const CompetitionLobby = () => {
       );
     }, 300);
   }, [gameState, leaderboard, user]);
+
+  // ─── Blitz: per-question 15s countdown, resets on new question ──
+  useEffect(() => {
+    if (currentGameMode !== "blitz" || gameState !== "playing" || userFinished) return;
+    setBlitzQuestionTime(15);
+    const interval = setInterval(() => setBlitzQuestionTime(prev => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(interval);
+  }, [currentGameMode, gameState, userFinished, questionIndex]);
+
+  // Practice: advance to next question on user request
+  const handlePracticeNext = () => {
+    if (!pendingNextQuestion.current) return;
+    const { question, questionIndex: qi } = pendingNextQuestion.current;
+    pendingNextQuestion.current = null;
+    setCurrentQuestion(question);
+    setQuestionIndex(qi);
+    setSelectedAnswer(null);
+    setAnswerResult(null);
+    setIsSubmitting(false);
+  };
+
+  // ─── Timer warning beep — fires each second when ≤15s remain ──
+  useEffect(() => {
+    if (gameState !== "playing" || userFinished) return;
+    if (timeRemaining > 0 && timeRemaining <= 15 && prevTimerRef.current !== timeRemaining) {
+      playTimerWarningSound();
+    }
+    prevTimerRef.current = timeRemaining;
+  }, [timeRemaining, gameState, userFinished]);
 
   // ─── Client-side timer — compute remaining time locally ──
   useEffect(() => {
@@ -1240,7 +1308,8 @@ const CompetitionLobby = () => {
                     setFinishData(null);
                     setComboCount(0);
                     confettiFired.current = false;
-                    setSettings({ category: "general", challengeMode: "classic", difficulty: "medium", language: "javascript", totalQuestions: 5, timerDuration: 300, topic: "", description: "" });
+                    setSettings({ category: "general", challengeMode: "classic", gameMode: "classic", difficulty: "medium", language: "javascript", totalQuestions: 5, timerDuration: 300, topic: "", description: "" });
+                    setIsEliminated(false);
                     toast.success(`New room ${response.roomCode} created!`);
                   } else {
                     toast.error("Failed to create new room");
@@ -1257,7 +1326,7 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Individual Results (Player Finished) ──────────────────
+  // ─── RENDER: Individual Results (Player Finished or Eliminated) ──────────────────
   if (gameState === "playing" && userFinished && finishData) {
     const accuracy =
       finishData.totalQuestions > 0
@@ -1265,15 +1334,24 @@ const CompetitionLobby = () => {
             (finishData.correctAnswers / finishData.totalQuestions) * 100,
           )
         : 0;
-    const minutes = Math.floor(finishData.timeTaken / 60);
-    const seconds = finishData.timeTaken % 60;
+    const minutes = Math.floor((finishData.timeTaken || 0) / 60);
+    const seconds = (finishData.timeTaken || 0) % 60;
 
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 relative overflow-hidden">
+      <div className={`min-h-screen text-white flex items-center justify-center p-6 relative overflow-hidden ${isEliminated ? "bg-zinc-950" : "bg-zinc-950"}`}>
         {/* Background effects */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
+          {isEliminated ? (
+            <>
+              <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-red-500/10 rounded-full blur-[100px]" />
+              <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-red-800/10 rounded-full blur-[100px]" />
+            </>
+          ) : (
+            <>
+              <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
+              <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
+            </>
+          )}
         </div>
 
         <motion.div
@@ -1284,25 +1362,42 @@ const CompetitionLobby = () => {
         >
           {/* Trophy / Rank Icon */}
           <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border-2 border-orange-500/30">
-              {finishData.rank === 1 ? (
-                <Trophy size={40} className="text-yellow-400" />
-              ) : (
-                <Target size={40} className="text-orange-400" />
-              )}
-            </div>
-            <h1 className="text-3xl font-bold">
-              {finishData.rank === 1
-                ? "🏆 1st Place!"
-                : `#${finishData.rank} Place`}
-            </h1>
-            <p className="text-zinc-400 mt-1 text-sm">Challenge Complete</p>
+            {isEliminated ? (
+              <>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: [0, 1.2, 1] }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-red-500/20 to-red-800/20 border-2 border-red-500/40"
+                >
+                  <span className="text-4xl">💀</span>
+                </motion.div>
+                <h1 className="text-3xl font-bold text-red-400">Eliminated!</h1>
+                <p className="text-zinc-400 mt-1 text-sm">You answered incorrectly in Survival mode</p>
+              </>
+            ) : (
+              <>
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border-2 border-orange-500/30">
+                  {finishData.rank === 1 ? (
+                    <Trophy size={40} className="text-yellow-400" />
+                  ) : (
+                    <Target size={40} className="text-orange-400" />
+                  )}
+                </div>
+                <h1 className="text-3xl font-bold">
+                  {finishData.rank === 1
+                    ? "🏆 1st Place!"
+                    : `#${finishData.rank} Place`}
+                </h1>
+                <p className="text-zinc-400 mt-1 text-sm">Challenge Complete</p>
+              </>
+            )}
           </div>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
             <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-              <div className="text-2xl font-bold text-orange-400">
+              <div className={`text-2xl font-bold ${isEliminated ? "text-red-400" : "text-orange-400"}`}>
                 {finishData.score}
               </div>
               <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
@@ -1317,14 +1412,16 @@ const CompetitionLobby = () => {
                 Accuracy
               </div>
             </Card>
-            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-              <div className="text-2xl font-bold text-blue-400">
-                {minutes}:{String(seconds).padStart(2, "0")}
-              </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
-                Time Taken
-              </div>
-            </Card>
+            {!isEliminated && (
+              <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
+                <div className="text-2xl font-bold text-blue-400">
+                  {minutes}:{String(seconds).padStart(2, "0")}
+                </div>
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
+                  Time Taken
+                </div>
+              </Card>
+            )}
             <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
               <div className="text-2xl font-bold text-purple-400">
                 {finishData.correctAnswers}/{finishData.totalQuestions}
@@ -1335,18 +1432,55 @@ const CompetitionLobby = () => {
             </Card>
           </div>
 
-          {/* Speed Bonus Callout */}
-          <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20 rounded-xl p-4 flex items-center gap-3">
-            <Zap size={20} className="text-orange-400 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-white">
-                Speed Bonus Applied
-              </p>
-              <p className="text-xs text-zinc-400">
-                Faster answers earned you extra XP per question!
-              </p>
+          {/* Mode-specific callout */}
+          {currentGameMode === "team" && teamScores ? (
+            (() => {
+              const myTeam = playerTeam?.[user?._id];
+              const winningTeam = teamScores[0] > teamScores[1] ? 0 : teamScores[1] > teamScores[0] ? 1 : null;
+              const iWon = winningTeam === myTeam;
+              const isDraw = winningTeam === null;
+              return (
+                <div className={`bg-gradient-to-r ${iWon ? "from-green-500/10 to-emerald-500/10 border-green-500/20" : isDraw ? "from-zinc-700/20 to-zinc-600/20 border-zinc-600/30" : "from-red-500/10 to-red-800/10 border-red-500/20"} border rounded-xl p-4`}>
+                  <p className="text-sm font-bold text-white mb-2">🤝 Team Battle Result</p>
+                  <div className="flex gap-3">
+                    <div className={`flex-1 text-center p-2 rounded-lg ${myTeam === 0 ? "bg-blue-500/20 border border-blue-500/30" : "bg-zinc-800"}`}>
+                      <p className="text-[10px] text-zinc-400 uppercase font-bold">🔵 Team Blue</p>
+                      <p className="text-lg font-black text-blue-400">{teamScores[0]}</p>
+                      {winningTeam === 0 && <p className="text-[10px] text-green-400 font-bold">WINNER</p>}
+                    </div>
+                    <div className={`flex-1 text-center p-2 rounded-lg ${myTeam === 1 ? "bg-red-500/20 border border-red-500/30" : "bg-zinc-800"}`}>
+                      <p className="text-[10px] text-zinc-400 uppercase font-bold">🔴 Team Red</p>
+                      <p className="text-lg font-black text-red-400">{teamScores[1]}</p>
+                      {winningTeam === 1 && <p className="text-[10px] text-green-400 font-bold">WINNER</p>}
+                    </div>
+                  </div>
+                  <p className="text-xs text-center mt-2 text-zinc-400">
+                    {isDraw ? "It's a draw!" : iWon ? "Your team won! 🎉" : "Better luck next time!"}
+                  </p>
+                </div>
+              );
+            })()
+          ) : isEliminated ? (
+            <div className="bg-gradient-to-r from-red-500/10 to-red-800/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+              <span className="text-xl shrink-0">💀</span>
+              <div>
+                <p className="text-sm font-semibold text-white">Survival Mode</p>
+                <p className="text-xs text-zinc-400">Lowest scorer each round is eliminated. Better luck next time!</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className={`bg-gradient-to-r ${currentGameMode === "blitz" ? "from-yellow-500/10 to-orange-500/10 border-yellow-500/20" : "from-orange-500/10 to-yellow-500/10 border-orange-500/20"} border rounded-xl p-4 flex items-center gap-3`}>
+              <Zap size={20} className={`shrink-0 ${currentGameMode === "blitz" ? "text-yellow-400" : "text-orange-400"}`} />
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {currentGameMode === "blitz" ? "Blitz Mode — 3× Speed Bonus" : "Speed Bonus Applied"}
+                </p>
+                <p className="text-xs text-zinc-400">
+                  Faster answers earned you extra XP per question!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Live Leaderboard Preview */}
           <Card className="bg-zinc-900/50 border-zinc-800 p-0 overflow-hidden">
@@ -1387,7 +1521,7 @@ const CompetitionLobby = () => {
                     )}
                   </span>
                   <span className="text-xs text-zinc-500">
-                    {p.finished ? "✓" : `Q${p.currentQuestion}`}
+                    {p.eliminated ? "💀" : p.finished ? "✓" : `Q${p.currentQuestion}`}
                   </span>
                   <span className="text-xs font-bold text-orange-400">
                     {p.score}
@@ -1475,7 +1609,7 @@ const CompetitionLobby = () => {
 
         <div className="max-w-[1400px] mx-auto space-y-4 md:space-y-6 mt-4">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <Button
                 variant="pixel"
@@ -1496,35 +1630,61 @@ const CompetitionLobby = () => {
                 <BookOpen size={20} className="text-orange-400" />
               </div>
               <div>
-                <h2 className="font-bold text-lg">
-                  Challenge {questionIndex + 1}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-lg">Challenge {questionIndex + 1}</h2>
+                  {currentGameMode === "practice" && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase">Practice</span>}
+                  {currentGameMode === "duel" && <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">⚔️ Duel</span>}
+                  {currentGameMode === "team" && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style={{ backgroundColor: playerTeam?.[user?._id] === 0 ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)', color: playerTeam?.[user?._id] === 0 ? '#93c5fd' : '#fca5a5' }}>{playerTeam?.[user?._id] === 0 ? '🔵 Team Blue' : '🔴 Team Red'}</span>}
+                </div>
                 <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
                   Question {questionIndex + 1} of {totalQuestions}
                 </div>
               </div>
             </div>
-            <div
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 border transition-all ${
-                timeRemaining <= 60
-                  ? "bg-red-500/10 border-red-500/40 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                  : "bg-zinc-900 border-zinc-800"
-              }`}
-            >
-              <Timer
-                size={18}
-                className={
-                  timeRemaining <= 60 ? "text-red-400" : "text-orange-400"
+            <div className="flex items-center gap-2">
+              {/* Blitz per-question countdown */}
+              {currentGameMode === "blitz" && (
+                <motion.div
+                  animate={blitzQuestionTime <= 5 ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.3, repeat: blitzQuestionTime <= 5 ? Infinity : 0 }}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 border font-mono font-black text-2xl ${blitzQuestionTime <= 5 ? "bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.4)]" : blitzQuestionTime <= 10 ? "bg-orange-500/20 border-orange-500/40 text-orange-400" : "bg-zinc-900 border-zinc-700 text-white"}`}
+                >
+                  <Zap size={16} className={blitzQuestionTime <= 5 ? "text-red-400" : "text-yellow-400"} />
+                  {blitzQuestionTime}s
+                </motion.div>
+              )}
+              <motion.div
+                animate={
+                  timeRemaining > 0 && timeRemaining <= 15
+                    ? { scale: [1, 1.07, 1] }
+                    : { scale: 1 }
                 }
-              />
-              <span
-                className={`font-mono font-bold text-lg ${
-                  timeRemaining <= 60 ? "text-red-400" : "text-white"
+                transition={{
+                  duration: 0.35,
+                  repeat: timeRemaining > 0 && timeRemaining <= 15 ? Infinity : 0,
+                  repeatDelay: 0.65,
+                }}
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 border transition-all ${
+                  timeRemaining <= 60
+                    ? "bg-red-500/10 border-red-500/40 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    : "bg-zinc-900 border-zinc-800"
                 }`}
               >
-                {Math.floor(timeRemaining / 60)}:
-                {String(timeRemaining % 60).padStart(2, "0")}
-              </span>
+                <Timer
+                  size={18}
+                  className={
+                    timeRemaining <= 60 ? "text-red-400" : "text-orange-400"
+                  }
+                />
+                <span
+                  className={`font-mono font-bold text-lg ${
+                    timeRemaining <= 60 ? "text-red-400" : "text-white"
+                  }`}
+                >
+                  {Math.floor(timeRemaining / 60)}:
+                  {String(timeRemaining % 60).padStart(2, "0")}
+                </span>
+              </motion.div>
             </div>
           </div>
 
@@ -1533,13 +1693,24 @@ const CompetitionLobby = () => {
             <Card className="lg:col-span-2 bg-zinc-900 border-zinc-800 flex flex-col">
               <div className="p-6 md:p-8 space-y-6 flex-1 flex flex-col">
                 {currentQuestion ? (
-                  <InteractiveQuestion
-                    question={currentQuestion}
-                    onSubmit={handleSubmitAnswer}
-                    result={answerResult}
-                    isSubmitting={isSubmitting}
-                    selectedAnswer={selectedAnswer}
-                  />
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={questionIndex}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.18 }}
+                      className="flex-1 flex flex-col"
+                    >
+                      <InteractiveQuestion
+                        question={currentQuestion}
+                        onSubmit={handleSubmitAnswer}
+                        result={answerResult}
+                        isSubmitting={isSubmitting}
+                        selectedAnswer={selectedAnswer}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-zinc-500 gap-4">
                     <Loader2
@@ -1550,73 +1721,66 @@ const CompetitionLobby = () => {
                   </div>
                 )}
               </div>
+              {currentGameMode === "practice" && answerResult && !userFinished && (
+                <div className="px-6 pb-5 border-t border-zinc-800 pt-4">
+                  <Button
+                    onClick={handlePracticeNext}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl"
+                  >
+                    Next Question →
+                  </Button>
+                </div>
+              )}
             </Card>
 
-            {/* Sidebar (Leaderboard) */}
+            {/* Sidebar (Leaderboard / Duel) */}
             <div className="space-y-6">
-              <Card className="bg-zinc-900 border-zinc-800 p-0 overflow-hidden h-fit sticky top-6 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
-                <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+              {currentGameMode === "duel" ? (
+                <Card className="bg-zinc-900 border-zinc-800 p-4 space-y-4 h-fit sticky top-6">
                   <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                    <Trophy size={14} className="text-yellow-400" /> Live
-                    Standings
+                    <span>⚔️</span> Duel
                   </h3>
-                </div>
-                <div className="p-2 space-y-1">
-                  {leaderboard.map((p, i) => (
-                    <div
-                      key={p.id}
-                      className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-                        p.id === user?._id
-                          ? "bg-orange-500/10 border border-orange-500/20"
-                          : "hover:bg-zinc-800/50"
-                      }`}
-                    >
-                      <div
-                        className={`w-6 h-6 flex shrink-0 items-center justify-center rounded-md text-xs font-bold ${
-                          i === 0
-                            ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20"
-                            : i === 1
-                              ? "bg-zinc-300 text-black"
-                              : i === 2
-                                ? "bg-orange-700 text-white"
-                                : "bg-zinc-800 text-zinc-500"
-                        }`}
-                      >
-                        {i + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-sm font-medium truncate flex items-center ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
-                          >
-                            {p.name}
-                            {activeSpeakers.has(p.id) && (
-                              <VoiceSpeakerIndicator inline />
-                            )}
-                          </span>
-                          {p.id === user?._id && (
-                            <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 rounded">
-                              YOU
-                            </span>
-                          )}
+                  {(() => {
+                    const me = leaderboard.find(p => p.id === user?._id);
+                    const opp = leaderboard.find(p => p.id !== user?._id);
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
+                          <span className="text-sm font-bold text-orange-400 truncate">{me?.name || "You"}</span>
+                          <span className="text-xl font-black text-orange-400">{me?.score ?? 0}</span>
                         </div>
-                        <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
-                          <span>{p.score} XP</span>
-                          <span className="w-0.5 h-0.5 rounded-full bg-zinc-600" />
-                          <span>
-                            {p.finished ? "Finished" : `Q${p.currentQuestion}`}
-                          </span>
+                        <div className="text-center text-xs text-zinc-600 font-bold uppercase tracking-widest">vs</div>
+                        <div className="flex items-center justify-between gap-2 bg-zinc-800/60 border border-zinc-700 rounded-xl p-3">
+                          <span className="text-sm font-bold text-zinc-300 truncate">{opp?.name || "Opponent"}</span>
+                          <span className="text-xl font-black text-zinc-300">{opp?.score ?? 0}</span>
                         </div>
+                        {opp && (
+                          <div className="text-[10px] text-zinc-500 text-center">
+                            {opp.finished ? "Opponent finished ✓" : `Opponent on Q${(opp.currentQuestion || 0) + 1}`}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                  {leaderboard.length === 0 && (
-                    <div className="p-4 text-center text-sm text-zinc-500">
-                      Waiting for players to start...
-                    </div>
-                  )}
-                </div>
-              </Card>
+                    );
+                  })()}
+                </Card>
+              ) : (
+                <Card className="bg-zinc-900 border-zinc-800 p-0 overflow-hidden h-fit sticky top-6 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                  <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+                    <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                      <Trophy size={14} className="text-yellow-400" /> Live
+                      Standings
+                    </h3>
+                  </div>
+                  <div className="p-2">
+                    <AnimatedLeaderboard
+                      leaderboard={leaderboard}
+                      userId={user?._id}
+                      totalQuestions={totalQuestions}
+                      activeSpeakers={activeSpeakers}
+                    />
+                  </div>
+                </Card>
+              )}
             </div>
           </div>
         </div>
@@ -1703,7 +1867,17 @@ const CompetitionLobby = () => {
                 </div>
               </div>
             </div>
-            <div
+            <motion.div
+              animate={
+                timeRemaining > 0 && timeRemaining <= 15
+                  ? { scale: [1, 1.07, 1] }
+                  : { scale: 1 }
+              }
+              transition={{
+                duration: 0.35,
+                repeat: timeRemaining > 0 && timeRemaining <= 15 ? Infinity : 0,
+                repeatDelay: 0.65,
+              }}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 border transition-all ${
                 timeRemaining <= 60
                   ? "bg-red-500/10 border-red-500/40 animate-pulse"
@@ -1724,7 +1898,7 @@ const CompetitionLobby = () => {
                 {Math.floor(timeRemaining / 60)}:
                 {String(timeRemaining % 60).padStart(2, "0")}
               </span>
-            </div>
+            </motion.div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-140px)]">
@@ -1764,50 +1938,13 @@ const CompetitionLobby = () => {
                   Standings
                 </h3>
               </div>
-              <div className="p-2 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
-                {leaderboard.map((p, i) => (
-                  <div
-                    key={p.id}
-                    className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-                      p.id === user?._id
-                        ? "bg-orange-500/10 border border-orange-500/20"
-                        : "hover:bg-zinc-800/50"
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 flex shrink-0 items-center justify-center rounded-md text-xs font-bold ${
-                        i === 0
-                          ? "bg-yellow-500 text-black"
-                          : i === 1
-                            ? "bg-zinc-300 text-black"
-                            : i === 2
-                              ? "bg-orange-700 text-white"
-                              : "bg-zinc-800 text-zinc-500"
-                      }`}
-                    >
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-medium truncate flex items-center ${p.id === user?._id ? "text-orange-400" : "text-zinc-300"}`}
-                        >
-                          {p.name}
-                          {activeSpeakers.has(p.id) && (
-                            <VoiceSpeakerIndicator inline />
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
-                        <span>{p.score} XP</span>
-                        <span className="w-0.5 h-0.5 rounded-full bg-zinc-600" />
-                        <span>
-                          {p.finished ? "Done" : `Q${p.currentQuestion}`}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="p-2 overflow-y-auto flex-1 custom-scrollbar">
+                <AnimatedLeaderboard
+                  leaderboard={leaderboard}
+                  userId={user?._id}
+                  totalQuestions={totalQuestions}
+                  activeSpeakers={activeSpeakers}
+                />
               </div>
             </Card>
           </div>
@@ -2173,6 +2310,46 @@ const CompetitionLobby = () => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Game Mode */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                        Game Mode
+                      </Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "classic", icon: "🏁", name: "Classic", desc: "Race to finish" },
+                          { id: "survival", icon: "💀", name: "Survival", desc: "Lowest score out" },
+                          { id: "blitz", icon: "⚡", name: "Blitz", desc: "15s per question" },
+                          { id: "team", icon: "🤝", name: "Team", desc: "2v2 combined" },
+                          { id: "duel", icon: "⚔️", name: "Duel", desc: "1v1, 5 questions" },
+                          { id: "practice", icon: "🎯", name: "Practice", desc: "Solo, no rank" },
+                        ].map((gm) => (
+                          <button
+                            key={gm.id}
+                            onClick={() => {
+                              const updates = { gameMode: gm.id };
+                              if (gm.id === "duel") updates.totalQuestions = 5;
+                              if (gm.id === "practice") updates.totalQuestions = 5;
+                              handleUpdateSettings(updates);
+                            }}
+                            className={`p-3 rounded-xl border text-center transition-all ${
+                              settings.gameMode === gm.id
+                                ? "border-orange-500 bg-orange-500/10"
+                                : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800"
+                            }`}
+                          >
+                            <span className="text-xl block mb-1">{gm.icon}</span>
+                            <span className={`block text-xs font-bold ${settings.gameMode === gm.id ? "text-orange-400" : "text-zinc-300"}`}>
+                              {gm.name}
+                            </span>
+                            <span className="text-[9px] text-zinc-500 block mt-0.5">{gm.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator className="bg-zinc-800" />
 
                     {/* Challenge Mode */}
                     <div className="space-y-3">
