@@ -3,7 +3,6 @@ import {
   RouterProvider,
   Navigate,
 } from "react-router-dom";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect, Suspense, lazy } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
@@ -40,14 +39,15 @@ const PlaygroundTopics = lazy(
   () => import("./pages/Playgrounds/PlaygroundTopics"),
 );
 const CommunityHome = lazy(() => import("./pages/Community/components/Home"));
+const CompetitionPage = lazy(
+  () => import("./pages/Competition/CompetitionPage"),
+);
 const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
 const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // Wraps a lazy element in a Suspense boundary with the global spinner fallback
 const Lazy = ({ element: Element }) => (
@@ -159,6 +159,14 @@ const appRouter = createBrowserRouter([
         path: "competition",
         element: (
           <ProtectedRoute>
+            <Lazy element={CompetitionPage} />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "competition/lobby",
+        element: (
+          <ProtectedRoute>
             <Lazy element={CompetitionLobby} />
           </ProtectedRoute>
         ),
@@ -209,12 +217,9 @@ function App() {
   }
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      {/* Top-level error boundary catches crashes anywhere in the tree */}
-      <ErrorBoundary>
-        <RouterProvider router={appRouter} />
-      </ErrorBoundary>
-    </GoogleOAuthProvider>
+    <ErrorBoundary>
+      <RouterProvider router={appRouter} />
+    </ErrorBoundary>
   );
 }
 

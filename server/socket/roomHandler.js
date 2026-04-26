@@ -617,106 +617,92 @@ export function initializeSocket(io) {
           room._blitzTimers.delete(player.id);
         }
 
-        // Blitz mode: speed decay is 3x faster (answer within ~10s for full bonus)
-        const decayFactor = room.gameMode === "blitz" ? 0.33 : 1;
+        // Blitz mode: 3× more bonus XP, in a 3× tighter window (answer within ~10s for full bonus)
+        const blitzFactor = room.gameMode === "blitz" ? 3 : 1;
 
         // Speed bonus calculation helper
         const calcSpeedBonus = (base, maxBonus, decayTime) => {
           const speedBonus = Math.max(
             0,
-            Math.floor(maxBonus * (1 - questionElapsed / (decayTime * decayFactor))),
+            Math.floor(
+              maxBonus * blitzFactor * (1 - questionElapsed / (decayTime / blitzFactor)),
+            ),
           );
           return base + speedBonus;
         };
 
+        const iType = question.interactionType;
+
         // ─── INTERACTIVE QUESTION TYPES ───────────────────────
-        if (question.interactionType) {
-          const iType = question.interactionType;
-
-          if (iType === "type_answer") {
-            // Fuzzy match against acceptedAnswers[]
-            const userAnswer = (answer?.value || "").trim().toLowerCase();
-            isCorrect = (question.acceptedAnswers || []).some(
-              (accepted) => accepted.trim().toLowerCase() === userAnswer,
-            );
-          } else if (iType === "drag_order") {
-            // Compare submitted order array against correctOrder
-            const submitted = answer?.value; // array of indices
-            const correct = question.correctOrder;
-            isCorrect =
-              Array.isArray(submitted) &&
-              Array.isArray(correct) &&
-              submitted.length === correct.length &&
-              submitted.every((v, i) => v === correct[i]);
-          } else if (iType === "drag_match") {
-            // Compare submitted matches: { [leftIndex]: rightIndex }
-            const submitted = answer?.value; // object mapping leftIdx -> rightIdx
-            if (submitted && question.pairs) {
-              // Correct mapping: index i on left matches index i on right (before shuffle)
-              // Client sends { leftIdx: selectedRightIdx } using the shuffled right indices
-              // We need the shuffleMap from the room-level storage to validate
-              const mapKey = `q${questionIndex}_dragMatch`;
-              const shuffleMap = room._shuffleMaps?.[mapKey];
-              if (shuffleMap) {
-                isCorrect = question.pairs.every((_, i) => {
-                  const selectedRightIdx = submitted[i];
-                  // The correct right item for left[i] is the original right[i]
-                  // shuffleMap[j] = original index, so we need shuffleMap[selectedRightIdx] === i
-                  return shuffleMap[selectedRightIdx] === i;
-                });
-              } else {
-                // Fallback: direct index matching (left[i] matches right[i])
-                isCorrect = question.pairs.every((_, i) => submitted[i] === i);
-              }
-            }
-          } else if (iType === "fill_blank") {
-            // Compare each blank value
-            const submitted = answer?.value; // array of strings
-            const correct = question.blanks;
-            isCorrect =
-              Array.isArray(submitted) &&
-              Array.isArray(correct) &&
-              submitted.length === correct.length &&
-              submitted.every(
-                (v, i) =>
-                  v.trim().toLowerCase() === correct[i].trim().toLowerCase(),
-              );
-          } else if (iType === "predict_output") {
-            // Fuzzy match against acceptedAnswers[]
-            const userAnswer = (answer?.value || "").trim().toLowerCase();
-            isCorrect = (question.acceptedAnswers || []).some(
-              (accepted) => accepted.trim().toLowerCase() === userAnswer,
-            );
-          } else if (iType === "slider_adjust") {
-            // Check each slider value is within tolerance of correctValue
-            const submitted = answer?.value; // object { sliderIndex: value }
-            if (submitted && question.sliders) {
-              isCorrect = question.sliders.every((slider, i) => {
-                const userVal = Number(submitted[i]);
-                const tolerance = slider.tolerance || 0;
-                return Math.abs(userVal - slider.correctValue) <= tolerance;
-              });
-            }
-          }
-
-          if (isCorrect) {
-            pointsEarned = calcSpeedBonus(100, 50, 30);
-          }
-        }
-        // ─── STANDARD MCQ / PROGRAMMING ───────────────────────
-        else if (room.category === "general") {
+        if (iType === "type_answer") {
+          const userAnswer = (answer?.value || "").trim().toLowerCase();
+          isCorrect = (question.acceptedAnswers || []).some(
+            (accepted) => accepted.trim().toLowerCase() === userAnswer,
+          );
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+        } else if (iType === "drag_order") {
+          const submitted = answer?.value;
+          const correct = question.correctOrder;
           isCorrect =
-            answer?.trim().toLowerCase() ===
-            question.correctAnswer?.trim().toLowerCase();
+            Array.isArray(submitted) &&
+            Array.isArray(correct) &&
+            submitted.length === correct.length &&
+            submitted.every((v, i) => v === correct[i]);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+        } else if (iType === "drag_match") {
+          const submitted = answer?.value;
+          if (submitted && question.pairs) {
+            const mapKey = `q${questionIndex}_dragMatch`;
+            const shuffleMap = room._shuffleMaps?.[mapKey];
+            if (shuffleMap) {
+              isCorrect = question.pairs.every((_, i) => {
+                const selectedRightIdx = submitted[i];
+                return shuffleMap[selectedRightIdx] === i;
+              });
+            } else {
+              isCorrect = question.pairs.every((_, i) => submitted[i] === i);
+            }
+          }
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+        } else if (iType === "fill_blank") {
+          const submitted = answer?.value;
+          const correct = question.blanks;
+          isCorrect =
+            Array.isArray(submitted) &&
+            Array.isArray(correct) &&
+            submitted.length === correct.length &&
+            submitted.every(
+              (v, i) => v.trim().toLowerCase() === correct[i].trim().toLowerCase(),
+            );
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+        } else if (iType === "predict_output") {
+          const userAnswer = (answer?.value || "").trim().toLowerCase();
+          isCorrect = (question.acceptedAnswers || []).some(
+            (accepted) => accepted.trim().toLowerCase() === userAnswer,
+          );
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+        } else if (iType === "slider_adjust") {
+          const submitted = answer?.value;
+          if (submitted && question.sliders) {
+            isCorrect = question.sliders.every((slider, i) => {
+              const userVal = Number(submitted[i]);
+              const tolerance = slider.tolerance || 0;
+              return Math.abs(userVal - slider.correctValue) <= tolerance;
+            });
+          }
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
 
-          if (isCorrect) {
-            pointsEarned = calcSpeedBonus(100, 50, 30);
-          }
-        } else if (room.category === "programming") {
+        // ─── CODE EXECUTION (programming + classic) ───────────
+        } else if (room.category === "programming" && (!room.challengeMode || room.challengeMode === "classic")) {
           isCorrect = answer?.allPassed === true;
-          if (isCorrect) {
-            pointsEarned = calcSpeedBonus(200, 100, 60);
-          }
+          if (isCorrect) pointsEarned = calcSpeedBonus(200, 100, 60);
+
+        // ─── STANDARD MCQ (all other cases) ───────────────────
+        } else {
+          isCorrect =
+            typeof answer === "string" &&
+            answer.trim().toLowerCase() === question.correctAnswer?.trim().toLowerCase();
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
         }
 
         if (isCorrect) {

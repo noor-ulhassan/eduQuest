@@ -8,7 +8,7 @@ import { MagicCard } from "@/components/ui/magic-card";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
-    name: "",
+    fullName: "",
     email: "",
     password: "",
     adminPasscode: "",
@@ -40,7 +40,6 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#171717] px-4 font-sans relative overflow-hidden">
-      {/* Subtle ambient glow in the background */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
         style={{
@@ -59,14 +58,19 @@ export default function Signup() {
         gradientSize={300}
         backgroundColor="#212121"
       >
-        {/* Logo (Secret Admin Trigger) */}
         <div className="flex justify-center mb-6">
-          <div 
-            onClick={() => setLogoClicks(prev => prev + 1)}
+          <div
+            onClick={() => setLogoClicks((prev) => prev + 1)}
             className="flex items-center gap-2 group cursor-pointer"
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <img src="logo1.png" alt="" width={50} height={50} className="pointer-events-none" />
+              <img
+                src="logo1.png"
+                alt=""
+                width={50}
+                height={50}
+                className="pointer-events-none"
+              />
             </div>
           </div>
         </div>
@@ -80,7 +84,6 @@ export default function Signup() {
           </p>
         </div>
 
-        {/* Error / Success Messages */}
         {error && (
           <div className="mb-6 px-4 py-3 bg-red-900/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
             {error}
@@ -92,12 +95,10 @@ export default function Signup() {
           </div>
         )}
 
-        {/* Google Login */}
         <div className="flex justify-center mb-6">
           <GoogleAuthButton setError={setError} className="w-full" />
         </div>
 
-        {/* OR separator */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px bg-white/10" />
           <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">
@@ -106,15 +107,14 @@ export default function Signup() {
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="text"
-              name="name"
+              name="fullName"
               placeholder="Full name"
-              value={formData.name}
+              value={formData.fullName}
               onChange={handleChange}
               required
               className="w-full pl-11 pr-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-sm"
@@ -146,9 +146,9 @@ export default function Signup() {
           </div>
 
           {logoClicks >= 5 && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               className="relative"
             >
               <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />

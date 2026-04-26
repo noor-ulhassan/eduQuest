@@ -41,9 +41,12 @@ export const googleAuth = async (req, res) => {
       }
     } else {
       // create new user
+      const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+      const username = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
       user = await User.create({
         name,
         email,
+        username,
         googleId: sub,
         avatarUrl: picture,
         provider: "google",
@@ -79,13 +82,14 @@ export const googleAuth = async (req, res) => {
     });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ message: "Google auth failed" });
+    return res.status(500).json({ message: "Google auth failed", error: err.message, stack: err.stack });
   }
 };
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { email, password } = req.body;
+    const name = req.body.name || req.body.fullName;
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -132,12 +136,16 @@ export const register = async (req, res) => {
       }
     }
 
+    const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+    const username = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
+
     await User.create({
       name,
       email,
+      username,
       password: hashedPassword,
       provider: "local",
-      role, // Add the role to the newly created user
+      role,
     });
     return res.status(201).json({
       success: true,
@@ -161,7 +169,7 @@ export const login = async (req, res) => {
         message: "All fields are required.",
       });
     }
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({
         success: false,
