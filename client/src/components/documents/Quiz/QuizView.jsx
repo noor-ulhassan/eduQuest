@@ -5,29 +5,25 @@ import ScoreScreen from "./ScoreScreen";
 import { quizApi } from "../../../services/ragApiService";
 
 function QuizView({ documentId }) {
-  const [state, setState] = useState("idle");
-  const [questions, setQuestions] = useState([]);
+  const [state, setState]             = useState("idle");
+  const [questions, setQuestions]     = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [score, setScore] = useState(0);
-  const [topic, setTopic] = useState("");
-  const [error, setError] = useState(null);
+  const [answers, setAnswers]         = useState({});
+  const [score, setScore]             = useState(0);
+  const [topic, setTopic]             = useState("");
+  const [error, setError]             = useState(null);
 
   const handleGenerate = async () => {
     setState("generating");
     setError(null);
     try {
-      const { questions: q } = await quizApi.generate({
-        topic: topic.trim() || undefined,
-        documentId,
-      });
+      const { questions: q } = await quizApi.generate({ topic: topic.trim() || undefined, documentId });
       setQuestions(q);
       setCurrentIndex(0);
       setAnswers({});
       setScore(0);
       setState("active");
     } catch (err) {
-      console.error("Failed to generate quiz:", err);
       setError(err.message || "Failed to generate quiz. Please try again.");
       setState("idle");
     }
@@ -35,20 +31,13 @@ function QuizView({ documentId }) {
 
   const handleAnswer = (questionId, selectedIndex) => {
     const question = questions.find((q) => q.id === questionId);
-    const isCorrect = question.correctIndex === selectedIndex;
-
+    if (question.correctIndex === selectedIndex) setScore((p) => p + 1);
     setAnswers((prev) => ({ ...prev, [questionId]: selectedIndex }));
-    if (isCorrect) {
-      setScore((prev) => prev + 1);
-    }
   };
 
   const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      setState("finished");
-    }
+    if (currentIndex < questions.length - 1) setCurrentIndex((p) => p + 1);
+    else setState("finished");
   };
 
   const handleRetake = () => {
@@ -60,58 +49,54 @@ function QuizView({ documentId }) {
     setError(null);
   };
 
-  // No document uploaded yet
   if (!documentId) {
     return (
-      <div className="h-[calc(100vh-180px)] flex items-center justify-center text-gray-500">
-        <div className="text-center">
-          <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-          <p className="font-medium">No document loaded</p>
-          <p className="text-sm mt-1">
-            Upload a PDF first to generate quizzes.
-          </p>
-        </div>
+      <div className="flex flex-col h-full items-center justify-center text-zinc-600">
+        <FileText size={44} className="mb-4 text-zinc-700" />
+        <p className="font-medium text-zinc-500">No document loaded</p>
+        <p className="text-sm mt-1">Upload a PDF first to generate quizzes.</p>
       </div>
     );
   }
 
   if (state === "idle") {
     return (
-      <div className="h-[calc(100vh-180px)] flex items-center justify-center">
-        <div className="text-center max-w-md animate-fade-in">
-          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Sparkles size={32} className="text-indigo-600" />
+      <div className="flex flex-col h-full items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-8 text-center">
+          {/* Icon */}
+          <div className="relative w-16 h-16 mx-auto mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 to-orange-500/20 rounded-2xl blur-lg" />
+            <div className="relative w-16 h-16 bg-gradient-to-br from-red-600/20 to-orange-500/20 rounded-2xl border border-red-500/20 flex items-center justify-center">
+              <Sparkles size={28} className="text-red-400" />
+            </div>
           </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-3">
-            Document Quiz
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Test your understanding with AI-generated questions based on the
-            document content.
+
+          <h2 className="text-xl font-bold text-white mb-2">Document Quiz</h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+            AI generates 5 multiple-choice questions from your document.
+            Optionally focus on a specific topic.
           </p>
 
-          <div className="mb-4">
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Focus on a specific topic (optional)..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-            />
-          </div>
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+            placeholder="Focus topic (optional)…"
+            className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white text-sm placeholder-zinc-600 focus:outline-none focus:border-red-500/50 mb-4 transition-colors"
+          />
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-900/20 border border-red-500/20 rounded-xl text-red-400 text-sm">
               {error}
             </div>
           )}
 
           <button
             onClick={handleGenerate}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
+            className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
           >
-            <Sparkles size={18} />
-            Generate Quiz
+            <Sparkles size={16} /> Generate Quiz
           </button>
         </div>
       </div>
@@ -120,52 +105,48 @@ function QuizView({ documentId }) {
 
   if (state === "generating") {
     return (
-      <div className="h-[calc(100vh-180px)] flex items-center justify-center">
+      <div className="flex flex-col h-full items-center justify-center gap-5">
+        <div className="relative">
+          <div className="w-14 h-14 rounded-full border-2 border-white/10" />
+          <div className="absolute inset-0 w-14 h-14 rounded-full border-2 border-t-red-500 border-r-orange-500 animate-spin" />
+        </div>
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            Generating quiz questions from the document...
-          </p>
-          <p className="text-sm text-gray-400 mt-1">This may take a moment</p>
+          <p className="text-zinc-300 font-medium">Generating quiz questions…</p>
+          <p className="text-xs text-zinc-600 mt-1">Analyzing your document. This may take a moment.</p>
         </div>
       </div>
     );
   }
 
   if (state === "finished") {
-    return (
-      <ScoreScreen
-        score={score}
-        total={questions.length}
-        onRetake={handleRetake}
-      />
-    );
+    return <ScoreScreen score={score} total={questions.length} onRetake={handleRetake} />;
   }
 
   const currentQuestion = questions[currentIndex];
-  const selectedAnswer = answers[currentQuestion.id];
-  const hasAnswered = selectedAnswer !== undefined;
+  const selectedAnswer  = answers[currentQuestion.id];
+  const hasAnswered     = selectedAnswer !== undefined;
+  const progress        = ((currentIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="h-[calc(100vh-180px)] flex flex-col animate-fade-in">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-600">Progress</span>
-          <span className="text-sm font-medium text-gray-900">
-            Question {currentIndex + 1} of {questions.length}
+    <div className="flex flex-col h-full gap-4">
+      {/* Progress */}
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
+          <span>Progress</span>
+          <span className="font-medium text-zinc-400">
+            {currentIndex + 1} <span className="text-zinc-700">/ {questions.length}</span>
           </span>
         </div>
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-600 transition-all duration-300"
-            style={{
-              width: `${((currentIndex + 1) / questions.length) * 100}%`,
-            }}
+            className="h-full bg-gradient-to-r from-red-600 to-orange-500 rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      <div className="flex-1">
+      {/* Question card — scrollable if long */}
+      <div className="flex-1 overflow-y-auto min-h-0">
         <QuestionCard
           question={currentQuestion}
           selectedIndex={selectedAnswer}
@@ -173,15 +154,14 @@ function QuizView({ documentId }) {
         />
       </div>
 
+      {/* Next button */}
       {hasAnswered && (
-        <div className="mt-6 flex justify-end">
+        <div className="flex justify-end flex-shrink-0">
           <button
             onClick={handleNext}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+            className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 text-sm"
           >
-            {currentIndex < questions.length - 1
-              ? "Next Question"
-              : "See Results"}
+            {currentIndex < questions.length - 1 ? 'Next Question →' : 'See Results →'}
           </button>
         </div>
       )}

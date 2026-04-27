@@ -24,6 +24,7 @@ import {
   BookOpen,
   LayoutDashboard,
   Plus,
+  FileText,
 } from "lucide-react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import WelcomeBanner from "./WelcomeBanner";
@@ -60,11 +61,11 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   const currentPath = window.location.pathname;
 
   const SidebarOptions = [
-    { title: "Dashboard", icon: LayoutDashboard, path: "/workspace" },
-    { title: "My Learning", icon: Book, path: "/my-learning" },
-    { title: "Explore Courses", icon: BookOpen, path: "/#" },
-    { title: "Billing", icon: BookOpen, path: "/#" },
-    { title: "Profile", icon: UserIcon, path: "/profile" },
+    { title: "Dashboard",   icon: LayoutDashboard, path: "/workspace"   },
+    { title: "My Learning", icon: Book,            path: "/my-learning" },
+    { title: "Documents",   icon: FileText,         path: "/documents"   },
+    { title: "Explore Courses", icon: BookOpen,    path: "/#"           },
+    { title: "Profile",     icon: UserIcon,         path: "/profile"     },
   ];
 
   useEffect(() => {

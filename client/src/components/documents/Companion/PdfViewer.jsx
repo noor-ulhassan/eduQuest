@@ -70,7 +70,7 @@ function PdfViewer({ url, onTextSelect }) {
         We use the unpkg CDN to pull the exact version required by the library
         to prevent Vite/Webpack bundling issues.
       */}
-      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
         <div className="flex-1 h-full">
           <Viewer
             fileUrl={url}

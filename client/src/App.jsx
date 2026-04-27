@@ -145,6 +145,30 @@ const appRouter = createBrowserRouter([
               </ProtectedRoute>
             ),
           },
+          {
+            path: ":id/chat",
+            element: (
+              <ProtectedRoute>
+                <Lazy element={DocumentsPage} />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":id/quiz",
+            element: (
+              <ProtectedRoute>
+                <Lazy element={DocumentsPage} />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":id/companion",
+            element: (
+              <ProtectedRoute>
+                <Lazy element={DocumentsPage} />
+              </ProtectedRoute>
+            ),
+          },
         ],
       },
       {

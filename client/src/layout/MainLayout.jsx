@@ -19,6 +19,7 @@ const MainLayout = () => {
     location.pathname.startsWith("/course/");
   const hideFooter =
     location.pathname.startsWith("/problem/") ||
+    location.pathname.startsWith("/documents") ||
     location.pathname === "/workspace" ||
     location.pathname.startsWith("/course/") ||
     isPlaygroundRoute ||

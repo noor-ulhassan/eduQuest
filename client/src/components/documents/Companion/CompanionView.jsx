@@ -1,113 +1,96 @@
 import { useState, useCallback } from "react";
-import { BookOpen, Loader2, Send, Lightbulb, FileText } from "lucide-react";
+import { BookOpen, Loader2, Send, Lightbulb, FileText, Sparkles } from "lucide-react";
 import { explainApi } from "../../../services/ragApiService";
 import PdfViewer from "./PdfViewer";
 
-/**
- * CompanionView — "Explain" tab.
- *
- * Left panel:  PDF reader (loaded from Cloudinary URL).
- * Right panel: Explain form + result.
- *
- * When user selects text in the PDF, it auto-populates the explain form.
- */
+function renderExplanation(text) {
+  return text.split('\n').map((line, i) => {
+    if (!line.trim()) return <div key={i} className="h-2" />;
+    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((p, j) => {
+      if (p.startsWith('**') && p.endsWith('**'))
+        return <strong key={j} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+      return p;
+    });
+    return <p key={i} className="text-sm text-zinc-300 leading-relaxed">{parts}</p>;
+  });
+}
+
 function CompanionView({ documentId, pdfUrl }) {
   const [selectedText, setSelectedText] = useState("");
-  const [pageNumber, setPageNumber] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [explanation, setExplanation] = useState(null);
-  const [error, setError] = useState(null);
+  const [pageNumber, setPageNumber]     = useState("");
+  const [isLoading, setIsLoading]       = useState(false);
+  const [explanation, setExplanation]   = useState(null);
+  const [error, setError]               = useState(null);
 
-  // 1. ADDED useCallback: Prevents PdfViewer from re-rendering every time the user types in the textarea
   const handleTextSelect = useCallback((text, page) => {
     setSelectedText(text);
     setPageNumber(page.toString());
-    // Clear previous explanation when new text is selected
     setExplanation(null);
     setError(null);
-  }, []); // Empty dependency array ensures this function reference never changes
+  }, []);
 
   const handleExplain = async () => {
     if (!selectedText.trim()) return;
-
     setIsLoading(true);
     setError(null);
     setExplanation(null);
-
     try {
       const data = await explainApi.explain({
         selectedText: selectedText.trim(),
         page: pageNumber ? parseInt(pageNumber) : undefined,
         documentId,
       });
-
       setExplanation(data.explanation);
     } catch (err) {
-      setError(err.message || "Failed to get explanation");
+      setError(err.message || "Failed to get explanation.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ─── No document state ───
   if (!documentId || !pdfUrl) {
     return (
-      <div className="h-[calc(100vh-180px)] flex items-center justify-center text-gray-500">
-        <div className="text-center">
-          <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
-          <p className="font-medium">No document loaded</p>
-          <p className="text-sm mt-1">
-            Upload a PDF first to use the Reading Companion.
-          </p>
-        </div>
+      <div className="flex flex-col h-full items-center justify-center text-zinc-600">
+        <BookOpen size={44} className="mb-4 text-zinc-700" />
+        <p className="font-medium text-zinc-500">No document loaded</p>
+        <p className="text-sm mt-1">Upload a PDF first to use the Reading Companion.</p>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-180px)] flex gap-4">
-      {/* ═══════════ Left: PDF Viewer ═══════════ */}
-      <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="flex gap-4 h-full min-h-0">
+
+      {/* ── Left: PDF Viewer ── */}
+      <div className="flex-1 min-w-0 bg-[#111111] rounded-2xl border border-white/10 overflow-hidden">
         <PdfViewer url={pdfUrl} onTextSelect={handleTextSelect} />
       </div>
 
-      {/* ═══════════ Right: Explain Panel ═══════════ */}
-      <div className="w-[380px] flex-shrink-0 flex flex-col gap-3">
-        {/* ── Input Card ── */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 animate-fade-in">
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen size={18} className="text-indigo-600" />
-            <h2 className="font-semibold text-gray-900 text-sm">
-              Explain Selected Text
-            </h2>
+      {/* ── Right: Explain Panel ── */}
+      <div className="w-[360px] flex-shrink-0 flex flex-col gap-3 overflow-y-auto min-h-0">
+
+        {/* Input card */}
+        <div className="bg-[#111111] border border-white/10 rounded-2xl p-5 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 rounded-lg bg-violet-600/20 flex items-center justify-center">
+              <BookOpen size={13} className="text-violet-400" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Explain Selected Text</h3>
           </div>
 
-          {/* Selected text display */}
-          <div className="relative">
-            <textarea
-              value={selectedText}
-              onChange={(e) => setSelectedText(e.target.value)}
-              placeholder="Select text in the PDF or type here…"
-              rows={4}
-              className={`w-full px-3 py-2.5 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-colors ${
-                selectedText
-                  ? "border-indigo-300 bg-indigo-50/50"
-                  : "border-gray-300"
-              }`}
-            />
-            {selectedText && (
-              <div className="absolute top-2 right-2">
-                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">
-                  from PDF
-                </span>
-              </div>
-            )}
-          </div>
+          <textarea
+            value={selectedText}
+            onChange={(e) => setSelectedText(e.target.value)}
+            placeholder="Select text in the PDF or type here…"
+            rows={4}
+            className={`w-full px-3 py-2.5 bg-[#1a1a1a] border rounded-xl resize-none text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors ${
+              selectedText ? 'border-violet-500/40' : 'border-white/10 focus:border-violet-500/40'
+            }`}
+          />
 
-          {/* Controls row */}
           <div className="flex items-end gap-3 mt-3">
             <div className="flex-1">
-              <label className="block text-[11px] text-gray-500 mb-1 font-medium uppercase tracking-wide">
+              <label className="block text-[10px] text-zinc-600 mb-1 font-bold uppercase tracking-wider">
                 Page (auto-detected)
               </label>
               <input
@@ -116,85 +99,77 @@ function CompanionView({ documentId, pdfUrl }) {
                 onChange={(e) => setPageNumber(e.target.value)}
                 placeholder="—"
                 min={1}
-                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
                 readOnly
+                className="w-full px-2.5 py-1.5 bg-[#1a1a1a] border border-white/10 rounded-lg text-sm text-zinc-400 focus:outline-none"
               />
             </div>
-
             <button
               onClick={handleExplain}
               disabled={!selectedText.trim() || isLoading}
-              className="px-5 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+              className="px-5 py-1.5 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex items-center gap-1.5 shadow-lg shadow-violet-500/20"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>…</span>
-                </>
-              ) : (
-                <>
-                  <Send size={14} />
-                  Explain
-                </>
-              )}
+              {isLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+              Explain
             </button>
           </div>
 
-          {/* Scope hint */}
-          <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-gray-400">
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-700">
             <Lightbulb size={10} />
-            <span>Select text in the PDF reader, then click Explain</span>
+            <span>Highlight text in the PDF, then click Explain</span>
           </div>
         </div>
 
-        {/* ── Error ── */}
+        {/* Error */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm animate-fade-in">
+          <div className="p-3.5 bg-red-900/20 border border-red-500/20 rounded-2xl text-red-400 text-sm flex-shrink-0">
             {error}
           </div>
         )}
 
-        {/* ── Loading skeleton ── */}
+        {/* Generating skeleton */}
         {isLoading && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-[#111111] border border-white/10 rounded-2xl p-5 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center">
+                <Sparkles size={11} className="text-amber-400" />
+              </div>
+              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Generating explanation…</p>
+            </div>
             <div className="space-y-2.5 animate-pulse">
-              <div className="h-3.5 bg-gray-200 rounded w-full"></div>
-              <div className="h-3.5 bg-gray-200 rounded w-5/6"></div>
-              <div className="h-3.5 bg-gray-200 rounded w-4/6"></div>
-              <div className="h-3.5 bg-gray-200 rounded w-full"></div>
-              <div className="h-3.5 bg-gray-200 rounded w-3/4"></div>
+              {[100, 85, 92, 70, 78].map((w, i) => (
+                <div key={i} className="h-3 bg-white/8 rounded-full" style={{ width: `${w}%` }} />
+              ))}
             </div>
           </div>
         )}
 
-        {/* ── Explanation Result ── */}
+        {/* Explanation result */}
         {explanation && !isLoading && (
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 p-5 overflow-y-auto animate-fade-in">
-            <div className="flex items-center gap-2 mb-3">
-              <Lightbulb size={16} className="text-amber-500" />
-              <h3 className="font-semibold text-gray-900 text-sm">
-                Explanation
-              </h3>
+          <div className="bg-[#111111] border border-white/10 rounded-2xl p-5 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                <Lightbulb size={13} className="text-amber-400" />
+              </div>
+              <h3 className="text-sm font-bold text-white">Explanation</h3>
             </div>
-            <div className="prose prose-sm prose-gray max-w-none">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line text-[13px]">
-                {explanation}
+            <div className="space-y-1">
+              {renderExplanation(explanation)}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!explanation && !isLoading && !error && (
+          <div className="flex-1 bg-[#111111] border border-white/10 rounded-2xl flex items-center justify-center p-6 min-h-[120px]">
+            <div className="text-center">
+              <FileText size={28} className="mx-auto mb-2 text-zinc-700" />
+              <p className="text-xs text-zinc-600">
+                Select text in the PDF, then click <span className="text-violet-400 font-semibold">Explain</span>
               </p>
             </div>
           </div>
         )}
 
-        {/* ── Empty state (no explanation yet) ── */}
-        {!explanation && !isLoading && !error && (
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 flex items-center justify-center text-gray-400">
-            <div className="text-center p-6">
-              <FileText size={32} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-xs">
-                Select text in the PDF, then click <strong>Explain</strong>.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
