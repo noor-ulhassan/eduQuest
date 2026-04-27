@@ -185,8 +185,8 @@ export const generateChapterContent = async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML 
-    and give response in JSON format. 
+    const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML
+    and give response in JSON format.
     Schema: {
       "chapterName": "string",
       "topics": [
@@ -197,10 +197,15 @@ export const generateChapterContent = async (req, res) => {
           "keyConcepts": [
              { "title": "string", "description": "string", "icon": "string (material symbol name like 'dns' or 'stream')" }
           ],
-          "imagePrompt": "string (abstract futuristic digital architecture concept describing the topic)"
+          "imagePrompt": "string (abstract futuristic digital architecture concept describing the topic)",
+          "diagram": "string (valid Mermaid.js graph TD syntax if the topic involves a process, flow, algorithm, architecture, sequence, comparison, or data structure — otherwise empty string \"\")"
         }
       ]
     }
+    Rules for the diagram field:
+    - Use ONLY "graph TD" as the diagram type. No other Mermaid diagram types allowed.
+    - Return valid, renderable Mermaid.js syntax with no markdown fences or backticks — plain string only.
+    - Return empty string "" for topics that are simple definitions, introductions, or concept explanations that do not involve steps, flows, or structural relationships.
     : User Input: ${JSON.stringify(chapter)}`;
 
     const result = await model.generateContent(prompt);
@@ -225,6 +230,27 @@ export const generateChapterContent = async (req, res) => {
         message: "Failed to parse chapter content from AI",
       });
     }
+
+    const fetchVideoId = async (topicName) => {
+      try {
+        const query = encodeURIComponent(`${topicName} tutorial`);
+        const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
+        const ytRes = await fetch(url);
+        const ytData = await ytRes.json();
+        return ytData?.items?.[0]?.id?.videoId ?? null;
+      } catch {
+        return null;
+      }
+    };
+
+    const videoIds = await Promise.all(
+      chapterContentData.topics.map((t) => fetchVideoId(t.topic))
+    );
+
+    chapterContentData.topics = chapterContentData.topics.map((t, i) => ({
+      ...t,
+      videoId: videoIds[i],
+    }));
 
     await Course.findOneAndUpdate(
       { courseId: courseId },

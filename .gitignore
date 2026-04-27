@@ -33,3 +33,8 @@ competition_analysis.md
 implementation_play.md
 PLAYGROUND_AUDIT.md
 COMPETITION_AUDIT.md
+
+.claude
+CLAUDE.md
+.graphifyignore
+graphify-out/

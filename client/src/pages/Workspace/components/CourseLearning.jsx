@@ -23,6 +23,7 @@ import {
   Bot,
   CreditCard,
   Book,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/features/auth/authApi";
@@ -31,6 +32,8 @@ import { grantXP } from "@/utils/gamificationHelper.js";
 import FlashcardViewer from "./FlashcardViewer";
 import CourseMentor from "./CourseMentor";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+import MermaidDiagram from "./MermaidDiagram";
+import SlideshowPlayer from "./SlideshowPlayer";
 
 export default function CourseLearning({
   course,
@@ -52,6 +55,9 @@ export default function CourseLearning({
 
   // Mentor chat state
   const [showMentor, setShowMentor] = useState(false);
+
+  // Slideshow modal state
+  const [showSlideshow, setShowSlideshow] = useState(false);
 
   // Flashcard loader steps
   const flashcardLoadingStates = [
@@ -120,9 +126,10 @@ export default function CourseLearning({
 
   const [imgError, setImgError] = useState(false);
 
-  // Reset imgError when chapter changes
+  // Reset imgError and close slideshow when chapter changes
   useEffect(() => {
     setImgError(false);
+    setShowSlideshow(false);
   }, [currentChapterIndex]);
 
   const handleMarkCompleted = async () => {
@@ -393,12 +400,23 @@ export default function CourseLearning({
             {/* Article Content */}
             <article className="py-12 px-8 lg:px-12 max-w-3xl mx-auto w-full font-sans">
               <header className="mb-16 border-b border-white/10 pb-10">
-                <span className="bg-red-600/10 text-red-400 px-4 py-1.5 rounded-full border border-red-500/20 text-sm font-bold mb-6 inline-block">
-                  MODULE {currentChapterIndex + 1}
-                </span>
-                <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight font-space-grotesk">
-                  {currentChapter?.chapterName}
-                </h1>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="bg-red-600/10 text-red-400 px-4 py-1.5 rounded-full border border-red-500/20 text-sm font-bold mb-6 inline-block">
+                      MODULE {currentChapterIndex + 1}
+                    </span>
+                    <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight font-space-grotesk">
+                      {currentChapter?.chapterName}
+                    </h1>
+                  </div>
+                  <button
+                    onClick={() => setShowSlideshow(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 active:scale-95 shrink-0 mt-2"
+                  >
+                    <Play className="w-4 h-4" fill="currentColor" />
+                    Play Chapter
+                  </button>
+                </div>
               </header>
 
               <div className="flex flex-col gap-16">
@@ -470,6 +488,37 @@ export default function CourseLearning({
                             </p>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* YouTube Video Embed */}
+                    {topicNode.videoId && (
+                      <div className="bg-[#111111] rounded-2xl border border-white/10 shadow-md shadow-black/50 overflow-hidden">
+                        <p className="text-sm font-bold text-red-400 px-5 pt-5 pb-3">
+                          📺 Watch: {topicNode.topic}
+                        </p>
+                        <div className="aspect-video w-full">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${topicNode.videoId}`}
+                            title={topicNode.topic}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mermaid Concept Diagram */}
+                    {topicNode.diagram && (
+                      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
+                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
+                          🗺 Concept Diagram
+                        </p>
+                        <MermaidDiagram
+                          diagram={topicNode.diagram}
+                          id={`mermaid-cl-${currentChapterIndex}-${idx}`}
+                        />
                       </div>
                     )}
                   </div>
@@ -553,6 +602,14 @@ export default function CourseLearning({
             chapterIndex={currentChapterIndex}
             chapterName={currentChapter?.chapterName}
             onClose={() => setShowMentor(false)}
+          />
+        )}
+
+        {/* Slideshow Player Modal */}
+        {showSlideshow && (
+          <SlideshowPlayer
+            chapter={currentChapter}
+            onClose={() => setShowSlideshow(false)}
           />
         )}
       </div>
