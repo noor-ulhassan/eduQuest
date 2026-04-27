@@ -5,10 +5,7 @@ import { connectSocket, disconnectSocket, getSocket } from "../../lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
-  Copy,
-  Check,
   Crown,
-  Settings,
   Play,
   Loader2,
   ArrowLeft,
@@ -18,27 +15,24 @@ import {
   Timer,
   Trophy,
   Eye,
-  Home,
-  Target,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { playNotificationSound, playPlayerJoinedSound } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
 import InteractiveQuestion from "../../components/competition/InteractiveQuestion";
+import LobbyHeader from "../../components/competition/LobbyHeader";
+import RoomCodeCard from "../../components/competition/RoomCodeCard";
+import MatchConfiguration from "../../components/competition/MatchConfiguration";
+import JoinRequestsPanel from "../../components/competition/JoinRequestsPanel";
+import ParticipantsPanel from "../../components/competition/ParticipantsPanel";
+import GuestWaitingCard from "../../components/competition/GuestWaitingCard";
+import GeneratingScreen from "../../components/competition/GeneratingScreen";
+import ReadyScreen from "../../components/competition/ReadyScreen";
+import ResultsScreen from "../../components/competition/ResultsScreen";
+import GameOverScreen from "../../components/competition/GameOverScreen";
+import PodiumScreen from "../../components/competition/PodiumScreen";
 import { useVoiceChat } from "../../hooks/useVoiceChat";
 import VoiceControls from "../../components/competition/VoiceControls";
 import VoiceSpeakerIndicator from "../../components/competition/VoiceSpeakerIndicator";
@@ -107,6 +101,7 @@ const CompetitionLobby = () => {
   const gameDurationRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const roomCodeRef = useRef("");
+  const autoCreateFired = useRef(false);
 
   // Gamification state
   const [showVS, setShowVS] = useState(false);
@@ -179,7 +174,9 @@ const CompetitionLobby = () => {
           }
           if (state.timeRemaining != null) {
             setTimeRemaining(state.timeRemaining);
-            gameStartTimeRef.current = Date.now() - (state.settings.timerDuration - state.timeRemaining) * 1000;
+            gameStartTimeRef.current =
+              Date.now() -
+              (state.settings.timerDuration - state.timeRemaining) * 1000;
             gameDurationRef.current = state.settings.timerDuration;
           }
           setSelectedAnswer(null);
@@ -220,7 +217,7 @@ const CompetitionLobby = () => {
     };
 
     const onPlayerLeft = ({ players }) => {
-      setRoom((prev) => prev ? { ...prev, players } : prev);
+      setRoom((prev) => (prev ? { ...prev, players } : prev));
       toast("A player left the room", { icon: "👋" });
     };
 
@@ -248,11 +245,15 @@ const CompetitionLobby = () => {
       if (status === "error") {
         setGameState("lobby");
         setIsStarting(false);
-        toast.error(message || "Failed to generate questions. Please try again.");
+        toast.error(
+          message || "Failed to generate questions. Please try again.",
+        );
       }
     };
 
-    const onGameStarted = ({ gameMode: gm, playerTeam: pt,
+    const onGameStarted = ({
+      gameMode: gm,
+      playerTeam: pt,
       totalQuestions: tq,
       timerDuration,
       question,
@@ -310,7 +311,11 @@ const CompetitionLobby = () => {
       setUserFinished(true);
     };
 
-    const onGameOver = ({ leaderboard: lb, playerTeam: pt, teamScores: ts }) => {
+    const onGameOver = ({
+      leaderboard: lb,
+      playerTeam: pt,
+      teamScores: ts,
+    }) => {
       setGameState("finished");
       setFinalResults(lb);
       setLeaderboard(lb);
@@ -318,10 +323,24 @@ const CompetitionLobby = () => {
       if (ts) setTeamScores(ts);
     };
 
-    const onPlayerEliminated = ({ score, correctAnswers, totalQuestions: tq }) => {
+    const onPlayerEliminated = ({
+      score,
+      correctAnswers,
+      totalQuestions: tq,
+    }) => {
       setIsEliminated(true);
       setUserFinished(true);
-      setFinishData((prev) => prev || { score, rank: null, correctAnswers, totalQuestions: tq, timeTaken: 0, eliminated: true });
+      setFinishData(
+        (prev) =>
+          prev || {
+            score,
+            rank: null,
+            correctAnswers,
+            totalQuestions: tq,
+            timeTaken: 0,
+            eliminated: true,
+          },
+      );
     };
 
     const onPlayerEliminatedUpdate = ({ playerName }) => {
@@ -393,6 +412,40 @@ const CompetitionLobby = () => {
       return () => socket.off("connect", attemptJoin);
     }
   }, [paramCode, socket]);
+
+  // Auto-join from ?join= query param (from landing page join flow)
+  useEffect(() => {
+    const joinParam = searchParams.get("join");
+    if (!joinParam || !socket || room) return;
+
+    const attemptJoin = () => handleJoinRoom(joinParam);
+
+    if (socket.connected) {
+      attemptJoin();
+    } else {
+      socket.on("connect", attemptJoin);
+      return () => socket.off("connect", attemptJoin);
+    }
+  }, [searchParams, socket]);
+
+  // Auto-create room when arriving at /competition/lobby with no code or join param
+  useEffect(() => {
+    if (paramCode || searchParams.get("join") || room || autoCreateFired.current) return;
+    if (!socket) return;
+
+    const attemptCreate = () => {
+      if (autoCreateFired.current) return;
+      autoCreateFired.current = true;
+      handleCreateRoom();
+    };
+
+    if (socket.connected) {
+      attemptCreate();
+    } else {
+      socket.on("connect", attemptCreate);
+      return () => socket.off("connect", attemptCreate);
+    }
+  }, [socket]);
 
   // Auto-spectate if ?spectate=true
   useEffect(() => {
@@ -539,7 +592,8 @@ const CompetitionLobby = () => {
 
   const handleUpdateSettings = (keyOrObj, value) => {
     // Support both single key-value and object of multiple settings
-    const updates = typeof keyOrObj === "string" ? { [keyOrObj]: value } : keyOrObj;
+    const updates =
+      typeof keyOrObj === "string" ? { [keyOrObj]: value } : keyOrObj;
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
     socket?.emit("updateSettings", { roomCode, settings: updates });
@@ -582,6 +636,39 @@ const CompetitionLobby = () => {
       }
     });
   };
+
+  const handlePlayAgain = useCallback(() => {
+    if (!socket?.connected) return;
+    socket.emit("createRoom", (response) => {
+      if (response.success) {
+        setRoomCode(response.roomCode);
+        setRoom({ ...response.room, hostId: user._id });
+        setGameState("lobby");
+        setFinalResults(null);
+        setLeaderboard([]);
+        setCurrentQuestion(null);
+        setUserFinished(false);
+        setFinishData(null);
+        setComboCount(0);
+        confettiFired.current = false;
+        setSettings({
+          category: "general",
+          challengeMode: "classic",
+          gameMode: "classic",
+          difficulty: "medium",
+          language: "javascript",
+          totalQuestions: 5,
+          timerDuration: 300,
+          topic: "",
+          description: "",
+        });
+        setIsEliminated(false);
+        toast.success(`New room ${response.roomCode} created!`);
+      } else {
+        toast.error("Failed to create new room");
+      }
+    });
+  }, [socket, user]);
 
   const handleSubmitAnswer = (answer) => {
     if (!socket?.connected || isSubmitting) return;
@@ -647,7 +734,12 @@ const CompetitionLobby = () => {
 
   // ─── Confetti + victory sound — fire once when game finishes ──
   useEffect(() => {
-    if (gameState !== "finished" || !leaderboard.length || confettiFired.current) return;
+    if (
+      gameState !== "finished" ||
+      !leaderboard.length ||
+      confettiFired.current
+    )
+      return;
     confettiFired.current = true;
 
     const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
@@ -684,9 +776,13 @@ const CompetitionLobby = () => {
 
   // ─── Blitz: per-question 15s countdown, resets on new question ──
   useEffect(() => {
-    if (currentGameMode !== "blitz" || gameState !== "playing" || userFinished) return;
+    if (currentGameMode !== "blitz" || gameState !== "playing" || userFinished)
+      return;
     setBlitzQuestionTime(15);
-    const interval = setInterval(() => setBlitzQuestionTime(prev => Math.max(0, prev - 1)), 1000);
+    const interval = setInterval(
+      () => setBlitzQuestionTime((prev) => Math.max(0, prev - 1)),
+      1000,
+    );
     return () => clearInterval(interval);
   }, [currentGameMode, gameState, userFinished, questionIndex]);
 
@@ -705,7 +801,11 @@ const CompetitionLobby = () => {
   // ─── Timer warning beep — fires each second when ≤15s remain ──
   useEffect(() => {
     if (gameState !== "playing" || userFinished) return;
-    if (timeRemaining > 0 && timeRemaining <= 15 && prevTimerRef.current !== timeRemaining) {
+    if (
+      timeRemaining > 0 &&
+      timeRemaining <= 15 &&
+      prevTimerRef.current !== timeRemaining
+    ) {
       playTimerWarningSound();
     }
     prevTimerRef.current = timeRemaining;
@@ -714,12 +814,18 @@ const CompetitionLobby = () => {
   // ─── Client-side timer — compute remaining time locally ──
   useEffect(() => {
     // Only run the timer when game is actively playing
-    if (gameState !== "playing" || !gameStartTimeRef.current || !gameDurationRef.current) {
+    if (
+      gameState !== "playing" ||
+      !gameStartTimeRef.current ||
+      !gameDurationRef.current
+    ) {
       return;
     }
 
     timerIntervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - gameStartTimeRef.current) / 1000);
+      const elapsed = Math.floor(
+        (Date.now() - gameStartTimeRef.current) / 1000,
+      );
       const remaining = gameDurationRef.current - elapsed;
       setTimeRemaining(Math.max(0, remaining));
     }, 1000);
@@ -856,708 +962,78 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: No Room Yet (Create/Join) ──────────────────
+  // ─── RENDER: No Room Yet (auto-creating / auto-joining) ──
   if (!room) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 px-4 py-12">
-        {/* Main content */}
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
         <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full max-w-4xl flex flex-col items-center gap-10"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-4"
         >
-          {/* Top badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.08 }}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
-            style={{
-              background: "rgba(249,115,22,0.1)",
-              border: "1px solid rgba(249,115,22,0.3)",
-              color: "#f97316",
-            }}
-          >
-            <Swords size={11} />
-            Live Competitions
-          </motion.div>
-
-          {/* Headline */}
-          <div className="text-center space-y-3">
-            <motion.h1
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 }}
-              className="font-bold leading-tight text-white"
-              style={{
-                fontSize: "clamp(2rem, 5vw, 3.6rem)",
-                letterSpacing: "0.05rem",
-              }}
-            >
-              Compete. <span style={{ color: "#f97316" }}>Win.</span> Level Up.
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-zinc-400 max-w-md mx-auto leading-relaxed text-sm sm:text-base"
-            >
-              Host a room, invite your peers, and race through challenges in
-              real-time. Fastest and most accurate wins.
-            </motion.p>
-          </div>
-
-          {/* Stat pills */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.28 }}
-            className="flex items-center divide-x divide-zinc-800 rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900"
-          >
-            {[
-              { label: "Game Modes", value: "7" },
-              { label: "Max Players", value: "20" },
-              { label: "XP on Win", value: "100+" },
-              { label: "Voice Chat", value: "✓" },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center gap-0.5 px-6 py-3"
-              >
-                <span
-                  className="text-xl font-black"
-                  style={{ color: "#f97316" }}
-                >
-                  {value}
-                </span>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest whitespace-nowrap">
-                  {label}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Action cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.32 }}
-            className="w-full grid grid-cols-1 md:grid-cols-2 gap-5"
-          >
-            {/* ── HOST A ROOM ── */}
-            <div
-              className="relative rounded-2xl p-7 flex flex-col gap-5 group overflow-hidden transition-all duration-300 hover:border-red-600/40"
-              style={{
-                background: "#111111",
-                border: "1px solid #1f1f1f",
-              }}
-            >
-              {/* Left accent line */}
-              <div
-                className="absolute left-0 top-6 bottom-6 w-[3px] rounded-full"
-                style={{
-                  background: "linear-gradient(180deg, #dc2626, #7f1d1d)",
-                }}
-              />
-
-              {/* Icon + title */}
-              <div className="flex items-center gap-4 pl-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                  style={{
-                    background: "rgba(220,38,38,0.12)",
-                    border: "1px solid rgba(220,38,38,0.25)",
-                  }}
-                >
-                  <Crown size={20} className="text-red-400" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Host a Room</h2>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    You control the rules
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-sm text-zinc-400 leading-relaxed pl-3">
-                Create a private room, configure difficulty, question type, and
-                time limit. Share a 6-character code to bring players in.
-              </p>
-
-              {/* Feature list */}
-              <ul className="space-y-2 pl-3">
-                {[
-                  "Pick from 7 challenge types",
-                  "Easy / Medium / Hard difficulty",
-                  "Set a custom time limit",
-                ].map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-2 text-xs text-zinc-400"
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ background: "#dc2626" }}
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={handleCreateRoom}
-                disabled={isConnecting}
-                className="w-full rounded-xl font-semibold py-3.5 text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-50 mt-auto"
-                style={{
-                  background: "linear-gradient(135deg, #dc2626, #b91c1c)",
-                  border: "1px solid rgba(220,38,38,0.5)",
-                  letterSpacing: "0.03rem",
-                }}
-              >
-                {isConnecting ? (
-                  <Loader2 size={17} className="animate-spin" />
-                ) : (
-                  <Crown size={17} />
-                )}
-                {isConnecting ? "Creating Room..." : "Create Room"}
-              </button>
-            </div>
-
-            {/* ── JOIN A ROOM ── */}
-            <div
-              className="relative rounded-2xl p-7 flex flex-col gap-5 group overflow-hidden transition-all duration-300 hover:border-orange-500/40"
-              style={{
-                background: "#111111",
-                border: "1px solid #1f1f1f",
-              }}
-            >
-              {/* Left accent line */}
-              <div
-                className="absolute left-0 top-6 bottom-6 w-[3px] rounded-full"
-                style={{
-                  background: "linear-gradient(180deg, #f97316, #c2410c)",
-                }}
-              />
-
-              {/* Icon + title */}
-              <div className="flex items-center gap-4 pl-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                  style={{
-                    background: "rgba(249,115,22,0.1)",
-                    border: "1px solid rgba(249,115,22,0.2)",
-                  }}
-                >
-                  <Users size={20} className="text-orange-400" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Join a Room</h2>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    Got a code? Get in.
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-sm text-zinc-400 leading-relaxed pl-3">
-                Enter the 6-character code your host shared. You'll drop
-                straight into the lobby and wait for the match to start.
-              </p>
-
-              {/* Code input */}
-              <div className="flex flex-col gap-2 pl-3">
-                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">
-                  Room Code
-                </label>
-                <input
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
-                  placeholder="X 4 K Z 9 P"
-                  maxLength={6}
-                  className="h-14 text-center text-2xl font-mono tracking-[0.5em] uppercase outline-none rounded-xl transition-all placeholder:text-zinc-700 placeholder:tracking-[0.3em]"
-                  style={{
-                    background: "#0a0a0a",
-                    border: "1px solid #2a2a2a",
-                    color: "#fff",
-                  }}
-                  onFocus={(e) =>
-                    (e.target.style.borderColor = "rgba(249,115,22,0.6)")
-                  }
-                  onBlur={(e) => (e.target.style.borderColor = "#2a2a2a")}
-                />
-              </div>
-
-              <button
-                onClick={() => handleJoinRoom()}
-                disabled={isConnecting || !joinCode.trim()}
-                className="w-full rounded-xl font-semibold py-3.5 text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-40 mt-auto"
-                style={{
-                  background: joinCode.trim()
-                    ? "linear-gradient(135deg, #f97316, #ea580c)"
-                    : "rgba(249,115,22,0.1)",
-                  border: "1px solid rgba(249,115,22,0.3)",
-                  letterSpacing: "0.03rem",
-                }}
-              >
-                {isConnecting ? (
-                  <Loader2 size={17} className="animate-spin" />
-                ) : (
-                  <Zap size={17} />
-                )}
-                {isConnecting ? "Joining Room..." : "Enter Room"}
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Back link */}
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            onClick={() => navigate("/")}
-            className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-400 text-sm transition-colors"
-          >
-            <ArrowLeft size={14} />
-            Back to Home
-          </motion.button>
+          <Loader2 size={36} className="animate-spin text-orange-400 mx-auto" />
+          <p className="text-zinc-400 text-sm">
+            {searchParams.get("join") ? "Joining room…" : "Creating room…"}
+          </p>
         </motion.div>
       </div>
     );
   }
   // ─── RENDER: Generating ─────────────────────────────────
   if (gameState === "generating") {
-    const loadingStates = [
-      { text: "Waking up Gemini..." },
-      { text: "Analyzing your selected topic..." },
-      { text: "Drafting unique challenges..." },
-      { text: "Injecting interactive elements..." },
-      { text: "Verifying question formats..." },
-      { text: "Applying gamification mechanics..." },
-      { text: "Finalizing the arena..." },
-    ];
-
-    return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 relative">
-        <MultiStepLoader
-          loadingStates={loadingStates}
-          loading={true}
-          duration={2000}
-          loop={false}
-        />
-        {/* Optional fallback overlay text just in case the loader takes up the whole screen */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-zinc-500 text-sm animate-pulse">
-          Hold tight, AI is at work...
-        </div>
-      </div>
-    );
+    return <GeneratingScreen />;
   }
 
   // ─── RENDER: Ready (Wait for Host) ──────────────────────
   if (gameState === "ready") {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center space-y-6"
-        >
-          <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto text-green-500">
-            <Check size={32} />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Questions Ready!
-            </h2>
-            <p className="text-zinc-400">
-              {readyQuestionCount} questions generated successfully.
-            </p>
-          </div>
-
-          {isHost ? (
-            <div className="grid grid-cols-2 gap-3 pt-4">
-              <button
-                onClick={handleCancelGame}
-                className="py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLaunchGame}
-                disabled={isStarting}
-                className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2"
-              >
-                {isStarting ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Play size={18} fill="currentColor" />
-                )}
-                Start Now
-              </button>
-            </div>
-          ) : (
-            <div className="bg-zinc-800/50 rounded-xl p-4 flex items-center justify-center gap-3 text-zinc-400">
-              <Loader2 size={16} className="animate-spin" />
-              <span>Waiting for host to launch...</span>
-            </div>
-          )}
-        </motion.div>
-      </div>
+      <ReadyScreen
+        isHost={isHost}
+        readyQuestionCount={readyQuestionCount}
+        isStarting={isStarting}
+        onLaunch={handleLaunchGame}
+        onCancel={handleCancelGame}
+      />
     );
   }
 
   // ─── RENDER: Game Over ──────────────────────────────────
   if (gameState === "finished" && finalResults) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-lg w-full space-y-6"
-        >
-          <div className="text-center">
-            <Trophy size={48} className="text-yellow-400 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold">Game Over!</h1>
-            <p className="text-zinc-400 mt-1">Final Standings</p>
-          </div>
-
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-            {finalResults.map((player, i) => (
-              <div
-                key={player.id}
-                className={`flex items-center gap-4 p-4 border-b border-zinc-800 last:border-0 ${
-                  i === 0 ? "bg-yellow-500/5" : ""
-                } ${player.id === user?._id ? "ring-1 ring-orange-500/30" : ""}`}
-              >
-                <span
-                  className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${
-                    i === 0
-                      ? "bg-yellow-500 text-black"
-                      : i === 1
-                        ? "bg-zinc-400 text-black"
-                        : i === 2
-                          ? "bg-orange-700 text-white"
-                          : "bg-zinc-800 text-zinc-400"
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                <img
-                  src={player.avatarUrl || "/Avatar.png"}
-                  alt={player.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">
-                    {player.name}
-                    {player.id === user?._id && (
-                      <span className="text-xs text-orange-400 ml-2">
-                        (You)
-                      </span>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-3 text-[11px] text-zinc-500">
-                    <span>
-                      {player.correctAnswers || 0}/{player.currentQuestion}{" "}
-                      correct
-                    </span>
-                    {player.timeTaken != null && (
-                      <>
-                        <span className="w-0.5 h-0.5 rounded-full bg-zinc-700" />
-                        <span className="flex items-center gap-1">
-                          <Timer size={10} />
-                          {Math.floor(player.timeTaken / 60)}:
-                          {String(player.timeTaken % 60).padStart(2, "0")}
-                        </span>
-                      </>
-                    )}
-                    {!player.finished && (
-                      <span className="text-red-400">DNF</span>
-                    )}
-                  </div>
-                </div>
-                <span className="font-bold text-lg text-orange-400">
-                  {player.score}{" "}
-                  <span className="text-xs text-zinc-500 font-normal">XP</span>
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
-            >
-              Home
-            </button>
-            <button
-              onClick={() => {
-                // Create a fresh room via socket to avoid client/server desync
-                if (!socket?.connected) return;
-                socket.emit("createRoom", (response) => {
-                  if (response.success) {
-                    setRoomCode(response.roomCode);
-                    setRoom({ ...response.room, hostId: user._id });
-                    setGameState("lobby");
-                    setFinalResults(null);
-                    setLeaderboard([]);
-                    setCurrentQuestion(null);
-                    setUserFinished(false);
-                    setFinishData(null);
-                    setComboCount(0);
-                    confettiFired.current = false;
-                    setSettings({ category: "general", challengeMode: "classic", gameMode: "classic", difficulty: "medium", language: "javascript", totalQuestions: 5, timerDuration: 300, topic: "", description: "" });
-                    setIsEliminated(false);
-                    toast.success(`New room ${response.roomCode} created!`);
-                  } else {
-                    toast.error("Failed to create new room");
-                  }
-                });
-              }}
-              className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-pink-600 rounded-xl font-semibold transition"
-            >
-              Play Again
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <GameOverScreen
+        finalResults={finalResults}
+        userId={user?._id}
+        currentGameMode={currentGameMode}
+        teamScores={teamScores}
+        playerTeam={playerTeam}
+        onHome={() => navigate("/")}
+        onPlayAgain={handlePlayAgain}
+      />
     );
   }
 
   // ─── RENDER: Individual Results (Player Finished or Eliminated) ──────────────────
   if (gameState === "playing" && userFinished && finishData) {
-    const accuracy =
-      finishData.totalQuestions > 0
-        ? Math.round(
-            (finishData.correctAnswers / finishData.totalQuestions) * 100,
-          )
-        : 0;
-    const minutes = Math.floor((finishData.timeTaken || 0) / 60);
-    const seconds = (finishData.timeTaken || 0) % 60;
-
     return (
-      <div className={`min-h-screen text-white flex items-center justify-center p-6 relative overflow-hidden ${isEliminated ? "bg-zinc-950" : "bg-zinc-950"}`}>
-        {/* Background effects */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          {isEliminated ? (
-            <>
-              <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-red-500/10 rounded-full blur-[100px]" />
-              <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-red-800/10 rounded-full blur-[100px]" />
-            </>
-          ) : (
-            <>
-              <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px]" />
-              <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
-            </>
-          )}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-md w-full relative z-10 space-y-6"
-        >
-          {/* Trophy / Rank Icon */}
-          <div className="text-center">
-            {isEliminated ? (
-              <>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [0, 1.2, 1] }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-red-500/20 to-red-800/20 border-2 border-red-500/40"
-                >
-                  <span className="text-4xl">💀</span>
-                </motion.div>
-                <h1 className="text-3xl font-bold text-red-400">Eliminated!</h1>
-                <p className="text-zinc-400 mt-1 text-sm">You answered incorrectly in Survival mode</p>
-              </>
-            ) : (
-              <>
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border-2 border-orange-500/30">
-                  {finishData.rank === 1 ? (
-                    <Trophy size={40} className="text-yellow-400" />
-                  ) : (
-                    <Target size={40} className="text-orange-400" />
-                  )}
-                </div>
-                <h1 className="text-3xl font-bold">
-                  {finishData.rank === 1
-                    ? "🏆 1st Place!"
-                    : `#${finishData.rank} Place`}
-                </h1>
-                <p className="text-zinc-400 mt-1 text-sm">Challenge Complete</p>
-              </>
-            )}
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-              <div className={`text-2xl font-bold ${isEliminated ? "text-red-400" : "text-orange-400"}`}>
-                {finishData.score}
-              </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
-                Total XP
-              </div>
-            </Card>
-            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-              <div className="text-2xl font-bold text-green-400">
-                {accuracy}%
-              </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
-                Accuracy
-              </div>
-            </Card>
-            {!isEliminated && (
-              <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-                <div className="text-2xl font-bold text-blue-400">
-                  {minutes}:{String(seconds).padStart(2, "0")}
-                </div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
-                  Time Taken
-                </div>
-              </Card>
-            )}
-            <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-              <div className="text-2xl font-bold text-purple-400">
-                {finishData.correctAnswers}/{finishData.totalQuestions}
-              </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">
-                Correct
-              </div>
-            </Card>
-          </div>
-
-          {/* Mode-specific callout */}
-          {currentGameMode === "team" && teamScores ? (
-            (() => {
-              const myTeam = playerTeam?.[user?._id];
-              const winningTeam = teamScores[0] > teamScores[1] ? 0 : teamScores[1] > teamScores[0] ? 1 : null;
-              const iWon = winningTeam === myTeam;
-              const isDraw = winningTeam === null;
-              return (
-                <div className={`bg-gradient-to-r ${iWon ? "from-green-500/10 to-emerald-500/10 border-green-500/20" : isDraw ? "from-zinc-700/20 to-zinc-600/20 border-zinc-600/30" : "from-red-500/10 to-red-800/10 border-red-500/20"} border rounded-xl p-4`}>
-                  <p className="text-sm font-bold text-white mb-2">🤝 Team Battle Result</p>
-                  <div className="flex gap-3">
-                    <div className={`flex-1 text-center p-2 rounded-lg ${myTeam === 0 ? "bg-blue-500/20 border border-blue-500/30" : "bg-zinc-800"}`}>
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold">🔵 Team Blue</p>
-                      <p className="text-lg font-black text-blue-400">{teamScores[0]}</p>
-                      {winningTeam === 0 && <p className="text-[10px] text-green-400 font-bold">WINNER</p>}
-                    </div>
-                    <div className={`flex-1 text-center p-2 rounded-lg ${myTeam === 1 ? "bg-red-500/20 border border-red-500/30" : "bg-zinc-800"}`}>
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold">🔴 Team Red</p>
-                      <p className="text-lg font-black text-red-400">{teamScores[1]}</p>
-                      {winningTeam === 1 && <p className="text-[10px] text-green-400 font-bold">WINNER</p>}
-                    </div>
-                  </div>
-                  <p className="text-xs text-center mt-2 text-zinc-400">
-                    {isDraw ? "It's a draw!" : iWon ? "Your team won! 🎉" : "Better luck next time!"}
-                  </p>
-                </div>
-              );
-            })()
-          ) : isEliminated ? (
-            <div className="bg-gradient-to-r from-red-500/10 to-red-800/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-xl shrink-0">💀</span>
-              <div>
-                <p className="text-sm font-semibold text-white">Survival Mode</p>
-                <p className="text-xs text-zinc-400">Lowest scorer each round is eliminated. Better luck next time!</p>
-              </div>
-            </div>
-          ) : (
-            <div className={`bg-gradient-to-r ${currentGameMode === "blitz" ? "from-yellow-500/10 to-orange-500/10 border-yellow-500/20" : "from-orange-500/10 to-yellow-500/10 border-orange-500/20"} border rounded-xl p-4 flex items-center gap-3`}>
-              <Zap size={20} className={`shrink-0 ${currentGameMode === "blitz" ? "text-yellow-400" : "text-orange-400"}`} />
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {currentGameMode === "blitz" ? "Blitz Mode — 3× Speed Bonus" : "Speed Bonus Applied"}
-                </p>
-                <p className="text-xs text-zinc-400">
-                  Faster answers earned you extra XP per question!
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Live Leaderboard Preview */}
-          <Card className="bg-zinc-900/50 border-zinc-800 p-0 overflow-hidden">
-            <div className="p-3 border-b border-zinc-800 bg-zinc-900/50">
-              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                <Trophy size={12} className="text-yellow-400" /> Live Standings
-              </h3>
-            </div>
-            <div className="p-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-              {leaderboard.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
-                    p.id === user?._id
-                      ? "bg-orange-500/10 border border-orange-500/20"
-                      : ""
-                  }`}
-                >
-                  <span
-                    className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${
-                      i === 0
-                        ? "bg-yellow-500 text-black"
-                        : i === 1
-                          ? "bg-zinc-300 text-black"
-                          : i === 2
-                            ? "bg-orange-700 text-white"
-                            : "bg-zinc-800 text-zinc-500"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <span
-                    className={`flex-1 truncate flex items-center ${p.id === user?._id ? "text-orange-400 font-medium" : "text-zinc-300"}`}
-                  >
-                    {p.name} {p.id === user?._id && "(You)"}
-                    {activeSpeakers.has(p.id) && (
-                      <VoiceSpeakerIndicator inline />
-                    )}
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    {p.eliminated ? "💀" : p.finished ? "✓" : `Q${p.currentQuestion}`}
-                  </span>
-                  <span className="text-xs font-bold text-orange-400">
-                    {p.score}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button
-              onClick={() => navigate("/")}
-              className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-xl"
-            >
-              <Home size={16} className="mr-2" />
-              Go Home
-            </Button>
-            <Button
-              onClick={() => {
-                setUserFinished(false);
-                setFinishData(null);
-                // Stay in the room listening for gameOver
-                toast(
-                  "Spectating... You'll see the final results when everyone finishes.",
-                  { icon: "👁️" },
-                );
-              }}
-              className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-pink-600 hover:opacity-90 text-white font-semibold rounded-xl"
-            >
-              <Eye size={16} className="mr-2" />
-              Spectate
-            </Button>
-          </div>
-        </motion.div>
-      </div>
+      <ResultsScreen
+        finishData={finishData}
+        isEliminated={isEliminated}
+        currentGameMode={currentGameMode}
+        teamScores={teamScores}
+        playerTeam={playerTeam}
+        userId={user?._id}
+        leaderboard={leaderboard}
+        activeSpeakers={activeSpeakers}
+        onHome={() => navigate("/")}
+        onSpectate={() => {
+          setUserFinished(false);
+          setFinishData(null);
+          toast(
+            "Spectating... You'll see the final results when everyone finishes.",
+            { icon: "👁️" },
+          );
+        }}
+      />
     );
   }
 
@@ -1631,10 +1107,36 @@ const CompetitionLobby = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-lg">Challenge {questionIndex + 1}</h2>
-                  {currentGameMode === "practice" && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase">Practice</span>}
-                  {currentGameMode === "duel" && <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">⚔️ Duel</span>}
-                  {currentGameMode === "team" && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style={{ backgroundColor: playerTeam?.[user?._id] === 0 ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)', color: playerTeam?.[user?._id] === 0 ? '#93c5fd' : '#fca5a5' }}>{playerTeam?.[user?._id] === 0 ? '🔵 Team Blue' : '🔴 Team Red'}</span>}
+                  <h2 className="font-bold text-lg">
+                    Challenge {questionIndex + 1}
+                  </h2>
+                  {currentGameMode === "practice" && (
+                    <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase">
+                      Practice
+                    </span>
+                  )}
+                  {currentGameMode === "duel" && (
+                    <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">
+                      ⚔️ Duel
+                    </span>
+                  )}
+                  {currentGameMode === "team" && (
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
+                      style={{
+                        backgroundColor:
+                          playerTeam?.[user?._id] === 0
+                            ? "rgba(59,130,246,0.2)"
+                            : "rgba(239,68,68,0.2)",
+                        color:
+                          playerTeam?.[user?._id] === 0 ? "#93c5fd" : "#fca5a5",
+                      }}
+                    >
+                      {playerTeam?.[user?._id] === 0
+                        ? "🔵 Team Blue"
+                        : "🔴 Team Red"}
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
                   Question {questionIndex + 1} of {totalQuestions}
@@ -1645,11 +1147,25 @@ const CompetitionLobby = () => {
               {/* Blitz per-question countdown */}
               {currentGameMode === "blitz" && (
                 <motion.div
-                  animate={blitzQuestionTime <= 5 ? { scale: [1, 1.1, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.3, repeat: blitzQuestionTime <= 5 ? Infinity : 0 }}
+                  animate={
+                    blitzQuestionTime <= 5
+                      ? { scale: [1, 1.1, 1] }
+                      : { scale: 1 }
+                  }
+                  transition={{
+                    duration: 0.3,
+                    repeat: blitzQuestionTime <= 5 ? Infinity : 0,
+                  }}
                   className={`flex items-center gap-1.5 rounded-full px-4 py-2 border font-mono font-black text-2xl ${blitzQuestionTime <= 5 ? "bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.4)]" : blitzQuestionTime <= 10 ? "bg-orange-500/20 border-orange-500/40 text-orange-400" : "bg-zinc-900 border-zinc-700 text-white"}`}
                 >
-                  <Zap size={16} className={blitzQuestionTime <= 5 ? "text-red-400" : "text-yellow-400"} />
+                  <Zap
+                    size={16}
+                    className={
+                      blitzQuestionTime <= 5
+                        ? "text-red-400"
+                        : "text-yellow-400"
+                    }
+                  />
                   {blitzQuestionTime}s
                 </motion.div>
               )}
@@ -1661,7 +1177,8 @@ const CompetitionLobby = () => {
                 }
                 transition={{
                   duration: 0.35,
-                  repeat: timeRemaining > 0 && timeRemaining <= 15 ? Infinity : 0,
+                  repeat:
+                    timeRemaining > 0 && timeRemaining <= 15 ? Infinity : 0,
                   repeatDelay: 0.65,
                 }}
                 className={`flex items-center gap-2 rounded-full px-5 py-2.5 border transition-all ${
@@ -1721,16 +1238,18 @@ const CompetitionLobby = () => {
                   </div>
                 )}
               </div>
-              {currentGameMode === "practice" && answerResult && !userFinished && (
-                <div className="px-6 pb-5 border-t border-zinc-800 pt-4">
-                  <Button
-                    onClick={handlePracticeNext}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl"
-                  >
-                    Next Question →
-                  </Button>
-                </div>
-              )}
+              {currentGameMode === "practice" &&
+                answerResult &&
+                !userFinished && (
+                  <div className="px-6 pb-5 border-t border-zinc-800 pt-4">
+                    <Button
+                      onClick={handlePracticeNext}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl"
+                    >
+                      Next Question →
+                    </Button>
+                  </div>
+                )}
             </Card>
 
             {/* Sidebar (Leaderboard / Duel) */}
@@ -1741,22 +1260,34 @@ const CompetitionLobby = () => {
                     <span>⚔️</span> Duel
                   </h3>
                   {(() => {
-                    const me = leaderboard.find(p => p.id === user?._id);
-                    const opp = leaderboard.find(p => p.id !== user?._id);
+                    const me = leaderboard.find((p) => p.id === user?._id);
+                    const opp = leaderboard.find((p) => p.id !== user?._id);
                     return (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
-                          <span className="text-sm font-bold text-orange-400 truncate">{me?.name || "You"}</span>
-                          <span className="text-xl font-black text-orange-400">{me?.score ?? 0}</span>
+                          <span className="text-sm font-bold text-orange-400 truncate">
+                            {me?.name || "You"}
+                          </span>
+                          <span className="text-xl font-black text-orange-400">
+                            {me?.score ?? 0}
+                          </span>
                         </div>
-                        <div className="text-center text-xs text-zinc-600 font-bold uppercase tracking-widest">vs</div>
+                        <div className="text-center text-xs text-zinc-600 font-bold uppercase tracking-widest">
+                          vs
+                        </div>
                         <div className="flex items-center justify-between gap-2 bg-zinc-800/60 border border-zinc-700 rounded-xl p-3">
-                          <span className="text-sm font-bold text-zinc-300 truncate">{opp?.name || "Opponent"}</span>
-                          <span className="text-xl font-black text-zinc-300">{opp?.score ?? 0}</span>
+                          <span className="text-sm font-bold text-zinc-300 truncate">
+                            {opp?.name || "Opponent"}
+                          </span>
+                          <span className="text-xl font-black text-zinc-300">
+                            {opp?.score ?? 0}
+                          </span>
                         </div>
                         {opp && (
                           <div className="text-[10px] text-zinc-500 text-center">
-                            {opp.finished ? "Opponent finished ✓" : `Opponent on Q${(opp.currentQuestion || 0) + 1}`}
+                            {opp.finished
+                              ? "Opponent finished ✓"
+                              : `Opponent on Q${(opp.currentQuestion || 0) + 1}`}
                           </div>
                         )}
                       </div>
@@ -1962,824 +1493,59 @@ const CompetitionLobby = () => {
     );
   }
 
-
   // ─── RENDER: Game Finished (Results) ─────────────────────────────
   if (gameState === "finished") {
-    const sortedLeaderboard = [...leaderboard].sort(
-      (a, b) => b.score - a.score,
-    );
-    const winner = sortedLeaderboard[0];
-    const second = sortedLeaderboard[1];
-    const third = sortedLeaderboard[2];
-    const rest = sortedLeaderboard.slice(3);
-    const isWinner = winner?.id === user?._id;
-    const isHost = room?.host?._id === user?._id;
-
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 flex flex-col items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-3xl w-full space-y-8"
-        >
-          <div className="text-center space-y-2">
-            <motion.h1
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="text-4xl md:text-5xl font-black bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 bg-clip-text text-transparent"
-            >
-              {isWinner ? "🏆 Victory!" : "Competition Ended"}
-            </motion.h1>
-            <p className="text-zinc-400 text-lg">Final standings</p>
-          </div>
-
-          {/* ─── Animated Podium ───────────────────────────── */}
-          <div className="flex items-end justify-center gap-3 md:gap-6 pt-8 pb-4">
-            {/* 2nd Place — Left */}
-            {second && (
-              <motion.div
-                initial={{ y: 60, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="flex flex-col items-center"
-              >
-                <div className="relative mb-2">
-                  <img
-                    src={second.avatarUrl || "/Avatar.png"}
-                    alt={second.name}
-                    className="w-16 h-16 md:w-20 md:h-20 rounded-full border-3 border-zinc-300 shadow-lg object-cover"
-                  />
-                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-zinc-300 text-black rounded-full flex items-center justify-center text-xs font-black shadow-md">
-                    2
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-zinc-300 truncate max-w-[80px] mb-1">
-                  {second.name}
-                </span>
-                <div className="w-24 md:w-28 bg-gradient-to-t from-zinc-700 to-zinc-600 rounded-t-xl flex flex-col items-center justify-end h-[100px] md:h-[120px] border-t-4 border-zinc-400">
-                  <span className="text-lg font-bold text-zinc-200 mb-3">
-                    {second.score}
-                  </span>
-                </div>
-              </motion.div>
-            )}
-
-            {/* 1st Place — Center (tallest) */}
-            {winner && (
-              <motion.div
-                initial={{ y: 80, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col items-center -mt-4"
-              >
-                <motion.div
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="relative mb-2"
-                >
-                  <img
-                    src={winner.avatarUrl || "/Avatar.png"}
-                    alt={winner.name}
-                    className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.4)] object-cover"
-                  />
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2">
-                    <Crown
-                      size={28}
-                      className="text-yellow-400 drop-shadow-lg"
-                      fill="currentColor"
-                    />
-                  </div>
-                </motion.div>
-                <span className="text-base font-bold text-yellow-300 truncate max-w-[100px] mb-1">
-                  {winner.name}
-                </span>
-                <div className="w-28 md:w-32 bg-gradient-to-t from-yellow-700/80 to-yellow-600/60 rounded-t-xl flex flex-col items-center justify-end h-[140px] md:h-[170px] border-t-4 border-yellow-500 shadow-xl">
-                  <Trophy size={24} className="text-yellow-400 mb-1" />
-                  <span className="text-2xl font-black text-yellow-200 mb-3">
-                    {winner.score}
-                  </span>
-                </div>
-              </motion.div>
-            )}
-
-            {/* 3rd Place — Right */}
-            {third && (
-              <motion.div
-                initial={{ y: 60, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="flex flex-col items-center"
-              >
-                <div className="relative mb-2">
-                  <img
-                    src={third.avatarUrl || "/Avatar.png"}
-                    alt={third.name}
-                    className="w-14 h-14 md:w-18 md:h-18 rounded-full border-3 border-orange-700 shadow-lg object-cover"
-                  />
-                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-orange-700 text-white rounded-full flex items-center justify-center text-xs font-black shadow-md">
-                    3
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-orange-300 truncate max-w-[80px] mb-1">
-                  {third.name}
-                </span>
-                <div className="w-24 md:w-28 bg-gradient-to-t from-orange-900/60 to-orange-800/40 rounded-t-xl flex flex-col items-center justify-end h-[80px] md:h-[100px] border-t-4 border-orange-700">
-                  <span className="text-lg font-bold text-orange-300 mb-3">
-                    {third.score}
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Remaining players */}
-          {rest.length > 0 && (
-            <Card className="bg-zinc-900 border-zinc-800 overflow-hidden">
-              <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
-                {rest.map((p, i) => (
-                  <div
-                    key={p.id}
-                    className={`p-3 flex items-center gap-3 border-b border-zinc-800/50 last:border-0 ${p.id === user?._id ? "bg-orange-500/5" : ""}`}
-                  >
-                    <span className="w-6 h-6 rounded bg-zinc-800 text-zinc-500 flex items-center justify-center text-xs font-bold">
-                      {i + 4}
-                    </span>
-                    <img
-                      src={p.avatarUrl || "/Avatar.png"}
-                      className="w-8 h-8 rounded-full object-cover"
-                      alt=""
-                    />
-                    <span className="flex-1 text-sm font-medium text-zinc-300 truncate">
-                      {p.name}{" "}
-                      {p.id === user?._id && (
-                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded ml-1">
-                          YOU
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-mono font-bold text-orange-400 text-sm">
-                      {p.score} XP
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          <div className="flex gap-4 justify-center pt-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/")}
-              className="gap-2 border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white h-12 px-6"
-            >
-              <ArrowLeft size={16} /> Return Home
-            </Button>
-            {isHost && (
-              <Button
-                onClick={() => window.location.reload()}
-                className="gap-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white h-12 px-8 shadow-lg shadow-orange-900/20"
-              >
-                <Play size={16} fill="currentColor" /> Play Again
-              </Button>
-            )}
-          </div>
-        </motion.div>
-      </div>
+      <PodiumScreen
+        leaderboard={leaderboard}
+        userId={user?._id}
+        isHost={isHost}
+        onHome={() => navigate("/")}
+      />
     );
   }
 
   // ─── RENDER: Lobby (Waiting Room) ──────────────────────
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-6 lg:p-8 font-sans selection:bg-orange-500/30">
-      <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
-        {/* Top Navigation */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLeave}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white hover:bg-zinc-800/50 -ml-1"
-          >
-            <ArrowLeft size={18} /> Exit Lobby
-          </Button>
+    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-orange-500/30">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-0 left-1/3 w-[700px] h-[400px] bg-orange-600/4 rounded-full blur-[140px]" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[400px] bg-red-800/4 rounded-full blur-[120px]" />
+      </div>
 
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="secondary"
-              className="bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/20"
-            >
-              <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-              Live
-            </Badge>
-            <Badge
-              variant="outline"
-              className="border-zinc-700 text-zinc-400 font-normal"
-            >
-              {isHost ? "Host" : "Player"}
-            </Badge>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* LEFT COLUMN: Room Info & Players */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Room Header Card */}
-            <Card className="relative border-zinc-800 bg-zinc-900/50 overflow-hidden">
-              <div
-                className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"
-                aria-hidden
+      <div className="relative z-10 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-5">
+          <LobbyHeader isHost={isHost} onLeave={handleLeave} />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+            <div className="space-y-5 min-w-0">
+              <RoomCodeCard
+                roomCode={roomCode}
+                copied={copied}
+                onCopyCode={handleCopyCode}
+                onCopyLink={handleCopyLink}
               />
-              <CardHeader className="relative z-10 pb-4">
-                <CardTitle className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                  Competition Lobby
-                </CardTitle>
-                <CardDescription className="text-zinc-400 max-w-lg">
-                  Share the room code with friends to invite them to this
-                  challenge.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="relative z-10 pt-0">
-                <div className="flex flex-col sm:flex-row sm:items-stretch gap-3 sm:gap-4">
-                  <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950/50 overflow-hidden shrink-0">
-                    <div className="px-4 py-3 bg-zinc-900/80 border-r border-zinc-800">
-                      <Label className="text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-default">
-                        Room Code
-                      </Label>
-                    </div>
-                    <div className="px-5 py-3 font-mono text-xl sm:text-2xl font-bold text-orange-400 tracking-[0.2em]">
-                      {roomCode}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleCopyCode}
-                      className="rounded-none h-auto px-4 py-3 text-zinc-400 hover:text-white hover:bg-zinc-800/80 border-l border-zinc-800 shrink-0"
-                    >
-                      {copied ? (
-                        <Check size={20} className="text-green-500" />
-                      ) : (
-                        <Copy size={20} />
-                      )}
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={handleCopyLink}
-                    variant="secondary"
-                    className="flex items-center justify-center gap-2 bg-white text-zinc-900 hover:bg-zinc-200 shrink-0 min-h-[46px]"
-                  >
-                    <Copy size={16} />
-                    Copy Invite Link
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Match Configuration (Host Only) - Below Lobby */}
-            {isHost && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="border-zinc-800 bg-zinc-900 overflow-hidden">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/10">
-                        <Settings size={20} className="text-orange-500" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg text-white">
-                          Match Configuration
-                        </CardTitle>
-                        <CardDescription className="text-zinc-500">
-                          Customize your competition
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Category */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                        Target Domain
-                      </Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={() => {
-                            handleUpdateSettings({ category: "programming", challengeMode: "classic" });
-                          }}
-                          className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
-                            settings.category === "programming"
-                              ? "border-orange-500 bg-orange-500/10"
-                              : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-                          }`}
-                        >
-                          <Code
-                            size={24}
-                            className={`mb-2 ${settings.category === "programming" ? "text-orange-500" : "text-zinc-500"}`}
-                          />
-                          <span
-                            className={`block text-sm font-bold ${settings.category === "programming" ? "text-white" : "text-zinc-400"}`}
-                          >
-                            Programming
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleUpdateSettings({ category: "general", challengeMode: "classic" });
-                          }}
-                          className={`relative p-4 rounded-xl border text-left transition-all overflow-hidden ${
-                            settings.category === "general"
-                              ? "border-blue-500 bg-blue-500/10"
-                              : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-                          }`}
-                        >
-                          <BookOpen
-                            size={24}
-                            className={`mb-2 ${settings.category === "general" ? "text-blue-500" : "text-zinc-500"}`}
-                          />
-                          <span
-                            className={`block text-sm font-bold ${settings.category === "general" ? "text-white" : "text-zinc-400"}`}
-                          >
-                            General
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Game Mode */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                        Game Mode
-                      </Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: "classic", icon: "🏁", name: "Classic", desc: "Race to finish" },
-                          { id: "survival", icon: "💀", name: "Survival", desc: "Lowest score out" },
-                          { id: "blitz", icon: "⚡", name: "Blitz", desc: "15s per question" },
-                          { id: "team", icon: "🤝", name: "Team", desc: "2v2 combined" },
-                          { id: "duel", icon: "⚔️", name: "Duel", desc: "1v1, 5 questions" },
-                          { id: "practice", icon: "🎯", name: "Practice", desc: "Solo, no rank" },
-                        ].map((gm) => (
-                          <button
-                            key={gm.id}
-                            onClick={() => {
-                              const updates = { gameMode: gm.id };
-                              if (gm.id === "duel") updates.totalQuestions = 5;
-                              if (gm.id === "practice") updates.totalQuestions = 5;
-                              handleUpdateSettings(updates);
-                            }}
-                            className={`p-3 rounded-xl border text-center transition-all ${
-                              settings.gameMode === gm.id
-                                ? "border-orange-500 bg-orange-500/10"
-                                : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800"
-                            }`}
-                          >
-                            <span className="text-xl block mb-1">{gm.icon}</span>
-                            <span className={`block text-xs font-bold ${settings.gameMode === gm.id ? "text-orange-400" : "text-zinc-300"}`}>
-                              {gm.name}
-                            </span>
-                            <span className="text-[9px] text-zinc-500 block mt-0.5">{gm.desc}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Separator className="bg-zinc-800" />
-
-                    {/* Challenge Mode */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                        Challenge Type
-                      </Label>
-                      <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                        {(settings.category === "programming"
-                          ? [
-                              {
-                                id: "classic",
-                                name: "Classic Coding",
-                                icon: "💻",
-                                desc: "Standard algorithmic challenges",
-                              },
-                              {
-                                id: "scenario",
-                                name: "Scenario Challenge",
-                                icon: "🎭",
-                                desc: "Real-world engineering narratives",
-                              },
-                              {
-                                id: "debug",
-                                name: "Debug Detective",
-                                icon: "🔍",
-                                desc: "Find and fix critical bugs",
-                              },
-                              {
-                                id: "outage",
-                                name: "Production Outage",
-                                icon: "🚨",
-                                desc: "High-pressure incident response",
-                              },
-                              {
-                                id: "refactor",
-                                name: "Code Refactor",
-                                icon: "♻️",
-                                desc: "Optimize messy legacy code",
-                              },
-                              {
-                                id: "missing",
-                                name: "Missing Link",
-                                icon: "🧩",
-                                desc: "Implement the missing component",
-                              },
-                              {
-                                id: "interactive",
-                                name: "Interactive",
-                                icon: "🎮",
-                                desc: "Drag, drop, and type answers",
-                              },
-                            ]
-                          : [
-                              {
-                                id: "classic",
-                                name: "Classic Quiz",
-                                icon: "📝",
-                                desc: "Standard multiple-choice",
-                              },
-                              {
-                                id: "interactive",
-                                name: "Interactive",
-                                icon: "🎮",
-                                desc: "Drag, drop, and type answers",
-                              },
-                              {
-                                id: "scenario",
-                                name: "Scenario Challenge",
-                                icon: "🎭",
-                                desc: "Real-world situations",
-                              },
-                              {
-                                id: "missing",
-                                name: "Missing Link",
-                                icon: "🧩",
-                                desc: "Connect the system concepts",
-                              },
-                            ]
-                        ).map((mode) => (
-                          <button
-                            key={mode.id}
-                            onClick={() =>
-                              handleUpdateSettings("challengeMode", mode.id)
-                            }
-                            className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
-                              settings.challengeMode === mode.id
-                                ? "border-orange-500 bg-orange-500/10"
-                                : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800"
-                            }`}
-                          >
-                            <span className="text-xl mt-0.5">{mode.icon}</span>
-                            <div>
-                              <span
-                                className={`block text-sm font-bold ${
-                                  settings.challengeMode === mode.id
-                                    ? "text-orange-400"
-                                    : "text-zinc-300"
-                                }`}
-                              >
-                                {mode.name}
-                              </span>
-                              <span className="text-[10px] text-zinc-500 leading-tight block mt-0.5">
-                                {mode.desc}
-                              </span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Separator className="bg-zinc-800" />
-
-                    {/* Topic & Description */}
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                          Specific Topic
-                        </Label>
-                        <Input
-                          type="text"
-                          value={settings.topic}
-                          onChange={(e) =>
-                            handleUpdateSettings("topic", e.target.value)
-                          }
-                          placeholder={
-                            settings.category === "programming"
-                              ? "e.g. React Hooks, graph algorithms..."
-                              : "e.g. European History, Physics..."
-                          }
-                          className="bg-zinc-950/80 border-zinc-800 text-zinc-200 placeholder:text-zinc-600"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                          Description
-                        </Label>
-                        <Textarea
-                          value={settings.description}
-                          onChange={(e) =>
-                            handleUpdateSettings("description", e.target.value)
-                          }
-                          placeholder="Context or rules..."
-                          rows={2}
-                          className="resize-none bg-zinc-950/80 border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-orange-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Sliders / Metrics */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                          Difficulty
-                        </Label>
-                        <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-                          {["easy", "medium", "hard"].map((d) => (
-                            <button
-                              key={d}
-                              onClick={() =>
-                                handleUpdateSettings("difficulty", d)
-                              }
-                              className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                                settings.difficulty === d
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "text-zinc-500 hover:text-zinc-300"
-                              }`}
-                            >
-                              {d}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                          Questions
-                        </Label>
-                        <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-                          {[3, 5, 10].map((n) => (
-                            <button
-                              key={n}
-                              onClick={() =>
-                                handleUpdateSettings("totalQuestions", n)
-                              }
-                              className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                                settings.totalQuestions === n
-                                  ? "bg-zinc-800 text-white shadow-sm"
-                                  : "text-zinc-500 hover:text-zinc-300"
-                              }`}
-                            >
-                              {n}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Duration Selector */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                        Duration
-                      </Label>
-                      <div className="flex bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-                        {[1, 3, 5, 10, 15, 30].map((m) => (
-                          <button
-                            key={m}
-                            onClick={() =>
-                              handleUpdateSettings("timerDuration", m * 60)
-                            }
-                            className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${
-                              settings.timerDuration === m * 60
-                                ? "bg-zinc-800 text-white shadow-sm"
-                                : "text-zinc-500 hover:text-zinc-300"
-                            }`}
-                          >
-                            {m}m
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Start Button */}
-                    <Button
-                      onClick={handleStartGame}
-                      disabled={isStarting || !settings.category}
-                      size="lg"
-                      className="w-full h-14 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-base rounded-xl shadow-lg shadow-orange-900/20"
-                    >
-                      {isStarting ? (
-                        <>
-                          <Loader2 size={22} className="animate-spin mr-2" />
-                          Initiating...
-                        </>
-                      ) : (
-                        <>
-                          <Swords size={22} className="mr-2" />
-                          Begin Competition
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Join Requests (Host Only) */}
-            {isHost && pendingRequests.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="overflow-hidden"
-              >
-                <Card className="border-orange-500/20 bg-orange-500/5">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold text-orange-400 flex items-center gap-2">
-                      <span aria-hidden>🔔</span>
-                      Pending Requests
-                      <Badge
-                        variant="secondary"
-                        className="bg-orange-500/20 text-orange-400 ml-1"
-                      >
-                        {pendingRequests.length}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-3">
-                    {pendingRequests.map((req) => (
-                      <div
-                        key={req.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/80"
-                      >
-                        <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage
-                            src={req.avatarUrl || "/Avatar.png"}
-                            alt={req.name}
-                          />
-                          <AvatarFallback className="bg-zinc-800 text-zinc-400 text-sm">
-                            {req.name?.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="flex-1 font-medium text-sm text-zinc-200 truncate">
-                          {req.name}
-                        </span>
-                        <div className="flex gap-2 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApproveJoin(req.id)}
-                            className="h-8 border-green-500/30 text-green-400 hover:bg-green-500/20 hover:text-green-300"
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDenyJoin(req.id)}
-                            className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                          >
-                            Deny
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN: Participants (both Host & Guest) + Preparing Battle (Guest only) */}
-          <div className="lg:col-span-1 flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
-            {/* Participants - visible to both host and joined players */}
-            <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
-                    <Users size={18} className="text-zinc-400" />
-                    Participants
-                  </CardTitle>
-                  <Badge
-                    variant="secondary"
-                    className="bg-zinc-800 text-zinc-300 font-medium"
-                  >
-                    {room?.players?.length || 0}/20
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 gap-3">
-                  <AnimatePresence>
-                    {room?.players?.map((player) => (
-                      <motion.div
-                        key={player.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 transition-colors"
-                      >
-                        <Avatar className="h-10 w-10 shrink-0 ring-2 ring-zinc-800">
-                          <AvatarImage
-                            src={player.avatarUrl || "/Avatar.png"}
-                            alt={player.name}
-                          />
-                          <AvatarFallback className="bg-zinc-800 text-zinc-400 text-sm">
-                            {player.name?.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-zinc-200 truncate">
-                            {player.name}
-                          </p>
-                          {player.id === room.hostId ? (
-                            <Badge
-                              variant="outline"
-                              className="mt-0.5 h-4 px-1.5 text-[10px] border-yellow-500/50 text-yellow-500 font-medium"
-                            >
-                              <Crown size={10} className="mr-0.5" /> Host
-                            </Badge>
-                          ) : (
-                            <p className="text-[11px] text-zinc-500 mt-0.5">
-                              Player
-                            </p>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                    {Array.from({
-                      length: Math.max(0, 3 - (room?.players?.length || 0)),
-                    }).map((_, i) => (
-                      <div
-                        key={`empty-${i}`}
-                        className="border border-dashed border-zinc-800 rounded-lg p-3 flex items-center justify-center min-h-[72px]"
-                      >
-                        <span className="text-xs text-zinc-600">
-                          Waiting...
-                        </span>
-                      </div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Preparing Battle - guest only */}
-            {!isHost && (
-              <Card className="border-zinc-800 bg-zinc-900/50 overflow-hidden">
-                <CardContent className="pt-8 pb-8 text-center">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden">
-                    <div className="absolute inset-0 border-2 border-zinc-800 rounded-full" />
-                    <div className="absolute inset-0 border-2 border-transparent border-t-orange-500 rounded-full animate-spin" />
-                    <Loader2
-                      size={28}
-                      className="text-orange-500 relative z-10"
-                    />
-                  </div>
-                  <CardTitle className="text-xl text-white mb-2">
-                    Preparing Battle...
-                  </CardTitle>
-                  <CardDescription className="mb-6 text-zinc-400">
-                    The host is configuring the match. Please wait for the game
-                    to launch.
-                  </CardDescription>
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4 space-y-3 text-left">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-zinc-500">Mode</span>
-                      <span className="font-medium text-zinc-300 capitalize flex items-center gap-2">
-                        {settings.category === "programming" ? (
-                          <Code size={14} className="text-orange-500" />
-                        ) : (
-                          <BookOpen size={14} className="text-blue-500" />
-                        )}
-                        {settings.category}
-                      </span>
-                    </div>
-                    <Separator className="bg-zinc-800" />
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-zinc-500">Challenge</span>
-                      <Badge
-                        variant="outline"
-                        className="border-orange-500/50 text-orange-400 font-medium capitalize"
-                      >
-                        {settings.challengeMode}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              {isHost && (
+                <MatchConfiguration
+                  settings={settings}
+                  isStarting={isStarting}
+                  onUpdateSettings={handleUpdateSettings}
+                  onStartGame={handleStartGame}
+                />
+              )}
+              <JoinRequestsPanel
+                pendingRequests={pendingRequests}
+                onApprove={handleApproveJoin}
+                onDeny={handleDenyJoin}
+              />
+            </div>
+            <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+              <ParticipantsPanel room={room} userId={user?._id} />
+              {!isHost && <GuestWaitingCard settings={settings} />}
+            </div>
           </div>
         </div>
       </div>
+
       <VoiceControls
         isInVoice={isInVoice}
         isMuted={isMuted}

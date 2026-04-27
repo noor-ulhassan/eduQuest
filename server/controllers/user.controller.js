@@ -17,7 +17,7 @@ export const getUser = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select("-password").lean();
+    let user = await User.findById(userId).select("-password");
 
     if (!user) {
       return res
@@ -25,7 +25,6 @@ export const getMe = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Check/Reset stale streak before returning profile data
     if (user.dayStreak > 0) {
       user = await checkStreak(user);
     }
