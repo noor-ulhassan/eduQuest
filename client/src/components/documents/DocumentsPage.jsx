@@ -263,7 +263,7 @@ function DocumentsPage() {
             <Breadcrumb />
             <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
               {view === 'chat'      && <ChatView documentId={id} />}
-              {view === 'quiz'      && <QuizView documentId={id} />}
+              {view === 'quiz'      && <QuizView documentId={id} pdfUrl={selectedDoc?.pdfUrl} />}
               {view === 'companion' && <CompanionView documentId={id} pdfUrl={selectedDoc?.pdfUrl} />}
             </div>
           </>

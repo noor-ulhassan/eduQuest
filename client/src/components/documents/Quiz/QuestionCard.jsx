@@ -1,8 +1,8 @@
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, BookMarked } from 'lucide-react';
 
 const LABELS = ['A', 'B', 'C', 'D', 'E'];
 
-function QuestionCard({ question, selectedIndex, onAnswer }) {
+function QuestionCard({ question, selectedIndex, onAnswer, isReview, onShowContext }) {
   const showResult = selectedIndex !== undefined;
 
   const getOptionStyle = (index) => {
@@ -58,6 +58,17 @@ function QuestionCard({ question, selectedIndex, onAnswer }) {
           <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Explanation</p>
           <p className="text-sm text-zinc-400 leading-relaxed">{question.explanation}</p>
         </div>
+      )}
+
+      {/* Show Context button — review mode only */}
+      {isReview && onShowContext && (
+        <button
+          onClick={onShowContext}
+          className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+        >
+          <BookMarked size={13} />
+          Show Context in PDF
+        </button>
       )}
     </div>
   );

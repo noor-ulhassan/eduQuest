@@ -322,7 +322,9 @@ export const generateQuiz = async (req, res) => {
       });
     }
 
-    const context = results.map((d) => d.pageContent).join("\n\n");
+    const context = results
+      .map((d) => `[Page ${d.metadata.pageNumber}]:\n${d.pageContent}`)
+      .join("\n\n");
 
     const response = await model.invoke(
       `You are a quiz generator for educational content.
@@ -336,7 +338,9 @@ Each question object must have exactly this structure:
     "question": "Clear question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctIndex": 0,
-    "explanation": "Why this answer is correct based on the document"
+    "explanation": "Why this answer is correct based on the document",
+    "exactQuote": "one complete sentence copied character-for-character from the context",
+    "pageNumber": 3
   }
 ]
 
@@ -346,6 +350,8 @@ Rules:
 - Questions must test UNDERSTANDING, not just memorization
 - Wrong options must be plausible, not obviously wrong
 - Each question must come from a DIFFERENT part of the context
+- exactQuote: copy ONE complete sentence (30–120 characters) CHARACTER-BY-CHARACTER from the context — zero modifications to spelling, punctuation, capitalisation, or spacing. Do not combine sentences or add/remove words.
+- pageNumber must be the exact number from the [Page X] label that precedes the chunk you used
 - Do not generate questions if the context lacks enough information on a topic
 
 Document Context:
@@ -370,13 +376,66 @@ ${context}`
       return res.status(500).json({ error: "Invalid quiz format returned" });
     }
 
-    questions = questions.map((q, i) => ({
-      id: i + 1,
-      question: q.question,
-      options: q.options,
-      correctIndex: q.correctIndex,
-      explanation: q.explanation || "",
-    }));
+    // Build lookup structures for server-side quote validation
+    const allChunkText = results.map((d) => d.pageContent).join("\n\n");
+    const chunksByPage = {};
+    for (const chunk of results) {
+      const p = chunk.metadata.pageNumber;
+      if (!chunksByPage[p]) chunksByPage[p] = [];
+      chunksByPage[p].push(chunk.pageContent);
+    }
+
+    questions = questions.map((q, i) => {
+      const rawQuote = (q.exactQuote || "").trim();
+
+      // If Gemini's quote exists verbatim in the retrieved chunks, keep it
+      if (rawQuote.length >= 15 && allChunkText.includes(rawQuote)) {
+        return {
+          id: i + 1,
+          question: q.question,
+          options: q.options,
+          correctIndex: q.correctIndex,
+          explanation: q.explanation || "",
+          exactQuote: rawQuote,
+          pageNumber: q.pageNumber || null,
+        };
+      }
+
+      // Quote not found verbatim — extract the best sentence from the relevant chunks
+      const targetChunks = chunksByPage[q.pageNumber] || Object.values(chunksByPage).flat();
+      const combinedText = targetChunks.join(" ");
+
+      // Split on sentence boundaries
+      const sentences = combinedText
+        .split(/(?<=[.!?])\s+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 25 && s.length <= 150);
+
+      // Score sentences by word overlap with the question
+      const qWords = new Set(
+        q.question.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
+      );
+      let bestSentence = sentences[0] || rawQuote || "";
+      let bestScore = 0;
+      for (const sentence of sentences) {
+        const score = sentence.toLowerCase().split(/\W+/).filter((w) => qWords.has(w)).length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestSentence = sentence;
+        }
+      }
+
+      console.log(`⚠️  Q${i + 1} quote not found verbatim; extracted fallback sentence.`);
+      return {
+        id: i + 1,
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation || "",
+        exactQuote: bestSentence,
+        pageNumber: q.pageNumber || null,
+      };
+    });
 
     res.json({ questions, totalQuestions: questions.length });
 

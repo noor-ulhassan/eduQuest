@@ -1,6 +1,6 @@
-import { Trophy, RotateCcw, CheckCircle, XCircle, Star } from 'lucide-react';
+import { Trophy, RotateCcw, CheckCircle, XCircle, Star, BookOpen } from 'lucide-react';
 
-function ScoreScreen({ score, total, onRetake }) {
+function ScoreScreen({ score, total, onRetake, onReview }) {
   const percentage = Math.round((score / total) * 100);
   const isPassing  = percentage >= 70;
 
@@ -63,12 +63,22 @@ function ScoreScreen({ score, total, onRetake }) {
           </div>
         </div>
 
-        <button
-          onClick={onRetake}
-          className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
-        >
-          <RotateCcw size={15} /> Try Again
-        </button>
+        <div className="flex flex-col gap-2.5">
+          {onReview && (
+            <button
+              onClick={onReview}
+              className="w-full py-3 bg-[#1a1a1a] border border-white/10 text-white rounded-xl font-bold hover:border-white/20 transition-colors flex items-center justify-center gap-2"
+            >
+              <BookOpen size={15} /> Review Answers
+            </button>
+          )}
+          <button
+            onClick={onRetake}
+            className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+          >
+            <RotateCcw size={15} /> Try Again
+          </button>
+        </div>
       </div>
     </div>
   );

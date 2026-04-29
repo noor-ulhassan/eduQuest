@@ -30,6 +30,7 @@ export const saveQuizAttempt = async (req, res, next) => {
       totalQuestions,
       percentage,
       qaPairs,
+      cloudinaryUrl: document.filePath || "",
     });
 
     res.status(201).json({

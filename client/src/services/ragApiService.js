@@ -16,6 +16,14 @@ export const quizApi = {
     const res = await api.post("/ai/rag/quiz/generate", { topic, documentId });
     return res.data;
   },
+  saveAttempt: async ({ documentId, score, totalQuestions, qaPairs }) => {
+    const res = await api.post("/quiz-attempts", { documentId, score, totalQuestions, qaPairs });
+    return res.data;
+  },
+  getAttempts: async (documentId) => {
+    const res = await api.get(`/quiz-attempts/document/${documentId}`);
+    return res.data;
+  },
 };
 
 export const explainApi = {

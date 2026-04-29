@@ -77,7 +77,11 @@ export const uploadDocument = async (req, res, next) => {
     const pageChapterMap = {};
 
     for (const doc of docs) {
-      const pageNum = doc.metadata?.loc?.pageNumber || 1;
+      // Support both loc.pageNumber (1-indexed, newer LangChain) and page (0-indexed, older LangChain)
+      const pageNum =
+        doc.metadata?.loc?.pageNumber ??
+        (doc.metadata?.page != null ? doc.metadata.page + 1 : null) ??
+        1;
       const detected = detectChapterFromText(doc.pageContent);
       if (detected !== null) {
         currentChapter = detected;
@@ -95,7 +99,10 @@ export const uploadDocument = async (req, res, next) => {
 
     // 5. Enrich chunks with metadata
     splitDocs.forEach((doc, index) => {
-      const pageNum = doc.metadata?.loc?.pageNumber || 1;
+      const pageNum =
+        doc.metadata?.loc?.pageNumber ??
+        (doc.metadata?.page != null ? doc.metadata.page + 1 : null) ??
+        1;
       doc.metadata = {
         userId: req.user._id.toString(),
         documentId: document._id.toString(),

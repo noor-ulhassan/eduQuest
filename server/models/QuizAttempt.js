@@ -25,6 +25,7 @@ const quizAttemptSchema = new mongoose.Schema(
       required: true,
     },
     // We save the exact questions and answers so the user can review them later
+    cloudinaryUrl: { type: String, default: "" },
     qaPairs: [
       {
         question: { type: String, required: true },
@@ -32,10 +33,10 @@ const quizAttemptSchema = new mongoose.Schema(
         correctAnswer: { type: String, required: true },
         userAnswer: { type: String, required: true },
         isCorrect: { type: Boolean, required: true },
+        explanation: { type: String, default: "" },
         sourceQuote: { type: String, default: "" },
-        // FUTURE PROOFING: When you ask Gemini to generate the quiz, 
-        // have it return the index of the chunk it used. Save it here.
-        sourceChunkIndex: { type: Number, default: null } 
+        pageNumber: { type: Number, default: null },
+        sourceChunkIndex: { type: Number, default: null },
       },
     ],
   },
