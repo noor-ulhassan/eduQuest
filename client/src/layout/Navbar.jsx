@@ -114,9 +114,9 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo1.png" alt="" width={35} height={35} />
-          <span className="font-Inter font-bold text-2xl tracking-tight">
-            <span className="text-red-500">Edu</span>
-            <span className="text-white">Quest</span>
+          <span className="font-hand font-extrabold text-3xl tracking-tight">
+            <span className="text-metallic-orange">Edu</span>
+            <span className="text-metallic">Quest</span>
           </span>
         </Link>
 
@@ -125,7 +125,7 @@ const Navbar = () => {
           <NavigationMenuList className="flex gap-8">
             {/* Courses mega-menu */}
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="text-sm text-gray-300 hover:text-white data-[state=open]:text-white bg-transparent hover:bg-white/10">
+              <NavigationMenuTrigger className="text-sm text-metallic hover:text-white data-[state=open]:text-white bg-transparent hover:bg-white/10">
                 Courses
               </NavigationMenuTrigger>
               <NavigationMenuContent className="bg-[#1a1730] shadow-2xl border border-white/10 rounded-lg">
@@ -133,10 +133,10 @@ const Navbar = () => {
                   {courses.map((course) => (
                     <Link key={course.id} to={course.path}>
                       <div className="p-2 hover:bg-white/10 rounded-xl cursor-pointer transition-colors">
-                        <h2 className="font-medium text-white">
+                        <h2 className="font-bold text-metallic">
                           {course.name}
                         </h2>
-                        <p className="text-sm text-gray-400">{course.desc}</p>
+                        <p className="text-sm text-gray-4s00">{course.desc}</p>
                       </div>
                     </Link>
                   ))}
@@ -150,7 +150,7 @@ const Navbar = () => {
                 <NavigationMenuLink asChild>
                   <Link
                     to={link.path}
-                    className="text-sm transition-colors text-gray-300 hover:text-white"
+                    className="text-sm transition-colors text-metallic font-bold hover:text-white"
                   >
                     {link.label}
                   </Link>

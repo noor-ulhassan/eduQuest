@@ -28,7 +28,9 @@ const MainLayout = () => {
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
     location.pathname === "/profile" ||
-    location.pathname === "/profile/";
+    location.pathname === "/profile/" ||
+    location.pathname === "/" ||
+    location.pathname === "/playground";
 
   return (
     <div className="flex flex-col min-h-screen">

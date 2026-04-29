@@ -14,6 +14,14 @@ export default {
         border: "hsl(var(--border))",
         background: "hsl(0 0% 100%)",
         foreground: "hsl(222.2 84% 4.9%)",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
         primary: {
           DEFAULT: "hsl(222.2 47.4% 11.2%)",
           foreground: "hsl(210 40% 98%)",
@@ -62,5 +70,24 @@ export default {
     require("@tailwindcss/typography"),
     require("daisyui"),
     require("tailwindcss-animate"),
+
+    function ({ addUtilities }) {
+      addUtilities({
+        ".text-metallic": {
+          "background-image":
+            "linear-gradient(180deg, #ffffff 0%, #8a8a8a 100%)",
+          "-webkit-background-clip": "text",
+          "background-clip": "text",
+          color: "transparent",
+        },
+        ".text-metallic-orange": {
+          "background-image":
+            "linear-gradient(180deg, #ffc78f 0%, #ea580c 50%, #9a3412 100%)",
+          "-webkit-background-clip": "text",
+          "background-clip": "text",
+          color: "transparent",
+        },
+      });
+    },
   ],
 };

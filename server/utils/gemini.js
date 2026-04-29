@@ -10,7 +10,7 @@ export const geminiCourseGenerator = async (req, res) => {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
+      model: "gemini-3.1-flash-lite-preview",
     });
 
     const {
@@ -244,7 +244,7 @@ export const generateChapterContent = async (req, res) => {
     };
 
     const videoIds = await Promise.all(
-      chapterContentData.topics.map((t) => fetchVideoId(t.topic))
+      chapterContentData.topics.map((t) => fetchVideoId(t.topic)),
     );
 
     chapterContentData.topics = chapterContentData.topics.map((t, i) => ({

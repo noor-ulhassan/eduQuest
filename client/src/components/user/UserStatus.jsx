@@ -102,33 +102,33 @@ const UserStats = () => {
       label: "Total XP",
       value: animatedXP,
       icon: "/star.png",
-      bg: "bg-yellow-50 dark:bg-yellow-900/20",
-      textClass: "text-yellow-600 dark:text-yellow-500",
-      borderClass: "border-yellow-200 dark:border-yellow-900",
+      bg: "bg-yellow-50 dark:bg-yellow-500/10",
+      textClass: "text-yellow-600 dark:text-yellow-400",
+      borderClass: "border-yellow-200 dark:border-yellow-500/30",
     },
     {
       label: "Rank",
       value: rank,
       icon: "/level_1.png",
-      bg: "bg-zinc-50 dark:bg-zinc-900/50",
-      textClass: "text-zinc-700 dark:text-zinc-300",
-      borderClass: "border-zinc-200 dark:border-zinc-800",
+      bg: "bg-zinc-50 dark:bg-white/5",
+      textClass: "text-zinc-700 dark:text-zinc-200",
+      borderClass: "border-zinc-200 dark:border-white/10",
     },
     {
       label: "Badges",
       value: animatedBadges,
       icon: "/badge.png",
-      bg: "bg-zinc-50 dark:bg-zinc-900/50",
-      textClass: "text-zinc-700 dark:text-zinc-300",
-      borderClass: "border-zinc-200 dark:border-zinc-800",
+      bg: "bg-zinc-50 dark:bg-white/5",
+      textClass: "text-zinc-700 dark:text-zinc-200",
+      borderClass: "border-zinc-200 dark:border-white/10",
     },
     {
       label: "Day Streak",
       value: animatedStreak,
       icon: "/fire.png",
-      bg: "bg-orange-50 dark:bg-orange-900/20",
-      textClass: "text-orange-600 dark:text-orange-500",
-      borderClass: "border-orange-200 dark:border-orange-900/50",
+      bg: "bg-orange-50 dark:bg-orange-500/10",
+      textClass: "text-orange-600 dark:text-orange-400",
+      borderClass: "border-orange-200 dark:border-orange-500/30",
     },
   ];
 
@@ -162,7 +162,7 @@ const UserStats = () => {
             <motion.div
               layoutId={`card-${id}`}
               ref={ref}
-              className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden shadow-xl relative border border-zinc-200 dark:border-zinc-800 pointer-events-auto no-scrollbar"
+              className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-white dark:bg-[#1a1730] rounded-2xl overflow-hidden shadow-xl relative border border-zinc-200 dark:border-zinc-700 pointer-events-auto no-scrollbar"
             >
 
               <div className="p-6 sm:p-8 relative z-10">
@@ -270,7 +270,7 @@ const UserStats = () => {
       <motion.div
         layoutId={`card-${id}`}
         onClick={() => setActive(!active)}
-        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm group relative bg-white dark:bg-neutral-900 cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm group relative bg-white dark:bg-[#1a1730] cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-600"
       >
 
         <div className="p-6 relative z-10 pointer-events-none">

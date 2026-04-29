@@ -47,6 +47,7 @@ import {
   playTimerWarningSound,
 } from "@/lib/sound";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 
 const CompetitionLobby = () => {
   const navigate = useNavigate();
@@ -1509,6 +1510,16 @@ const CompetitionLobby = () => {
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-orange-500/30">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <DottedGlowBackground
+          color="rgba(255,255,255,0.45)"
+          glowColor="rgba(234,88,12,0.95)"
+          gap={28}
+          radius={1.5}
+          opacity={0.55}
+          speedMin={0.3}
+          speedMax={0.9}
+          speedScale={0.85}
+        />
         <div className="absolute top-0 left-1/3 w-[700px] h-[400px] bg-orange-600/4 rounded-full blur-[140px]" />
         <div className="absolute bottom-0 right-0 w-[500px] h-[400px] bg-red-800/4 rounded-full blur-[120px]" />
       </div>

@@ -1,9 +1,8 @@
 import React, { useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 const FLOATING_LOGOS = [
-  // ─── left side ───
   {
     src: "/python.png",
     label: "Python",
@@ -40,8 +39,6 @@ const FLOATING_LOGOS = [
     depth: 0.035,
     rotate: 0,
   },
-
-  // ─── right side ───
   {
     src: "/js1.png",
     label: "JavaScript",
@@ -70,16 +67,14 @@ const FLOATING_LOGOS = [
     rotate: 0,
   },
   {
-    src: "/css1.png",
-    label: "C#",
+    src: "/c.png",
+    label: "C",
     top: "78%",
     left: "74%",
     size: 40,
     depth: 0.04,
     rotate: 0,
   },
-
-  // ─── inner scattered ───
   {
     src: "/js.png",
     label: "JS",
@@ -91,7 +86,7 @@ const FLOATING_LOGOS = [
   },
   {
     src: "/ts.png",
-    label: "ts",
+    label: "TypeScript",
     top: "22%",
     left: "68%",
     size: 90,
@@ -109,7 +104,7 @@ const FLOATING_LOGOS = [
   },
   {
     src: "/c.png",
-    label: "C#",
+    label: "C++",
     top: "72%",
     left: "34%",
     size: 90,
@@ -118,25 +113,22 @@ const FLOATING_LOGOS = [
   },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   FloatingLogo — a single parallax card with unique physics
-   Each logo gets its own spring constants + idle bob so
-   they feel independent rather than locked together.
-   ───────────────────────────────────────────────────────── */
+const STATS = [
+  { value: "10K+", label: "Learners" },
+  { value: "50K+", label: "Challenges" },
+  { value: "9", label: "Languages" },
+];
+
 const FloatingLogo = ({ logo, mouseX, mouseY, index }) => {
-  // Deterministic seed per logo so each has unique physics
   const seed = ((index * 7 + 3) % 11) / 11;
-
   const springConfig = {
-    stiffness: 16 + seed * 14, // 18–32  (soft → medium)
-    damping: 3 + seed * 2.5, // 3–5.5  (low friction = lots of drift)
-    mass: 1.2 + seed * 1.0, // 1.2–2.2 (heavy = momentum/inertia)
+    stiffness: 16 + seed * 14,
+    damping: 3 + seed * 2.5,
+    mass: 1.2 + seed * 1.0,
   };
-
   const x = useSpring(useMotionValue(0), springConfig);
   const y = useSpring(useMotionValue(0), springConfig);
 
-  // Subscribe to parent motion values, scaled per-card
   React.useEffect(() => {
     const unsubX = mouseX.on("change", (v) => x.set(v * logo.depth));
     const unsubY = mouseY.on("change", (v) => y.set(v * logo.depth));
@@ -146,11 +138,10 @@ const FloatingLogo = ({ logo, mouseX, mouseY, index }) => {
     };
   }, [mouseX, mouseY, logo.depth, x, y]);
 
-  // Unique idle float so each card bobs independently
-  const dur = 4 + seed * 4; // 4–8s cycle
-  const ampY = 6 + seed * 10; // 6–16px vertical bob
-  const ampX = 3 + (1 - seed) * 5; // 3–8px horizontal sway
-  const delay = seed * 2; // stagger start 0–2s
+  const dur = 4 + seed * 4;
+  const ampY = 6 + seed * 10;
+  const ampX = 3 + (1 - seed) * 5;
+  const delay = seed * 2;
 
   return (
     <motion.div
@@ -194,15 +185,14 @@ const FloatingLogo = ({ logo, mouseX, mouseY, index }) => {
         },
       }}
     >
-      {/* Glassmorphism card */}
       <div
         className="w-full h-full rounded-xl flex items-center justify-center"
         style={{
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.08)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
-          boxShadow: "0 4px 24px rgba(0, 0, 0, 0.25)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
         }}
       >
         <img
@@ -216,9 +206,6 @@ const FloatingLogo = ({ logo, mouseX, mouseY, index }) => {
   );
 };
 
-/* ─────────────────────────────────────────────────────────
-   Grid dots background overlay (subtle)
-   ───────────────────────────────────────────────────────── */
 const GridDots = () => (
   <div
     className="absolute inset-0 pointer-events-none"
@@ -230,13 +217,9 @@ const GridDots = () => (
   />
 );
 
-/* ─────────────────────────────────────────────────────────
-   HeroSection — main component
-   ───────────────────────────────────────────────────────── */
 const HeroSection = () => {
+  const navigate = useNavigate();
   const containerRef = useRef(null);
-
-  // Raw mouse position (centered at 0,0 relative to viewport center)
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -244,10 +227,8 @@ const HeroSection = () => {
     (e) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      mouseX.set(e.clientX - centerX);
-      mouseY.set(e.clientY - centerY);
+      mouseX.set(e.clientX - rect.left - rect.width / 2);
+      mouseY.set(e.clientY - rect.top - rect.height / 2);
     },
     [mouseX, mouseY],
   );
@@ -259,21 +240,16 @@ const HeroSection = () => {
       className="relative w-full overflow-hidden"
       style={{
         minHeight: "100vh",
-        marginTop: "-3.5rem", // bleed behind the fixed navbar (h-14)
+        marginTop: "-3.5rem",
         paddingTop: "3.5rem",
         backgroundColor: "#171717",
       }}
     >
-      {/* Radial glow behind text */}
-      {/* Removed Radial glow behind text for cleaner UI */}
-
-      {/* Grid dots */}
       <GridDots />
 
-      {/* Floating language logos */}
       {FLOATING_LOGOS.map((logo, index) => (
         <FloatingLogo
-          key={logo.label}
+          key={index}
           logo={logo}
           mouseX={mouseX}
           mouseY={mouseY}
@@ -281,71 +257,97 @@ const HeroSection = () => {
         />
       ))}
 
-      {/* Center content */}
       <div
         className="relative z-10 flex flex-col items-center justify-center px-4 text-center"
         style={{ minHeight: "calc(100vh - 3.5rem)" }}
       >
-        {/* Main headline */}
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8 mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-sm font-semibold"
+        >
+          <span>🔥</span>
+          <span>10,000+ developers. One leaderboard.</span>
+        </motion.div>
+
+        {/* Headline */}
         <motion.h1
-          className=" tracking-tight leading-[1.1]"
+          className="tracking-tight leading-[1.1]"
           style={{ fontSize: "clamp(2.4rem, 6vw, 5rem)" }}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
         >
           <span
-            className="font-inter text-7xl"
+            className="font-inter font-bold text-metallic-orange"
             style={{
-              color: "#f97316",
               letterSpacing: "0.2rem",
+              fontSize: "clamp(2.4rem, 6vw, 5rem)",
             }}
           >
             Achieve mastery
           </span>
           <span
-            className="block text-white mt-1 font-inter "
-            style={{
-              letterSpacing: "0.3rem",
-            }}
+            className="block mt-1 font-inter font-bold text-metallic"
+            style={{ letterSpacing: "0.3rem" }}
           >
-            through challenge
+            Through Challenge
           </span>
         </motion.h1>
 
         {/* Subtitle */}
         <motion.p
-          className="mt-6 text-zinc-100 max-w-xl leading-relaxed"
-          style={{ fontSize: "clamp(0.95rem, 1.8vw, 1.2rem)" }}
+          className="mt-6 text-zinc-400 max-w-lg leading-relaxed"
+          style={{ fontSize: "clamp(0.95rem, 1.8vw, 1.1rem)" }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+          transition={{ duration: 0.7, delay: 0.25, ease: "easeOut" }}
         >
-          Improve your development skills by training with your peers on
-          EduQuest that continuously challenge and push your coding practice.
+          Solve real challenges. Compete live. Climb the global leaderboard.
+          <br className="hidden sm:block" />
+          Pick a language and start right now.
         </motion.p>
 
-        {/* CTA button with glowing rising sun background */}
+        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
-          className="mt-10 relative"
+          className="mt-10"
         >
-          {/* Glowing rising sun effect */}
-          {/* Removed Glowing rising sun effect */}
-          <Link to="/login">
-            <button
-              className="relative cursor-pointer border border-orange-600 rounded-[6px] bg-gradient-to-br from-[#dc2626] to-[#b91c1c] text-white font-semibold tracking-wider hover:bg-none hover:bg-red-600"
-              style={{
-                padding: "14px 40px",
-                fontSize: "1.05rem",
-                // Transition is removed as requested
-              }}
-            >
-              Get Started
-            </button>
-          </Link>
+          <button
+            onClick={() => navigate("/signup")}
+            className="cursor-pointer border border-orange-600 rounded-[6px] bg-gradient-to-br from-[#dc2626] to-[#b91c1c] text-white font-semibold tracking-wider hover:from-red-500 hover:to-red-600 transition-all duration-200 active:scale-95"
+            style={{ padding: "14px 40px", fontSize: "1.05rem" }}
+          >
+            Get Started
+          </button>
+        </motion.div>
+
+        {/* Stats bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="mt-14 flex items-center gap-6 sm:gap-10"
+        >
+          {STATS.map((stat, i) => (
+            <React.Fragment key={stat.label}>
+              {i > 0 && (
+                <span className="w-px h-6 bg-zinc-700 hidden sm:block" />
+              )}
+              <div className="text-center">
+                <div className="font-bold text-metallic text-xl sm:text-2xl">
+                  {stat.value}
+                </div>
+                <div className="text-zinc-500 text-xs sm:text-sm mt-0.5">
+                  {stat.label}
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
         </motion.div>
       </div>
     </section>
