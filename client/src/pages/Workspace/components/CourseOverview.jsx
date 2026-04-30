@@ -4,20 +4,12 @@ import { useSelector } from "react-redux";
 import api from "@/features/auth/authApi";
 import { getGlobalLeaderboard } from "@/features/leaderboard/leaderboardApi";
 import {
-  GraduationCap,
-  Map,
-  Trophy,
-  Users,
   User as UserIcon,
-  Terminal,
-  Search,
-  Bell,
   Play,
   Check,
   Lock,
   Star,
   Code,
-  Bug,
   Zap,
   Medal,
   Book,
@@ -26,6 +18,7 @@ import {
   Plus,
   FileText,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import WelcomeBanner from "./WelcomeBanner";
 import CourseList from "./CourseList";
@@ -44,7 +37,6 @@ import {
   Radar,
   RadarChart,
   PolarGrid,
-  PolarRadiusAxis,
 } from "recharts";
 
 export default function CourseOverview({ course, enrollment, onResume }) {
@@ -143,45 +135,68 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   ];
 
   return (
-    <div className="bg-[#0a0a0a] text-white min-h-screen flex font-space-grotesk">
+    <div className="bg-[#0a0a0a] text-metallic min-h-screen flex font-space-grotesk">
       {/* Sidebar Navigation */}
       <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="bg-[#111111] border-r border-white/10 h-[calc(100vh-64px)] pb-10 px-3 z-40">
-          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden pt-4 -mx-1">
-            {/* Sidebar Header */}
-            <div className="flex items-center gap-3 mb-8">
-              <img
-                src="/logo1.png"
-                alt="logo"
-                width={30}
-                height={30}
-                className="shrink-0 shadow-lg rounded"
-              />
-              {open && (
-                <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent whitespace-pre animate-in fade-in">
-                  Workspace
-                </h2>
-              )}
-            </div>
+        <SidebarBody className="bg-[#111111] border-r border-white/10 h-[calc(100vh-56px)] sticky top-14 justify-between z-40">
+          {/* ── Top ── */}
+          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+            {/* Logo */}
+            {open ? (
+              <div className="flex items-center gap-3 px-3 pt-4 pb-6">
+                <img
+                  src="/logo1.png"
+                  alt="logo"
+                  width={30}
+                  height={30}
+                  className="shrink-0 shadow-lg rounded"
+                />
+                <motion.h2
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-3xl font-bold tracking-tight text-metallic whitespace-pre"
+                >
+                  Work<span className="text-metallic-orange">space</span>
+                </motion.h2>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center pt-4 pb-6">
+                <img
+                  src="/logo1.png"
+                  alt="logo"
+                  width={30}
+                  height={30}
+                  className="shrink-0 shadow-lg rounded"
+                />
+              </div>
+            )}
 
-            {/* Create New Course Button */}
-            <div className="mb-8">
+            {/* Create New Course */}
+            <div className={`mb-5 ${open ? "px-3" : "flex justify-center"}`}>
               <AddCourseDialog>
                 <button
-                  className={`flex items-center justify-start gap-3 transition-all rounded-lg font-bold text-white bg-gradient-to-r from-red-600 to-orange-600 shadow-lg shadow-red-500/20 hover:shadow-xl hover:-translate-y-0.5 ${open ? "w-full text-sm px-4 py-3" : "w-10 h-10 p-0 justify-center text-sm"}`}
+                  className={`flex items-center gap-3 transition-all rounded-lg font-bold text-white bg-gradient-to-r from-red-600 to-orange-600 shadow-lg shadow-red-500/20 hover:shadow-xl hover:-translate-y-0.5 ${
+                    open
+                      ? "w-full text-sm px-4 py-3 justify-start"
+                      : "w-8 h-8 p-0 justify-center"
+                  }`}
                 >
                   <Plus className="w-5 h-5 shrink-0" strokeWidth={3} />
                   {open && (
-                    <span className="animate-in fade-in whitespace-pre">
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="whitespace-pre"
+                    >
                       Create New Course
-                    </span>
+                    </motion.span>
                   )}
                 </button>
               </AddCourseDialog>
             </div>
 
-            {/* Sidebar Links */}
-            <div className="flex flex-col gap-3 mt-2">
+            {/* Nav Links */}
+            <div className="flex flex-col gap-1 px-2">
               {SidebarOptions.map((item, index) => (
                 <SidebarLink
                   key={index}
@@ -190,45 +205,49 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     href: item.path,
                     icon: (
                       <item.icon
-                        className={`h-6 w-6 shrink-0 ${
+                        className={`h-5 w-5 shrink-0 ${
                           currentPath === item.path ||
                           (currentPath.startsWith(item.path) &&
                             item.path !== "/#")
                             ? "text-red-400"
-                            : "text-zinc-400 group-hover/sidebar:text-white"
+                            : "text-zinc-400"
                         }`}
                       />
                     ),
                   }}
-                  className={`font-bold transition-colors py-3 px-3 rounded-lg ${
+                  className={cn(
+                    "rounded-lg font-medium transition-colors",
+                    open ? "py-2.5 px-2" : "py-2.5 justify-center",
                     currentPath === item.path ||
-                    (currentPath.startsWith(item.path) && item.path !== "/#")
+                      (currentPath.startsWith(item.path) &&
+                        item.path !== "/#")
                       ? "text-red-400 bg-white/10"
-                      : "hover:bg-white/5 text-zinc-300"
-                  }`}
+                      : "hover:bg-white/5 text-zinc-300",
+                  )}
                 />
               ))}
             </div>
+          </div>
 
-            <div className="mt-auto">
-              <div className="bg-gradient-to-br from-red-600/15 to-orange-600/10 rounded-xl p-4 border border-white/10 mt-8">
-                {open && (
-                  <>
-                    <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
-                      Pro Access
-                    </p>
-                    <p className="text-sm text-zinc-400 mb-3">
-                      Unlock unlimited course generation.
-                    </p>
-                  </>
-                )}
-                <button
-                  className={`w-full bg-[#111111] py-2 rounded-lg border border-red-500/30 text-xs font-bold text-red-400 hover:bg-red-600/10 transition-colors ${!open && "px-1 text-[10px]"}`}
-                >
-                  {open ? "Upgrade Now" : "PRO"}
+          {/* ── Bottom: Pro upgrade ── */}
+          <div className={open ? "px-3 pb-2" : "flex justify-center pb-2"}>
+            {open ? (
+              <div className="bg-gradient-to-br from-red-600/15 to-orange-600/10 rounded-xl p-4 border border-white/10">
+                <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
+                  Pro Access
+                </p>
+                <p className="text-sm text-zinc-400 mb-3">
+                  Unlock unlimited premium features.
+                </p>
+                <button className="w-full bg-[#111111] py-2 rounded-lg border border-red-500/30 text-xs font-bold text-red-400 hover:bg-red-600/10 transition-colors">
+                  Upgrade Now
                 </button>
               </div>
-            </div>
+            ) : (
+              <button className="w-8 h-8 bg-[#111111] rounded-lg border border-red-500/30 text-[9px] font-bold text-red-400 hover:bg-red-600/10 transition-colors flex items-center justify-center">
+                PRO
+              </button>
+            )}
           </div>
         </SidebarBody>
       </Sidebar>
@@ -246,7 +265,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     <span className="px-3 py-1 bg-red-600/20 text-red-400 text-xs font-bold rounded-full mb-4 inline-block">
                       CONTINUE LEARNING
                     </span>
-                    <h3 className="text-3xl font-bold mb-2">
+                    <h3 className="text-3xl font-bold mb-2 text-metallic">
                       {course
                         ? `Module ${currentChapterIndex + 1}: ${currentChapter?.chapterName}`
                         : activeCourse.name}
@@ -316,10 +335,13 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:shadow-lg transition-shadow">
-                <p className="text-sm text-zinc-400 font-medium mb-1">
-                  Total Experience
-                </p>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-start justify-between mb-4">
+                  <p className="text-sm text-zinc-400 font-medium">Total Experience</p>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 text-emerald-500" />
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-2 text-metallic">
                   <h4 className="text-2xl font-bold">
                     {user?.xp?.toLocaleString() || 0}
                   </h4>
@@ -327,41 +349,39 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     +XP
                   </span>
                 </div>
-                <div className="mt-4 w-full h-1.5 bg-white/5 dark:bg-red-600/20 rounded-full overflow-hidden">
+                <div className="mt-4 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-red-600 rounded-full"
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                     style={{ width: `${(user?.xp % 1000) / 10}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
 
               <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:shadow-lg transition-shadow">
-                <p className="text-sm text-zinc-400 font-medium mb-1">
-                  Current Streak
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <h4 className="text-2xl font-bold">
-                    {user?.dayStreak || 0} Days
-                  </h4>
-                  <Zap
-                    className="text-orange-500 w-4 h-4"
-                    fill="currentColor"
-                  />
+                <div className="flex items-start justify-between mb-4">
+                  <p className="text-sm text-zinc-400 font-medium">Current Streak</p>
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 text-orange-500" fill="currentColor" />
+                  </div>
                 </div>
+                <h4 className="text-2xl font-bold text-metallic">
+                  {user?.dayStreak || 0} Days
+                </h4>
                 <p className="text-xs text-zinc-400 mt-4 italic">
                   Next milestone soon
                 </p>
               </div>
 
               <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:shadow-lg transition-shadow">
-                <p className="text-sm text-zinc-400 font-medium mb-1">
-                  Global Ranking
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <h4 className="text-2xl font-bold">
-                    {user?.rank || "Novice"}
-                  </h4>
+                <div className="flex items-start justify-between mb-4">
+                  <p className="text-sm text-zinc-400 font-medium">Global Ranking</p>
+                  <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+                    <Medal className="w-4 h-4 text-yellow-500" />
+                  </div>
                 </div>
+                <h4 className="text-2xl font-bold text-metallic">
+                  {user?.rank || "Novice"}
+                </h4>
                 <p className="text-xs text-zinc-400 mt-4 tracking-wider">
                   Lvl {user?.level || 1}
                 </p>
@@ -370,7 +390,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
             {course ? (
               <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 shadow-lg shadow-black/50 z-0">
-                <h4 className="text-lg font-bold mb-8">Learning Path</h4>
+                <h4 className="text-lg font-bold mb-8 text-metallic">Learning Path</h4>
                 <div className="space-y-0 z-0">
                   {activeChapters.map((chap, idx) => {
                     const isCompleted = enrollment?.completedChapters?.includes(
@@ -424,7 +444,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                           >
                             Module {idx + 1}
                           </span>
-                          <h5 className="text-lg font-bold">
+                          <h5 className="text-lg font-bold text-metallic">
                             {chap.chapterName}
                           </h5>
                           <p className="text-sm text-zinc-400 mt-1">
@@ -459,7 +479,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             {/* Unlocked Achievements */}
             <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/50 ">
               <div className="flex items-center justify-between mb-6">
-                <h4 className="font-bold">Achievements</h4>
+                <h4 className="font-bold text-metallic">Achievements</h4>
                 <button className="text-xs text-red-400 font-bold hover:underline">
                   View All
                 </button>
@@ -478,7 +498,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                         <div
                           className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 transition-transform ${
                             unlocked
-                              ? "bg-red-600/20 ring-2 ring-[#8c2bee] group-hover:scale-110"
+                              ? "bg-red-600/20 ring-2 ring-red-500/30 group-hover:scale-110"
                               : "bg-white/5 border border-dashed border-white/20 "
                           }`}
                         >
@@ -502,7 +522,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 ) : (
                   <>
                     <div className="flex flex-col items-center text-center group cursor-pointer">
-                      <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mb-2 ring-2 ring-[#8c2bee] group-hover:scale-110 transition-transform">
+                      <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mb-2 ring-2 ring-red-500/30 group-hover:scale-110 transition-transform">
                         <Star
                           className="text-red-400 w-8 h-8"
                           fill="currentColor"
@@ -511,7 +531,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                       <p className="text-xs font-bold">Early Bird</p>
                     </div>
                     <div className="flex flex-col items-center text-center group cursor-pointer">
-                      <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mb-2 ring-2 ring-[#8c2bee] group-hover:scale-110 transition-transform">
+                      <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mb-2 ring-2 ring-red-500/30 group-hover:scale-110 transition-transform">
                         <Code className="text-red-400 w-8 h-8" />
                       </div>
                       <p className="text-xs font-bold">Code Wizard</p>
@@ -539,7 +559,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
             {/* Skill Radar */}
             <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/50 ">
-              <h4 className="font-bold mb-4">Skill Analysis</h4>
+              <h4 className="font-bold mb-4 text-metallic">Skill Analysis</h4>
               <div className="h-48 w-full -ml-2">
                 <ChartContainer config={chartConfig} className="w-full h-full">
                   <RadarChart
@@ -577,7 +597,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
             {/* Leaderboard Teaser */}
             <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/50 ">
-              <h4 className="font-bold mb-4">Leaderboard</h4>
+              <h4 className="font-bold mb-4 text-metallic">Leaderboard</h4>
               <div className="space-y-4">
                 {loadingLB ? (
                   <div className="text-sm text-zinc-400 text-center py-4">
@@ -644,10 +664,10 @@ export default function CourseOverview({ course, enrollment, onResume }) {
               <div className="z-10 relative">
                 <h4 className="text-white font-bold mb-1">Need help?</h4>
                 <p className="text-white/80 text-xs mb-4">
-                  Chat with our AI architecture mentor anytime.
+                  Get personalized help from your course guide anytime.
                 </p>
                 <button className="bg-[#111111] text-red-400 px-4 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-[#0a0a0a] transition-colors">
-                  Ask Mentor
+                  Get Help
                 </button>
               </div>
               <Zap className="absolute -bottom-4 -right-4 w-24 h-24 text-white/10 group-hover:scale-125 transition-transform" />

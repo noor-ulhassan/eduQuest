@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import {
-  Rocket,
   Zap,
   Flame,
   Bell,
@@ -19,10 +18,7 @@ import {
   Server,
   Activity,
   Loader2,
-  Sparkles,
-  Bot,
   CreditCard,
-  Book,
   Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -196,7 +192,7 @@ export default function CourseLearning({
     <div className="bg-[#0a0a0a] text-white min-h-screen flex font-space-grotesk">
       <div className="flex-1 flex flex-col w-full min-h-screen">
         {/* Top Navigation Bar */}
-        <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111111]/90 /90 backdrop-blur-xl px-6 py-3 shadow-sm ">
+        <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#111111]/90 backdrop-blur-xl px-6 py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-8">
               <button
@@ -260,14 +256,14 @@ export default function CourseLearning({
 
         {/* Full-screen Loading Overlay for Auto-Generation */}
         {isGenerating && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#191022]/90 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-sm">
             <div className="text-center flex flex-col items-center">
               <Loader2 className="w-16 h-16 text-red-400 animate-spin mb-4" />
               <h3 className="text-2xl font-bold text-white mb-2">
-                Building this lesson...
+                Generating content...
               </h3>
-              <p className="text-slate-400">
-                Generating pro tips, conceptual cards, and image assets.
+              <p className="text-zinc-400">
+                Preparing chapter content, key concepts, and assets.
               </p>
             </div>
           </div>
@@ -377,7 +373,7 @@ export default function CourseLearning({
             >
               <CreditCard className="w-5 h-5" />
               <span className="flex-1 text-left">
-                {generatingFlashcards ? "Creating..." : "Generate Flashcards"}
+                {generatingFlashcards ? "Loading..." : "Generate Flashcards"}
               </span>
             </button>
 
@@ -495,7 +491,7 @@ export default function CourseLearning({
                     {topicNode.videoId && (
                       <div className="bg-[#111111] rounded-2xl border border-white/10 shadow-md shadow-black/50 overflow-hidden">
                         <p className="text-sm font-bold text-red-400 px-5 pt-5 pb-3">
-                          📺 Watch: {topicNode.topic}
+                          Watch: {topicNode.topic}
                         </p>
                         <div className="aspect-video w-full">
                           <iframe
@@ -513,7 +509,7 @@ export default function CourseLearning({
                     {topicNode.diagram && (
                       <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
                         <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
-                          🗺 Concept Diagram
+                          Concept Diagram
                         </p>
                         <MermaidDiagram
                           diagram={topicNode.diagram}

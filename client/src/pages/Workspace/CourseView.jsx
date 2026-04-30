@@ -13,12 +13,8 @@ function CourseView() {
   const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(!!courseId);
 
-  // null = user hasn't navigated yet; a number = user has explicitly chosen a chapter.
-  // Kept separate from the resume index so manual navigation survives re-fetches.
   const [currentChapterIndex, setCurrentChapterIndex] = useState(null);
 
-  // showLoader=true on initial mount, false on silent progress refreshes so the
-  // page doesn't flash back to the loading screen when marking a chapter complete.
   const fetchCourseData = useCallback(
     async (showLoader = true) => {
       if (!courseId || !user?.email) return;
@@ -64,16 +60,10 @@ function CourseView() {
 
   if (!courseId) {
     return (
-      <CourseOverview
-        course={null}
-        enrollment={null}
-        onResume={() => {}}
-      />
+      <CourseOverview course={null} enrollment={null} onResume={() => {}} />
     );
   }
 
-  // Where to resume: the first chapter the user hasn't completed yet,
-  // clamped so it never exceeds the last chapter.
   const chapters = course?.courseOutput?.chapters || [];
   const completedCount = enrollment?.completedChapters?.length || 0;
   const resumeChapterIndex = Math.max(
@@ -81,8 +71,6 @@ function CourseView() {
     Math.min(completedCount, chapters.length - 1),
   );
 
-  // If the user hasn't manually navigated, start at their resume point.
-  // Once they click anything, currentChapterIndex takes over and survives re-fetches.
   const resolvedChapterIndex = currentChapterIndex ?? resumeChapterIndex;
 
   const handleNavigate = (mode) => {

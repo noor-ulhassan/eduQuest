@@ -11,7 +11,11 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.57.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@monaco-editor/react": "^4.7.0",
+    "@mui/material": "^9.0.0",
+    "@mui/x-charts": "^9.0.4",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",

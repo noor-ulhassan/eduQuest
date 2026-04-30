@@ -7,30 +7,22 @@ import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
 import {
   ArrowLeft,
-  Award,
   BarChart2,
-  Bell,
   BookOpen,
   CheckCircle,
   ChevronRight,
   FileCode2,
   GraduationCap,
-  HelpCircle,
   Loader2,
   Lock,
   MessageCircle,
   Play,
   RotateCcw,
-  Settings,
   Star,
   Terminal,
   User,
-  Users,
   X,
   Menu,
-  ExternalLink,
-  Zap,
-  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -40,6 +32,8 @@ import {
   getLanguageProgress,
   completeProblem as completeProb,
   getCurriculum,
+  enrollInPlayground,
+  clearPlaygroundCache
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
 import DiscussionPanel from "@/components/playground/DiscussionPanel";
@@ -154,45 +148,44 @@ const LanguagePlayground = () => {
             await getLanguageProgress(language);
           if (!isMounted) return;
 
+          let completedSet = new Set();
           if (currentProgress) {
-            const completedSet = new Set(currentProgress.completedProblems);
-            setCompletedProblems(completedSet);
-            let firstUnsolved = null;
-            for (const chapter of curRes.curriculum.chapters) {
-              const found = chapter.problems.find(
-                (p) => !completedSet.has(p.id),
-              );
-              if (found) {
-                firstUnsolved = found;
-                break;
-              }
-            }
-            if (firstUnsolved) {
-              setCurrentProblem(firstUnsolved);
-              setCode(
-                typeof firstUnsolved.starterCode === "object"
-                  ? firstUnsolved.starterCode[dsaLang] || ""
-                  : firstUnsolved.starterCode || "",
-              );
-              setOutput(null);
-              setTestResult(null);
-              setShowHints(false);
-            } else {
-              // All problems solved, default to the first one
-              const firstProblem = curRes.curriculum.chapters[0].problems[0];
-              setCurrentProblem(firstProblem);
-              setCode(
-                typeof firstProblem.starterCode === "object"
-                  ? firstProblem.starterCode[dsaLang] || ""
-                  : firstProblem.starterCode || "",
-              );
-              setOutput(null);
-              setTestResult(null);
-              setShowHints(false);
-              setExpandedChapterId(curRes.curriculum.chapters[0].id);
-            }
+            completedSet = new Set(currentProgress.completedProblems);
           } else {
-            navigate(`/playground/${language}/topics`, { replace: true });
+            try {
+              await enrollInPlayground(language);
+              clearPlaygroundCache();
+              toast.success("Enrolled! Let's begin 🚀");
+            } catch (err) {
+              console.error("[Playground] Auto-enroll failed:", err);
+            }
+          }
+          setCompletedProblems(completedSet);
+          
+          let firstUnsolved = null;
+          for (const chapter of curRes.curriculum.chapters) {
+            const found = chapter.problems.find(
+              (p) => !completedSet.has(p.id),
+            );
+            if (found) {
+              firstUnsolved = found;
+              break;
+            }
+          }
+
+          const targetProblem = firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+          setCurrentProblem(targetProblem);
+          setCode(
+            typeof targetProblem.starterCode === "object"
+              ? targetProblem.starterCode[dsaLang] || ""
+              : targetProblem.starterCode || "",
+          );
+          setOutput(null);
+          setTestResult(null);
+          setShowHints(false);
+          
+          if (!firstUnsolved) {
+            setExpandedChapterId(curRes.curriculum.chapters[0].id);
           }
         } else {
           toast.error("Curriculum not found");
@@ -790,7 +783,7 @@ const LanguagePlayground = () => {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {chapterDone && (
-                            <CheckCircle className="w-4 h-4 text[#2cf07d]" />
+                            <CheckCircle className="w-4 h-4 text-[#2cf07d]" />
                           )}
                           {isLocked && (
                             <Lock className="w-3.5 h-3.5 text-zinc-600" />
@@ -838,7 +831,7 @@ const LanguagePlayground = () => {
                                     className={cn(
                                       "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg text-sm transition-colors",
                                       isProbActive
-                                        ? "bg-red-500/20/40 text-red-300 font-semibold border border-red-500/20"
+                                        ? "bg-red-500/20 text-red-300 font-semibold border border-red-500/20"
                                         : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
                                       isProbLocked &&
                                         "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
@@ -851,7 +844,7 @@ const LanguagePlayground = () => {
                                       {prob.title}
                                     </span>
                                     {isProbDone && (
-                                      <CheckCircle className="w-3.5 h-3.5 text[#2cf07d] shrink-0 ml-2" />
+                                      <CheckCircle className="w-3.5 h-3.5 text-[#2cf07d] shrink-0 ml-2" />
                                     )}
                                     {isProbLocked && (
                                       <Lock className="w-3 h-3 text-zinc-600 shrink-0 ml-2" />
@@ -868,17 +861,7 @@ const LanguagePlayground = () => {
                 })}
               </div>
 
-              <div className="h-px bg-white/10" />
 
-              {/* View Curriculum */}
-              <div className="p-3">
-                <button
-                  onClick={() => navigate(`/playground/${language}/topics`)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/20/40 hover:bg-red-500/20/60 text-red-400 text-sm font-medium transition-colors"
-                >
-                  View Curriculum
-                </button>
-              </div>
             </motion.aside>
           )}
         </AnimatePresence>
@@ -986,7 +969,7 @@ const LanguagePlayground = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="bg-[#111111]/40 border border-white/10/50 rounded-xl p-5 mb-2">
+                  <div className="bg-[#111111]/40 border border-white/10 rounded-xl p-5 mb-2">
                     <span className="text-red-500 text-[16px] font-bold flex items-center gap-2 mb-3">
                       <img src="/task.svg" className="w-7 h-7"></img> Your Task:
                     </span>
@@ -1116,9 +1099,9 @@ const LanguagePlayground = () => {
                   />
                 </div>
               ) : (
-                <div className="bg-[#1a1a1a] rounded-2xl border border-white/10/60 overflow-hidden shadow-lg">
+                <div className="bg-[#1a1a1a] rounded-2xl border border-white/10 overflow-hidden shadow-lg">
                   {/* Editor toolbar */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10/60 bg-[#1a1a1a]/80">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#1a1a1a]/80">
                     <div className="flex items-center gap-3 w-full">
                       {isMobile ? (
                         <>
@@ -1232,25 +1215,33 @@ const LanguagePlayground = () => {
               {/* ── Live Preview (HTML/CSS/React) ── */}
               {(isLivePreview || isReact) &&
                 currentProblem?.type !== "interactive" && (
-                  <div className="bg-white rounded-xl border border-white/10 overflow-hidden">
-                    <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
-                      <span className="text-[11px] text-zinc-600 font-semibold uppercase tracking-wider">
-                        Live Preview
-                      </span>
-                      <div className="flex items-center gap-2">
+                  <div className="bg-[#1a1a1a] rounded-xl border border-white/10 overflow-hidden">
+                    {/* Browser chrome */}
+                    <div className="px-4 py-2.5 bg-[#111111] border-b border-white/10 flex items-center gap-3">
+                      <div className="flex gap-1.5 shrink-0">
+                        <span className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+                        <span className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                        <span className="w-3 h-3 rounded-full bg-[#27c93f]" />
+                      </div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[11px] text-zinc-500 font-medium bg-[#1a1a1a] px-4 py-0.5 rounded border border-white/10">
+                          preview
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
                         {testResult && (
                           <span
                             className={cn(
                               "text-[10px] font-bold px-2 py-0.5 rounded",
                               testResult.success
-                                ? "bg-emerald-100 text[#2cf07d] "
-                                : "bg-red-100 text-red-700",
+                                ? "bg-emerald-500/20 text-[#2cf07d]"
+                                : "bg-red-500/20 text-red-400",
                             )}
                           >
                             {testResult.success ? "✓ PASSED" : "✗ FAILED"}
                           </span>
                         )}
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Live
                         </span>
@@ -1258,7 +1249,7 @@ const LanguagePlayground = () => {
                     </div>
                     <iframe
                       ref={iframeRef}
-                      className="w-full border-0"
+                      className="w-full border-0 bg-[#1a1a1a]"
                       style={{ height: isMobile ? 180 : 250 }}
                       title="Live Preview"
                       sandbox="allow-scripts allow-same-origin"
@@ -1268,8 +1259,8 @@ const LanguagePlayground = () => {
                         className={cn(
                           "px-4 py-2 border-t text-xs font-medium flex items-center gap-2",
                           testResult.success
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                            : "bg-red-50 border-red-200 text-red-700",
+                            ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                            : "bg-red-500/5 border-red-500/20 text-red-400",
                         )}
                       >
                         {testResult.success ? (
@@ -1307,7 +1298,7 @@ const LanguagePlayground = () => {
                     {output && !isRunning && (
                       <div className="space-y-4 my-2">
                         {output.text && (
-                          <MagicTerminal className="w-full max-w-full bg-[#111111] border-white/10/60 shadow-xl">
+                          <MagicTerminal className="w-full max-w-full bg-[#111111] border-white/10 shadow-xl">
                             <AnimatedSpan className="text-zinc-400 mb-2 font-mono">
                               Output:
                             </AnimatedSpan>

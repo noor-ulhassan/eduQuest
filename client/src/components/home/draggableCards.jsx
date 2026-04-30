@@ -38,7 +38,7 @@ export function DraggableCards() {
     },
     html: {
       title: "HTML",
-      img: "/html5.png",
+      img: "/html1.png",
       color: "bg-orange-500",
     },
   };
@@ -261,11 +261,7 @@ export function DraggableCards() {
                   </div>
 
                   <button
-                    onClick={() =>
-                      card.isEnrolled
-                        ? navigate(`/playground/${card.language}`)
-                        : navigate(`/playground/${card.language}/topics`)
-                    }
+                    onClick={() => navigate(`/playground/${card.language}`)}
                     className={`w-full font-bold mt-auto py-3 rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-wide group transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md z-10
                         ${
                           card.isEnrolled

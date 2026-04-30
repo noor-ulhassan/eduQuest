@@ -115,7 +115,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo1.png" alt="" width={35} height={35} />
           <span className="font-hand font-extrabold text-3xl tracking-tight">
-            <span className="text-metallic-orange">Edu</span>
+            <span className="text-metallic">Edu</span>
             <span className="text-metallic">Quest</span>
           </span>
         </Link>

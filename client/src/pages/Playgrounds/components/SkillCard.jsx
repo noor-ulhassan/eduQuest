@@ -291,7 +291,14 @@ export default function SkillCard({
       <motion.div
         layoutId={`card-${title}-${id}`}
         transition={SPRING}
-        onClick={() => href && !active && onOpen()}
+        onClick={() => {
+          if (!href || active) return;
+          if (isEnrolled) {
+            navigate(href);
+          } else {
+            onOpen();
+          }
+        }}
         className={`group relative w-full max-w-[270px] h-[340px] rounded-2xl overflow-hidden flex flex-col bg-[#111] border border-white/[0.08] shadow-lg ${href ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
         style={{ willChange: "transform" }}
       >

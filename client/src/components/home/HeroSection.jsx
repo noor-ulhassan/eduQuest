@@ -268,7 +268,6 @@ const HeroSection = () => {
           transition={{ duration: 0.5 }}
           className="mb-8 mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-sm font-semibold"
         >
-          <span>🔥</span>
           <span>10,000+ developers. One leaderboard.</span>
         </motion.div>
 

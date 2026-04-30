@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconMenu2, IconX } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
 
 const SidebarContext = createContext(undefined);
 
@@ -133,8 +132,8 @@ export const SidebarLink = ({
 }) => {
   const { open, animate } = useSidebar();
   return (
-    <Link
-      to={link.href}
+    <a
+      href={link.href}
       className={cn("flex items-center justify-start gap-2  group/sidebar py-2", className)}
       {...props}>
       {link.icon}
@@ -146,6 +145,6 @@ export const SidebarLink = ({
         className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0">
         {link.label}
       </motion.span>
-    </Link>
+    </a>
   );
 };

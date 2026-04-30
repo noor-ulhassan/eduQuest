@@ -35,9 +35,6 @@ const Playground = lazy(() => import("./pages/Playgrounds/Page"));
 const LanguagePlayground = lazy(
   () => import("./pages/Playgrounds/LanguagePlayground"),
 );
-const PlaygroundTopics = lazy(
-  () => import("./pages/Playgrounds/PlaygroundTopics"),
-);
 const CommunityHome = lazy(() => import("./pages/Community/components/Home"));
 const CompetitionPage = lazy(
   () => import("./pages/Competition/CompetitionPage"),
@@ -71,10 +68,6 @@ const appRouter = createBrowserRouter([
       { path: "learn", element: <LearnPage /> },
       { path: "quiz", element: <QuizPage /> },
       { path: "playground", element: <Lazy element={Playground} /> },
-      {
-        path: "playground/:language/topics",
-        element: <Lazy element={PlaygroundTopics} />,
-      },
       { path: "community", element: <Lazy element={CommunityHome} /> },
 
       // Protected routes

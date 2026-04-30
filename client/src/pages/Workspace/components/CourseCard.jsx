@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 import api from "@/features/auth/authApi";
-import { Book, PlayCircle } from "lucide-react";
+import { Book } from "lucide-react";
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const bannerImages = [
@@ -21,7 +21,6 @@ function CourseCard({ course }) {
  const courseLayout = course?.courseOutput;
 
  // FIX: This ensures we have a string even if courseId or _id is missing
- // Newly generated courses sometimes use '_id' before the custom 'courseId' is set
  const identifier =
   course?.courseId || course?._id || course?.name || "fallback-key";
 
@@ -36,6 +35,7 @@ function CourseCard({ course }) {
 
  const onEnrollClick = async (e) => {
   e.preventDefault();
+  e.stopPropagation();
   try {
    const response = await api.post(
     "http://localhost:8080/api/v1/ai/enroll-course",
@@ -53,53 +53,107 @@ function CourseCard({ course }) {
   }
  };
 
+ const handleCardClick = () => {
+  if (course?.courseOutput) {
+    onEnrollClick(new Event("click"));
+  } else {
+    navigate(`/course/${course?.courseId}`);
+  }
+ };
+
  return (
-  <div className="shadow-md rounded-xl border flex flex-col h-full bg-[#111111] hover:shadow-lg transition-all cursor-pointer overflow-hidden">
-   {/* Image Container */}
-   <div className="w-full aspect-video bg-white/5">
+  <div
+   onClick={handleCardClick}
+   className="group relative w-full h-[340px] rounded-2xl overflow-hidden flex flex-col bg-[#111] border border-white/[0.08] shadow-lg cursor-pointer"
+   style={{ willChange: "transform" }}
+  >
+   <GlowingEffect
+    spread={35}
+    glow={false}
+    disabled={false}
+    proximity={64}
+    inactiveZone={0.01}
+    borderWidth={2}
+   />
+
+   {/* Banner image — top half */}
+   <div className="relative h-[155px] shrink-0 overflow-hidden">
     <img
      src={bannerImage}
      alt={course?.name || "Course Image"}
-     className="w-full h-full object-cover"
+     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+     draggable={false}
      onError={(e) => {
-      console.log("Image Load Error, using fallback");
       e.target.src = "/gif4.gif";
      }}
     />
+    <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/20 to-transparent" />
    </div>
 
-   <div className="p-4 flex flex-col gap-3 flex-grow">
-    <h2 className="font-bold text-lg line-clamp-1">{course?.name}</h2>
+   {/* Info — bottom half */}
+   <div className="flex-1 flex flex-col px-4 pt-3 pb-3.5 z-10">
+    {/* Icon + title + difficulty */}
+    <div className="flex items-center justify-between gap-2 mb-1.5">
+     <div className="flex items-center gap-2 min-w-0">
+      <div className="w-7 h-7 bg-yellow-400 flex items-center justify-center shrink-0">
+       <Book className="w-4 h-4 text-black" />
+      </div>
+      <h3 className="text-[14px] font-bold text-white font-inter leading-tight truncate">
+       {course?.name || "Course"}
+      </h3>
+     </div>
+     <span className="text-[8px] font-bold uppercase tracking-wider shrink-0 text-yellow-400">
+      {course?.difficulty || "BEGINNER"}
+     </span>
+    </div>
 
-    <p className="line-clamp-2 text-gray-500 text-sm h-10">
-     {courseLayout?.description || course?.description}
+    {/* Description */}
+    <p className="text-[10px] text-zinc-400 font-inter leading-relaxed line-clamp-2 mb-2">
+     {courseLayout?.description || course?.description || "An interactive course module."}
     </p>
 
-    <div className="flex justify-between items-center mt-auto pt-2 border-t">
-     <h2 className="flex items-center gap-2 text-sm font-medium">
-      <Book className="w-4 h-4 text-green-600" />
-      {course?.noOfChapters || 0} Chapters
-     </h2>
+    {/* Tags */}
+    <div className="flex flex-wrap gap-1 mb-2">
+     <span className="text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.07]">
+      {course?.noOfChapters || 0} CHAPTERS
+     </span>
+     <span className="text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.07]">
+      COURSE
+     </span>
+    </div>
 
-     <div className="flex gap-2">
-      {course?.courseOutput ? (
-       <Button
-        onClick={onEnrollClick}
-        variant={"pixel"}
-        className="flex items-center gap-2 h-9 font-jersey text-xl"
-       >
-        <PlayCircle className="w-4 h-4" /> Enroll
-       </Button>
-      ) : (
-       <Button
-        onClick={() => navigate(`/course/${course?.courseId}`)}
-        variant={"pixel"}
-        className="flex items-center gap-2 h-9 font-jersey text-xl"
-       >
-        Generate Course
-       </Button>
-      )}
-     </div>
+    {/* Progress line */}
+    <div className="flex justify-between text-[9px] text-zinc-600 mb-2.5">
+     <span className="font-mono">0% done</span>
+     <span>
+      0/{course?.noOfChapters || 0}
+     </span>
+    </div>
+
+    {/* CTA — always full-width solid button */}
+    <div className="mt-auto">
+     {course?.courseOutput ? (
+      <button
+       onClick={onEnrollClick}
+       className="w-full py-2.5 rounded-lg border-[1.4px] flex items-center justify-center bg-red-600 group-hover:bg-red-500 border-red-400 transition-colors"
+      >
+       <span className="text-[11px] font-bold text-black font-inter tracking-wider">
+        Start Learning →
+       </span>
+      </button>
+     ) : (
+      <button
+       onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/course/${course?.courseId}`);
+       }}
+       className="w-full py-2.5 rounded-lg border-[1.4px] flex items-center justify-center bg-yellow-500 group-hover:bg-yellow-400 border-yellow-600 transition-colors"
+      >
+       <span className="text-[11px] font-bold text-black font-inter tracking-wider">
+        Generate Course →
+       </span>
+      </button>
+     )}
     </div>
    </div>
   </div>

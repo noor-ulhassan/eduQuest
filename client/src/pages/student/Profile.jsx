@@ -4,7 +4,7 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import UserStats from "@/components/profile/UserStats";
 import SectionCard from "@/components/profile/SectionCard";
 import TabNav from "@/components/profile/TabNav";
-import AnalyticsDashboard from "@/components/profile/AnalyticsDashboard";
+import CompetitionStats from "@/components/home/CompetitionStats";
 import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 import SkillsDialog from "@/components/profile/SkillsDialog";
@@ -98,7 +98,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="bg-[#0A0A0B] text-white selection:bg-purple-500/30 font-sans min-h-screen py-4 sm:py-6">
+    <div className="bg-[#0A0A0B] text-white selection:bg-orange-500/30 font-sans min-h-screen py-4 sm:py-6">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <ProfileHeader
           displayName={user.name}
@@ -134,7 +134,7 @@ const Profile = () => {
               value="Overview"
               className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 outline-none"
             >
-              <AnalyticsDashboard />
+              <CompetitionStats />
             </TabsContent>
 
             <TabsContent
@@ -167,7 +167,7 @@ const Profile = () => {
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <Avatar className="h-12 w-12 border-2 border-[#121214] bg-zinc-900 shadow-sm">
                             <AvatarImage src={req.from?.avatarUrl} />
-                            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
+                            <AvatarFallback className="bg-orange-100 text-orange-700 font-bold">
                               {req.from?.name?.[0]}
                             </AvatarFallback>
                           </Avatar>
@@ -182,7 +182,7 @@ const Profile = () => {
                         </div>
                         <Button
                           size="sm"
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 w-full sm:w-auto rounded-lg shadow-sm"
+                          className="bg-orange-600 hover:bg-orange-700 text-white gap-2 w-full sm:w-auto rounded-lg shadow-sm"
                           onClick={() => handleAcceptRequest(req._id)}
                         >
                           <Check className="w-4 h-4" /> Accept
@@ -205,12 +205,12 @@ const Profile = () => {
                       >
                         <Avatar className="h-12 w-12 border-2 border-[#121214] bg-zinc-900 shadow-sm group-hover:scale-105 transition-transform">
                           <AvatarImage src={friend.avatarUrl} />
-                          <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
+                          <AvatarFallback className="bg-orange-100 text-orange-700 font-bold">
                             {friend.name?.[0]}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="font-bold text-sm text-white group-hover:text-indigo-400 truncate transition-colors">
+                          <p className="font-bold text-sm text-white group-hover:text-orange-400 truncate transition-colors">
                             {friend.name}
                           </p>
                           <p className="text-xs font-medium text-zinc-500 mt-0.5 truncate">

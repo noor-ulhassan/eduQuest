@@ -142,50 +142,37 @@ export default function Playground() {
               title: "Html",
               img: "/html1.png",
               key: "html",
-              href: progressData.html?.enrolled
-                ? "/playground/html"
-                : "/playground/html/topics",
+              href: "/playground/html",
             },
             {
               title: "Css",
               img: "/css1.png",
               key: "css",
-              href: progressData.css?.enrolled
-                ? "/playground/css"
-                : "/playground/css/topics",
+              href: "/playground/css",
             },
             {
               title: "JavaScript",
               img: "/js2.png",
-              img: "/js2.png",
               key: "javascript",
-              href: progressData.javascript?.enrolled
-                ? "/playground/javascript"
-                : "/playground/javascript/topics",
+              href: "/playground/javascript",
             },
             {
               title: "Python",
               img: "/python1.png",
               key: "python",
-              href: progressData.python?.enrolled
-                ? "/playground/python"
-                : "/playground/python/topics",
+              href: "/playground/python",
             },
             {
               title: "React",
               img: "/react.png",
               key: "react",
-              href: progressData.react?.enrolled
-                ? "/playground/react"
-                : "/playground/react/topics",
+              href: "/playground/react",
             },
             {
               title: "Data Structures & Algorithms",
               img: "/dsa1.jpg",
               key: "dsa",
-              href: progressData.dsa?.enrolled
-                ? "/playground/dsa"
-                : "/playground/dsa/topics",
+              href: "/playground/dsa",
             },
           ].map(({ title, img, key, href }) => (
             <SkillCard

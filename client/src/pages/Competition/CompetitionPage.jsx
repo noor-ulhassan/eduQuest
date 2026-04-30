@@ -1,11 +1,26 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, Plus, LogIn, Zap, Shield, Users, Trophy, X, ArrowRight } from "lucide-react";
+import {
+  Swords,
+  Plus,
+  LogIn,
+  Zap,
+  Shield,
+  Users,
+  Trophy,
+  X,
+  ArrowRight,
+} from "lucide-react";
 
 const MODES = [
   { icon: Zap, color: "#eab308", name: "Blitz", desc: "3× speed bonus" },
-  { icon: Shield, color: "#ef4444", name: "Survival", desc: "Last one standing" },
+  {
+    icon: Shield,
+    color: "#ef4444",
+    name: "Survival",
+    desc: "Last one standing",
+  },
   { icon: Users, color: "#3b82f6", name: "Team Battle", desc: "Blue vs Red" },
   { icon: Trophy, color: "#f97316", name: "Classic", desc: "Highest XP wins" },
 ];
@@ -35,7 +50,9 @@ const JoinModal = ({ onClose, onJoin }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-black text-white">Join a Room</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Enter the code from your host</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Enter the code from your host
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -63,13 +80,9 @@ const JoinModal = ({ onClose, onJoin }) => {
             <button
               type="submit"
               disabled={code.trim().length < 4}
-              className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{
-                background: "linear-gradient(135deg, #ea580c, #dc2626)",
-                boxShadow: code.trim().length >= 4 ? "0 0 24px rgba(234,88,12,0.25)" : "none",
-              }}
+              className="w-full py-3 rounded-lg font-semibold text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700"
             >
-              <ArrowRight size={16} /> Enter Arena
+              <ArrowRight size={18} /> Enter Arena
             </button>
           </form>
         </div>
@@ -92,16 +105,17 @@ const CompetitionPage = () => {
 
       {/* Main — vertically centred, never scrolls on a normal viewport */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-10 gap-10">
-
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-orange-400"
-          style={{ background: "rgba(234,88,12,0.08)", border: "1px solid rgba(234,88,12,0.2)" }}
+          style={{
+            background: "rgba(234,88,12,0.08)",
+            border: "1px solid rgba(234,88,12,0.2)",
+          }}
         >
-          <Swords size={11} />
           Live Competition Arena
         </motion.div>
 
@@ -110,19 +124,15 @@ const CompetitionPage = () => {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.07 }}
-          className="text-center space-y-3 max-w-lg"
+          className="text-center space-y-4 max-w-2xl"
         >
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight leading-none">
-            <span className="bg-gradient-to-br from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-              Compete.
-            </span>{" "}
-            <span className="bg-gradient-to-br from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
-              Conquer.
-            </span>
+            <span className="text-metallic">Compete.</span>{" "}
+            <span className="text-metallic-orange">Conquer.</span>
           </h1>
           <p className="text-zinc-400 text-base sm:text-lg leading-relaxed">
-            Real-time knowledge battles with AI-generated questions.
-            Pick your mode, invite your rivals, and see who knows their stuff.
+            Real-time knowledge battles. Pick your mode, invite your rivals, and
+            see who knows their stuff.
           </p>
         </motion.div>
 
@@ -131,24 +141,19 @@ const CompetitionPage = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.15 }}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full max-w-sm"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mt-2"
         >
           <button
             onClick={() => navigate("/competition/lobby")}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-white text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: "linear-gradient(135deg, #ea580c, #dc2626)",
-              boxShadow: "0 0 32px rgba(234,88,12,0.3), 0 1px 0 rgba(255,255,255,0.06) inset",
-            }}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-white bg-orange-600 hover:bg-orange-700 transition-colors"
           >
-            <Plus size={16} /> Create Competition
+            <Plus size={15} /> Create Competition
           </button>
           <button
             onClick={() => setShowJoin(true)}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold text-sm transition-all hover:bg-zinc-800 active:scale-[0.98]"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #282828", color: "#a1a1aa" }}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-zinc-300 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition-colors"
           >
-            <LogIn size={16} /> Join with Code
+            <LogIn size={18} /> Join with Code
           </button>
         </motion.div>
 
@@ -163,7 +168,11 @@ const CompetitionPage = () => {
             <div
               key={m.name}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1e1e1e", color: m.color }}
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid #1e1e1e",
+                color: m.color,
+              }}
             >
               <m.icon size={11} />
               {m.name}
@@ -171,7 +180,6 @@ const CompetitionPage = () => {
             </div>
           ))}
         </motion.div>
-
       </div>
 
       <AnimatePresence>

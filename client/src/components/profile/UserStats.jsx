@@ -102,33 +102,33 @@ const UserStats = () => {
       label: "Total XP",
       value: animatedXP,
       icon: "/star.png",
-      bg: "bg-yellow-50 dark:bg-yellow-900/20",
-      textClass: "text-yellow-600 dark:text-yellow-500",
-      borderClass: "border-yellow-200 dark:border-yellow-900",
+      bg: "bg-yellow-900/20",
+      textClass: "text-yellow-500",
+      borderClass: "border-yellow-900",
     },
     {
       label: "Rank",
       value: rank,
       icon: "/level_1.png",
-      bg: "bg-zinc-50 dark:bg-zinc-900/50",
-      textClass: "text-zinc-700 dark:text-zinc-300",
-      borderClass: "border-zinc-200 dark:border-zinc-800",
+      bg: "bg-zinc-900/50",
+      textClass: "text-zinc-300",
+      borderClass: "border-zinc-800",
     },
     {
       label: "Badges",
       value: animatedBadges,
       icon: "/badge.png",
-      bg: "bg-zinc-50 dark:bg-zinc-900/50",
-      textClass: "text-zinc-700 dark:text-zinc-300",
-      borderClass: "border-zinc-200 dark:border-zinc-800",
+      bg: "bg-zinc-900/50",
+      textClass: "text-zinc-300",
+      borderClass: "border-zinc-800",
     },
     {
       label: "Day Streak",
       value: animatedStreak,
       icon: "/fire.png",
-      bg: "bg-orange-50 dark:bg-orange-900/20",
-      textClass: "text-orange-600 dark:text-orange-500",
-      borderClass: "border-orange-200 dark:border-orange-900/50",
+      bg: "bg-orange-900/20",
+      textClass: "text-orange-500",
+      borderClass: "border-orange-900/50",
     },
   ];
 
@@ -140,7 +140,7 @@ const UserStats = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm h-full w-full z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm h-full w-full z-40"
           />
         )}
       </AnimatePresence>
@@ -154,7 +154,7 @@ const UserStats = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: { duration: 0.05 } }}
-              className="flex absolute top-4 right-4 sm:top-8 sm:right-8 items-center justify-center bg-white dark:bg-neutral-800 rounded-full h-10 w-10 shadow-lg z-[60] pointer-events-auto cursor-pointer"
+              className="flex absolute top-4 right-4 sm:top-8 sm:right-8 items-center justify-center bg-neutral-800 rounded-full h-10 w-10 shadow-lg z-[60] pointer-events-auto cursor-pointer"
               onClick={() => setActive(false)}
             >
               <CloseIcon />
@@ -162,7 +162,7 @@ const UserStats = () => {
             <motion.div
               layoutId={`card-${id}`}
               ref={ref}
-              className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-white dark:bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl relative border border-zinc-200 dark:border-zinc-800 pointer-events-auto no-scrollbar"
+              className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-[#111] rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 pointer-events-auto no-scrollbar"
             >
               <div className="p-6 sm:p-8 relative z-10">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 mb-6 sm:mb-8">
@@ -173,22 +173,22 @@ const UserStats = () => {
                       <img
                         src={avatarUrl}
                       alt={`${name}'s Avatar`}
-                      className="w-24 h-24 rounded-full border-2 border-white dark:border-zinc-900 relative z-10 object-cover shadow-sm"
+                      className="w-24 h-24 rounded-full border-2 border-zinc-900 relative z-10 object-cover shadow-sm"
                       onError={(e) => {
                         e.target.style.display = "none";
                         e.target.nextSibling.style.display = "flex";
                       }}
                     />
-                    <div className="w-24 h-24 rounded-full border-2 border-white dark:border-zinc-900 relative z-10 bg-indigo-600 hidden items-center justify-center text-white font-bold text-3xl shadow-sm">
+                    <div className="w-24 h-24 rounded-full border-2 border-zinc-900 relative z-10 bg-orange-600 hidden items-center justify-center text-white font-bold text-3xl shadow-sm">
                       {name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-2 border-white dark:border-zinc-950 rounded-full z-20 shadow-sm"></span>
+                    <span className="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-2 border-[#111] rounded-full z-20 shadow-sm"></span>
                   </motion.div>
 
                   <div className="flex-1 min-w-0">
                     <motion.h3
                       layoutId={`title-${id}`}
-                      className="text-2xl text-zinc-900 dark:text-white font-black truncate tracking-tight"
+                      className="text-2xl text-white font-black truncate tracking-tight"
                     >
                       {name}
                     </motion.h3>
@@ -209,13 +209,13 @@ const UserStats = () => {
                     <motion.div layoutId={`progress-${id}`} className="mt-4">
                       <Progress
                         value={progressPercentage}
-                        className="h-3 bg-zinc-100 dark:bg-zinc-800"
+                        className="h-3 bg-zinc-800"
                         indicatorClassName="bg-gradient-to-r from-yellow-400 to-orange-500"
                       />
                     </motion.div>
                     <motion.p
                       layoutId={`xp-text-${id}`}
-                      className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2 uppercase tracking-wide"
+                      className="text-xs font-semibold text-zinc-400 mt-2 uppercase tracking-wide"
                     >
                       {1000 - xpInCurrentLevel} XP to Level {level + 1}
                     </motion.p>
@@ -252,7 +252,7 @@ const UserStats = () => {
                         </motion.p>
                         <motion.p
                           layoutId={`stat-label-${stat.label}-${id}`}
-                          className="text-[11px] sm:text-sm font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider truncate sm:mt-1"
+                          className="text-[11px] sm:text-sm font-bold text-zinc-400 uppercase tracking-wider truncate sm:mt-1"
                         >
                           {stat.label}
                         </motion.p>
@@ -269,7 +269,7 @@ const UserStats = () => {
       <motion.div
         layoutId={`card-${id}`}
         onClick={() => setActive(!active)}
-        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg group relative bg-white dark:bg-zinc-950 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
+        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-white/10 rounded-xl shadow-lg group relative bg-[#111] cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
       >
         <div className="p-6 relative z-10 pointer-events-none">
           <div className="flex items-center gap-5">
@@ -277,22 +277,22 @@ const UserStats = () => {
               <img
                 src={avatarUrl}
                 alt={`${name}'s Avatar`}
-                className="w-20 h-20 rounded-full border-2 border-white dark:border-zinc-900 relative z-10 object-cover shadow-sm transition-all"
+                className="w-20 h-20 rounded-full border-2 border-zinc-900 relative z-10 object-cover shadow-sm transition-all"
                 onError={(e) => {
                   e.target.style.display = "none";
                   e.target.nextSibling.style.display = "flex";
                 }}
               />
-              <div className="w-20 h-20 rounded-full border-2 border-white dark:border-zinc-900 relative z-10 bg-indigo-600 hidden items-center justify-center text-white font-bold text-2xl shadow-sm transition-all">
+              <div className="w-20 h-20 rounded-full border-2 border-zinc-900 relative z-10 bg-orange-600 hidden items-center justify-center text-white font-bold text-2xl shadow-sm transition-all">
                 {name.charAt(0).toUpperCase()}
               </div>
-              <span className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-white dark:border-zinc-950 rounded-full z-20 shadow-sm transition-all"></span>
+              <span className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-[#111] rounded-full z-20 shadow-sm transition-all"></span>
             </motion.div>
 
             <div className="flex-1 min-w-0">
               <motion.h3
                 layoutId={`title-${id}`}
-                className="text-xl text-zinc-900 dark:text-white font-black truncate tracking-tight"
+                className="text-xl text-white font-black truncate tracking-tight"
               >
                 {name}
               </motion.h3>
@@ -314,16 +314,16 @@ const UserStats = () => {
               <motion.div layoutId={`progress-${id}`} className="mt-3">
                 <Progress
                   value={progressPercentage}
-                  className="h-2.5 bg-zinc-100 dark:bg-zinc-800"
+                  className="h-2.5 bg-zinc-800"
                   indicatorClassName="bg-gradient-to-r from-yellow-400 to-orange-500"
                 />
               </motion.div>
               <motion.p
                 layoutId={`xp-text-${id}`}
-                className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1.5 uppercase tracking-wide flex justify-between items-center"
+                className="text-[11px] font-semibold text-zinc-400 mt-1.5 uppercase tracking-wide flex justify-between items-center"
               >
                 <span>{1000 - xpInCurrentLevel} XP Left</span>
-                <span className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 transition-colors md:hidden">
+                <span className="text-orange-400 hover:text-orange-600 transition-colors md:hidden">
                   See Stats &rarr;
                 </span>
               </motion.p>
@@ -360,7 +360,7 @@ const UserStats = () => {
                   </motion.p>
                   <motion.p
                     layoutId={`stat-label-${stat.label}-${id}`}
-                    className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider truncate"
+                    className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider truncate"
                   >
                     {stat.label}
                   </motion.p>
