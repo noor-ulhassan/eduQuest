@@ -37,39 +37,62 @@ export const MacbookScroll = ({ src, showGradient, title, badge }) => {
   }, []);
 
   // ── Mac transforms (unchanged) ──
-  const scaleX      = useTransform(scrollYProgress, [0, 0.3], [1.2, isMobile ? 1 : 1.5]);
-  const scaleY      = useTransform(scrollYProgress, [0, 0.3], [0.6, isMobile ? 1 : 1.5]);
-  const translate   = useTransform(scrollYProgress, [0, 1], [0, 1500]);
-  const rotate      = useTransform(scrollYProgress, [0.1, 0.12, 0.3], [-28, -28, 0]);
+  const scaleX = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    [1.2, isMobile ? 1 : 1.5],
+  );
+  const scaleY = useTransform(
+    scrollYProgress,
+    [0, 0.3],
+    [0.6, isMobile ? 1 : 1.5],
+  );
+  const translate = useTransform(scrollYProgress, [0, 1], [0, 1500]);
+  const rotate = useTransform(scrollYProgress, [0.1, 0.12, 0.3], [-28, -28, 0]);
   const textTransform = useTransform(scrollYProgress, [0, 0.3], [0, 100]);
-  const textOpacity   = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   // ── Per-phase opacity (smooth appear/disappear) ──
-  const op0 = useTransform(scrollYProgress, [0, 0.06, 0.30, 0.40], [0, 1, 1, 0]);
-  const op1 = useTransform(scrollYProgress, [0.30, 0.40, 0.60, 0.70], [0, 1, 1, 0]);
-  const op2 = useTransform(scrollYProgress, [0.60, 0.70, 0.88, 0.95], [0, 1, 1, 0]);
+  const op0 = useTransform(scrollYProgress, [0, 0.06, 0.3, 0.4], [0, 1, 1, 0]);
+  const op1 = useTransform(scrollYProgress, [0.3, 0.4, 0.6, 0.7], [0, 1, 1, 0]);
+  const op2 = useTransform(
+    scrollYProgress,
+    [0.6, 0.7, 0.88, 0.95],
+    [0, 1, 1, 0],
+  );
   const phaseOps = [op0, op1, op2];
 
   // ── Per-phase Y slide (subtle, smooth) ──
   const y0 = useTransform(scrollYProgress, [0, 0.06], [20, 0]);
-  const y1 = useTransform(scrollYProgress, [0.30, 0.40], [20, 0]);
-  const y2 = useTransform(scrollYProgress, [0.60, 0.70], [20, 0]);
+  const y1 = useTransform(scrollYProgress, [0.3, 0.4], [20, 0]);
+  const y2 = useTransform(scrollYProgress, [0.6, 0.7], [20, 0]);
   const phaseYs = [y0, y1, y2];
 
   const LEFT_ITEMS = [
-    { label: "01", heading: "Write Code",   body: "9 languages. Syntax highlighting. Real starter templates." },
-    { label: "02", heading: "Run Tests",    body: "Submit against hidden test cases. See exactly what breaks." },
-    { label: "03", heading: "Compete Live", body: "Head-to-head. Same problem, same clock. First to pass wins." },
+    {
+      label: "01",
+      heading: "Write Code",
+      body: "9 languages. Syntax highlighting. Real starter templates.",
+    },
+    {
+      label: "02",
+      heading: "Run Tests",
+      body: "Submit against hidden test cases. See exactly what breaks.",
+    },
+    {
+      label: "03",
+      heading: "Compete Live",
+      body: "Head-to-head. Same problem, same clock. First to pass wins.",
+    },
   ];
   const RIGHT_ITEMS = [
-    { stat: "9",    unit: "Languages"  },
+    { stat: "9", unit: "Languages" },
     { stat: "50K+", unit: "Challenges" },
     { stat: "10K+", unit: "Ranked Devs" },
   ];
 
   return (
     <div ref={ref} className="relative min-h-[200vh]">
-
       {/* Sticky side panels */}
       <div className="sticky top-0 h-0 overflow-visible pointer-events-none hidden lg:block">
         {/* Left */}
@@ -80,9 +103,15 @@ export const MacbookScroll = ({ src, showGradient, title, badge }) => {
               style={{ opacity: phaseOps[i], y: phaseYs[i] }}
               className="absolute inset-0 flex flex-col justify-center"
             >
-              <span className="text-metallic-orange text-[10px] font-inter font-bold tracking-widest block mb-2">{item.label}</span>
-              <h4 className="text-metallic text-xl font-bold font-inter mb-2 leading-tight">{item.heading}</h4>
-              <p className="text-zinc-500 text-xs font-inter leading-relaxed">{item.body}</p>
+              <span className="text-metallic-orange text-[10px] font-inter font-bold tracking-widest block mb-2">
+                {item.label}
+              </span>
+              <h4 className="text-metallic text-xl font-bold font-inter mb-2 leading-tight">
+                {item.heading}
+              </h4>
+              <p className="text-zinc-500 text-xs font-inter leading-relaxed">
+                {item.body}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -95,8 +124,12 @@ export const MacbookScroll = ({ src, showGradient, title, badge }) => {
               style={{ opacity: phaseOps[i], y: phaseYs[i] }}
               className="absolute inset-0 flex flex-col justify-center"
             >
-              <span className="text-5xl xl:text-6xl font-extrabold font-inter text-metallic leading-none">{item.stat}</span>
-              <span className="text-metallic-orange text-xs font-inter font-bold mt-1 uppercase tracking-widest block">{item.unit}</span>
+              <span className="text-5xl xl:text-6xl font-extrabold font-inter text-metallic leading-none">
+                {item.stat}
+              </span>
+              <span className="text-metallic-orange text-xs font-inter font-bold mt-1 uppercase tracking-widest block">
+                {item.unit}
+              </span>
             </motion.div>
           ))}
         </div>
@@ -105,21 +138,41 @@ export const MacbookScroll = ({ src, showGradient, title, badge }) => {
       {/* Mac scroll — spacing fixed, heading brought to top */}
       <div className="flex min-h-[200vh] shrink-0 scale-[0.35] transform flex-col items-center justify-start py-0 [perspective:800px] sm:scale-50 md:scale-100 md:pt-10 md:pb-80">
         <motion.h2
-          style={{ translateY: textTransform, opacity: textOpacity }}
+          style={{
+            translateY: textTransform,
+            opacity: textOpacity,
+            fontSize: "clamp(1.5rem, 3vw, 2.5rem)",
+          }}
           className="mb-16 text-center font-inter font-bold text-metallic"
-          style={{ fontSize: "clamp(1.5rem, 3vw, 2.5rem)" }}
         >
-          {title || <span>Code. Test. Submit. <span className="text-metallic-orange">All in the browser.</span></span>}
+          {title || (
+            <span>
+              Code. Test. Submit.{" "}
+              <span className="text-metallic-orange">All in the browser.</span>
+            </span>
+          )}
         </motion.h2>
-        <Lid src={src} scaleX={scaleX} scaleY={scaleY} rotate={rotate} translate={translate} />
+        <Lid
+          src={src}
+          scaleX={scaleX}
+          scaleY={scaleY}
+          rotate={rotate}
+          translate={translate}
+        />
         <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gray-200 dark:bg-[#272729]">
           <div className="relative h-10 w-full">
             <div className="absolute inset-x-0 mx-auto h-4 w-[80%] bg-[#050505]" />
           </div>
           <div className="relative flex">
-            <div className="mx-auto h-full w-[10%] overflow-hidden"><SpeakerGrid /></div>
-            <div className="mx-auto h-full w-[80%]"><Keypad /></div>
-            <div className="mx-auto h-full w-[10%] overflow-hidden"><SpeakerGrid /></div>
+            <div className="mx-auto h-full w-[10%] overflow-hidden">
+              <SpeakerGrid />
+            </div>
+            <div className="mx-auto h-full w-[80%]">
+              <Keypad />
+            </div>
+            <div className="mx-auto h-full w-[10%] overflow-hidden">
+              <SpeakerGrid />
+            </div>
           </div>
           <Trackpad />
           <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#272729] to-[#050505]" />
@@ -129,12 +182,9 @@ export const MacbookScroll = ({ src, showGradient, title, badge }) => {
           {badge && <div className="absolute bottom-4 left-4">{badge}</div>}
         </div>
       </div>
-
     </div>
   );
 };
-
-
 
 export const Lid = ({ scaleX, scaleY, rotate, translate, src }) => {
   return (
@@ -151,7 +201,9 @@ export const Lid = ({ scaleX, scaleY, rotate, translate, src }) => {
           style={{ boxShadow: "0px 2px 0px 2px #171717 inset" }}
           className="absolute inset-0 flex items-center justify-center rounded-lg bg-[#010101]"
         >
-          <span className="text-white"><AceternityLogo /></span>
+          <span className="text-white">
+            <AceternityLogo />
+          </span>
         </div>
       </div>
       <motion.div
@@ -166,7 +218,11 @@ export const Lid = ({ scaleX, scaleY, rotate, translate, src }) => {
         className="absolute inset-0 h-96 w-[32rem] rounded-2xl bg-[#010101] p-2"
       >
         <div className="absolute inset-0 rounded-lg bg-[#272729]" />
-        <img src={src} alt="macbook screen" className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top" />
+        <img
+          src={src}
+          alt="macbook screen"
+          className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top"
+        />
       </motion.div>
     </div>
   );
