@@ -1,37 +1,35 @@
-import { Link } from "react-router-dom";
-import { Home, SearchX } from "lucide-react";
-
-/**
- * NotFoundPage — shown whenever the user navigates to a route that doesn't exist.
- * Replaces the inline JSX that was previously embedded in App.jsx's router config.
- */
-const NotFoundPage = () => {
+export default function NotFoundPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-gray-50 text-center">
-      {/* Illustrative icon area */}
-      <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-yellow-50 border-2 border-yellow-100 mb-6">
-        <SearchX className="h-12 w-12 text-yellow-500" />
-      </div>
-
-      {/* Branded 404 */}
-      <p className="text-6xl font-black tracking-tight text-yellow-500 mb-2">
-        404
+    <div className="min-h-screen bg-[#0A0A0B] flex flex-col items-center justify-center text-sm max-md:px-4 py-20">
+      <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">
+        404 Not Found
+      </h1>
+      <div className="h-px w-80 rounded bg-gradient-to-r from-zinc-700 to-zinc-900 my-5 md:my-7"></div>
+      <p className="md:text-xl text-zinc-400 max-w-lg text-center">
+        The page you are looking for does not exist or has been moved.
       </p>
-      <h1 className="text-2xl font-bold text-gray-900 mb-3">Page Not Found</h1>
-      <p className="text-sm text-gray-500 max-w-sm mb-8">
-        The page you're looking for doesn't exist or may have been moved.
-        Double-check the URL or head back home.
-      </p>
-
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-yellow-500 text-white font-semibold text-sm hover:bg-yellow-600 transition-colors shadow-sm"
+      <a
+        href="/"
+        className="group flex items-center gap-1 bg-white/10 hover:bg-white/20 border border-white/10 px-7 py-2.5 text-white rounded-full mt-10 font-medium active:scale-95 transition-all"
       >
-        <Home className="h-4 w-4" />
         Back to Home
-      </Link>
+        <svg
+          className="group-hover:translate-x-0.5 transition"
+          width="22"
+          height="22"
+          viewBox="0 0 22 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M4.583 11h12.833m0 0L11 4.584M17.416 11 11 17.417"
+            stroke="white"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </a>
     </div>
   );
-};
-
-export default NotFoundPage;
+}

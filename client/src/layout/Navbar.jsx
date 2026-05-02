@@ -136,7 +136,7 @@ const Navbar = () => {
                         <h2 className="font-bold text-metallic">
                           {course.name}
                         </h2>
-                        <p className="text-sm text-gray-4s00">{course.desc}</p>
+                        <p className="text-sm text-gray-400">{course.desc}</p>
                       </div>
                     </Link>
                   ))}

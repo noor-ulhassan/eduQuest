@@ -7,7 +7,7 @@ const ProfileHeader = ({
   username: initialUsername = "arishaaa",
   joinedDate = "July 2025",
   avatarUrl = "/Avatar.png",
-  bannerUrl = "/banner.png",
+  bannerUrl = "/banner.gif",
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { user } = useSelector((state) => state.auth);
@@ -46,7 +46,7 @@ const ProfileHeader = ({
 
   return (
     <>
-      <div className="relative w-full max-w-6xl mx-auto mt-4 sm:mt-6 px-4 sm:px-6">
+      <div className="relative w-full max-w-6xl mx-auto mt-4 sm:mt-6">
         <div className="rounded-2xl overflow-hidden shadow-2xl bg-[#121214] border border-zinc-800">
           {/* Banner */}
           <div className="relative h-32 sm:h-48 md:h-60 lg:h-72 w-full bg-gradient-to-r from-yellow-400 to-orange-500">
@@ -91,7 +91,9 @@ const ProfileHeader = ({
                   <h1 className="text-2xl sm:text-3xl font-black text-white truncate drop-shadow-sm">
                     {profile.displayName}
                   </h1>
-                  <p className="text-zinc-400 text-sm sm:text-base font-medium tracking-wide truncate">@{profile.username}</p>
+                  <p className="text-zinc-400 text-sm sm:text-base font-medium tracking-wide truncate">
+                    @{profile.username}
+                  </p>
                   <p className="text-zinc-500 text-xs sm:text-sm font-semibold mt-1">
                     Joined {joinedDate}
                   </p>
