@@ -528,13 +528,13 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                           fill="currentColor"
                         />
                       </div>
-                      <p className="text-xs font-bold">Early Bird</p>
+                      <p className="text-xs font-bold text-zinc-400">Early Bird</p>
                     </div>
                     <div className="flex flex-col items-center text-center group cursor-pointer">
                       <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mb-2 ring-2 ring-red-500/30 group-hover:scale-110 transition-transform">
                         <Code className="text-red-400 w-8 h-8" />
                       </div>
-                      <p className="text-xs font-bold">Code Wizard</p>
+                      <p className="text-xs font-bold text-zinc-400">Code Wizard</p>
                     </div>
                     <div className="flex flex-col items-center text-center group cursor-pointer">
                       <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2 border border-dashed border-white/20 ">
