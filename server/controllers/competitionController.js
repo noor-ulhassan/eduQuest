@@ -6,7 +6,7 @@ import { CompetitionResult } from "../models/CompetitionResult.model.js";
 
 export const getUserStats = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Single aggregation pipeline with $facet to compute all stats in one DB round-trip

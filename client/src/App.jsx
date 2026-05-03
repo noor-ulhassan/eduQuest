@@ -29,7 +29,7 @@ const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
 const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
 const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
 const DocumentsPage = lazy(
-  () => import("./components/documents/DocumentsPage"),
+  () => import("./pages/Documents/DocumentsPage"),
 );
 const Playground = lazy(() => import("./pages/Playgrounds/Page"));
 const LanguagePlayground = lazy(

@@ -1,7 +1,4 @@
-import { count, error } from "console";
 import Document from "../models/Document.js";
-// import Flashcard from '../models/Flashcard.js';
-// import Quiz from '../models/Quiz.js';
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { getVectorStore } from "../database/dbConnect.js";

@@ -1,6 +1,6 @@
 import Quiz from "../models/Quiz.js";
 import Document from "../models/Document.js";
-import { generateQuizFromGemini } from "../utils/gemini.js";
+import { generateQuizFromGemini } from "../utils/geminiQuiz.js";
 
 
 

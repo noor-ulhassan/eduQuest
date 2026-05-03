@@ -2,7 +2,7 @@ import { User } from "../models/user.model.js";
 
 export const addSkills = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { skills } = req.body;
 
     if (!skills || !Array.isArray(skills)) {

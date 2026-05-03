@@ -16,7 +16,7 @@ export const getUser = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     let user = await User.findById(userId).select("-password");
 
     if (!user) {
@@ -328,7 +328,7 @@ export const updateProfile = async (req, res) => {
 // --- GLOBAL ALL-PLATFORM ANALYTICS ---
 export const getUserAnalytics = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const user = await User.findById(userId).select("-password").lean();
 
     if (!user) {

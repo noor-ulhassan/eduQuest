@@ -1,17 +1,17 @@
 import express from "express";
 import {
-  enrollToCourse,
   geminiCourseGenerator,
+  getCourseById,
   generateChapterContent,
+  getAllCourses,
+  enrollToCourse,
+  getEnrollmentStatus,
+  markChapterCompleted,
+  getUserEnrollments,
   generateFlashcards,
   courseMentorChat,
-  getAllCourses,
-  getCourseById,
-  getEnrollmentStatus,
-  getUserEnrollments,
-  markChapterCompleted,
-  updateUserXP,
-} from "../utils/gemini.js";
+} from "../controllers/courseController.js";
+import { updateUserXP } from "../utils/gemini.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import {
   chatWithDocument,
