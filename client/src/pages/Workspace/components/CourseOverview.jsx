@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "@/features/auth/authApi";
@@ -16,6 +16,7 @@ import {
   BookOpen,
   LayoutDashboard,
   Plus,
+  Flame,
   FileText,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -39,6 +40,38 @@ import {
   PolarGrid,
 } from "recharts";
 
+const useCountUp = (target, duration = 1500) => {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else setCount(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target]);
+  return count;
+};
+
+// Floating "+XP!" particle that shoots upward and fades — triggered on XP card click
+const FloatingXP = ({ onDone }) => {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <span
+      className="absolute top-0 right-4 text-emerald-400 font-bold text-sm pointer-events-none"
+      style={{ animation: "floatUp 1s ease-out forwards" }}
+    >
+      +XP!
+    </span>
+  );
+};
 export default function CourseOverview({ course, enrollment, onResume }) {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -52,12 +85,44 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   const [open, setOpen] = useState(false);
   const currentPath = window.location.pathname;
 
+  const xp = useCountUp(user?.xp || 0); // animated XP number
+  const streak = useCountUp(user?.dayStreak || 0); // animated streak number
+  const [showXPParticle, setShowXPParticle] = useState(false);
+
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes floatUp {
+        0%   { opacity: 1; transform: translateY(0px); }
+        100% { opacity: 0; transform: translateY(-40px); }
+      }
+      @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 0 8px 2px rgba(16,185,129,0.3); }
+        50%       { box-shadow: 0 0 20px 6px rgba(16,185,129,0.6); }
+      }
+      @keyframes orangeGlow {
+        0%, 100% { box-shadow: 0 0 8px 2px rgba(249,115,22,0.3); }
+        50%       { box-shadow: 0 0 20px 6px rgba(249,115,22,0.6); }
+      }
+      @keyframes goldGlow {
+        0%, 100% { box-shadow: 0 0 8px 2px rgba(234,179,8,0.3); }
+        50%       { box-shadow: 0 0 20px 6px rgba(234,179,8,0.6); }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   const SidebarOptions = [
-    { title: "Dashboard",   icon: LayoutDashboard, path: "/workspace"   },
-    { title: "My Learning", icon: Book,            path: "/my-learning" },
-    { title: "Documents",   icon: FileText,         path: "/documents"   },
-    { title: "Explore Courses", icon: BookOpen,    path: "/#"           },
-    { title: "Profile",     icon: UserIcon,         path: "/profile"     },
+    { title: "Dashboard", icon: LayoutDashboard, path: "/workspace" },
+    { title: "My Learning", icon: Book, path: "/my-learning" },
+    { title: "Documents", icon: FileText, path: "/documents" },
+    { title: "Explore Courses", icon: BookOpen, path: "/#" },
+    { title: "Profile", icon: UserIcon, path: "/profile" },
   ];
 
   useEffect(() => {
@@ -219,8 +284,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     "rounded-lg font-medium transition-colors",
                     open ? "py-2.5 px-2" : "py-2.5 justify-center",
                     currentPath === item.path ||
-                      (currentPath.startsWith(item.path) &&
-                        item.path !== "/#")
+                      (currentPath.startsWith(item.path) && item.path !== "/#")
                       ? "text-red-400 bg-white/10"
                       : "hover:bg-white/5 text-zinc-300",
                   )}
@@ -334,17 +398,33 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:shadow-lg transition-shadow">
+              <div
+                className="relative bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:border-emerald-500/40 hover:shadow-lg transition-all cursor-pointer"
+                style={{
+                  animation: "slideUp 0.4s ease-out both",
+                  animationDelay: "0ms",
+                }}
+                onClick={() => setShowXPParticle(true)}
+              >
+                {showXPParticle && (
+                  <FloatingXP onDone={() => setShowXPParticle(false)} />
+                )}
                 <div className="flex items-start justify-between mb-4">
-                  <p className="text-sm text-zinc-400 font-medium">Total Experience</p>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <Zap className="w-4 h-4 text-emerald-500" />
+                  <p className="text-sm text-zinc-400 font-medium">
+                    Total Experience
+                  </p>
+                  <div
+                    className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0"
+                    style={{ animation: "pulseGlow 2s ease-in-out infinite" }}
+                  >
+                    <Zap
+                      className="w-4 h-4 text-emerald-500"
+                      fill="currentColor"
+                    />
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2 text-metallic">
-                  <h4 className="text-2xl font-bold">
-                    {user?.xp?.toLocaleString() || 0}
-                  </h4>
+                  <h4 className="text-2xl font-bold">{xp.toLocaleString()}</h4>
                   <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                     +XP
                   </span>
@@ -355,42 +435,123 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     style={{ width: `${(user?.xp % 1000) / 10}%` }}
                   />
                 </div>
+                <div className="mt-3">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/60">
+                    ⚡ {Math.floor((user?.xp || 0) / 1000)} levels earned
+                  </span>
+                </div>
               </div>
 
-              <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:shadow-lg transition-shadow">
+              {/* Streak Card */}
+
+              <div
+                className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:border-orange-500/40 hover:shadow-lg transition-all"
+                style={{
+                  animation: "slideUp 0.4s ease-out both",
+                  animationDelay: "100ms",
+                }}
+              >
                 <div className="flex items-start justify-between mb-4">
-                  <p className="text-sm text-zinc-400 font-medium">Current Streak</p>
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-                    <Zap className="w-4 h-4 text-orange-500" fill="currentColor" />
+                  <p className="text-sm text-zinc-400 font-medium">
+                    Current Streak
+                  </p>
+                  <div
+                    className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0"
+                    style={{ animation: "orangeGlow 2s ease-in-out infinite" }}
+                  >
+                    <Flame
+                      className="w-4 h-4 text-orange-500"
+                      fill="currentColor"
+                    />
                   </div>
                 </div>
                 <h4 className="text-2xl font-bold text-metallic">
-                  {user?.dayStreak || 0} Days
+                  {streak} <span className="text-orange-400">Days</span>
                 </h4>
+                <div className="flex gap-1.5 mt-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border transition-all duration-300 ${
+                        i < (user?.dayStreak || 0)
+                          ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
+                          : "bg-white/5 border-white/10 text-zinc-600"
+                      }`}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="w-3 h-3"
+                        fill="currentColor"
+                      >
+                        <path d="M12 2c0 0-6 6.5-6 11a6 6 0 0 0 12 0c0-4.5-6-11-6-11zm0 15.5c-1.38 0-2.5-1.12-2.5-2.5 0-1.5 2.5-5 2.5-5s2.5 3.5 2.5 5c0 1.38-1.12 2.5-2.5 2.5z" />
+                      </svg>
+                    </div>
+                  ))}
+                </div>
                 <p className="text-xs text-zinc-400 mt-4 italic">
                   Next milestone soon
                 </p>
               </div>
 
-              <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:shadow-lg transition-shadow">
+              {/* Rank Card */}
+
+              <div
+                className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:border-yellow-500/40 hover:shadow-lg transition-all"
+                style={{
+                  animation: "slideUp 0.4s ease-out both",
+                  animationDelay: "200ms",
+                }}
+              >
                 <div className="flex items-start justify-between mb-4">
-                  <p className="text-sm text-zinc-400 font-medium">Global Ranking</p>
-                  <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-                    <Medal className="w-4 h-4 text-yellow-500" />
+                  <p className="text-sm text-zinc-400 font-medium">
+                    Global Ranking
+                  </p>
+                  <div
+                    className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0 text-base"
+                    style={{ animation: "goldGlow 2s ease-in-out infinite" }}
+                  >
+                    <img
+                      src="https://twemoji.maxcdn.com/v/latest/72x72/1f3c5.png"
+                      className="w-5 h-5"
+                      alt="medal"
+                    />
                   </div>
                 </div>
                 <h4 className="text-2xl font-bold text-metallic">
                   {user?.rank || "Novice"}
                 </h4>
+                <div className="mt-4 flex gap-1">
+                  {["Novice", "Bronze", "Silver", "Gold", "Diamond"].map(
+                    (tier, i) => (
+                      <div
+                        key={tier}
+                        className={`flex-1 h-1.5 rounded-full transition-all duration-700 ${
+                          [
+                            "Novice",
+                            "Bronze",
+                            "Silver",
+                            "Gold",
+                            "Diamond",
+                          ].indexOf(user?.rank || "Novice") >= i
+                            ? "bg-yellow-500"
+                            : "bg-white/10"
+                        }`}
+                        style={{ transitionDelay: `${i * 150}ms` }}
+                      />
+                    ),
+                  )}
+                </div>
                 <p className="text-xs text-zinc-400 mt-4 tracking-wider">
-                  Lvl {user?.level || 1}
+                  ⭐ Lvl {user?.level || 1}
                 </p>
               </div>
             </div>
 
             {course ? (
               <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 shadow-lg shadow-black/50 z-0">
-                <h4 className="text-lg font-bold mb-8 text-metallic">Learning Path</h4>
+                <h4 className="text-lg font-bold mb-8 text-metallic">
+                  Learning Path
+                </h4>
                 <div className="space-y-0 z-0">
                   {activeChapters.map((chap, idx) => {
                     const isCompleted = enrollment?.completedChapters?.includes(
@@ -480,9 +641,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/50 ">
               <div className="flex items-center justify-between mb-6">
                 <h4 className="font-bold text-metallic">Achievements</h4>
-                <button className="text-xs text-red-400 font-bold hover:underline">
+                {/* <button className="text-xs text-red-400 font-bold hover:underline">
                   View All
-                </button>
+                </button> */}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {activeCourseLayout?.achievements?.length > 0 ? (
@@ -528,13 +689,17 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                           fill="currentColor"
                         />
                       </div>
-                      <p className="text-xs font-bold text-zinc-400">Early Bird</p>
+                      <p className="text-xs font-bold text-zinc-400">
+                        Early Bird
+                      </p>
                     </div>
                     <div className="flex flex-col items-center text-center group cursor-pointer">
                       <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mb-2 ring-2 ring-red-500/30 group-hover:scale-110 transition-transform">
                         <Code className="text-red-400 w-8 h-8" />
                       </div>
-                      <p className="text-xs font-bold text-zinc-400">Code Wizard</p>
+                      <p className="text-xs font-bold text-zinc-400">
+                        Code Wizard
+                      </p>
                     </div>
                     <div className="flex flex-col items-center text-center group cursor-pointer">
                       <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2 border border-dashed border-white/20 ">
@@ -568,14 +733,11 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     outerRadius="70%"
                     data={radarData}
                   >
-                    <PolarGrid
-                      stroke="var(--tw-colors-slate-200)"
-                      opacity={0.2}
-                    />
+                    <PolarGrid stroke="#334155" opacity={0.2} />
                     <PolarAngleAxis
                       dataKey="subject"
                       tick={{
-                        fill: "var(--tw-colors-slate-500)",
+                        fill: "#94a3b8",
                         fontSize: 10,
                       }}
                     />

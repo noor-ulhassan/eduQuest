@@ -75,7 +75,7 @@ const FooterSection = ({ title, links }) => (
 // ---------------------------------------------------------------------------
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-yellow-100 pt-8 sm:pt-12 md:pt-16 pb-8 sm:pb-10 md:pb-12">
+    <footer className="bg-[#0A0A0B] border-t border-zinc-800 pt-8 sm:pt-12 md:pt-16 pb-8 sm:pb-10 md:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Link columns */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
@@ -86,9 +86,9 @@ const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="flex flex-col md:flex-row justify-between items-center pt-4 sm:pt-6 border-t border-gray-200 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center pt-4 sm:pt-6 border-t border-zinc-800 gap-4">
           {/* Copyright */}
-          <p className="text-xs sm:text-sm text-gray-500 text-center md:text-left">
+          <p className="text-xs sm:text-sm text-zinc-500 text-center md:text-left">
             © {new Date().getFullYear()} EduQuest. All rights reserved.
           </p>
 
@@ -99,7 +99,7 @@ const Footer = () => {
                 key={label}
                 href={href}
                 aria-label={label}
-                className="text-gray-400 hover:text-yellow-600 transition-colors"
+                className="text-zinc-500 hover:text-orange-400 transition-colors"
               >
                 {icon}
               </a>
