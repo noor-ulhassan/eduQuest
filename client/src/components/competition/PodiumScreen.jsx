@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const PodiumScreen = ({ leaderboard, userId, isHost, onHome }) => {
-  const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
+  const sorted = [...leaderboard].sort((a, b) => {
+    if ((a.eliminated || false) !== (b.eliminated || false)) return (a.eliminated || false) ? 1 : -1;
+    return b.score - a.score;
+  });
   const winner = sorted[0];
   const second = sorted[1];
   const third = sorted[2];

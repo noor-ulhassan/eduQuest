@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useId, useRef } from "react";
 import { useSelector } from "react-redux";
+import { getLevelProgress } from "@/utils/levelUtils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { AnimatePresence, motion } from "framer-motion";
@@ -40,8 +41,7 @@ const UserStats = () => {
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  const xpInCurrentLevel = xp % 1000;
-  const progressPercentage = (xpInCurrentLevel / 1000) * 100;
+  const { xpInLevel: xpInCurrentLevel, xpToNextLevel, progressPercent: progressPercentage } = getLevelProgress(xp, level);
 
   const [animatedXP, setAnimatedXP] = useState(0);
   const [animatedBadges, setAnimatedBadges] = useState(0);
@@ -218,7 +218,7 @@ const UserStats = () => {
                       layoutId={`xp-text-${id}`}
                       className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2 uppercase tracking-wide"
                     >
-                      {1000 - xpInCurrentLevel} XP to Level {level + 1}
+                      {xpToNextLevel} XP to Level {level + 1}
                     </motion.p>
                   </div>
                 </div>
@@ -324,7 +324,7 @@ const UserStats = () => {
                 layoutId={`xp-text-${id}`}
                 className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1.5 uppercase tracking-wide flex justify-between items-center"
               >
-                <span>{1000 - xpInCurrentLevel} XP Left</span>
+                <span>{xpToNextLevel} XP Left</span>
                 <span className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 transition-colors md:hidden">
                   See Stats &rarr;
                 </span>

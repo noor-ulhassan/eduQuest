@@ -87,15 +87,18 @@ export const enrollInPlayground = async (language) => {
 };
 
 /**
- * Mark a problem as complete and update user XP/rank
+ * Mark a problem as complete and update user XP/rank.
  * Server determines XP from its own problem registry.
  * @param {string} language - playground language
  * @param {string} problemId - unique problem identifier
+ * @param {{ usedHints?: boolean, solveTimeMs?: number }} [opts]
  */
-export const completeProblem = async (language, problemId) => {
+export const completeProblem = async (language, problemId, opts = {}) => {
   const response = await api.post("/playground/complete", {
     language,
     problemId,
+    usedHints: opts.usedHints ?? false,
+    solveTimeMs: opts.solveTimeMs ?? null,
   });
   return response.data;
 };

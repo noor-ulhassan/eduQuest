@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { Trophy, Code, Target, Flame, Activity, Star } from "lucide-react";
 import api from "@/features/auth/authApi";
+import { getLevelProgress } from "@/utils/levelUtils";
 
 
 
@@ -70,11 +71,8 @@ const AnalyticsDashboard = () => {
 
   const { global, playground, competitions } = data;
 
-  // Next level calc
   const nextLevel = global.level + 1;
-  const xpCurrent = global.totalXP % 1000;
-  const xpNeeded = 1000 - xpCurrent;
-  const progressPercent = (xpCurrent / 1000) * 100;
+  const { xpInLevel: xpCurrent, xpToNextLevel: xpNeeded, progressPercent } = getLevelProgress(global.totalXP, global.level);
 
   return (
     <div className="space-y-8">

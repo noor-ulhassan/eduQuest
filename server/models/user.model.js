@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema(
     badges: [
       {
         title: { type: String },
-        icon: { type: String }, // e.g., "Zap", "Award", "Flame"
+        icon: { type: String },
+        rarity: { type: String, enum: ["Common", "Rare", "Epic", "Legendary"], default: "Common" },
         earnedAt: { type: Date, default: Date.now },
       },
     ],
@@ -41,6 +42,12 @@ const userSchema = new mongoose.Schema(
     dayStreak: {
       type: Number,
       default: 0,
+    },
+    streakShields: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 2,
     },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     friendRequests: [

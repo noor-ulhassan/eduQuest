@@ -3,6 +3,7 @@ import { User } from "../models/user.model.js";
 import { incrementStreak } from "../utils/streak.js";
 import { addXP } from "../utils/progression.js";
 import { Curriculum } from "../models/Curriculum.js";
+import { onPlaygroundSolve, updateStreakKeeperQuest } from "../utils/questEngine.js";
 
 // GET /api/v1/playground/progress - Get all playground progress for user
 export const getProgress = async (req, res) => {
@@ -88,7 +89,7 @@ export const completeProblem = async (req, res) => {
       });
     }
 
-    // Bug #3 fix: Look up XP from server-side Curriculum Database
+    // Look up XP and difficulty from server-side Curriculum
     const curriculum = await Curriculum.findOne({ language });
     if (!curriculum) {
       return res.status(400).json({
@@ -97,36 +98,50 @@ export const completeProblem = async (req, res) => {
       });
     }
 
-    let xp = null;
+    let baseXP = null;
+    let difficulty = "easy";
     for (const chapter of curriculum.chapters) {
-      const prob = chapter.problems.find(p => p.id === problemId);
+      const prob = chapter.problems.find((p) => p.id === problemId);
       if (prob) {
-        xp = prob.xp;
+        baseXP = prob.xp;
+        difficulty = prob.difficulty || "easy";
         break;
       }
     }
 
-    if (xp === null) {
+    if (baseXP === null) {
       return res.status(400).json({
         success: false,
         message: "Unknown problem ID",
       });
     }
 
-    // Bug #4 fix (N6 perf): Single atomic findOneAndUpdate — prevents double XP race
-    // and eliminates 2 extra DB queries by returning the updated doc directly.
+    // P2: Hint penalty & speed bonus
+    const usedHints = req.body.usedHints === true;
+    const solveTimeMs =
+      typeof req.body.solveTimeMs === "number" && req.body.solveTimeMs > 0
+        ? req.body.solveTimeMs
+        : null;
+
+    const penaltyFactor = usedHints ? 0.9 : 1.0;
+    const diffLower = difficulty.toLowerCase();
+    const isHardOrExpert = diffLower === "hard" || diffLower === "expert";
+    const earnedSpeedBonus =
+      isHardOrExpert && solveTimeMs !== null && solveTimeMs <= 600_000;
+    const speedFactor = earnedSpeedBonus ? 1.25 : 1.0;
+    const adjustedXP = Math.max(1, Math.round(baseXP * penaltyFactor * speedFactor));
+
+    // Atomic upsert — prevents double XP race
     const updatedProgress = await PlaygroundProgress.findOneAndUpdate(
       { userId, language, completedProblems: { $ne: problemId } },
       {
         $addToSet: { completedProblems: problemId },
-        $inc: { totalXpEarned: xp },
+        $inc: { totalXpEarned: adjustedXP },
       },
       { new: true },
     );
 
-    // modifiedCount === 0 means already completed or not enrolled
     if (!updatedProgress) {
-      // Check if the problem was already completed
       const existing = await PlaygroundProgress.findOne({ userId, language });
       if (existing?.completedProblems.includes(problemId)) {
         return res.status(200).json({
@@ -142,11 +157,10 @@ export const completeProblem = async (req, res) => {
           userId,
           language,
           completedProblems: [problemId],
-          totalXpEarned: xp,
+          totalXpEarned: adjustedXP,
         });
       } catch (createErr) {
         if (createErr.code !== 11000) throw createErr;
-        // Another concurrent request enrolled first — treat as already completed
         return res.status(200).json({
           success: true,
           message: "Problem already completed",
@@ -156,20 +170,58 @@ export const completeProblem = async (req, res) => {
       }
     }
 
-    const progress = updatedProgress || await PlaygroundProgress.findOne({ userId, language });
+    const progress =
+      updatedProgress || (await PlaygroundProgress.findOne({ userId, language }));
 
-    // Increment Streak + Give XP (Batched to save once)
+    // Increment streak + award base XP (batched, single save)
     let user = await User.findById(userId);
     user = await incrementStreak(user, { autoSave: false });
-
-    user = await addXP(user, xp, {
-      totalSolved: progress.completedProblems.length,
-    }, { autoSave: false });
-
-    // Final single save for the user document
+    user = await addXP(
+      user,
+      adjustedXP,
+      { totalSolved: progress.completedProblems.length, earnedSpeedBonus },
+      { autoSave: false },
+    );
     await user.save();
 
-    // Return updated user stats (without sensitive fields)
+    // P2: Chapter & language completion bonuses
+    let bonusXP = 0;
+    let chapterCompleted = false;
+    let languageCompleted = false;
+
+    const completedSet = new Set(progress.completedProblems.map(String));
+
+    const solvedChapter = curriculum.chapters.find((ch) =>
+      ch.problems.some((p) => p.id === problemId),
+    );
+
+    if (solvedChapter) {
+      chapterCompleted = solvedChapter.problems.every((p) =>
+        completedSet.has(p.id),
+      );
+      if (chapterCompleted) bonusXP += 100;
+
+      languageCompleted = curriculum.chapters.every((ch) =>
+        ch.problems.every((p) => completedSet.has(p.id)),
+      );
+      if (languageCompleted) bonusXP += 500;
+    }
+
+    if (bonusXP > 0) {
+      user = await addXP(
+        user,
+        bonusXP,
+        { chapterCompleted, languageCompleted, language },
+        { autoSave: true },
+      );
+    }
+
+    // Quest hooks — fire-and-forget so they never block the response
+    onPlaygroundSolve(userId, { language, difficulty: diffLower, usedHints })
+      .catch((err) => console.error("[Playground] Quest update error:", err));
+    updateStreakKeeperQuest(userId, user.dayStreak)
+      .catch((err) => console.error("[Playground] Streak quest update error:", err));
+
     const updatedUser = {
       _id: user._id,
       name: user.name,
@@ -184,8 +236,12 @@ export const completeProblem = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `+${xp} XP earned!`,
-      xp,
+      message: `+${adjustedXP} XP earned!`,
+      xp: adjustedXP,
+      bonusXP: bonusXP > 0 ? bonusXP : undefined,
+      chapterCompleted: chapterCompleted || undefined,
+      languageCompleted: languageCompleted || undefined,
+      earnedSpeedBonus: earnedSpeedBonus || undefined,
       user: updatedUser,
       progress,
     });

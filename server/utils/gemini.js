@@ -1,5 +1,6 @@
 import { User } from "../models/user.model.js";
 import { callAiModel } from "../config/aiProvider.js";
+import { addXP } from "./progression.js";
 
 export const updateUserXP = async (req, res) => {
   try {
@@ -21,18 +22,9 @@ export const updateUserXP = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    user.xp = (user.xp || 0) + parsedXP;
-
-    const newLevel = Math.floor(user.xp / 1000) + 1;
-
-    const leveledUp = newLevel > user.level;
-    user.level = newLevel;
-
-    if (user.level >= 10) user.rank = "Silver";
-    if (user.level >= 20) user.rank = "Gold";
-    if (user.level >= 50) user.rank = "Grandmaster";
-
-    await user.save();
+    const prevLevel = user.level;
+    await addXP(user, parsedXP);
+    const leveledUp = user.level > prevLevel;
 
     return res.status(200).json({
       success: true,

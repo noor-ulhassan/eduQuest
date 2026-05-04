@@ -2,6 +2,7 @@ import Navbar from "@/layout/Navbar";
 import Footer from "@/layout/Footer";
 import { Outlet, useLocation } from "react-router-dom";
 import PlatformGuide from "@/components/ui/PlatformGuide";
+import GamificationOverlay from "@/components/gamification/GamificationOverlay";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -43,6 +44,7 @@ const MainLayout = () => {
 
       {!hideFooter && <PlatformGuide />}
       {!hideFooter && <Footer />}
+      <GamificationOverlay />
     </div>
   );
 };

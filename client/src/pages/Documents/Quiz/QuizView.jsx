@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { Sparkles, FileText, ArrowLeft, Trophy, ChevronRight, Clock } from "lucide-react";
+import {
+  Sparkles,
+  FileText,
+  ArrowLeft,
+  Trophy,
+  ChevronRight,
+  Clock,
+} from "lucide-react";
 import QuestionCard from "./QuestionCard";
 import ScoreScreen from "./ScoreScreen";
 import ContextModal from "./ContextModal";
@@ -7,17 +14,19 @@ import AttemptReviewView from "./AttemptReviewView";
 import { quizApi } from "../../../services/ragApiService";
 
 function gradeFor(pct) {
-  if (pct === 100) return { label: "Perfect",   color: "text-yellow-400" };
-  if (pct >= 80)   return { label: "Excellent",  color: "text-emerald-400" };
-  if (pct >= 70)   return { label: "Good",       color: "text-blue-400" };
-  if (pct >= 50)   return { label: "Keep Going", color: "text-orange-400" };
-  return             { label: "Try Again",        color: "text-red-400" };
+  if (pct === 100) return { label: "Perfect", color: "text-yellow-400" };
+  if (pct >= 80) return { label: "Excellent", color: "text-emerald-400" };
+  if (pct >= 70) return { label: "Good", color: "text-blue-400" };
+  if (pct >= 50) return { label: "Keep Going", color: "text-orange-400" };
+  return { label: "Try Again", color: "text-red-400" };
 }
 
 function AttemptCard({ attempt, onClick }) {
   const grade = gradeFor(attempt.percentage);
-  const date  = new Date(attempt.createdAt).toLocaleDateString(undefined, {
-    month: "short", day: "numeric", year: "numeric",
+  const date = new Date(attempt.createdAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
   return (
     <button
@@ -25,7 +34,9 @@ function AttemptCard({ attempt, onClick }) {
       className="w-full text-left bg-[#111111] border border-white/10 rounded-xl p-4 hover:border-white/20 hover:bg-[#161616] transition-all flex items-center gap-4 group"
     >
       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600/20 to-orange-500/20 border border-red-500/20 flex items-center justify-center flex-shrink-0">
-        <span className="text-sm font-black text-red-400">{attempt.percentage}%</span>
+        <span className="text-sm font-black text-red-400">
+          {attempt.percentage}%
+        </span>
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white">
@@ -35,23 +46,28 @@ function AttemptCard({ attempt, onClick }) {
           <Clock size={10} /> {date}
         </p>
       </div>
-      <span className={`text-xs font-bold ${grade.color} flex-shrink-0`}>{grade.label}</span>
-      <ChevronRight size={14} className="text-zinc-600 group-hover:text-zinc-400 transition-colors flex-shrink-0" />
+      <span className={`text-xs font-bold ${grade.color} flex-shrink-0`}>
+        {grade.label}
+      </span>
+      <ChevronRight
+        size={14}
+        className="text-zinc-600 group-hover:text-zinc-400 transition-colors flex-shrink-0"
+      />
     </button>
   );
 }
 
 function QuizView({ documentId, pdfUrl }) {
-  const [state, setState]               = useState("idle");
-  const [questions, setQuestions]       = useState([]);
+  const [state, setState] = useState("idle");
+  const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers]           = useState({});
-  const [score, setScore]               = useState(0);
-  const [topic, setTopic]               = useState("");
-  const [error, setError]               = useState(null);
-  const [contextData, setContextData]   = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [score, setScore] = useState(0);
+  const [topic, setTopic] = useState("");
+  const [error, setError] = useState(null);
+  const [contextData, setContextData] = useState(null);
 
-  const [attempts, setAttempts]             = useState([]);
+  const [attempts, setAttempts] = useState([]);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
   const [selectedAttempt, setSelectedAttempt] = useState(null);
 
@@ -99,7 +115,8 @@ function QuizView({ documentId, pdfUrl }) {
         question: q.question,
         options: q.options,
         correctAnswer: q.options[q.correctIndex],
-        userAnswer: userAnswerIndex !== undefined ? q.options[userAnswerIndex] : "",
+        userAnswer:
+          userAnswerIndex !== undefined ? q.options[userAnswerIndex] : "",
         isCorrect: userAnswerIndex === q.correctIndex,
         explanation: q.explanation || "",
         sourceQuote: q.exactQuote || "",
@@ -108,7 +125,12 @@ function QuizView({ documentId, pdfUrl }) {
     });
 
     quizApi
-      .saveAttempt({ documentId, score, totalQuestions: questions.length, qaPairs })
+      .saveAttempt({
+        documentId,
+        score,
+        totalQuestions: questions.length,
+        qaPairs,
+      })
       .then(() => fetchAttempts()) // refresh list
       .catch((err) => console.error("Failed to save quiz attempt:", err));
   };
@@ -208,7 +230,10 @@ function QuizView({ documentId, pdfUrl }) {
           {attemptsLoading && (
             <div className="space-y-2">
               {[0, 1].map((i) => (
-                <div key={i} className="h-[68px] rounded-xl bg-[#111111] border border-white/10 animate-pulse" />
+                <div
+                  key={i}
+                  className="h-[68px] rounded-xl bg-[#111111] border border-white/10 animate-pulse"
+                />
               ))}
             </div>
           )}
@@ -244,8 +269,12 @@ function QuizView({ documentId, pdfUrl }) {
           <div className="absolute inset-0 w-14 h-14 rounded-full border-2 border-t-red-500 border-r-orange-500 animate-spin" />
         </div>
         <div className="text-center">
-          <p className="text-zinc-300 font-medium">Generating quiz questions…</p>
-          <p className="text-xs text-zinc-600 mt-1">Analyzing your document. This may take a moment.</p>
+          <p className="text-zinc-300 font-medium">
+            Generating quiz questions…
+          </p>
+          <p className="text-xs text-zinc-600 mt-1">
+            Analyzing your document. This may take a moment.
+          </p>
         </div>
       </div>
     );
@@ -294,7 +323,11 @@ function QuizView({ documentId, pdfUrl }) {
               isReview
               onShowContext={
                 q.exactQuote && q.pageNumber && pdfUrl
-                  ? () => setContextData({ pageNumber: q.pageNumber, exactQuote: q.exactQuote })
+                  ? () =>
+                      setContextData({
+                        pageNumber: q.pageNumber,
+                        exactQuote: q.exactQuote,
+                      })
                   : undefined
               }
             />
@@ -315,9 +348,9 @@ function QuizView({ documentId, pdfUrl }) {
 
   // ── Active quiz ───────────────────────────────────────────────────────────
   const currentQuestion = questions[currentIndex];
-  const selectedAnswer  = answers[currentQuestion.id];
-  const hasAnswered     = selectedAnswer !== undefined;
-  const progress        = ((currentIndex + 1) / questions.length) * 100;
+  const selectedAnswer = answers[currentQuestion.id];
+  const hasAnswered = selectedAnswer !== undefined;
+  const progress = ((currentIndex + 1) / questions.length) * 100;
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -325,7 +358,8 @@ function QuizView({ documentId, pdfUrl }) {
         <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
           <span>Progress</span>
           <span className="font-medium text-zinc-400">
-            {currentIndex + 1} <span className="text-zinc-700">/ {questions.length}</span>
+            {currentIndex + 1}{" "}
+            <span className="text-zinc-700">/ {questions.length}</span>
           </span>
         </div>
         <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
@@ -350,7 +384,9 @@ function QuizView({ documentId, pdfUrl }) {
             onClick={handleNext}
             className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 text-sm"
           >
-            {currentIndex < questions.length - 1 ? "Next Question →" : "See Results →"}
+            {currentIndex < questions.length - 1
+              ? "Next Question →"
+              : "See Results →"}
           </button>
         </div>
       )}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "@/features/auth/authApi";
+import { getLevelProgress } from "@/utils/levelUtils";
 import { getGlobalLeaderboard } from "@/features/leaderboard/leaderboardApi";
 import {
   User as UserIcon,
@@ -432,7 +433,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 <div className="mt-4 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full transition-all duration-700"
-                    style={{ width: `${(user?.xp % 1000) / 10}%` }}
+                    style={{ width: `${getLevelProgress(user?.xp || 0, user?.level || 1).progressPercent}%` }}
                   />
                 </div>
                 <div className="mt-3">

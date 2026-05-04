@@ -19,6 +19,7 @@ import codeRoute from "./routes/codeRoutes.js";
 import discussionRoutes from "./routes/discussionRoutes.js";
 import { initializeSocket } from "./socket/roomHandler.js";
 import quizAttemptRoute from "./routes/quizAttemptRoutes.js";
+import questRoute from "./routes/questRoutes.js";
 
 // 1. Load Environment Variables First
 dotenv.config({});
@@ -74,6 +75,7 @@ app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/competition", competitionRoutes);
 app.use("/api/v1/code", codeRoute);
 app.use("/api/v1/discussions", discussionRoutes);
+app.use("/api/v1/quests", questRoute);
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening at port ${PORT}`);

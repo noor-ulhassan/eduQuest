@@ -676,10 +676,14 @@ const CompetitionLobby = () => {
     setIsSubmitting(true);
     setSelectedAnswer(answer);
 
+    // Fallback: reset isSubmitting if socket callback never fires (network blip)
+    const submitTimeout = setTimeout(() => setIsSubmitting(false), 10000);
+
     socket.emit(
       "submitAnswer",
       { roomCode, questionIndex, answer },
       (result) => {
+        clearTimeout(submitTimeout);
         setAnswerResult(result);
         setIsSubmitting(false);
 
@@ -709,6 +713,8 @@ const CompetitionLobby = () => {
   // Handler: VS screen finished → transition to playing
   const handleVSComplete = () => {
     if (!vsData) return;
+    const capturedRoomCode = roomCode;
+    const capturedDuration = vsData.timerDuration;
     setShowVS(false);
     setGameState("playing");
     setTotalQuestions(vsData.totalQuestions);
@@ -728,9 +734,20 @@ const CompetitionLobby = () => {
     setFeedbackResult(null);
     setVsData(null);
 
-    // Start local timer countdown
+    // Start local timer — updated immediately via server sync below
     gameStartTimeRef.current = Date.now();
-    gameDurationRef.current = vsData.timerDuration;
+    gameDurationRef.current = capturedDuration;
+
+    // Signal server that player has started (fixes Q0 speed bonus for VS screen delay)
+    socket?.emit("playerStarted", { roomCode: capturedRoomCode });
+
+    // Sync timer with server so client countdown is accurate from the start
+    socket?.emit("getTimerSync", { roomCode: capturedRoomCode }, (res) => {
+      if (res?.remaining !== undefined) {
+        setTimeRemaining(res.remaining);
+        gameStartTimeRef.current = Date.now() - ((capturedDuration - res.remaining) * 1000);
+      }
+    });
   };
 
   // ─── Confetti + victory sound — fire once when game finishes ──
@@ -1442,7 +1459,7 @@ const CompetitionLobby = () => {
                 </h3>
               </div>
               <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
-                <h3 className="font-bold text-lg mb-4">
+                <h3 className="font-bold text-lg mb-4 text-metallic">
                   {currentQuestion?.title}
                 </h3>
                 <div className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed space-y-4">

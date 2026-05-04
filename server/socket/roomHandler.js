@@ -808,6 +808,26 @@ export function initializeSocket(io) {
       },
     );
 
+    // ─── PLAYER STARTED (VS screen dismissed — fix Q0 speed bonus) ──
+    socket.on("playerStarted", ({ roomCode }) => {
+      const room = rooms.get(roomCode);
+      if (!room || room.status !== "active") return;
+      const player = room.players.find((p) => p.id === socket.user.id);
+      // Only update if player hasn't answered Q0 yet (lastQuestionTime is still null)
+      if (player && player.currentQuestion === 0 && !player.lastQuestionTime) {
+        player.lastQuestionTime = Date.now();
+      }
+    });
+
+    // ─── GET TIMER SYNC (immediate sync after VS screen) ────────
+    socket.on("getTimerSync", ({ roomCode }, callback) => {
+      const room = rooms.get(roomCode);
+      if (!room || room.status !== "active") return callback?.({});
+      const elapsed = Math.floor((Date.now() - room.startTime) / 1000);
+      const remaining = Math.max(0, room.timerDuration - elapsed);
+      callback?.({ remaining });
+    });
+
     // ─── REQUEST TO JOIN (public, needs host approval) ───────
     socket.on("requestJoin", ({ roomCode }, callback) => {
       const room = rooms.get(roomCode);

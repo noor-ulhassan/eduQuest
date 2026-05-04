@@ -267,7 +267,7 @@ const TypeAnswerQuestion = ({ question, onSubmit, result, isSubmitting }) => {
       />
       <motion.h3
         variants={itemVariants}
-        className="text-xl font-semibold mb-6 leading-relaxed"
+        className="text-xl font-semibold mb-6 leading-relaxed text-metallic"
       >
         {question.question}
       </motion.h3>
@@ -357,7 +357,7 @@ const DragOrderQuestion = ({ question, onSubmit, result, isSubmitting }) => {
       />
       <motion.h3
         variants={itemVariants}
-        className="text-xl font-semibold mb-6 leading-relaxed"
+        className="text-xl font-semibold mb-6 leading-relaxed text-metallic"
       >
         {question.question}
       </motion.h3>
@@ -490,7 +490,7 @@ const DragMatchQuestion = ({ question, onSubmit, result, isSubmitting }) => {
       />
       <motion.h3
         variants={itemVariants}
-        className="text-xl font-semibold mb-6 leading-relaxed"
+        className="text-xl font-semibold mb-6 leading-relaxed text-metallic"
       >
         {question.question}
       </motion.h3>
@@ -676,7 +676,7 @@ const FillBlankQuestion = ({ question, onSubmit, result, isSubmitting }) => {
       />
       <motion.h3
         variants={itemVariants}
-        className="text-xl font-semibold mb-5 leading-relaxed"
+        className="text-xl font-semibold mb-5 leading-relaxed text-metallic"
       >
         {question.question}
       </motion.h3>
@@ -801,7 +801,7 @@ const PredictOutputQuestion = ({
       />
       <motion.h3
         variants={itemVariants}
-        className="text-xl font-semibold mb-5 leading-relaxed"
+        className="text-xl font-semibold mb-5 leading-relaxed text-metallic"
       >
         {question.question}
       </motion.h3>
@@ -914,7 +914,7 @@ const MCQQuestion = ({
       <div className="flex-1 flex flex-col items-center justify-center min-h-[150px] mb-8 w-full">
         <motion.h3
           variants={itemVariants}
-          className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center leading-tight tracking-tight drop-shadow-md select-text"
+          className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center leading-tight tracking-tight drop-shadow-md select-text text-metallic"
         >
           {question.question}
         </motion.h3>
@@ -1076,7 +1076,7 @@ const SliderAdjustQuestion = ({ question, onSubmit, result, isSubmitting }) => {
       />
       <motion.h3
         variants={itemVariants}
-        className="text-xl font-semibold mb-6 leading-relaxed"
+        className="text-xl font-semibold mb-6 leading-relaxed text-metallic"
       >
         {question.question}
       </motion.h3>

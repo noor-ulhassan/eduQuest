@@ -26,10 +26,18 @@ export const checkStreak = async (user, options = { autoSave: true }) => {
   const lastActiveDay = startOfDay(user.lastSolvedDate);
   const daysDiff = Math.floor((today - lastActiveDay) / MS_PER_DAY);
 
-  // If > 1 day has passed, they broke the streak. Reset to 0.
-  // Exception: If they've never solved anything (dayStreak 0), keep it 0.
+  // If > 1 day has passed they broke the streak — but shields can save them.
   if (daysDiff > 1 && user.dayStreak > 0) {
-    user.dayStreak = 0;
+    if (daysDiff === 2 && (user.streakShields || 0) > 0) {
+      // Exactly 1 missed day + shield available — consume shield, protect streak.
+      // Set lastSolvedDate to yesterday so incrementStreak sees daysDiff = 1.
+      user.streakShields -= 1;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      user.lastSolvedDate = yesterday;
+    } else {
+      user.dayStreak = 0;
+    }
     if (options.autoSave !== false) {
       await user.save();
     }
@@ -63,8 +71,12 @@ export const incrementStreak = async (user, options = { autoSave: true }) => {
     } else if (daysDiff === 1) {
       // Solved yesterday, increment today!
       user.dayStreak = (user.dayStreak || 0) + 1;
+    } else if (daysDiff === 2 && (user.streakShields || 0) > 0) {
+      // Missed exactly 1 day — shield absorbs it, streak continues
+      user.streakShields -= 1;
+      user.dayStreak = (user.dayStreak || 0) + 1;
     } else {
-      // Missed a day or more, streak reset to 1
+      // Missed 2+ days or no shield — streak resets to 1
       user.dayStreak = 1;
     }
   }

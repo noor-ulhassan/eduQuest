@@ -17,7 +17,12 @@ export const quizApi = {
     return res.data;
   },
   saveAttempt: async ({ documentId, score, totalQuestions, qaPairs }) => {
-    const res = await api.post("/quiz-attempts", { documentId, score, totalQuestions, qaPairs });
+    const res = await api.post("/quiz-attempts", {
+      documentId,
+      score,
+      totalQuestions,
+      qaPairs,
+    });
     return res.data;
   },
   getAttempts: async (documentId) => {

@@ -8,6 +8,7 @@ import UserStats from "@/components/user/UserStatus";
 import Streak from "../../components/home/streak";
 import DraggableCards from "../../components/home/draggableCards";
 import CompetitionStats from "@/components/home/CompetitionStats";
+import DailyQuests from "@/components/home/DailyQuests";
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { GoogleGeminiEffect } from "@/components/ui/google-gemini-effect";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards";
@@ -145,6 +146,11 @@ const HomePage = () => {
             <div className="w-full lg:w-auto flex justify-center lg:justify-start overflow-x-hidden">
               <DraggableCards />
             </div>
+          </div>
+
+          {/* Daily & Weekly Quests */}
+          <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 mt-8">
+            <DailyQuests />
           </div>
 
           {/* Competition Stats */}
