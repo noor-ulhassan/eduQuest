@@ -130,7 +130,7 @@ function UploadView({ onUploadSuccess }) {
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Upload size={32} className="text-indigo-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Upload Document</h2>
+            <h2 className="text-2xl font-semibold text-indigo-600 mb-2">Upload Document</h2>
             <p className="text-gray-600">
               Upload a PDF to start chatting, taking quizzes, and getting explanations.
             </p>
@@ -179,7 +179,7 @@ function UploadView({ onUploadSuccess }) {
               <div>
                 <Upload size={40} className="mx-auto mb-3 text-gray-400" />
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium text-indigo-600">Click to browse</span> or drag & drop
+                  <span className="font-medium text-indigo-6000">Click to browse</span> or drag & drop
                 </p>
                 <p className="text-xs text-gray-400 mt-1">PDF files only, up to 50MB</p>
               </div>

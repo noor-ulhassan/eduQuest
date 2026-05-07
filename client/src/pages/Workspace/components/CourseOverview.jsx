@@ -283,7 +283,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                   }}
                   className={cn(
                     "rounded-lg font-medium transition-colors",
-                    open ? "py-2.5 px-2" : "py-2.5 justify-center",
+                    open ? "py-2.5 px-2" : "py-2.5 justify-center ",
                     currentPath === item.path ||
                       (currentPath.startsWith(item.path) && item.path !== "/#")
                       ? "text-red-400 bg-white/10"
@@ -398,9 +398,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             ) : null}
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div
-                className="relative bg-[#111111] border border-white/10 rounded-2xl p-6 shadow-md shadow-black/50 hover:border-emerald-500/40 hover:shadow-lg transition-all cursor-pointer"
+                className="relative bg-[#111111] border border-white/10 rounded-2xl p-4 sm:pd-6 shadow-md shadow-black/50 hover:border-emerald-500/40 hover:shadow-lg transition-all cursor-pointer"
                 style={{
                   animation: "slideUp 0.4s ease-out both",
                   animationDelay: "0ms",
@@ -410,8 +410,8 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                 {showXPParticle && (
                   <FloatingXP onDone={() => setShowXPParticle(false)} />
                 )}
-                <div className="flex items-start justify-between mb-4">
-                  <p className="text-sm text-zinc-400 font-medium">
+                <div className="flex items-start justify-between mb-3 sm:mb-4">
+                  <p className="text-sm sm:text-sm text-zinc-400 font-medium">
                     Total Experience
                   </p>
                   <div
@@ -425,15 +425,19 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2 text-metallic">
-                  <h4 className="text-2xl font-bold">{xp.toLocaleString()}</h4>
-                  <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                  <h4 className="text-xl sm:text-2xl font-bold">
+                    {xp.toLocaleString()}
+                  </h4>
+                  <span className="text-[10px] sm:text-xs font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                     +XP
                   </span>
                 </div>
-                <div className="mt-4 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div className="mt-3 sm:mt-4 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full transition-all duration-700"
-                    style={{ width: `${getLevelProgress(user?.xp || 0, user?.level || 1).progressPercent}%` }}
+                    style={{
+                      width: `${getLevelProgress(user?.xp || 0, user?.level || 1).progressPercent}%`,
+                    }}
                   />
                 </div>
                 <div className="mt-3">
@@ -466,10 +470,10 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     />
                   </div>
                 </div>
-                <h4 className="text-2xl font-bold text-metallic">
+                <h4 className="text-xl sm:text-2xl font-bold text-metallic">
                   {streak} <span className="text-orange-400">Days</span>
                 </h4>
-                <div className="flex gap-1.5 mt-4">
+                <div className="flex gap-1.5 mt-3 sm:mt-4">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <div
                       key={i}
@@ -489,7 +493,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-zinc-400 mt-4 italic">
+                <p className="text-xs text-zinc-400 mt-4 sm:mt-4 italic">
                   Next milestone soon
                 </p>
               </div>
@@ -518,10 +522,10 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     />
                   </div>
                 </div>
-                <h4 className="text-2xl font-bold text-metallic">
+                <h4 className="text-xl sm:text-2xl font-bold text-metallic">
                   {user?.rank || "Novice"}
                 </h4>
-                <div className="mt-4 flex gap-1">
+                <div className="mt-3 sm:mt-4 flex gap-1">
                   {["Novice", "Bronze", "Silver", "Gold", "Diamond"].map(
                     (tier, i) => (
                       <div
@@ -542,7 +546,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     ),
                   )}
                 </div>
-                <p className="text-xs text-zinc-400 mt-4 tracking-wider">
+                <p className="text-xs text-zinc-400 mt-3 sm:mt-4 tracking-wider">
                   ⭐ Lvl {user?.level || 1}
                 </p>
               </div>
@@ -734,7 +738,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     outerRadius="70%"
                     data={radarData}
                   >
-                    <PolarGrid stroke="#334155" opacity={0.2} />
+                    <PolarGrid stroke="#334155" opacity={0.5} />
                     <PolarAngleAxis
                       dataKey="subject"
                       tick={{

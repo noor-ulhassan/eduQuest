@@ -181,7 +181,7 @@ function QuizView({ documentId, pdfUrl }) {
   // ── Idle ─────────────────────────────────────────────────────────────────
   if (state === "idle") {
     return (
-      <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col h-full overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {/* Quiz generator card */}
         <div className="flex justify-center px-4 pt-6 pb-4">
           <div className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-8 text-center">
@@ -314,7 +314,7 @@ function QuizView({ documentId, pdfUrl }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {questions.map((q) => (
             <QuestionCard
               key={q.id}
@@ -370,7 +370,7 @@ function QuizView({ documentId, pdfUrl }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <QuestionCard
           question={currentQuestion}
           selectedIndex={selectedAnswer}
