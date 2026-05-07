@@ -41,7 +41,11 @@ const UserStats = () => {
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  const { xpInLevel: xpInCurrentLevel, xpToNextLevel, progressPercent: progressPercentage } = getLevelProgress(xp, level);
+  const {
+    xpInLevel: xpInCurrentLevel,
+    xpToNextLevel,
+    progressPercent: progressPercentage,
+  } = getLevelProgress(xp, level);
 
   const [animatedXP, setAnimatedXP] = useState(0);
   const [animatedBadges, setAnimatedBadges] = useState(0);
@@ -170,8 +174,8 @@ const UserStats = () => {
                     layoutId={`image-${id}`}
                     className="relative shrink-0 mx-auto sm:mx-0"
                   >
-                      <img
-                        src={avatarUrl}
+                    <img
+                      src={avatarUrl}
                       alt={`${name}'s Avatar`}
                       className="w-24 h-24 rounded-full border-2 border-zinc-900 relative z-10 object-cover shadow-sm"
                       onError={(e) => {

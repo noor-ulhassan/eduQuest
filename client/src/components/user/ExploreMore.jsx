@@ -30,18 +30,21 @@ const ExplorMoreOptions = [
 function ExploreMore() {
   return (
     <div className="mt-8">
-      <h2 className="text-3xl mb-4 font-jersey">Explore More</h2>
+      <h2 className="text-3xl mb-4 font-jersey text-white">Explore More</h2>
       <div className="grid grid-cols-2 gap-5">
         {ExplorMoreOptions.map((option, index) => (
           <div
             key={index}
-            className="flex items-center gap-4 mb-4 p-3 rounded-xl border border-zinc-800
-"
+            className="flex items-center gap-4 mb-4 p-3 rounded-xl 
+            border border-white/10 bg-[#111111] hover:border-white/20 
+            hover:bg-[#161616] transition-all cursor-pointer group"
           >
             <img src={option.icon} alt={option.title} width={80} height={80} />
             <div>
-              <h2 className="font-jersey text-2xl">{option.title}</h2>
-              <p className=" text-gray-800">{option.desc}</p>
+              <h2 className="font-jersey text-2xl text-white">
+                {option.title}
+              </h2>
+              <p className="text-zinc-400 text-sm">{option.desc}</p>
             </div>
           </div>
         ))}

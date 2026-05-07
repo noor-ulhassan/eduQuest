@@ -73,9 +73,9 @@ const NotificationBell = () => {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-zinc-100 transition-colors"
+        className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
       >
-        <Bell className="w-5 h-5 text-zinc-600" />
+        <Bell className="w-5 h-5 text-zinc-400" />
         {requests.length > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
             {requests.length > 9 ? "9+" : requests.length}
@@ -85,12 +85,12 @@ const NotificationBell = () => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-zinc-200 z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 bg-[#111111] rounded-xl shadow-xl shadow-black/50 border border-white/10 z-50 overflow-hidden">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-zinc-800">Notifications</h3>
+          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white">Notifications</h3>
             {requests.length > 0 && (
-              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/20">
                 {requests.length} new
               </span>
             )}
@@ -100,46 +100,46 @@ const NotificationBell = () => {
           <div className="max-h-80 overflow-y-auto">
             {loading && requests.length === 0 ? (
               <div className="p-4 space-y-3">
-                <div className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
-                <div className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
+                <div className="h-12 bg-white/5 rounded-lg animate-pulse" />
+                <div className="h-12 bg-white/5 rounded-lg animate-pulse" />
               </div>
             ) : requests.length === 0 ? (
-              <div className="p-6 text-center text-zinc-400 text-sm">
-                <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <div className="p-6 text-center text-zinc-500 text-sm">
+                <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                 <p>No new notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-50">
+              <div className="divide-y divide-white/5">
                 {requests.map((req) => (
                   <div
                     key={req._id}
-                    className="flex items-center gap-3 p-3 hover:bg-zinc-50 transition-colors"
+                    className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors"
                   >
                     <Avatar
-                      className="h-9 w-9 cursor-pointer"
+                      className="h-9 w-9 cursor-pointer ring-1 ring-white/10"
                       onClick={() => {
                         navigate(`/profile/${req.from?._id}`);
                         setIsOpen(false);
                       }}
                     >
                       <AvatarImage src={req.from?.avatarUrl} />
-                      <AvatarFallback className="bg-indigo-50 text-indigo-600 text-xs">
+                      <AvatarFallback className="bg-indigo-500/10 text-indigo-400 text-xs border border-indigo-500/20">
                         {req.from?.name?.[0] || "?"}
                       </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-zinc-800 truncate">
+                      <p className="text-xs font-semibold text-white truncate">
                         {req.from?.name || "Someone"}
                       </p>
-                      <p className="text-[10px] text-zinc-400">
+                      <p className="text-[10px] text-zinc-500">
                         Wants to connect
                       </p>
                     </div>
 
                     <button
                       onClick={() => handleAccept(req._id)}
-                      className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
+                      className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20"
                       title="Accept"
                     >
                       <Check className="w-3.5 h-3.5" />

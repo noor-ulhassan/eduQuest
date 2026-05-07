@@ -41,7 +41,11 @@ const UserStats = () => {
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";
 
-  const { xpInLevel: xpInCurrentLevel, xpToNextLevel, progressPercent: progressPercentage } = getLevelProgress(xp, level);
+  const {
+    xpInLevel: xpInCurrentLevel,
+    xpToNextLevel,
+    progressPercent: progressPercentage,
+  } = getLevelProgress(xp, level);
 
   const [animatedXP, setAnimatedXP] = useState(0);
   const [animatedBadges, setAnimatedBadges] = useState(0);
@@ -164,7 +168,6 @@ const UserStats = () => {
               ref={ref}
               className="w-full max-w-[600px] h-fit max-h-[90vh] overflow-y-auto flex flex-col bg-white dark:bg-[#1a1730] rounded-2xl overflow-hidden shadow-xl relative border border-zinc-200 dark:border-zinc-700 pointer-events-auto no-scrollbar"
             >
-
               <div className="p-6 sm:p-8 relative z-10">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 mb-6 sm:mb-8">
                   <motion.div
@@ -272,7 +275,6 @@ const UserStats = () => {
         onClick={() => setActive(!active)}
         className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm group relative bg-white dark:bg-[#1a1730] cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-600"
       >
-
         <div className="p-6 relative z-10 pointer-events-none">
           <div className="flex items-center gap-5">
             <motion.div layoutId={`image-${id}`} className="relative shrink-0">
