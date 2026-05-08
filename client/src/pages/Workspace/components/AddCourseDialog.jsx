@@ -206,9 +206,8 @@ function AddCourseDialog({ children, setCourseList, user }) {
 
       setLoading(false);
 
-      if (res.data.success) {
-        setOpen(false); // ✅ dialog close
-        // Change 4: Use navigate() instead of router.push()
+      if (res.success) {
+        setOpen(false);
         navigate("/workspace/edit-course/" + res.data.courseId);
 
         if (setCourseList) {

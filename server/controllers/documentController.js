@@ -3,22 +3,20 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { getVectorStore } from "../database/dbConnect.js";
 import fs from "fs/promises";
-import mongoose from "mongoose";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-/**
- * Detect chapter number from page text using common heading patterns.
- * Returns the chapter number if found, or null.
- */
 function detectChapterFromText(text) {
   const patterns = [
-    /\bChapter\s+(\d+)/i,     // "Chapter 1", "chapter 12"
-    /\bCh[\.\s]+(\d+)/i,      // "Ch. 1", "Ch 3"
-    /^(\d+)\.\s+[A-Z]/m,      // "1. Introduction" at line start
-    /\bUnit\s+(\d+)/i,        // "Unit 1"
-    /\bModule\s+(\d+)/i,      // "Module 1"
-    /\bPart\s+(\d+)/i,        // "Part 1"
-    /\bSection\s+(\d+)/i,     // "Section 1"
+    /\bChapter\s+(\d+)/i,
+    /\bCh[\.\s]+(\d+)/i,
+    /^(\d+)\.\s+[A-Z]/m,
+    /\bUnit\s+(\d+)/i,
+    /\bModule\s+(\d+)/i,
+    /\bPart\s+(\d+)/i,
+    /\bSection\s+(\d+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -30,51 +28,32 @@ function detectChapterFromText(text) {
   return null;
 }
 
-// @desc    Upload PDF document
-// @route   POST /api/documents/upload
-// @access  Private
-export const uploadDocument = async (req, res, next) => {
+export const uploadDocument = asyncHandler(async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: "Please upload a PDF file",
-        statusCode: 400,
-      });
-    }
-    
-    let filePath = req.file.path; // The temp file on your disk
+    if (!req.file) throw new ApiError(400, "Please upload a PDF file");
+
+    let filePath = req.file.path;
     const { title } = req.body;
 
-    if (!title) {
-      return res.status(400).json({
-        success: false,
-        error: "Please provide a document title",
-        statusCode: 400,
-      });
-    }
+    if (!title) throw new ApiError(400, "Please provide a document title");
 
-    // 1. Create an initial document record to get an ID
     const document = await Document.create({
       userId: req.user._id,
       title,
       fileName: req.file.originalname,
-      filePath: "pending", // Placeholder
+      filePath: "pending",
       fileSize: req.file.size,
       status: "processing",
     });
 
-    // 2. Load PDF pages with LangChain
     console.log("Step 1: Loading PDF with LangChain...");
     const loader = new PDFLoader(filePath);
     const docs = await loader.load();
-    
-    // 3. Build chapter map
+
     let currentChapter = 1;
     const pageChapterMap = {};
 
     for (const doc of docs) {
-      // Support both loc.pageNumber (1-indexed, newer LangChain) and page (0-indexed, older LangChain)
       const pageNum =
         doc.metadata?.loc?.pageNumber ??
         (doc.metadata?.page != null ? doc.metadata.page + 1 : null) ??
@@ -86,7 +65,6 @@ export const uploadDocument = async (req, res, next) => {
       pageChapterMap[pageNum] = currentChapter;
     }
 
-    // 4. Split into chunks
     console.log("Step 2: Splitting text into chunks...");
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 700,
@@ -94,7 +72,6 @@ export const uploadDocument = async (req, res, next) => {
     });
     const splitDocs = await splitter.splitDocuments(docs);
 
-    // 5. Enrich chunks with metadata
     splitDocs.forEach((doc, index) => {
       const pageNum =
         doc.metadata?.loc?.pageNumber ??
@@ -110,7 +87,6 @@ export const uploadDocument = async (req, res, next) => {
       };
     });
 
-    // 6. Upload to Cloudinary
     console.log("Step 3: Uploading to Cloudinary...");
     const cloudinaryResponse = await uploadOnCloudinary(filePath);
 
@@ -118,27 +94,23 @@ export const uploadDocument = async (req, res, next) => {
       throw new Error("Failed to upload to Cloudinary");
     }
 
-    // 7. Embed and store chunks in Vector Store
     console.log("Step 4: Storing chunks in Vector DB...");
     const vectorStore = getVectorStore();
-    // We must send chunks in small batches to respect Google API Rate Limits
-    const BATCH_SIZE = 50; // Keep this low for the free tier
-    
+    const BATCH_SIZE = 50;
+
     for (let i = 0; i < splitDocs.length; i += BATCH_SIZE) {
       const batch = splitDocs.slice(i, i + BATCH_SIZE);
-      
+
       console.log(`⏳ Embedding batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(splitDocs.length / BATCH_SIZE)}...`);
       await vectorStore.addDocuments(batch);
 
-      // Force the server to pause for 4 seconds between batches
       if (i + BATCH_SIZE < splitDocs.length) {
         await new Promise((resolve) => setTimeout(resolve, 4000));
       }
     }
 
-    // 8. Update document record with results
     const chaptersArr = [...new Set(Object.values(pageChapterMap))].sort((a, b) => a - b);
-    
+
     document.filePath = cloudinaryResponse.secure_url;
     document.totalPages = docs.length;
     document.chunksStored = splitDocs.length;
@@ -146,13 +118,9 @@ export const uploadDocument = async (req, res, next) => {
     document.status = "ready";
     await document.save();
 
-    res.status(201).json({
-      success: true,
-      data: document,
-      message: "Document uploaded successfully.",
-    });
-  } catch (error) {
-    next(error);
+    return res
+      .status(201)
+      .json(new ApiResponse(201, { data: document }, "Document uploaded successfully."));
   } finally {
     try {
       if (req.file?.path) {
@@ -164,130 +132,63 @@ export const uploadDocument = async (req, res, next) => {
         console.error("Error deleting temp file:", err);
     }
   }
-};
+});
 
-// @desc    Get all user documents
-// @route   GET /api/documents
-// @access  Private
-export const getDocuments = async (req, res, next) => {
-  try {
-    const documents = await Document.find({ userId: req.user._id })
-      .select("_id title fileName fileSize filePath status createdAt")
-      .sort({ createdAt: -1 });
+export const getDocuments = asyncHandler(async (req, res) => {
+  const documents = await Document.find({ userId: req.user._id })
+    .select("_id title fileName fileSize filePath status createdAt")
+    .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: documents.length,
-      data: documents,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch documents",
-      error: error.message,
-    });
+  return res.status(200).json(
+    new ApiResponse(200, { count: documents.length, data: documents }),
+  );
+});
+
+export const getDocument = asyncHandler(async (req, res) => {
+  const document = await Document.findById(req.params.id);
+
+  if (!document) throw new ApiError(404, "Document not found");
+
+  if (document.userId.toString() !== req.user._id.toString()) {
+    throw new ApiError(401, "Not authorized to view this document");
   }
-};
 
-// @desc    Get single document with chunks
-// @route   GET /api/documents/:id
-// @access  Private
-export const getDocument = async (req, res, next) => {
-  try {
-    const document = await Document.findById(req.params.id);
+  return res.status(200).json(new ApiResponse(200, { data: document }));
+});
 
-    if (!document) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Document not found" });
-    }
+export const deleteDocument = asyncHandler(async (req, res) => {
+  const document = await Document.findById(req.params.id);
 
-    // Ensure user owns the document
-    if (document.userId.toString() !== req.user._id.toString()) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: "Not authorized to view this document",
-        });
-    }
+  if (!document) throw new ApiError(404, "Document not found");
 
-    res.status(200).json({
-      success: true,
-      data: document,
-    });
-  } catch (error) {
-    next(error);
+  if (document.userId.toString() !== req.user._id.toString()) {
+    throw new ApiError(401, "Not authorized");
   }
-};
 
-// @desc    Delete document
-// @route   DELETE /api/documents/:id
-// @access  Private
-export const deleteDocument = async (req, res, next) => {
-  try {
-    const document = await Document.findById(req.params.id);
+  await document.deleteOne();
 
-    if (!document) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Document not found" });
-    }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Document deleted successfully"));
+});
 
-    // Ensure user owns the document
-    if (document.userId.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ success: false, error: "Not authorized" });
-    }
+export const updateDocument = asyncHandler(async (req, res) => {
+  const { title } = req.body;
 
-    // OPTIONAL: Delete from Cloudinary here if you want to be thorough
-    // await cloudinary.uploader.destroy(public_id);
+  if (!title) throw new ApiError(400, "Please provide a title");
 
-    await document.deleteOne();
+  let document = await Document.findById(req.params.id);
 
-    res.status(200).json({
-      success: true,
-      message: "Document deleted successfully",
-    });
-  } catch (error) {
-    next(error);
+  if (!document) throw new ApiError(404, "Document not found");
+
+  if (document.userId.toString() !== req.user._id.toString()) {
+    throw new ApiError(401, "Not authorized");
   }
-};
 
-// @desc    Update document title
-// @route   PUT /api/documents/:id
-// @access  Private
-export const updateDocument = async (req, res, next) => {
-  try {
-    const { title } = req.body;
+  document.title = title;
+  await document.save();
 
-    if (!title) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Please provide a title" });
-    }
-
-    let document = await Document.findById(req.params.id);
-
-    if (!document) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Document not found" });
-    }
-
-    // Ensure user owns the document
-    if (document.userId.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ success: false, error: "Not authorized" });
-    }
-
-    document.title = title;
-    await document.save();
-
-    res.status(200).json({
-      success: true,
-      data: document,
-      message: "Document updated successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { data: document }, "Document updated successfully"));
+});

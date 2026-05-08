@@ -31,7 +31,7 @@ export default function Signup() {
         delete payload.adminPasscode;
       }
       const res = await api.post("/auth/register", payload);
-      setSuccess(res.data.message);
+      setSuccess(res.message);
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong");

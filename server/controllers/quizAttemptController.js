@@ -1,67 +1,45 @@
 import QuizAttempt from "../models/QuizAttempt.js";
 import Document from "../models/Document.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-// @desc    Save a new quiz attempt
-// @route   POST /api/quiz-attempts
-// @access  Private
-export const saveQuizAttempt = async (req, res, next) => {
-  try {
-    const { documentId, score, totalQuestions, qaPairs } = req.body;
+export const saveQuizAttempt = asyncHandler(async (req, res) => {
+  const { documentId, score, totalQuestions, qaPairs } = req.body;
 
-    // 1. Basic Validation
-    if (!documentId || score === undefined || !totalQuestions || !qaPairs) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
-    }
-
-    // 2. Verify Document Exists
-    const document = await Document.findById(documentId);
-    if (!document) {
-      return res.status(404).json({ success: false, error: "Document not found" });
-    }
-
-    // 3. Calculate percentage on the backend (safer than trusting the frontend)
-    const percentage = Math.round((score / totalQuestions) * 100);
-
-    // 4. Save to Database
-    const attempt = await QuizAttempt.create({
-      userId: req.user._id,
-      documentId,
-      score,
-      totalQuestions,
-      percentage,
-      qaPairs,
-      cloudinaryUrl: document.filePath || "",
-    });
-
-    res.status(201).json({
-      success: true,
-      data: attempt,
-      message: "Quiz attempt saved successfully",
-    });
-  } catch (error) {
-    next(error);
+  if (!documentId || score === undefined || !totalQuestions || !qaPairs) {
+    throw new ApiError(400, "Missing required fields");
   }
-};
 
-// @desc    Get all quiz attempts for a specific document
-// @route   GET /api/quiz-attempts/document/:documentId
-// @access  Private
-export const getAttemptsByDocument = async (req, res, next) => {
-  try {
-    const { documentId } = req.params;
+  const document = await Document.findById(documentId);
+  if (!document) throw new ApiError(404, "Document not found");
 
-    // Fetch attempts, ensuring they belong to the logged-in user
-    const attempts = await QuizAttempt.find({
-      documentId,
-      userId: req.user._id,
-    }).sort({ createdAt: -1 }); // Newest first
+  const percentage = Math.round((score / totalQuestions) * 100);
 
-    res.status(200).json({
-      success: true,
-      count: attempts.length,
-      data: attempts,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  const attempt = await QuizAttempt.create({
+    userId: req.user._id,
+    documentId,
+    score,
+    totalQuestions,
+    percentage,
+    qaPairs,
+    cloudinaryUrl: document.filePath || "",
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, { data: attempt }, "Quiz attempt saved successfully"));
+});
+
+export const getAttemptsByDocument = asyncHandler(async (req, res) => {
+  const { documentId } = req.params;
+
+  const attempts = await QuizAttempt.find({
+    documentId,
+    userId: req.user._id,
+  }).sort({ createdAt: -1 });
+
+  return res.status(200).json(
+    new ApiResponse(200, { count: attempts.length, data: attempts }),
+  );
+});

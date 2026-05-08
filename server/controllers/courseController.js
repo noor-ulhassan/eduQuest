@@ -2,39 +2,35 @@ import { v4 as uuidv4 } from "uuid";
 import { Course } from "../models/AiCourse.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import { callAiModel, callAiModelChat } from "../config/aiProvider.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-export const geminiCourseGenerator = async (req, res) => {
-  try {
-    const {
-      name,
-      description,
-      category,
-      level,
-      noOfChapters,
-      userEmail,
-      userName,
-      userProfileImage,
-    } = req.body;
+export const geminiCourseGenerator = asyncHandler(async (req, res) => {
+  const {
+    name,
+    description,
+    category,
+    level,
+    noOfChapters,
+    userEmail,
+    userName,
+    userProfileImage,
+  } = req.body;
 
-    if (!name || !description || !category || !level || !noOfChapters) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
+  if (!name || !description || !category || !level || !noOfChapters) {
+    throw new ApiError(400, "All fields are required");
+  }
 
-    const resolvedUserEmail = req.user?.email || userEmail;
-    const resolvedUserName = req.user?.name || userName;
-    const resolvedUserProfileImage = req.user?.avatarUrl || userProfileImage;
+  const resolvedUserEmail = req.user?.email || userEmail;
+  const resolvedUserName = req.user?.name || userName;
+  const resolvedUserProfileImage = req.user?.avatarUrl || userProfileImage;
 
-    if (!resolvedUserEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Authenticated user email is required",
-      });
-    }
+  if (!resolvedUserEmail) {
+    throw new ApiError(400, "Authenticated user email is required");
+  }
 
-    const prompt = `Generate Learning Course depends on following details:
+  const prompt = `Generate Learning Course depends on following details:
     - Topic: ${name}
     - Description: ${description}
     - Category: ${category}
@@ -69,86 +65,57 @@ export const geminiCourseGenerator = async (req, res) => {
     }
     Return ONLY raw JSON. No markdown. No backticks.`;
 
-    const aiResponse = await callAiModel(prompt, { model: "gemini-3.1-flash-lite-preview" });
+  const aiResponse = await callAiModel(prompt, { model: "gemini-3.1-flash-lite-preview" });
 
-    const courseId = uuidv4();
+  const courseId = uuidv4();
 
-    const newCourse = await Course.create({
-      courseId: courseId,
-      name: name,
-      description: description,
-      noOfChapters: Number(noOfChapters),
-      level: level,
-      category: category,
-      courseOutput: aiResponse.course,
-      userEmail: resolvedUserEmail,
-      userName: resolvedUserName,
-      userProfileImage: resolvedUserProfileImage,
-    });
+  const newCourse = await Course.create({
+    courseId: courseId,
+    name: name,
+    description: description,
+    noOfChapters: Number(noOfChapters),
+    level: level,
+    category: category,
+    courseOutput: aiResponse.course,
+    userEmail: resolvedUserEmail,
+    userName: resolvedUserName,
+    userProfileImage: resolvedUserProfileImage,
+  });
 
-    console.log("New Course Created: ", newCourse);
+  console.log("New Course Created: ", newCourse);
 
-    return res.status(200).json({
-      success: true,
+  return res.status(200).json(
+    new ApiResponse(200, {
       courseId: newCourse.courseId,
       data: newCourse,
-    });
-  } catch (error) {
-    console.error("Gemini Error:", error);
+    }),
+  );
+});
 
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate course",
-      error: error.message,
-    });
-  }
-};
+export const getCourseById = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
 
-export const getCourseById = async (req, res) => {
-  try {
-    const { courseId } = req.params;
+  const course = await Course.findOne({ courseId: courseId });
+  if (!course) throw new ApiError(404, "Course not found");
 
-    const course = await Course.findOne({ courseId: courseId });
+  return res.status(200).json(new ApiResponse(200, { course }));
+});
 
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
+export const generateChapterContent = asyncHandler(async (req, res) => {
+  const { courseId, chapter, index } = req.body;
+
+  const existingCourse = await Course.findOne({ courseId });
+  if (existingCourse) {
+    const existingChapter = existingCourse.courseOutput?.chapters?.[index];
+    const existingTopics = existingChapter?.topics || [];
+    if (existingTopics.length > 0 && typeof existingTopics[0] === "object") {
+      return res.status(200).json(
+        new ApiResponse(200, { data: existingChapter, cached: true }),
+      );
     }
-
-    return res.status(200).json({
-      success: true,
-      course: course,
-    });
-  } catch (error) {
-    console.error("Fetch Course Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
   }
-};
 
-export const generateChapterContent = async (req, res) => {
-  try {
-    const { courseId, chapter, index } = req.body;
-
-    const existingCourse = await Course.findOne({ courseId });
-    if (existingCourse) {
-      const existingChapter = existingCourse.courseOutput?.chapters?.[index];
-      const existingTopics = existingChapter?.topics || [];
-      if (existingTopics.length > 0 && typeof existingTopics[0] === "object") {
-        return res.status(200).json({
-          success: true,
-          data: existingChapter,
-          cached: true,
-        });
-      }
-    }
-
-    const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML
+  const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML
     and give response in JSON format.
     Schema: {
       "chapterName": "string",
@@ -171,254 +138,193 @@ export const generateChapterContent = async (req, res) => {
     - Return empty string "" for topics that are simple definitions, introductions, or concept explanations that do not involve steps, flows, or structural relationships.
     : User Input: ${JSON.stringify(chapter)}`;
 
-    let chapterContentData = await callAiModel(prompt);
+  let chapterContentData = await callAiModel(prompt);
 
-    const fetchVideoId = async (topicName) => {
-      try {
-        const query = encodeURIComponent(`${topicName} tutorial`);
-        const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
-        const ytRes = await fetch(url);
-        const ytData = await ytRes.json();
-        return ytData?.items?.[0]?.id?.videoId ?? null;
-      } catch {
-        return null;
-      }
-    };
+  const fetchVideoId = async (topicName) => {
+    try {
+      const query = encodeURIComponent(`${topicName} tutorial`);
+      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
+      const ytRes = await fetch(url);
+      const ytData = await ytRes.json();
+      return ytData?.items?.[0]?.id?.videoId ?? null;
+    } catch {
+      return null;
+    }
+  };
 
-    const videoIds = await Promise.all(
-      chapterContentData.topics.map((t) => fetchVideoId(t.topic)),
-    );
+  const videoIds = await Promise.all(
+    chapterContentData.topics.map((t) => fetchVideoId(t.topic)),
+  );
 
-    chapterContentData.topics = chapterContentData.topics.map((t, i) => ({
-      ...t,
-      videoId: videoIds[i],
-    }));
+  chapterContentData.topics = chapterContentData.topics.map((t, i) => ({
+    ...t,
+    videoId: videoIds[i],
+  }));
 
-    await Course.findOneAndUpdate(
-      { courseId: courseId },
-      {
-        $set: { [`courseOutput.chapters.${index}`]: chapterContentData },
-      },
-    );
+  await Course.findOneAndUpdate(
+    { courseId: courseId },
+    {
+      $set: { [`courseOutput.chapters.${index}`]: chapterContentData },
+    },
+  );
 
-    return res.status(200).json({
-      success: true,
-      data: chapterContentData,
-    });
-  } catch (error) {
-    console.error("Chapter Generation Error:", error);
-    res.status(500).json({ success: false, error: error.message });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { data: chapterContentData }));
+});
+
+export const getAllCourses = asyncHandler(async (req, res) => {
+  const { email } = req.query;
+
+  const courses = await Course.find({ userEmail: email }).sort({
+    createdAt: -1,
+  });
+
+  return res.status(200).json(new ApiResponse(200, { courses }));
+});
+
+export const enrollToCourse = asyncHandler(async (req, res) => {
+  const { courseId, userEmail } = req.body;
+
+  if (!courseId || !userEmail) {
+    throw new ApiError(400, "Course ID and User Email are required");
   }
-};
 
-export const getAllCourses = async (req, res) => {
-  try {
-    const { email } = req.query;
+  const existingEnrollment = await Enrollment.findOne({
+    courseId,
+    userEmail,
+  });
 
-    const courses = await Course.find({ userEmail: email }).sort({
-      createdAt: -1,
-    });
-
-    return res.status(200).json({
-      success: true,
-      courses: courses,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Server Error" });
+  if (existingEnrollment) {
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        { enrollment: existingEnrollment },
+        "User is already enrolled",
+      ),
+    );
   }
-};
 
-export const enrollToCourse = async (req, res) => {
-  try {
-    const { courseId, userEmail } = req.body;
+  const newEnrollment = await Enrollment.create({
+    courseId,
+    userEmail,
+    completedChapters: [],
+  });
 
-    if (!courseId || !userEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Course ID and User Email are required",
-      });
+  return res.status(201).json(
+    new ApiResponse(201, { enrollment: newEnrollment }, "Enrolled successfully"),
+  );
+});
+
+export const getEnrollmentStatus = asyncHandler(async (req, res) => {
+  const { courseId, email } = req.query;
+  const enrollment = await Enrollment.findOne({ courseId, userEmail: email });
+
+  if (!enrollment) throw new ApiError(404, "Enrollment not found");
+
+  return res.status(200).json(new ApiResponse(200, { enrollment }));
+});
+
+export const markChapterCompleted = asyncHandler(async (req, res) => {
+  const { enrollmentId, chapterName } = req.body;
+
+  if (!enrollmentId || !chapterName) {
+    throw new ApiError(400, "enrollmentId and chapterName are required");
+  }
+
+  const updatedEnrollment = await Enrollment.findByIdAndUpdate(
+    enrollmentId,
+    {
+      $addToSet: { completedChapters: chapterName },
+    },
+    { new: true },
+  );
+
+  if (!updatedEnrollment) throw new ApiError(404, "Enrollment not found");
+
+  const course = await Course.findOne({
+    courseId: updatedEnrollment.courseId,
+  });
+  if (course) {
+    const totalChapters =
+      course.noOfChapters || course.courseOutput?.chapters?.length || 1;
+    const completedCount = updatedEnrollment.completedChapters.length;
+    const achievements = course.courseOutput?.achievements || [];
+    const newUnlocks = [];
+
+    if (completedCount >= 1 && achievements[0]) {
+      newUnlocks.push(achievements[0].title);
+    }
+    if (completedCount >= Math.ceil(totalChapters / 2) && achievements[1]) {
+      newUnlocks.push(achievements[1].title);
+    }
+    if (completedCount >= totalChapters) {
+      achievements.slice(2).forEach((ach) => newUnlocks.push(ach.title));
     }
 
-    const existingEnrollment = await Enrollment.findOne({
-      courseId,
-      userEmail,
-    });
-
-    if (existingEnrollment) {
-      return res.status(200).json({
-        success: true,
-        message: "User is already enrolled",
-        enrollment: existingEnrollment,
+    if (newUnlocks.length > 0) {
+      await Enrollment.findByIdAndUpdate(enrollmentId, {
+        $addToSet: { unlockedAchievements: { $each: newUnlocks } },
       });
-    }
-
-    const newEnrollment = await Enrollment.create({
-      courseId,
-      userEmail,
-      completedChapters: [],
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Enrolled successfully",
-      enrollment: newEnrollment,
-    });
-  } catch (error) {
-    console.error("Enrollment Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
-};
-
-export const getEnrollmentStatus = async (req, res) => {
-  try {
-    const { courseId, email } = req.query;
-    const enrollment = await Enrollment.findOne({ courseId, userEmail: email });
-
-    if (!enrollment) {
+      const finalEnrollment = await Enrollment.findById(enrollmentId);
       return res
-        .status(404)
-        .json({ success: false, message: "Enrollment not found" });
+        .status(200)
+        .json(new ApiResponse(200, { enrollment: finalEnrollment }));
     }
-
-    return res.status(200).json({ success: true, enrollment });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
   }
-};
 
-export const markChapterCompleted = async (req, res) => {
-  try {
-    const { enrollmentId, chapterName } = req.body;
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { enrollment: updatedEnrollment }));
+});
 
-    if (!enrollmentId || !chapterName) {
-      return res.status(400).json({
-        success: false,
-        message: "enrollmentId and chapterName are required",
-      });
-    }
+export const getUserEnrollments = asyncHandler(async (req, res) => {
+  const { email } = req.query;
 
-    const updatedEnrollment = await Enrollment.findByIdAndUpdate(
-      enrollmentId,
-      {
-        $addToSet: { completedChapters: chapterName },
-      },
-      { new: true },
-    );
+  const enrollments = await Enrollment.find({ userEmail: email });
 
-    if (!updatedEnrollment) {
-      return res.status(404).json({
-        success: false,
-        message: "Enrollment not found",
-      });
-    }
+  const enrolledCourses = await Promise.all(
+    enrollments.map(async (enroll) => {
+      const course = await Course.findOne({ courseId: enroll.courseId });
+      if (!course) return null;
 
-    const course = await Course.findOne({
-      courseId: updatedEnrollment.courseId,
-    });
-    if (course) {
-      const totalChapters =
-        course.noOfChapters || course.courseOutput?.chapters?.length || 1;
-      const completedCount = updatedEnrollment.completedChapters.length;
-      const achievements = course.courseOutput?.achievements || [];
-      const newUnlocks = [];
+      const totalChapters = course.noOfChapters || 0;
+      const completedChaptersCount = enroll.completedChapters?.length || 0;
+      const progress =
+        totalChapters > 0
+          ? Math.round((completedChaptersCount / totalChapters) * 100)
+          : 0;
 
-      if (completedCount >= 1 && achievements[0]) {
-        newUnlocks.push(achievements[0].title);
-      }
-      if (completedCount >= Math.ceil(totalChapters / 2) && achievements[1]) {
-        newUnlocks.push(achievements[1].title);
-      }
-      if (completedCount >= totalChapters) {
-        achievements.slice(2).forEach((ach) => newUnlocks.push(ach.title));
-      }
+      return {
+        ...course._doc,
+        completedChapters: enroll.completedChapters,
+        progress: progress,
+        enrollmentId: enroll._id,
+      };
+    }),
+  );
 
-      if (newUnlocks.length > 0) {
-        await Enrollment.findByIdAndUpdate(enrollmentId, {
-          $addToSet: { unlockedAchievements: { $each: newUnlocks } },
-        });
-        const finalEnrollment = await Enrollment.findById(enrollmentId);
-        return res
-          .status(200)
-          .json({ success: true, enrollment: finalEnrollment });
-      }
-    }
+  const filteredCourses = enrolledCourses.filter((course) => course !== null);
 
-    return res
-      .status(200)
-      .json({ success: true, enrollment: updatedEnrollment });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { enrolledCourses: filteredCourses }));
+});
+
+export const generateFlashcards = asyncHandler(async (req, res) => {
+  const { courseId, chapterIndex } = req.body;
+
+  if (!courseId || chapterIndex === undefined) {
+    throw new ApiError(400, "courseId and chapterIndex are required");
   }
-};
 
-export const getUserEnrollments = async (req, res) => {
-  try {
-    const { email } = req.query;
+  const course = await Course.findOne({ courseId });
+  if (!course) throw new ApiError(404, "Course not found");
 
-    const enrollments = await Enrollment.find({ userEmail: email });
+  const chapter = course.courseOutput?.chapters?.[chapterIndex];
+  if (!chapter) throw new ApiError(404, "Chapter not found");
 
-    const enrolledCourses = await Promise.all(
-      enrollments.map(async (enroll) => {
-        const course = await Course.findOne({ courseId: enroll.courseId });
-        if (!course) return null;
-
-        const totalChapters = course.noOfChapters || 0;
-        const completedChaptersCount = enroll.completedChapters?.length || 0;
-        const progress =
-          totalChapters > 0
-            ? Math.round((completedChaptersCount / totalChapters) * 100)
-            : 0;
-
-        return {
-          ...course._doc,
-          completedChapters: enroll.completedChapters,
-          progress: progress,
-          enrollmentId: enroll._id,
-        };
-      }),
-    );
-
-    const filteredCourses = enrolledCourses.filter((course) => course !== null);
-
-    return res.status(200).json({
-      success: true,
-      enrolledCourses: filteredCourses,
-    });
-  } catch (error) {
-    console.error("Fetch Enrollments Error:", error);
-    return res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
-
-export const generateFlashcards = async (req, res) => {
-  try {
-    const { courseId, chapterIndex } = req.body;
-
-    if (!courseId || chapterIndex === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "courseId and chapterIndex are required",
-      });
-    }
-
-    const course = await Course.findOne({ courseId });
-    if (!course) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Course not found" });
-    }
-
-    const chapter = course.courseOutput?.chapters?.[chapterIndex];
-    if (!chapter) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Chapter not found" });
-    }
-
-    const prompt = `Based on the following chapter content, generate flashcards for study and revision.
+  const prompt = `Based on the following chapter content, generate flashcards for study and revision.
 Each flashcard should have a "front" (question or term), a "back" (answer or definition), and a "hint" (a short clue).
 Generate between 8 and 15 flashcards that cover the key concepts comprehensively.
 
@@ -431,45 +337,28 @@ Return ONLY valid JSON in this exact schema:
 
 Chapter: ${JSON.stringify(chapter)}`;
 
-    const parsed = await callAiModel(prompt);
+  const parsed = await callAiModel(prompt);
 
-    return res.status(200).json({
-      success: true,
-      flashcards: parsed.flashcards || [],
-    });
-  } catch (error) {
-    console.error("Flashcard Generation Error:", error);
-    return res.status(500).json({ success: false, message: error.message });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { flashcards: parsed.flashcards || [] }));
+});
+
+export const courseMentorChat = asyncHandler(async (req, res) => {
+  const { courseId, chapterIndex, message, history } = req.body;
+
+  if (!courseId || chapterIndex === undefined || !message) {
+    throw new ApiError(400, "courseId, chapterIndex, and message are required");
   }
-};
 
-export const courseMentorChat = async (req, res) => {
-  try {
-    const { courseId, chapterIndex, message, history } = req.body;
+  const course = await Course.findOne({ courseId });
+  if (!course) throw new ApiError(404, "Course not found");
 
-    if (!courseId || chapterIndex === undefined || !message) {
-      return res.status(400).json({
-        success: false,
-        message: "courseId, chapterIndex, and message are required",
-      });
-    }
+  const chapter = course.courseOutput?.chapters?.[chapterIndex];
+  if (!chapter) throw new ApiError(404, "Chapter not found");
 
-    const course = await Course.findOne({ courseId });
-    if (!course) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Course not found" });
-    }
-
-    const chapter = course.courseOutput?.chapters?.[chapterIndex];
-    if (!chapter) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Chapter not found" });
-    }
-
-    const responseText = await callAiModelChat({
-      systemPrompt: `You are an expert AI mentor and tutor for the course "${course.name}".
+  const responseText = await callAiModelChat({
+    systemPrompt: `You are an expert AI mentor and tutor for the course "${course.name}".
 You are currently helping a student with Chapter: "${chapter.chapterName}".
 
 Here is the full chapter content for context:
@@ -482,16 +371,9 @@ Rules:
 - Be encouraging, friendly, and supportive.
 - Keep responses under 300 words unless the student asks for a detailed explanation.
 - Format your responses in clean markdown with code blocks where appropriate.`,
-      history,
-      message,
-    });
+    history,
+    message,
+  });
 
-    return res.status(200).json({
-      success: true,
-      reply: responseText,
-    });
-  } catch (error) {
-    console.error("Mentor Chat Error:", error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
+  return res.status(200).json(new ApiResponse(200, { reply: responseText }));
+});

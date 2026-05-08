@@ -1,25 +1,23 @@
 import { User } from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-export const addSkills = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { skills } = req.body;
+export const addSkills = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { skills } = req.body;
 
-    if (!skills || !Array.isArray(skills)) {
-      return res.status(400).json({ message: "Skills must be an array" });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const updatedSkills = [...new Set([...(user.skills || []), ...skills])];
-
-    user.skills = updatedSkills;
-    await user.save();
-
-    res.json({ skills: user.skills });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+  if (!skills || !Array.isArray(skills)) {
+    throw new ApiError(400, "Skills must be an array");
   }
-};
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  const updatedSkills = [...new Set([...(user.skills || []), ...skills])];
+
+  user.skills = updatedSkills;
+  await user.save();
+
+  return res.json(new ApiResponse(200, { skills: user.skills }));
+});

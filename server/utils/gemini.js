@@ -1,61 +1,53 @@
 import { User } from "../models/user.model.js";
 import { callAiModel } from "../config/aiProvider.js";
 import { addXP } from "./progression.js";
+import { asyncHandler } from "./asyncHandler.js";
+import { ApiError } from "./ApiError.js";
+import { ApiResponse } from "./ApiResponse.js";
 
-export const updateUserXP = async (req, res) => {
-  try {
-    const { xpAmount } = req.body;
-    const userEmail = req.user.email;
+export const updateUserXP = asyncHandler(async (req, res) => {
+  const { xpAmount } = req.body;
+  const userEmail = req.user.email;
 
-    const parsedXP = Number(xpAmount);
-    if (!Number.isFinite(parsedXP) || parsedXP <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "xpAmount must be a positive number",
-      });
-    }
-
-    const user = await User.findOne({ email: userEmail });
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    const prevLevel = user.level;
-    await addXP(user, parsedXP);
-    const leveledUp = user.level > prevLevel;
-
-    return res.status(200).json({
-      success: true,
-      message: leveledUp ? "Level Up!" : "XP Updated",
-      user: {
-        xp: user.xp,
-        level: user.level,
-        rank: user.rank,
-        badges: user.badges,
-      },
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+  const parsedXP = Number(xpAmount);
+  if (!Number.isFinite(parsedXP) || parsedXP <= 0) {
+    throw new ApiError(400, "xpAmount must be a positive number");
   }
-};
 
-export const geminiPdfSummarizer = async (req, res) => {
-  try {
-    const { text, maxSentences = 5 } = req.body || {};
+  const user = await User.findOne({ email: userEmail });
+  if (!user) throw new ApiError(404, "User not found");
 
-    if (!text || typeof text !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Text content is required for summarization",
-      });
-    }
+  const prevLevel = user.level;
+  await addXP(user, parsedXP);
+  const leveledUp = user.level > prevLevel;
 
-    const MAX_CHARS = 15000;
-    const safeText = text.slice(0, MAX_CHARS);
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          xp: user.xp,
+          level: user.level,
+          rank: user.rank,
+          badges: user.badges,
+        },
+      },
+      leveledUp ? "Level Up!" : "XP Updated",
+    ),
+  );
+});
 
-    const prompt = `
+export const geminiPdfSummarizer = asyncHandler(async (req, res) => {
+  const { text, maxSentences = 5 } = req.body || {};
+
+  if (!text || typeof text !== "string") {
+    throw new ApiError(400, "Text content is required for summarization");
+  }
+
+  const MAX_CHARS = 15000;
+  const safeText = text.slice(0, MAX_CHARS);
+
+  const prompt = `
 You are an expert educational content summarizer.
 
 TASK:
@@ -73,19 +65,7 @@ OUTPUT FORMAT (JSON ONLY, no markdown, no backticks):
 }
 `;
 
-    const aiResponse = await callAiModel(prompt);
+  const aiResponse = await callAiModel(prompt);
 
-    return res.status(200).json({
-      success: true,
-      data: aiResponse,
-    });
-  } catch (error) {
-    console.error("Gemini PDF Summarizer Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate summary",
-      error: error.message,
-    });
-  }
-};
+  return res.status(200).json(new ApiResponse(200, { data: aiResponse }));
+});

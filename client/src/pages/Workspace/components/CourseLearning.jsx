@@ -174,7 +174,7 @@ export default function CourseLearning({
 
       clearInterval(stepInterval);
 
-      if (res.data.success && res.data.flashcards?.length > 0) {
+      if (res.success && res.data.flashcards?.length > 0) {
         setFlashcards(res.data.flashcards);
         setGeneratingFlashcards(false);
         setShowFlashcards(true);

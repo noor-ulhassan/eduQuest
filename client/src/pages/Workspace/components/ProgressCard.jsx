@@ -43,7 +43,7 @@ function ProgressCard({ course, progress }) {
     }
    );
 
-   if (response.data.success) {
+   if (response.success) {
     navigate(`/course/${course?.courseId}`);
    }
   } catch (error) {

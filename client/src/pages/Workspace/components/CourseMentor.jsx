@@ -70,7 +70,7 @@ export default function CourseMentor({
     },
    );
 
-   if (res.data.success) {
+   if (res.success) {
     setMessages((prev) => [
      ...prev,
      { role: "assistant", content: res.data.reply },

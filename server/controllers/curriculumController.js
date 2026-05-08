@@ -1,135 +1,100 @@
 import { Curriculum } from "../models/Curriculum.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-export const getAllCurriculumsMetadata = async (req, res) => {
-  try {
-    const curriculums = await Curriculum.find({}, 'language chapters.title chapters.problems._id');
-    
-    const metadata = curriculums.map(c => {
-      const totalProblems = c.chapters.reduce((sum, ch) => sum + ch.problems.length, 0);
-      return {
-        language: c.language,
-        totalProblems,
-        totalChapters: c.chapters.length,
-        lessons: c.chapters.slice(0, 2).map(ch => ch.title)
-      };
-    });
+export const getAllCurriculumsMetadata = asyncHandler(async (req, res) => {
+  const curriculums = await Curriculum.find({}, 'language chapters.title chapters.problems._id');
 
-    return res.status(200).json({ success: true, metadata });
-  } catch (error) {
-    console.error("Error fetching curriculum metadata:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+  const metadata = curriculums.map(c => {
+    const totalProblems = c.chapters.reduce((sum, ch) => sum + ch.problems.length, 0);
+    return {
+      language: c.language,
+      totalProblems,
+      totalChapters: c.chapters.length,
+      lessons: c.chapters.slice(0, 2).map(ch => ch.title)
+    };
+  });
+
+  return res.status(200).json(new ApiResponse(200, { metadata }));
+});
+
+export const getCurriculumByLanguage = asyncHandler(async (req, res) => {
+  const { language } = req.params;
+
+  if (
+    !["html", "css", "javascript", "python", "react", "dsa"].includes(language)
+  ) {
+    throw new ApiError(400, "Invalid language");
   }
-};
 
-export const getCurriculumByLanguage = async (req, res) => {
-  try {
-    const { language } = req.params;
+  const curriculum = await Curriculum.findOne({ language });
+  if (!curriculum) throw new ApiError(404, "Curriculum not found");
 
-    if (
-      !["html", "css", "javascript", "python", "react", "dsa"].includes(
-        language,
-      )
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid language" });
-    }
+  return res.status(200).json(new ApiResponse(200, { curriculum }));
+});
 
-    const curriculum = await Curriculum.findOne({ language });
+export const addProblem = asyncHandler(async (req, res) => {
+  const { language, chapterId } = req.params;
+  const problemData = req.body;
 
-    if (!curriculum) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Curriculum not found" });
-    }
+  const curriculum = await Curriculum.findOne({ language });
+  if (!curriculum) throw new ApiError(404, "Curriculum not found");
 
-    return res.status(200).json({ success: true, curriculum });
-  } catch (error) {
-    console.error("Error fetching curriculum:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+  const chapter = curriculum.chapters.find(ch => ch.id === chapterId);
+  if (!chapter) throw new ApiError(404, "Chapter not found");
+
+  if (!["Easy", "Medium", "Hard", "Expert"].includes(problemData.difficulty)) {
+    throw new ApiError(400, "Invalid difficulty");
   }
-};
 
-// POST /api/v1/curriculum/:language/chapter/:chapterId/problem
-export const addProblem = async (req, res) => {
-  try {
-    const { language, chapterId } = req.params;
-    const problemData = req.body;
+  chapter.problems.push(problemData);
+  await curriculum.save();
 
-    const curriculum = await Curriculum.findOne({ language });
-    if (!curriculum) return res.status(404).json({ success: false, message: "Curriculum not found" });
+  return res.status(201).json(new ApiResponse(201, { problem: problemData }));
+});
 
-    const chapter = curriculum.chapters.find(ch => ch.id === chapterId);
-    if (!chapter) return res.status(404).json({ success: false, message: "Chapter not found" });
+export const updateProblem = asyncHandler(async (req, res) => {
+  const { language, problemId } = req.params;
+  const updates = req.body;
 
-    // Validate difficulty
-    if (!["Easy", "Medium", "Hard", "Expert"].includes(problemData.difficulty)) {
-      return res.status(400).json({ success: false, message: "Invalid difficulty" });
+  const curriculum = await Curriculum.findOne({ language });
+  if (!curriculum) throw new ApiError(404, "Curriculum not found");
+
+  let problemFound = false;
+  for (const chapter of curriculum.chapters) {
+    const problemIndex = chapter.problems.findIndex(p => p.id === problemId);
+    if (problemIndex !== -1) {
+      chapter.problems[problemIndex] = { ...chapter.problems[problemIndex], ...updates };
+      problemFound = true;
+      break;
     }
-
-    chapter.problems.push(problemData);
-    await curriculum.save();
-
-    return res.status(201).json({ success: true, problem: problemData });
-  } catch (error) {
-    console.error("Error adding problem:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
   }
-};
 
-// PUT /api/v1/curriculum/:language/problem/:problemId
-export const updateProblem = async (req, res) => {
-  try {
-    const { language, problemId } = req.params;
-    const updates = req.body;
+  if (!problemFound) throw new ApiError(404, "Problem not found");
 
-    const curriculum = await Curriculum.findOne({ language });
-    if (!curriculum) return res.status(404).json({ success: false, message: "Curriculum not found" });
+  await curriculum.save();
+  return res.status(200).json(new ApiResponse(200, null, "Problem updated"));
+});
 
-    let problemFound = false;
-    for (const chapter of curriculum.chapters) {
-      const problemIndex = chapter.problems.findIndex(p => p.id === problemId);
-      if (problemIndex !== -1) {
-        chapter.problems[problemIndex] = { ...chapter.problems[problemIndex], ...updates };
-        problemFound = true;
-        break;
-      }
+export const deleteProblem = asyncHandler(async (req, res) => {
+  const { language, problemId } = req.params;
+
+  const curriculum = await Curriculum.findOne({ language });
+  if (!curriculum) throw new ApiError(404, "Curriculum not found");
+
+  let problemFound = false;
+  for (const chapter of curriculum.chapters) {
+    const problemIndex = chapter.problems.findIndex(p => p.id === problemId);
+    if (problemIndex !== -1) {
+      chapter.problems.splice(problemIndex, 1);
+      problemFound = true;
+      break;
     }
-
-    if (!problemFound) return res.status(404).json({ success: false, message: "Problem not found" });
-
-    await curriculum.save();
-    return res.status(200).json({ success: true, message: "Problem updated" });
-  } catch (error) {
-    console.error("Error updating problem:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
   }
-};
 
-// DELETE /api/v1/curriculum/:language/problem/:problemId
-export const deleteProblem = async (req, res) => {
-  try {
-    const { language, problemId } = req.params;
+  if (!problemFound) throw new ApiError(404, "Problem not found");
 
-    const curriculum = await Curriculum.findOne({ language });
-    if (!curriculum) return res.status(404).json({ success: false, message: "Curriculum not found" });
-
-    let problemFound = false;
-    for (const chapter of curriculum.chapters) {
-      const problemIndex = chapter.problems.findIndex(p => p.id === problemId);
-      if (problemIndex !== -1) {
-        chapter.problems.splice(problemIndex, 1);
-        problemFound = true;
-        break;
-      }
-    }
-
-    if (!problemFound) return res.status(404).json({ success: false, message: "Problem not found" });
-
-    await curriculum.save();
-    return res.status(200).json({ success: true, message: "Problem deleted" });
-  } catch (error) {
-    console.error("Error deleting problem:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
+  await curriculum.save();
+  return res.status(200).json(new ApiResponse(200, null, "Problem deleted"));
+});

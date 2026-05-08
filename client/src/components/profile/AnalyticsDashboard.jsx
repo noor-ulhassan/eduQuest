@@ -41,7 +41,7 @@ const AnalyticsDashboard = () => {
     const fetchAnalytics = async () => {
       try {
         const response = await api.get("/user/analytics");
-        if (response.data.success) {
+        if (response.success) {
           setData(response.data.analytics);
         }
       } catch (error) {

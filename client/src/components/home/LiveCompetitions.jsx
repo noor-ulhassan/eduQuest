@@ -33,7 +33,7 @@ const LiveCompetitions = () => {
   const fetchRooms = useCallback(async () => {
     try {
       const res = await api.get("/competition/rooms");
-      if (res.data.success) {
+      if (res.success) {
         setRooms(res.data.rooms);
       }
     } catch (err) {

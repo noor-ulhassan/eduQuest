@@ -1,71 +1,51 @@
 import { getVectorStore } from "../database/dbConnect.js";
 import { callAiModel } from "../config/aiProvider.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-/**
- * POST /api/rag/chat
- * Input:  { message, history[], documentId? }
- * Output: { answer, sources[] }
- */
-export const chatWithDocument = async (req, res) => {
-  try {
-    const { message, history = [], documentId } = req.body;
+export const chatWithDocument = asyncHandler(async (req, res) => {
+  const { message, history = [], documentId } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
-    }
+  if (!message) throw new ApiError(400, "Message is required");
 
-    const vectorStore = getVectorStore();
-    const filter = { userId: req.user._id.toString() };
-    if (documentId) filter.documentId = documentId;
+  const vectorStore = getVectorStore();
+  const filter = { userId: req.user._id.toString() };
+  if (documentId) filter.documentId = documentId;
 
-
-    const rewriteResponse = await callAiModel(
-      `Rewrite this student question as a declarative statement that
+  const rewriteResponse = await callAiModel(
+    `Rewrite this student question as a declarative statement that
    would appear in a textbook. Return only the rewritten statement, nothing else.
 
    Question: "${message}"`,
-      { json: false },
+    { json: false },
+  );
+  const searchQuery = message + "\n" + rewriteResponse.trim();
+
+  let results;
+  try {
+    const rawResults = await vectorStore.similaritySearchWithScore(
+      searchQuery,
+      8,
+      filter,
     );
-    const searchQuery = message + "\n" + rewriteResponse.trim();
-    console.log(`🔍 Rewritten query: "${searchQuery}"`);
 
-    let results;
-    try {
-      const rawResults = await vectorStore.similaritySearchWithScore(
-        searchQuery,
-        8,
-        filter,
-      );
+    results = rawResults.map(([doc]) => doc);
+  } catch (filterErr) {
+    console.warn("Filtered search failed:", filterErr.message);
+  }
 
-      // Log scores so you can see what's happening
-      console.log(
-        "Scores:",
-        rawResults.map(
-          ([doc, score]) =>
-            `Page ${doc.metadata?.pageNumber}: ${score.toFixed(4)}`,
-        ),
-      );
+  const context = results.map((d) => d.pageContent).join("\n\n");
 
-      // Use all 8 — don't threshold yet until chunk size is fixed
-      results = rawResults.map(([doc]) => doc);
+  const historyText = history
+    .slice(-6)
+    .map(
+      (h) => `${h.role === "user" ? "Student" : "Assistant"}: ${h.content}`,
+    )
+    .join("\n");
 
-    } catch (filterErr) {
-      console.warn("⚠️ Filtered search failed:", filterErr.message);
-    }
-
-    const context = results.map((d) => d.pageContent).join("\n\n");
-
-    const historyText = history
-      .slice(-6)
-      .map(
-        (h) => `${h.role === "user" ? "Student" : "Assistant"}: ${h.content}`,
-      )
-      .join("\n");
-
-   
-
-    const answer = await callAiModel(
-      `You are a helpful reading assistant for this textbook.
+  const answer = await callAiModel(
+    `You are a helpful reading assistant for this textbook.
 Answer based on the document context below. If the context contains related information,
 use it to give the best possible answer. Only say you couldn't find it if the context
 is completely unrelated to the question.
@@ -74,102 +54,84 @@ Document Context:
 ${context}
 
 Student's Question: ${message}`,
-      { json: false },
-    );
+    { json: false },
+  );
 
-    res.json({
+  return res.json(
+    new ApiResponse(200, {
       answer,
       sources: results.map((d) => ({
         text: d.pageContent.substring(0, 120) + "...",
         page: d.metadata?.pageNumber,
         chapter: d.metadata?.chapterNumber,
       })),
-    });
-  } catch (err) {
-    console.error("❌ CHAT ERROR:", err);
-    res.status(500).json({ error: "Chat failed: " + err.message });
-  }
-};
+    }),
+  );
+});
 
-/**
- * POST /api/rag/explain
- * Input:  { selectedText, page?, documentId? }
- * Output: { explanation, sources[] }
- */
-export const explainText = async (req, res) => {
-  try {
-    const { selectedText, page, documentId } = req.body;
+export const explainText = asyncHandler(async (req, res) => {
+  const { selectedText, page, documentId } = req.body;
 
-    if (!selectedText) {
-      return res.status(400).json({ error: "Selected text is required" });
-    }
+  if (!selectedText) throw new ApiError(400, "Selected text is required");
 
-    const vectorStore = getVectorStore();
+  const vectorStore = getVectorStore();
 
-    const expandResponse = await callAiModel(
-      `A student highlighted this text while reading a textbook: "${selectedText}"
+  const expandResponse = await callAiModel(
+    `A student highlighted this text while reading a textbook: "${selectedText}"
 
   Generate a search query to find the background concepts, definitions, and
   prerequisites that would help explain this text. Focus on the core technical
   terms and concepts involved.
   Return only the search query, nothing else.`,
-      { json: false },
+    { json: false },
+  );
+  const expandedQuery = expandResponse.trim();
+
+  const semanticFilter = { userId: req.user._id.toString() };
+  if (documentId) semanticFilter.documentId = documentId;
+
+  let semanticResults = [];
+  try {
+    const rawResults = await vectorStore.similaritySearchWithScore(
+      expandedQuery,
+      6,
+      semanticFilter,
     );
-    const expandedQuery = expandResponse.trim();
 
-    const semanticFilter = { userId: req.user._id.toString() };
-    if (documentId) semanticFilter.documentId = documentId;
+    semanticResults = rawResults.map(([doc]) => doc);
+  } catch (filterErr) {
+    const raw = await vectorStore.similaritySearchWithScore(expandedQuery, 6);
+    semanticResults = raw.map(([doc]) => doc);
+  }
 
-    let semanticResults = [];
-    try {
-      const rawResults = await vectorStore.similaritySearchWithScore(
-        expandedQuery,
-        6,
-        semanticFilter,
-      );
+  const allChunks = [...semanticResults];
+  const seenTexts = new Set(semanticResults.map((d) => d.pageContent));
 
-      console.log(
-        "Explain scores:",
-        rawResults.map(
-          ([doc, score]) => `Page ${doc.metadata?.pageNumber}: ${score.toFixed(4)}`
-        ),
-      );
+  if (page) {
+    const nearbyPages = [page - 1, page, page + 1];
 
-      semanticResults = rawResults.map(([doc]) => doc);
-    } catch (filterErr) {
-      console.error("🚨 Semantic filter failed:", filterErr.message);
-      const raw = await vectorStore.similaritySearchWithScore(expandedQuery, 6);
-      semanticResults = raw.map(([doc]) => doc);
-    }
+    for (const p of nearbyPages) {
+      const pFilter = { userId: req.user._id.toString(), pageNumber: p };
+      if (documentId) pFilter.documentId = documentId;
 
-    const allChunks = [...semanticResults];
-    const seenTexts = new Set(semanticResults.map((d) => d.pageContent));
-
-    if (page) {
-      const nearbyPages = [page - 1, page, page + 1];
-
-      for (const p of nearbyPages) {
-        const pFilter = { userId: req.user._id.toString(), pageNumber: p };
-        if (documentId) pFilter.documentId = documentId;
-
-        try {
-          const r = await vectorStore.similaritySearch(selectedText, 2, pFilter);
-          for (const doc of r) {
-            if (!seenTexts.has(doc.pageContent)) {
-              allChunks.push(doc);
-              seenTexts.add(doc.pageContent);
-            }
+      try {
+        const r = await vectorStore.similaritySearch(selectedText, 2, pFilter);
+        for (const doc of r) {
+          if (!seenTexts.has(doc.pageContent)) {
+            allChunks.push(doc);
+            seenTexts.add(doc.pageContent);
           }
-        } catch {
-          // this page has no chunks, skip
         }
+      } catch {
+        // this page has no chunks, skip
       }
     }
+  }
 
-    const context = allChunks.map((d) => d.pageContent).join("\n\n");
+  const context = allChunks.map((d) => d.pageContent).join("\n\n");
 
-    const explanation = await callAiModel(
-      `You are a reading companion helping a student understand a textbook passage.
+  const explanation = await callAiModel(
+    `You are a reading companion helping a student understand a textbook passage.
 
 The student highlighted this text on page ${page}:
 "${selectedText}"
@@ -182,99 +144,75 @@ Explain what the highlighted text means.
 - Then explain any technical terms used
 - Give a real-world analogy if helpful
 - Keep it under 200 words`,
-      { json: false },
-    );
+    { json: false },
+  );
 
-    res.json({
+  return res.json(
+    new ApiResponse(200, {
       explanation,
       sources: allChunks.map((d) => ({
         text: d.pageContent.substring(0, 120) + "...",
         page: d.metadata?.pageNumber,
         chapter: d.metadata?.chapterNumber,
       })),
-    });
-  } catch (err) {
-    console.error("❌ EXPLAIN ERROR:", err);
-    res.status(500).json({ error: "Explain failed: " + err.message });
-  }
-};
+    }),
+  );
+});
 
-/**
- * POST /api/rag/quiz/generate
- * Input:  { topic?, documentId? }
- * Output: { questions[], totalQuestions }
- */
-export const generateQuiz = async (req, res) => {
-  try {
-    const { topic, documentId } = req.body;
+export const generateQuiz = asyncHandler(async (req, res) => {
+  const { topic, documentId } = req.body;
 
-    const vectorStore = getVectorStore();
-    const filter = { userId: req.user._id.toString() };
-    if (documentId) filter.documentId = documentId;
+  const vectorStore = getVectorStore();
+  const filter = { userId: req.user._id.toString() };
+  if (documentId) filter.documentId = documentId;
 
-    let results = [];
+  let results = [];
 
-    if (topic) {
-      const rewriteResponse = await callAiModel(
-        `Rewrite this topic as a detailed declarative statement using specific
+  if (topic) {
+    const rewriteResponse = await callAiModel(
+      `Rewrite this topic as a detailed declarative statement using specific
          technical terminology that would appear in a textbook.
          Include likely technical terms the answer would contain.
          Return only the rewritten statement, nothing else.
 
          Topic: "${topic}"`,
-        { json: false },
-      );
-      const searchQuery = rewriteResponse.trim();
-      console.log(`🔍 Quiz rewritten query: "${searchQuery}"`);
+      { json: false },
+    );
+    const searchQuery = rewriteResponse.trim();
 
-      try {
-        const rawResults = await vectorStore.similaritySearchWithScore(
-          searchQuery, 10, filter
-        );
-        console.log("Quiz scores:", rawResults.map(
-          ([doc, score]) => `Page ${doc.metadata?.pageNumber}: ${score.toFixed(4)}`
-        ));
-        results = rawResults.map(([doc]) => doc);
-      } catch (filterErr) {
-        console.error("🚨 Quiz filter failed:", filterErr.message);
-        const raw = await vectorStore.similaritySearchWithScore(searchQuery, 10);
-        results = raw.map(([doc]) => doc);
-      }
-
-    } else {
-      // No topic: use MMR to get diverse coverage across the whole document
-      // This is the correct use case for MMR
-      try {
-        results = await vectorStore.maxMarginalRelevanceSearch(
-          "key concepts definitions principles mechanisms examples",
-          { k: 12, fetchK: 80, filter }
-        );
-        console.log("Quiz MMR pages:", results.map(
-          (doc) => `Page ${doc.metadata?.pageNumber}`
-        ));
-      } catch (filterErr) {
-        console.error("🚨 Quiz MMR filter failed:", filterErr.message);
-        results = await vectorStore.maxMarginalRelevanceSearch(
-          "key concepts definitions principles mechanisms examples",
-          { k: 12, fetchK: 80 }
-        );
-      }
-    }
-
-    if (results.length === 0) {
-      return res.status(404).json({
-        error: "No document content found. Please upload a document first.",
-      });
-    }
-
-    const context = results
-      .map((d) => `[Page ${d.metadata.pageNumber}]:\n${d.pageContent}`)
-      .join("\n\n");
-
-    let questions;
     try {
-      questions = await callAiModel(
-        `You are a quiz generator for educational content.
+      const rawResults = await vectorStore.similaritySearchWithScore(
+        searchQuery, 10, filter
+      );
+      results = rawResults.map(([doc]) => doc);
+    } catch (filterErr) {
+      const raw = await vectorStore.similaritySearchWithScore(searchQuery, 10);
+      results = raw.map(([doc]) => doc);
+    }
+  } else {
+    try {
+      results = await vectorStore.maxMarginalRelevanceSearch(
+        "key concepts definitions principles mechanisms examples",
+        { k: 12, fetchK: 80, filter }
+      );
+    } catch (filterErr) {
+      results = await vectorStore.maxMarginalRelevanceSearch(
+        "key concepts definitions principles mechanisms examples",
+        { k: 12, fetchK: 80 }
+      );
+    }
+  }
+
+  if (results.length === 0) {
+    throw new ApiError(404, "No document content found. Please upload a document first.");
+  }
+
+  const context = results
+    .map((d) => `[Page ${d.metadata.pageNumber}]:\n${d.pageContent}`)
+    .join("\n\n");
+
+  let questions = await callAiModel(
+    `You are a quiz generator for educational content.
 Based on the following document context, generate exactly 5 multiple-choice questions.
 
 Return ONLY a valid JSON array.
@@ -303,83 +241,68 @@ Rules:
 
 Document Context:
 ${context}`,
-      );
-    } catch (parseErr) {
-      console.error("❌ Failed to parse quiz JSON:", parseErr);
-      return res.status(500).json({
-        error: "AI returned invalid quiz format. Please try again.",
-      });
-    }
+  );
 
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(500).json({ error: "Invalid quiz format returned" });
-    }
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new ApiError(500, "Invalid quiz format returned");
+  }
 
-    // Build lookup structures for server-side quote validation
-    const allChunkText = results.map((d) => d.pageContent).join("\n\n");
-    const chunksByPage = {};
-    for (const chunk of results) {
-      const p = chunk.metadata.pageNumber;
-      if (!chunksByPage[p]) chunksByPage[p] = [];
-      chunksByPage[p].push(chunk.pageContent);
-    }
+  const allChunkText = results.map((d) => d.pageContent).join("\n\n");
+  const chunksByPage = {};
+  for (const chunk of results) {
+    const p = chunk.metadata.pageNumber;
+    if (!chunksByPage[p]) chunksByPage[p] = [];
+    chunksByPage[p].push(chunk.pageContent);
+  }
 
-    questions = questions.map((q, i) => {
-      const rawQuote = (q.exactQuote || "").trim();
+  questions = questions.map((q, i) => {
+    const rawQuote = (q.exactQuote || "").trim();
 
-      // If the AI's quote exists verbatim in the retrieved chunks, keep it
-      if (rawQuote.length >= 15 && allChunkText.includes(rawQuote)) {
-        return {
-          id: i + 1,
-          question: q.question,
-          options: q.options,
-          correctIndex: q.correctIndex,
-          explanation: q.explanation || "",
-          exactQuote: rawQuote,
-          pageNumber: q.pageNumber || null,
-        };
-      }
-
-      // Quote not found verbatim — extract the best sentence from the relevant chunks
-      const targetChunks = chunksByPage[q.pageNumber] || Object.values(chunksByPage).flat();
-      const combinedText = targetChunks.join(" ");
-
-      // Split on sentence boundaries
-      const sentences = combinedText
-        .split(/(?<=[.!?])\s+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length >= 25 && s.length <= 150);
-
-      // Score sentences by word overlap with the question
-      const qWords = new Set(
-        q.question.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
-      );
-      let bestSentence = sentences[0] || rawQuote || "";
-      let bestScore = 0;
-      for (const sentence of sentences) {
-        const score = sentence.toLowerCase().split(/\W+/).filter((w) => qWords.has(w)).length;
-        if (score > bestScore) {
-          bestScore = score;
-          bestSentence = sentence;
-        }
-      }
-
-      console.log(`⚠️  Q${i + 1} quote not found verbatim; extracted fallback sentence.`);
+    if (rawQuote.length >= 15 && allChunkText.includes(rawQuote)) {
       return {
         id: i + 1,
         question: q.question,
         options: q.options,
         correctIndex: q.correctIndex,
         explanation: q.explanation || "",
-        exactQuote: bestSentence,
+        exactQuote: rawQuote,
         pageNumber: q.pageNumber || null,
       };
-    });
+    }
 
-    res.json({ questions, totalQuestions: questions.length });
+    const targetChunks = chunksByPage[q.pageNumber] || Object.values(chunksByPage).flat();
+    const combinedText = targetChunks.join(" ");
 
-  } catch (err) {
-    console.error("❌ QUIZ ERROR:", err);
-    res.status(500).json({ error: "Quiz generation failed: " + err.message });
-  }
-};
+    const sentences = combinedText
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 25 && s.length <= 150);
+
+    const qWords = new Set(
+      q.question.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
+    );
+    let bestSentence = sentences[0] || rawQuote || "";
+    let bestScore = 0;
+    for (const sentence of sentences) {
+      const score = sentence.toLowerCase().split(/\W+/).filter((w) => qWords.has(w)).length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestSentence = sentence;
+      }
+    }
+
+    return {
+      id: i + 1,
+      question: q.question,
+      options: q.options,
+      correctIndex: q.correctIndex,
+      explanation: q.explanation || "",
+      exactQuote: bestSentence,
+      pageNumber: q.pageNumber || null,
+    };
+  });
+
+  return res.json(
+    new ApiResponse(200, { questions, totalQuestions: questions.length }),
+  );
+});

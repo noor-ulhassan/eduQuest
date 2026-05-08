@@ -114,7 +114,7 @@ const DailyQuests = () => {
     try {
       setError(null);
       const res = await fetchUserQuests();
-      if (res.data.success) {
+      if (res.data) {
         setQuests({ daily: res.data.daily, weekly: res.data.weekly });
         setShields(res.data.streakShields || 0);
       }
@@ -132,7 +132,7 @@ const DailyQuests = () => {
     try {
       const prevUser = store.getState().auth.user;
       const res = await claimQuestReward(questId, period);
-      if (res.data.success) {
+      if (res.data) {
         dispatch(updateUserStats(res.data.user));
         setShields(res.data.user.streakShields || 0);
 

@@ -84,7 +84,7 @@ const CompetitionStats = () => {
     const fetchStats = async () => {
       try {
         const response = await api.get("/competition/stats");
-        if (response.data.success) setStats(response.data.stats);
+        if (response.success) setStats(response.data.stats);
       } catch (error) {
         console.error("Error fetching competition stats:", error);
       } finally {

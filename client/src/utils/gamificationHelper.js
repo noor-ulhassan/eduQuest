@@ -13,12 +13,12 @@ export const grantXP = async (dispatch, amount) => {
       { xpAmount: amount },
     );
 
-    if (response.data.success && response.data.user) {
+    if (response.success && response.data.user) {
       dispatch(updateUserStats(response.data.user));
 
       emit({ type: "xp", amount });
 
-      if (response.data.message === "Level Up!") {
+      if (response.message === "Level Up!") {
         emit({ type: "levelUp", level: response.data.user.level });
       }
 

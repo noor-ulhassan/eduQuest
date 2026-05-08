@@ -16,8 +16,10 @@ const connectDB = async () => {
 
     // In Rag folder, you were using the "rag_db" database and "vector_chunks" collection.
     // We will point this exactly to the same database and collection where your index lives.
-    const db = client.db("rag_db");
-    const collection = db.collection("vector_chunks");
+    // const db = client.db("rag_db");
+    // const collection = db.collection("vector_chunks");
+    const db = client.db("eduQuest");
+    const collection = db.collection("document_chunks");
 
     const embeddings = new GoogleGenerativeAIEmbeddings({
       model: "gemini-embedding-2-preview",

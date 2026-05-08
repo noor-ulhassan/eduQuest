@@ -45,7 +45,7 @@ function CourseCard({ course }) {
     },
    );
 
-   if (response.data.success) {
+   if (response.success) {
     navigate(`/course/${course?.courseId}`);
    }
   } catch (error) {

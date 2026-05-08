@@ -6,6 +6,7 @@
 import { UserQuestProgress } from "../models/UserQuestProgress.model.js";
 import { User } from "../models/user.model.js";
 import { addXP } from "./progression.js";
+import { ApiError } from "./ApiError.js";
 
 // ─── Quest Catalog ────────────────────────────────────────────────────────────
 
@@ -256,20 +257,20 @@ export const updateStreakKeeperQuest = async (userId, dayStreak) => {
  * Throws descriptive errors so the controller can map them to HTTP status codes.
  */
 export const claimQuestReward = async (userId, questId, period) => {
-  if (!["daily", "weekly"].includes(period)) throw new Error("Invalid period");
+  if (!["daily", "weekly"].includes(period)) throw new ApiError(400, "Invalid period");
 
   const def = QUEST_CATALOG[questId];
-  if (!def || def.period !== period) throw new Error("Quest not found");
+  if (!def || def.period !== period) throw new ApiError(404, "Quest not found");
 
   const doc = await getOrInitQuests(userId, period);
   const quest = doc.quests.find((q) => q.id === questId);
 
-  if (!quest) throw new Error("Quest not found");
-  if (!quest.completed) throw new Error("Quest not yet completed");
-  if (quest.claimed) throw new Error("Reward already claimed");
+  if (!quest) throw new ApiError(404, "Quest not found");
+  if (!quest.completed) throw new ApiError(400, "Quest not yet completed");
+  if (quest.claimed) throw new ApiError(409, "Reward already claimed");
 
   const user = await User.findById(userId);
-  if (!user) throw new Error("User not found");
+  if (!user) throw new ApiError(404, "User not found");
 
   // Award XP through the central pipeline
   await addXP(user, def.xpReward, {}, { autoSave: false });
