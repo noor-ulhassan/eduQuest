@@ -242,7 +242,7 @@ const LanguagePlayground = () => {
         setIsLoadingProgress(true);
         const curRes = await getCurriculum(language);
         if (!isMounted) return;
-        if (curRes.success && curRes.curriculum) {
+        if (curRes.curriculum) {
           setData(curRes.curriculum);
           const { progress: currentProgress } =
             await getLanguageProgress(language);
