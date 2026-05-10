@@ -8,6 +8,7 @@ import CompetitionStats from "@/components/home/CompetitionStats";
 import EmptyState from "@/components/profile/EmptyState";
 import EditProfileModal from "@/components/profile/EditProfileModal";
 import SkillsDialog from "@/components/profile/SkillsDialog";
+import Achievements from "@/components/profile/Achievements";
 import api from "@/features/auth/authApi";
 import {
   getFriends,
@@ -28,7 +29,6 @@ const Profile = () => {
   const { user } = useSelector((state) => state.auth);
   const [skills, setSkills] = useState(user?.skills || []);
   const navigate = useNavigate();
-
 
   // Friends State
   const [friends, setFriends] = useState([]);
@@ -71,7 +71,6 @@ const Profile = () => {
       setSkills(user.skills);
     }
   }, [user]);
-
 
   const handleAcceptRequest = async (requestId) => {
     try {
@@ -149,7 +148,6 @@ const Profile = () => {
                 />
               </SectionCard>
             </TabsContent>
-
 
             <TabsContent
               value="Friends"
@@ -240,45 +238,9 @@ const Profile = () => {
               badges={user.badges?.length || 0}
               dayStreak={user.dayStreak || 0}
             />
-            <SectionCard title="Skills">
-              {(skills || []).length === 0 ? (
-                <EmptyState
-                  message="You haven't added any skills yet."
-                  actionText="Add skills"
-                  onAction={() => setIsSkillsDialogOpen(true)}
-                />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {(skills || []).map((skill) => (
-                      <Badge
-                        key={skill}
-                        variant="secondary"
-                        className="bg-white/10 text-white hover:bg-white/20 border border-white/10 px-3 py-1 font-bold tracking-wide"
-                      >
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
+            <SkillsDialog skills={skills} />
 
-                  <Button
-                    onClick={() => setIsSkillsDialogOpen(true)}
-                    variant="outline"
-                    className="mt-6 w-full border-dashed border-2 border-zinc-800/80 text-zinc-400 hover:text-white bg-transparent hover:bg-white/5"
-                  >
-                    + Add More Skills
-                  </Button>
-                </div>
-              )}
-            </SectionCard>
-
-            <SectionCard title="Achievements">
-              <EmptyState
-                message="Complete a course to earn your first badge!"
-                actionText="Explore courses"
-                onAction={() => alert("Navigate to courses")}
-              />
-            </SectionCard>
+            <Achievements userBadges={user.badges || []} />
           </div>
         </div>
         {/* 🔹 Edit Profile Modal */}
@@ -291,12 +253,6 @@ const Profile = () => {
             avatarUrl: user.avatarUrl,
             bannerUrl: user.bannerUrl,
           }}
-        />
-
-        <SkillsDialog
-          open={isSkillsDialogOpen}
-          onOpenChange={setIsSkillsDialogOpen}
-          onAddSkill={(skillsArray) => addSkillsToBackend(skillsArray)}
         />
       </div>
     </div>
