@@ -20,9 +20,11 @@ import {
   Loader2,
   CreditCard,
   Play,
+  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/features/auth/authApi";
+import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { updateUserStats } from "@/features/auth/authSlice";
 import { emit } from "@/lib/gamificationBus";
@@ -40,6 +42,7 @@ export default function CourseLearning({
   onNavigate,
 }) {
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -420,13 +423,24 @@ export default function CourseLearning({
                       {currentChapter?.chapterName}
                     </h1>
                   </div>
-                  <button
-                    onClick={() => setShowSlideshow(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 active:scale-95 shrink-0 mt-2"
-                  >
-                    <Play className="w-4 h-4" fill="currentColor" />
-                    Play Chapter
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0 mt-2">
+                    <button
+                      onClick={() => setShowSlideshow(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 active:scale-95"
+                    >
+                      <Play className="w-4 h-4" fill="currentColor" />
+                      Play Chapter
+                    </button>
+                    {course?.language && course.language !== "general" && (
+                      <button
+                        onClick={() => navigate(`/playground/${course.language}`)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-zinc-800 hover:bg-zinc-700 border border-white/10 transition-all"
+                      >
+                        <Terminal className="w-4 h-4" />
+                        Practice
+                      </button>
+                    )}
+                  </div>
                 </div>
               </header>
 

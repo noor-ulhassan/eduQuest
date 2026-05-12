@@ -1,9 +1,8 @@
 import { GlowingEffect } from "@/components/ui/glowing-effect";
-import api from "@/features/auth/authApi";
+import { enrollInCourse } from "@/features/workspace/courseApi";
 import { Book } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 
 const bannerImages = [
  "/gif5.gif",
@@ -15,7 +14,6 @@ const bannerImages = [
 ];
 
 function CourseCard({ course }) {
- const { user } = useSelector((state) => state.auth);
  const navigate = useNavigate();
 
  const courseLayout = course?.courseOutput;
@@ -37,13 +35,8 @@ function CourseCard({ course }) {
   e.preventDefault();
   e.stopPropagation();
   try {
-   const response = await api.post("/ai/enroll-course", {
-     courseId: course?.courseId,
-    });
-
-   if (response.success) {
-    navigate(`/course/${course?.courseId}`);
-   }
+   const response = await enrollInCourse(course?.courseId);
+   if (response) navigate(`/course/${course?.courseId}`);
   } catch (error) {
    console.error("Enrollment failed:", error);
   }

@@ -17,7 +17,7 @@ const EnrollmentSchema = new mongoose.Schema({
   },
 
   unlockedAchievements: {
-    type: Array, // Strings of achievement titles unlocked
+    type: Array,
     default: [],
   },
 

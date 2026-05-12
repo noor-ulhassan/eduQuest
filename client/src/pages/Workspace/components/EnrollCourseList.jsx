@@ -1,22 +1,20 @@
 import React, { useEffect, useState } from "react";
-import api from "@/features/auth/authApi";
+import { getUserEnrollments } from "@/features/workspace/courseApi";
 import ProgressCard from "./ProgressCard";
 
-function EnrollCourseList({ userEmail }) {
+function EnrollCourseList() {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (userEmail) {
-      fetchEnrolledCourses();
-    }
-  }, [userEmail]);
+    fetchEnrolledCourses();
+  }, []);
 
   const fetchEnrolledCourses = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/ai/user-enrollments");
-      setEnrolledCourses(res.data.enrolledCourses);
+      const data = await getUserEnrollments();
+      setEnrolledCourses(data || []);
     } catch (error) {
       console.error("Error fetching enrolled courses:", error);
     } finally {

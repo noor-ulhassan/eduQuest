@@ -45,6 +45,7 @@ const CompetitionLobby = lazy(
 const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
+const AdminCourses = lazy(() => import("./pages/Admin/AdminCourses"));
 
 // Wraps a lazy element in a Suspense boundary with the global spinner fallback
 const Lazy = ({ element: Element }) => (
@@ -114,9 +115,9 @@ const appRouter = createBrowserRouter([
       {
         path: "workspace/edit-course/:courseId",
         element: (
-          <ProtectedRoute>
+          <AdminRoute>
             <Lazy element={EditCourse} />
-          </ProtectedRoute>
+          </AdminRoute>
         ),
       },
       {
@@ -210,6 +211,14 @@ const appRouter = createBrowserRouter([
         element: (
           <AdminRoute>
             <Lazy element={AdminCurriculum} />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/courses",
+        element: (
+          <AdminRoute>
+            <Lazy element={AdminCourses} />
           </AdminRoute>
         ),
       },

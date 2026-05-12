@@ -1,10 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import mermaid from "mermaid";
 
-mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+mermaid.initialize({ startOnLoad: false, theme: "neutral", suppressErrorRendering: true });
 
-// Renders a single Mermaid diagram string into an SVG.
-// Silently hides itself if Mermaid throws on invalid syntax.
 export default function MermaidDiagram({ diagram, id }) {
   const ref = useRef(null);
 
@@ -15,7 +13,12 @@ export default function MermaidDiagram({ diagram, id }) {
         const { svg } = await mermaid.render(id, diagram);
         if (ref.current) ref.current.innerHTML = svg;
       } catch {
-        if (ref.current) ref.current.style.display = "none";
+        if (ref.current) {
+          ref.current.style.display = "none";
+          ref.current.innerHTML = "";
+        }
+        const errorEl = document.getElementById("d" + id);
+        if (errorEl) errorEl.remove();
       }
     })();
   }, [diagram, id]);

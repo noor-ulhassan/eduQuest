@@ -16,7 +16,6 @@ import {
   Book,
   BookOpen,
   LayoutDashboard,
-  Plus,
   Flame,
   FileText,
 } from "lucide-react";
@@ -24,8 +23,6 @@ import { motion } from "motion/react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import WelcomeBanner from "./WelcomeBanner";
 import CourseList from "./CourseList";
-import AddCourseDialog from "./AddCourseDialog";
-import EnrollCourseList from "./EnrollCourseList";
 import { cn } from "@/lib/utils";
 import {
   ChartContainer,
@@ -245,29 +242,6 @@ export default function CourseOverview({ course, enrollment, onResume }) {
               </div>
             )}
 
-            {/* Create New Course */}
-            <div className={`mb-5 ${open ? "px-3" : "flex justify-center"}`}>
-              <AddCourseDialog>
-                <button
-                  className={`flex items-center gap-3 transition-all rounded-lg font-bold text-white bg-gradient-to-r from-red-600 to-orange-600 shadow-lg shadow-red-500/20 hover:shadow-xl hover:-translate-y-0.5 ${
-                    open
-                      ? "w-full text-sm px-4 py-3 justify-start"
-                      : "w-8 h-8 p-0 justify-center"
-                  }`}
-                >
-                  <Plus className="w-5 h-5 shrink-0" strokeWidth={3} />
-                  {open && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="whitespace-pre"
-                    >
-                      Create New Course
-                    </motion.span>
-                  )}
-                </button>
-              </AddCourseDialog>
-            </div>
 
             {/* Nav Links */}
             <div className="flex flex-col gap-1 px-2">
@@ -681,7 +655,6 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             ) : (
               <div className="space-y-8 z-0 w-full overflow-hidden">
                 <WelcomeBanner />
-                <EnrollCourseList userEmail={user?.email} />
                 <CourseList />
               </div>
             )}

@@ -15,22 +15,16 @@ export const geminiCourseGenerator = asyncHandler(async (req, res) => {
     category,
     level,
     noOfChapters,
-    userEmail,
-    userName,
-    userProfileImage,
+    language,
   } = req.body;
 
   if (!name || !description || !category || !level || !noOfChapters) {
     throw new ApiError(400, "All fields are required");
   }
 
-  const resolvedUserEmail = req.user?.email || userEmail;
-  const resolvedUserName = req.user?.name || userName;
-  const resolvedUserProfileImage = req.user?.avatarUrl || userProfileImage;
-
-  if (!resolvedUserEmail) {
-    throw new ApiError(400, "Authenticated user email is required");
-  }
+  const resolvedUserEmail = req.user.email;
+  const resolvedUserName = req.user.name;
+  const resolvedUserProfileImage = req.user.avatarUrl;
 
   const prompt = `Generate Learning Course depends on following details:
     - Topic: ${name}
@@ -82,6 +76,7 @@ export const geminiCourseGenerator = asyncHandler(async (req, res) => {
     userEmail: resolvedUserEmail,
     userName: resolvedUserName,
     userProfileImage: resolvedUserProfileImage,
+    language: language || "general",
   });
 
   console.log("New Course Created: ", newCourse);
@@ -142,10 +137,12 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
 
   let chapterContentData = await callAiModel(prompt);
 
+  const courseName = existingCourse?.name || "";
+
   const fetchVideoId = async (topicName) => {
     try {
-      const query = encodeURIComponent(`${topicName} tutorial`);
-      const url = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
+      const query = encodeURIComponent(`${courseName} ${topicName} programming tutorial`);
+      const url = `https://www.googleapis.com/youtube/v3/search?part=id,snippet&type=video&maxResults=1&relevanceLanguage=en&videoDuration=medium&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
       const ytRes = await fetch(url);
       const ytData = await ytRes.json();
       return ytData?.items?.[0]?.id?.videoId ?? null;
@@ -176,11 +173,50 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
 });
 
 export const getAllCourses = asyncHandler(async (req, res) => {
-  const courses = await Course.find({ userEmail: req.user.email }).sort({
-    createdAt: -1,
-  });
+  const isAdmin = req.user?.role === "admin";
 
+  const query = isAdmin
+    ? { userEmail: req.user.email }
+    : { isPublished: true };
+
+  const courses = await Course.find(query).sort({ createdAt: -1 });
   return res.status(200).json(new ApiResponse(200, { courses }));
+});
+
+export const publishCourse = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const course = await Course.findOne({ courseId });
+  if (!course) throw new ApiError(404, "Course not found");
+
+  course.isPublished = !course.isPublished;
+  await course.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, { course }, course.isPublished ? "Course published" : "Course unpublished")
+  );
+});
+
+export const deleteCourse = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const course = await Course.findOneAndDelete({ courseId });
+  if (!course) throw new ApiError(404, "Course not found");
+  return res.status(200).json(new ApiResponse(200, null, "Course deleted"));
+});
+
+export const updateCourseChapter = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const { index, chapterData } = req.body;
+
+  if (index === undefined || !chapterData) {
+    throw new ApiError(400, "index and chapterData are required");
+  }
+
+  await Course.findOneAndUpdate(
+    { courseId },
+    { $set: { [`courseOutput.chapters.${index}`]: chapterData } }
+  );
+
+  return res.status(200).json(new ApiResponse(200, null, "Chapter updated"));
 });
 
 export const enrollToCourse = asyncHandler(async (req, res) => {
@@ -414,3 +450,66 @@ Rules:
 
   return res.status(200).json(new ApiResponse(200, { reply: responseText }));
 });
+
+export const updateCourseMetadata = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const { name, description, level, category, language } = req.body;
+
+  const updateFields = {};
+  if (name !== undefined) updateFields.name = name;
+  if (description !== undefined) updateFields.description = description;
+  if (level !== undefined) updateFields.level = level;
+  if (category !== undefined) updateFields.category = category;
+  if (language !== undefined) updateFields.language = language;
+
+  const course = await Course.findOneAndUpdate(
+    { courseId },
+    { $set: updateFields },
+    { new: true }
+  );
+  if (!course) throw new ApiError(404, "Course not found");
+
+  return res.status(200).json(new ApiResponse(200, { course }));
+});
+
+export const aiEditTopic = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const { chapterIndex, topicIndex, context } = req.body;
+
+  const course = await Course.findOne({ courseId });
+  if (!course) throw new ApiError(404, "Course not found");
+
+  const chapter = course.courseOutput?.chapters?.[chapterIndex];
+  if (!chapter) throw new ApiError(404, "Chapter not found");
+
+  const currentTopic = chapter.topics?.[topicIndex];
+  if (!currentTopic) throw new ApiError(404, "Topic not found");
+
+  const prompt = `Completely rewrite the following topic with fresh examples, explanations, and structure. Keep the same topic title but generate entirely new content.
+
+    Course: ${context?.courseName || course.name}
+    Chapter: ${context?.chapterName || chapter.chapterName}
+    Level: ${context?.level || course.level}
+
+    Current topic data:
+    ${JSON.stringify(currentTopic)}
+
+    Return JSON in this exact schema:
+    {
+      "topic": "string",
+      "content": "string (html format)",
+      "proTip": "string (a useful pro tip about the topic)",
+      "keyConcepts": [
+        { "title": "string", "description": "string", "icon": "string (material symbol name)" }
+      ],
+      "imagePrompt": "string",
+      "diagram": "string (valid Mermaid.js graph TD syntax or empty string)"
+    }
+    Return ONLY raw JSON. No markdown. No backticks.`;
+
+  const newTopicData = await callAiModel(prompt);
+  newTopicData.videoId = currentTopic.videoId;
+
+  return res.status(200).json(new ApiResponse(200, { topic: newTopicData }));
+});
+

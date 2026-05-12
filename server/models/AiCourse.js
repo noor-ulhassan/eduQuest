@@ -43,6 +43,15 @@ const courseSchema = new mongoose.Schema(
     userProfileImage: {
       type: String,
     },
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
+    language: {
+      type: String,
+      enum: ["javascript", "html", "css", "python", "react", "dsa", "general"],
+      default: "general",
+    },
   },
   {
     timestamps: true,

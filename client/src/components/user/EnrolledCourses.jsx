@@ -121,7 +121,7 @@ function EnrolledCourses() {
 
   return (
     <div className="mt-8">
-      <EnrollCourseList userEmail={user?.email} />
+      <EnrollCourseList />
     </div>
   );
 }

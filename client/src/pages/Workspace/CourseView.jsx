@@ -76,9 +76,9 @@ function CourseView() {
     if (mode === "overview") {
       navigate("/workspace");
     } else if (typeof mode === "number") {
-      // Clamp to valid chapter range so callers don't need to worry about bounds.
       const clamped = Math.max(0, Math.min(mode, chapters.length - 1));
       setCurrentChapterIndex(clamped);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
