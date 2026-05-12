@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Code,
   Terminal,
-  Type,
   ListOrdered,
   Shuffle,
   Zap,
@@ -233,85 +232,6 @@ const Feedback = ({ result, correctAnswerData }) => {
           )}
         </div>
       </div>
-    </motion.div>
-  );
-};
-
-// ─── COMPONENT: Type Answer ────────────────────────────────
-const TypeAnswerQuestion = ({ question, onSubmit, result, isSubmitting }) => {
-  const [value, setValue] = useState("");
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!value.trim()) return;
-    onSubmit({ type: "type_answer", value });
-  };
-
-  return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="w-full max-w-xl"
-    >
-      <QuestionHeader
-        icon={Type}
-        title="Type the Answer"
-        instruction="Type your answer in the box below."
-        difficulty={question.difficulty}
-      />
-      <motion.h3
-        variants={itemVariants}
-        className="text-xl font-semibold mb-6 leading-relaxed text-metallic"
-      >
-        {question.question}
-      </motion.h3>
-
-      {question.hint && (
-        <motion.div
-          variants={itemVariants}
-          className="mb-5 flex items-start gap-2 text-sm text-amber-400/80 bg-amber-500/5 p-3 rounded-xl border border-amber-500/10"
-        >
-          <Lightbulb size={16} className="shrink-0 mt-0.5" />
-          <span>{question.hint}</span>
-        </motion.div>
-      )}
-
-      <motion.form
-        variants={itemVariants}
-        onSubmit={handleSubmit}
-        className="space-y-4"
-      >
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            value={value}
-            onChange={(e) => !result && setValue(e.target.value)}
-            placeholder="Type your answer here..."
-            className="bg-zinc-900/80 border-zinc-800 h-14 text-lg pr-20 focus:border-orange-500/50 transition-colors"
-            disabled={!!result || isSubmitting}
-          />
-          {!result && value.length > 0 && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-600 font-mono tabular-nums">
-              {value.length} chars
-            </span>
-          )}
-        </div>
-        <Button
-          type="submit"
-          disabled={!value.trim() || !!result || isSubmitting}
-          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold h-12 shadow-lg shadow-orange-500/10 transition-all"
-        >
-          <Send size={16} className="mr-2" />
-          Submit Answer
-        </Button>
-      </motion.form>
-      <Feedback result={result} correctAnswerData={result?.correctAnswer} />
     </motion.div>
   );
 };
@@ -1173,7 +1093,6 @@ export default function InteractiveQuestion(props) {
 
   const type = question.interactionType;
 
-  if (type === "type_answer") return <TypeAnswerQuestion {...props} />;
   if (type === "drag_order") return <DragOrderQuestion {...props} />;
   if (type === "drag_match") return <DragMatchQuestion {...props} />;
   if (type === "fill_blank") return <FillBlankQuestion {...props} />;

@@ -54,6 +54,18 @@ const FloatingFeedback = ({ result, comboCount, triggerKey }) => {
                 >
                   WRONG
                 </motion.span>
+                {result.streakBroken >= 3 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0, 1.2, 1] }}
+                    className="flex items-center gap-1.5 bg-zinc-800 border border-red-500/30 px-3 py-1 rounded-full"
+                  >
+                    <span className="text-sm">💔</span>
+                    <span className="text-xs font-bold text-red-400">
+                      Streak Broken! (was {result.streakBroken}x)
+                    </span>
+                  </motion.div>
+                )}
               </div>
             )}
           </motion.div>

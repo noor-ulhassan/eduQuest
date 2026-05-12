@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 // motion IS used via motion.div / motion.span in JSX — ESLint doesn't track namespace access
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import VoiceSpeakerIndicator from "./VoiceSpeakerIndicator";
 import { playRankChangeSound } from "@/lib/sound";
 
 const RankBadge = ({ rank }) => (
@@ -28,13 +27,11 @@ const RankBadge = ({ rank }) => (
  *  - leaderboard: { id, name, score, currentQuestion, finished, avatarUrl }[]
  *  - userId: current user's _id
  *  - totalQuestions: number
- *  - activeSpeakers: Set<string>
  */
 const AnimatedLeaderboard = ({
   leaderboard = [],
   userId,
   totalQuestions = 0,
-  activeSpeakers,
 }) => {
   const [rankDeltas, setRankDeltas] = useState({});
   const prevRanksRef = useRef({});
@@ -148,9 +145,6 @@ const AnimatedLeaderboard = ({
                     }`}
                   >
                     {p.name}
-                    {activeSpeakers?.has(p.id) && (
-                      <VoiceSpeakerIndicator inline />
-                    )}
                   </span>
                   {isMe && (
                     <span className="text-[9px] bg-orange-500/20 text-orange-400 px-1 rounded shrink-0 font-bold">

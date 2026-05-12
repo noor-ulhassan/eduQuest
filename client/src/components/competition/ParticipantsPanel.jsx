@@ -39,11 +39,15 @@ const ParticipantsPanel = ({ room, userId }) => (
                   {player.name?.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              {player.id === room.hostId && (
+              {player.id === room.hostId ? (
                 <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center shadow-lg">
                   <Crown size={8} className="text-black" fill="currentColor" />
                 </div>
-              )}
+              ) : player.ready ? (
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border border-zinc-950 flex items-center justify-center shadow-md">
+                  <span className="text-[8px] font-black text-white">✓</span>
+                </div>
+              ) : null}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-zinc-200 truncate">
@@ -56,7 +60,7 @@ const ParticipantsPanel = ({ room, userId }) => (
                 className="text-[10px] font-medium mt-0.5"
                 style={{ color: player.id === room.hostId ? "#ca8a04" : "#3f3f46" }}
               >
-                {player.id === room.hostId ? "Host" : "Player"}
+                {player.id === room.hostId ? "Host" : player.ready ? <span className="text-green-500">Ready ✓</span> : "Waiting..."}
               </p>
             </div>
           </motion.div>

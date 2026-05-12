@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Trophy, Target, Home, Eye, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import VoiceSpeakerIndicator from "./VoiceSpeakerIndicator";
 
 const ResultsScreen = ({
   finishData,
@@ -13,7 +12,6 @@ const ResultsScreen = ({
   playerTeam,
   userId,
   leaderboard,
-  activeSpeakers,
   onHome,
   onSpectate,
 }) => {
@@ -72,9 +70,17 @@ const ResultsScreen = ({
                 )}
               </div>
               <h1 className="text-3xl font-bold">
-                {finishData.rank === 1 ? "🏆 1st Place!" : `#${finishData.rank} Place`}
+                {currentGameMode === "blitz"
+                  ? finishData.rank === 1 ? "⚡ Lightning Fast!" : "⚡ Blitz Complete"
+                  : currentGameMode === "duel"
+                    ? finishData.rank === 1 ? "⚔️ Challenger Defeated!" : "⚔️ Duel Over"
+                    : currentGameMode === "survival"
+                      ? finishData.rank === 1 ? "☠️ Last One Standing!" : `#${finishData.rank} Place`
+                      : finishData.rank === 1 ? "🏆 1st Place!" : `#${finishData.rank} Place`}
               </h1>
-              <p className="text-zinc-400 mt-1 text-sm">Challenge Complete</p>
+              <p className="text-zinc-400 mt-1 text-sm">
+                {currentGameMode === "blitz" ? "Speed was your weapon" : "Challenge Complete"}
+              </p>
             </>
           )}
         </div>
@@ -171,9 +177,8 @@ const ResultsScreen = ({
                 <span className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${i === 0 ? "bg-yellow-500 text-black" : i === 1 ? "bg-zinc-300 text-black" : i === 2 ? "bg-orange-700 text-white" : "bg-zinc-800 text-zinc-500"}`}>
                   {i + 1}
                 </span>
-                <span className={`flex-1 truncate flex items-center ${p.id === userId ? "text-orange-400 font-medium" : "text-zinc-300"}`}>
+                <span className={`flex-1 truncate ${p.id === userId ? "text-orange-400 font-medium" : "text-zinc-300"}`}>
                   {p.name} {p.id === userId && "(You)"}
-                  {activeSpeakers.has(p.id) && <VoiceSpeakerIndicator inline />}
                 </span>
                 <span className="text-xs text-zinc-500">
                   {p.eliminated ? "💀" : p.finished ? "✓" : `Q${p.currentQuestion}`}

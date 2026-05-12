@@ -4,7 +4,13 @@ import { Settings, Code, BookOpen, Loader2, Swords } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGame }) => (
+const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGame, playerCount = 1 }) => {
+  const modeMinPlayers = { duel: 2, survival: 2, team: 2 };
+  const modeMinLabels = { duel: "Duel requires 2 players (1v1)", survival: "Survival requires at least 2 players", team: "Team Battle requires at least 2 players" };
+  const requiredCount = modeMinPlayers[settings.gameMode];
+  const insufficientPlayers = requiredCount !== undefined && playerCount < requiredCount;
+
+  return (
   <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
     <div className="rounded-2xl overflow-hidden" style={{ background: "#0c0c0c", border: "1px solid #1a1a1a" }}>
 
@@ -188,12 +194,20 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.18em]">Questions</p>
-            <div className="flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900">
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.18em]">
+              Questions{" "}
+              {settings.gameMode === "duel"
+                ? <span className="text-orange-600/70 normal-case">(locked at 5 for Duel)</span>
+                : settings.totalQuestions > 0 && settings.timerDuration > 0
+                  ? <span className="text-zinc-700 normal-case font-normal">~{Math.round(settings.timerDuration / settings.totalQuestions)}s each</span>
+                  : null}
+            </p>
+            <div className={`flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900 ${settings.gameMode === "duel" ? "opacity-40 pointer-events-none" : ""}`}>
               {[3, 5, 10].map((n) => (
                 <button
                   key={n}
                   onClick={() => onUpdateSettings("totalQuestions", n)}
+                  disabled={settings.gameMode === "duel"}
                   className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                   style={{
                     background: settings.totalQuestions === n ? "#27272a" : "transparent",
@@ -225,10 +239,21 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
           </div>
         </div>
 
+        {/* Player count warning for modes that require multiple players */}
+        {insufficientPlayers && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold"
+            style={{ background: "rgba(234,88,12,0.08)", border: "1px solid rgba(234,88,12,0.2)", color: "#fb923c" }}
+          >
+            <span>⚠️</span>
+            <span>{modeMinLabels[settings.gameMode]} — waiting for more players to join.</span>
+          </div>
+        )}
+
         {/* Begin Competition */}
         <button
           onClick={onStartGame}
-          disabled={isStarting || !settings.category}
+          disabled={isStarting || !settings.category || insufficientPlayers}
           className="relative w-full h-[52px] rounded-2xl font-bold text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
           style={{
             background: "linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #ea580c 100%)",
@@ -251,6 +276,7 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
       </div>
     </div>
   </motion.div>
-);
+  );
+};
 
 export default MatchConfiguration;

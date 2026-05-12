@@ -40,6 +40,7 @@ import {
   RadarChart,
   PolarGrid,
 } from "recharts";
+import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 
 const useCountUp = (target, duration = 1500) => {
   const [count, setCount] = useState(0);
@@ -83,6 +84,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLB, setLoadingLB] = useState(true);
   const [recentCourse, setRecentCourse] = useState(null);
+  const [loadingRecent, setLoadingRecent] = useState(!course);
   const [open, setOpen] = useState(false);
   const currentPath = window.location.pathname;
 
@@ -152,7 +154,10 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             setRecentCourse(res.data.enrolledCourses[0]);
           }
         })
-        .catch((err) => console.error("Failed to fetch recent course", err));
+        .catch((err) => console.error("Failed to fetch recent course", err))
+        .finally(() => setLoadingRecent(false));
+    } else {
+      setLoadingRecent(false);
     }
   }, [course, user?.email]);
 
@@ -202,6 +207,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
 
   return (
     <div className="bg-[#0a0a0a] text-metallic min-h-screen flex font-space-grotesk">
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[#0a0a0a]">
+        <DottedGlowBackground color="rgba(255, 255, 255, 0.2)" glowColor="rgba(249, 115, 22, 0.6)" />
+      </div>
       {/* Sidebar Navigation */}
       <Sidebar open={open} setOpen={setOpen}>
         <SidebarBody className="bg-[#111111] border-r border-white/10 h-[calc(100vh-56px)] sticky top-14 justify-between z-40">
@@ -318,7 +326,46 @@ export default function CourseOverview({ course, enrollment, onResume }) {
       </Sidebar>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen bg-[#0a0a0a] ">
+      <main className="flex-1 flex flex-col min-h-screen relative z-10">
+        {loadingRecent ? (
+          /* ── Full-page skeleton — shown until recentCourse resolves ── */
+          <div className="p-8 flex gap-8 animate-pulse">
+            <div className="flex-1 space-y-8">
+              <div className="bg-[#111111] border border-white/10 rounded-2xl p-8">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-3 flex-1">
+                    <div className="h-5 w-36 bg-white/10 rounded-full" />
+                    <div className="h-8 w-72 bg-white/10 rounded-lg" />
+                    <div className="h-4 w-52 bg-white/10 rounded-full" />
+                    <div className="h-11 w-36 bg-white/10 rounded-lg mt-6" />
+                  </div>
+                  <div className="w-40 h-40 rounded-full bg-white/10 shrink-0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="bg-[#111111] border border-white/10 rounded-2xl h-36" />
+                ))}
+              </div>
+              <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 space-y-8">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="flex gap-5 items-center">
+                    <div className="w-12 h-12 rounded-full bg-white/10 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-white/10 rounded-full w-2/3" />
+                      <div className="h-3 bg-white/10 rounded-full w-1/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="w-80 shrink-0 space-y-6">
+              <div className="bg-[#111111] border border-white/10 rounded-2xl h-56" />
+              <div className="bg-[#111111] border border-white/10 rounded-2xl h-64" />
+              <div className="bg-[#111111] border border-white/10 rounded-2xl h-52" />
+            </div>
+          </div>
+        ) : (
         <div className="p-8 flex gap-8">
           {/* Left Column: Path & Progress */}
           <div className="flex-1 space-y-8">
@@ -841,6 +888,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   );

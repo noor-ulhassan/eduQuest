@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import { generateCompetitionQuestions } from "../utils/competitionQuestions.js";
 import { CompetitionResult } from "../models/CompetitionResult.model.js";
-import { registerVoiceEvents } from "./voiceHandler.js";
 import { addXP } from "../utils/progression.js";
 
 // In-memory room storage
@@ -35,7 +34,10 @@ function scheduleLeaderboardBroadcast(io, roomCode, room) {
         }))
         .sort((a, b) => b.score - a.score);
 
-      io.to(roomCode).emit("leaderboardUpdate", { leaderboard });
+      io.to(roomCode).emit("leaderboardUpdate", {
+        leaderboard,
+        spectatorCount: (room.spectators || []).length, // G-13
+      });
     }, 500),
   );
 }
@@ -171,9 +173,6 @@ export function initializeSocket(io) {
       clearInterval(rateLimitInterval);
     });
 
-    // Register voice chat events for this socket
-    registerVoiceEvents(io, socket);
-
     // ─── CLI-3: SYNC STATE (reconnection recovery) ───────────
     socket.on("syncState", ({ roomCode }, callback) => {
       if (typeof roomCode !== "string") return;
@@ -200,6 +199,7 @@ export function initializeSocket(io) {
             currentQuestion: p.currentQuestion,
             correctAnswers: p.correctAnswers || 0,
             finished: p.finished,
+            eliminated: p.eliminated || false,
           }))
           .sort((a, b) => b.score - a.score),
         settings: {
@@ -382,6 +382,14 @@ export function initializeSocket(io) {
         room.timerDuration = Math.max(60, Math.min(Math.floor(settings.timerDuration), 3600));
       }
 
+      // B-01: If questions were generated but generation-affecting settings changed, invalidate them
+      const questionKeys = ["category", "challengeMode", "difficulty", "language", "topic", "description", "totalQuestions"];
+      if ((room.status === "ready" || room.status === "generating") && Object.keys(settings).some(k => questionKeys.includes(k))) {
+        room.status = "waiting";
+        room.questions = [];
+        io.to(roomCode).emit("gameStatus", { status: "cancelled" });
+      }
+
       io.to(roomCode).emit("settingsUpdated", {
         category: room.category,
         challengeMode: room.challengeMode,
@@ -421,6 +429,17 @@ export function initializeSocket(io) {
         return callback?.({
           success: false,
           message: "Need at least 1 player",
+        });
+      }
+
+      // Per-mode minimum player requirements
+      const startModeMin = { duel: 2, survival: 2, team: 2 };
+      const startModeLabels = { duel: "Duel", survival: "Survival", team: "Team Battle" };
+      const startRequired = startModeMin[room.gameMode];
+      if (startRequired && room.players.length < startRequired) {
+        return callback?.({
+          success: false,
+          message: `${startModeLabels[room.gameMode]} mode requires at least ${startRequired} players`,
         });
       }
 
@@ -469,7 +488,7 @@ export function initializeSocket(io) {
       } catch (err) {
         console.error("[Socket] Error generating questions:", err);
         // Reset status so host can retry (unless quota — no point retrying)
-        if (rooms.has(roomCode)) rooms.get(roomCode).status = "lobby";
+        if (rooms.has(roomCode)) rooms.get(roomCode).status = "waiting";
         const isQuota = err.message === "QUOTA_EXCEEDED";
         const message = isQuota
           ? "AI quota exceeded. Please upgrade your Gemini API plan or try again later."
@@ -501,6 +520,19 @@ export function initializeSocket(io) {
         });
       }
 
+      // Mode-specific minimum player requirements — check before mutating room state
+      const launchModeMin = { duel: 2, survival: 2, team: 2 };
+      const launchModeLabels = { duel: "Duel", survival: "Survival", team: "Team Battle" };
+      const launchRequired = launchModeMin[room.gameMode];
+      if (launchRequired && room.players.length < launchRequired) {
+        return callback?.({ success: false, message: `${launchModeLabels[room.gameMode]} mode requires at least ${launchRequired} players` });
+      }
+
+      // B-12: Team Battle requires an even number of players for balanced teams
+      if (room.gameMode === "team" && room.players.length % 2 !== 0) {
+        return callback?.({ success: false, message: "Team Battle requires an even number of players for balanced teams." });
+      }
+
       room.status = "active";
       room.startTime = Date.now();
 
@@ -509,11 +541,6 @@ export function initializeSocket(io) {
         const half = Math.ceil(room.players.length / 2);
         room.playerTeam = {};
         room.players.forEach((p, i) => { room.playerTeam[p.id] = i < half ? 0 : 1; });
-      }
-
-      // Survival: require at least 2 players
-      if (room.gameMode === "survival" && room.players.length < 2) {
-        return callback?.({ success: false, message: "Survival mode requires at least 2 players" });
       }
 
       // Survival: initialize round tracking
@@ -541,6 +568,7 @@ export function initializeSocket(io) {
         timerDuration: room.timerDuration,
         question: firstQuestion,
         questionIndex: 0,
+        isPower: room.questions.length === 1, // single-question game is also the power question
         category: room.category,
         challengeMode: room.challengeMode || "classic",
         gameMode: room.gameMode || "classic",
@@ -583,6 +611,101 @@ export function initializeSocket(io) {
       callback?.({ success: true });
     });
 
+    // ─── RESET ROOM (host, after game ends — Play Again same room) ──
+    socket.on("resetRoom", ({ roomCode }, callback) => {
+      const room = rooms.get(roomCode);
+      if (!room) return callback?.({ success: false, message: "Room not found" });
+      if (room.hostId !== socket.user.id) return callback?.({ success: false, message: "Only the host can reset" });
+      if (room.status !== "finished") return callback?.({ success: false, message: "Room is still active" });
+
+      // Clear all timers
+      if (room._timerInterval) { clearInterval(room._timerInterval); room._timerInterval = null; }
+      if (room._roundTimer) { clearTimeout(room._roundTimer); room._roundTimer = null; }
+      if (room._blitzTimers) { room._blitzTimers.forEach(t => clearTimeout(t)); room._blitzTimers.clear(); }
+
+      // Reset room state
+      room.status = "waiting";
+      room.questions = [];
+      room.startTime = null;
+      room.endTime = null;
+      room._shuffleMaps = {};
+      room.roundAnswers = {};
+      room.roundIndex = 0;
+      room.playerTeam = null;
+
+      // Reset all player states
+      room.players.forEach(p => {
+        p.score = 0;
+        p.currentQuestion = 0;
+        p.correctAnswers = 0;
+        p.comboCount = 0;
+        p.finished = false;
+        p.eliminated = false;
+        p.ready = false;
+        p.lastQuestionTime = null;
+        p.finishTime = null;
+      });
+
+      io.to(roomCode).emit("roomReset", { room: safeRoomPayload(room) });
+      callback?.({ success: true });
+      broadcastRoomListUpdate(io);
+      console.log(`[Socket] Room ${roomCode} reset by ${socket.user.name}`);
+    });
+
+    // ─── SET READY (player signals readiness in lobby) ──────
+    socket.on("setReady", ({ roomCode, ready }, callback) => {
+      const room = rooms.get(roomCode);
+      if (!room || room.status !== "waiting") return callback?.({ success: false });
+      const player = room.players.find(p => p.id === socket.user.id);
+      if (!player) return callback?.({ success: false });
+      player.ready = Boolean(ready);
+      const readyCount = room.players.filter(p => p.ready).length;
+      io.to(roomCode).emit("playerReadyUpdate", {
+        playerId: socket.user.id,
+        ready: player.ready,
+        readyCount,
+        totalPlayers: room.players.length,
+      });
+      callback?.({ success: true });
+    });
+
+    // ─── REQUEST REMATCH (G-08) ─────────────────────────────
+    socket.on("requestRematch", ({ roomCode }, callback) => {
+      const room = rooms.get(roomCode);
+      if (!room || room.status !== "finished") return callback?.({ success: false });
+      const player = room.players.find(p => p.id === socket.user.id);
+      if (!player) return callback?.({ success: false });
+
+      if (!room.rematchVotes) room.rematchVotes = new Set();
+      room.rematchVotes.add(socket.user.id);
+
+      const voteCount = room.rematchVotes.size;
+      const totalPlayers = room.players.length;
+      const voterNames = [...room.rematchVotes]
+        .map(id => room.players.find(p => p.id === id)?.name)
+        .filter(Boolean);
+
+      io.to(roomCode).emit("rematchUpdate", { voteCount, totalPlayers, voterNames });
+
+      // Auto-reset if all players voted
+      if (voteCount >= totalPlayers && totalPlayers >= 2) {
+        room.rematchVotes = null;
+        // Reuse resetRoom logic
+        if (room._timerInterval) { clearInterval(room._timerInterval); room._timerInterval = null; }
+        if (room._roundTimer) { clearTimeout(room._roundTimer); room._roundTimer = null; }
+        if (room._blitzTimers) { room._blitzTimers.forEach(t => clearTimeout(t)); room._blitzTimers.clear(); }
+        room.status = "waiting"; room.questions = []; room.startTime = null; room.endTime = null;
+        room._shuffleMaps = {}; room.roundAnswers = {}; room.roundIndex = 0; room.playerTeam = null;
+        room.players.forEach(p => {
+          p.score = 0; p.currentQuestion = 0; p.correctAnswers = 0; p.comboCount = 0;
+          p.finished = false; p.eliminated = false; p.ready = false; p.lastQuestionTime = null; p.finishTime = null;
+        });
+        io.to(roomCode).emit("roomReset", { room: safeRoomPayload(room) });
+        broadcastRoomListUpdate(io);
+      }
+      callback?.({ success: true, voteCount, totalPlayers });
+    });
+
     // ─── SUBMIT ANSWER ───────────────────────────────────────
     socket.on(
       "submitAnswer",
@@ -591,6 +714,9 @@ export function initializeSocket(io) {
         if (typeof roomCode !== "string") return;
         if (typeof questionIndex !== "number" || !Number.isInteger(questionIndex) || questionIndex < 0) return;
         if (answer === undefined || answer === null) return;
+        // A-06: Limit answer payload size to prevent abuse
+        if (typeof answer === "string" && answer.length > 500) return;
+        if (typeof answer === "object" && JSON.stringify(answer).length > 5000) return;
 
         const room = rooms.get(roomCode);
         if (!room || room.status !== "active") return;
@@ -620,27 +746,21 @@ export function initializeSocket(io) {
         // Blitz mode: 3× more bonus XP, in a 3× tighter window (answer within ~10s for full bonus)
         const blitzFactor = room.gameMode === "blitz" ? 3 : 1;
 
-        // Speed bonus calculation helper
-        const calcSpeedBonus = (base, maxBonus, decayTime) => {
-          const speedBonus = Math.max(
-            0,
-            Math.floor(
-              maxBonus * blitzFactor * (1 - questionElapsed / (decayTime / blitzFactor)),
-            ),
-          );
+        // F-02: Exponential speed decay — steep drop-off after first few seconds
+        // tau=8 means ~61% bonus at 5s, ~14% at 20s; Blitz gets 3x narrower window
+        const calcSpeedBonus = (base, maxBonus) => {
+          const tau = 8 / blitzFactor;
+          const speedBonus = Math.max(0, Math.floor(maxBonus * blitzFactor * Math.exp(-questionElapsed / tau)));
           return base + speedBonus;
         };
+
+        // G-10: Last question is a Power Question — worth 2x (known only at answer time)
+        const isPowerQuestion = room.questions.length > 1 && questionIndex === room.questions.length - 1;
 
         const iType = question.interactionType;
 
         // ─── INTERACTIVE QUESTION TYPES ───────────────────────
-        if (iType === "type_answer") {
-          const userAnswer = (answer?.value || "").trim().toLowerCase();
-          isCorrect = (question.acceptedAnswers || []).some(
-            (accepted) => accepted.trim().toLowerCase() === userAnswer,
-          );
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
-        } else if (iType === "drag_order") {
+        if (iType === "drag_order") {
           const submitted = answer?.value;
           const correct = question.correctOrder;
           isCorrect =
@@ -648,7 +768,7 @@ export function initializeSocket(io) {
             Array.isArray(correct) &&
             submitted.length === correct.length &&
             submitted.every((v, i) => v === correct[i]);
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
         } else if (iType === "drag_match") {
           const submitted = answer?.value;
           if (submitted && question.pairs) {
@@ -663,7 +783,7 @@ export function initializeSocket(io) {
               isCorrect = question.pairs.every((_, i) => submitted[i] === i);
             }
           }
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
         } else if (iType === "fill_blank") {
           const submitted = answer?.value;
           const correct = question.blanks;
@@ -674,13 +794,13 @@ export function initializeSocket(io) {
             submitted.every(
               (v, i) => v.trim().toLowerCase() === correct[i].trim().toLowerCase(),
             );
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
         } else if (iType === "predict_output") {
           const userAnswer = (answer?.value || "").trim().toLowerCase();
           isCorrect = (question.acceptedAnswers || []).some(
             (accepted) => accepted.trim().toLowerCase() === userAnswer,
           );
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
         } else if (iType === "slider_adjust") {
           const submitted = answer?.value;
           if (submitted && question.sliders) {
@@ -690,24 +810,32 @@ export function initializeSocket(io) {
               return Math.abs(userVal - slider.correctValue) <= tolerance;
             });
           }
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
 
         // ─── CODE EXECUTION (programming + classic) ───────────
         } else if (room.category === "programming" && (!room.challengeMode || room.challengeMode === "classic")) {
           isCorrect = answer?.allPassed === true;
-          if (isCorrect) pointsEarned = calcSpeedBonus(200, 100, 60);
+          if (isCorrect) pointsEarned = calcSpeedBonus(200, 100);
 
         // ─── STANDARD MCQ (all other cases) ───────────────────
         } else {
           isCorrect =
             typeof answer === "string" &&
             answer.trim().toLowerCase() === question.correctAnswer?.trim().toLowerCase();
-          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50, 30);
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
         }
 
         if (isCorrect) {
+          // G-10: Power Question (last question) doubles points
+          if (isPowerQuestion) pointsEarned = Math.round(pointsEarned * 2);
+          // F-01: Apply combo multiplier to reward streaks
+          player.comboCount = (player.comboCount || 0) + 1;
+          const comboMult = player.comboCount >= 7 ? 1.3 : player.comboCount >= 5 ? 1.2 : player.comboCount >= 3 ? 1.1 : 1.0;
+          pointsEarned = Math.round(pointsEarned * comboMult);
           player.score += pointsEarned;
           player.correctAnswers = (player.correctAnswers || 0) + 1;
+        } else {
+          player.comboCount = 0;
         }
 
         // Build correct answer info for feedback
@@ -718,10 +846,7 @@ export function initializeSocket(io) {
           correctAnswerData = question.pairs?.map((p) => p.right);
         } else if (question.interactionType === "fill_blank") {
           correctAnswerData = question.blanks;
-        } else if (
-          question.interactionType === "type_answer" ||
-          question.interactionType === "predict_output"
-        ) {
+        } else if (question.interactionType === "predict_output") {
           correctAnswerData = question.acceptedAnswers?.[0] || null;
         } else if (question.interactionType === "slider_adjust") {
           correctAnswerData = question.sliders?.map(
@@ -748,7 +873,8 @@ export function initializeSocket(io) {
         callback?.({
           isCorrect,
           pointsEarned,
-          correctAnswer: correctAnswerData, // Send the rich correct answer data
+          comboCount: player.comboCount || 0,
+          correctAnswer: correctAnswerData,
           explanation: question.explanation || null,
         });
 
@@ -757,7 +883,7 @@ export function initializeSocket(io) {
           if (!room.roundAnswers) room.roundAnswers = {};
           room.roundAnswers[player.id] = { isCorrect, pointsEarned };
           const active = room.players.filter(p => !p.eliminated && !p.finished);
-          if (active.length >= 2 && active.every(p => room.roundAnswers[p.id] !== undefined)) {
+          if (active.every(p => room.roundAnswers[p.id] !== undefined)) {
             processSurvivalRound(io, roomCode, room);
           }
           return; // Don't use normal next-question flow
@@ -775,6 +901,7 @@ export function initializeSocket(io) {
           socket.emit("nextQuestion", {
             question: nextQ,
             questionIndex: nextIndex,
+            isPower: room.questions.length > 1 && nextIndex === room.questions.length - 1,
           });
           if (room.gameMode === "blitz") setBlitzQuestionTimer(io, roomCode, room, player, nextIndex);
         } else {
@@ -902,6 +1029,16 @@ export function initializeSocket(io) {
 
       const requester = room.pendingRequests[reqIndex];
       room.pendingRequests.splice(reqIndex, 1);
+
+      // B-02: Enforce mode-specific player cap before adding
+      const maxApproveSlots = room.gameMode === "duel" ? 2 : 20;
+      if (room.players.length >= maxApproveSlots) {
+        io.to(requester.socketId).emit("joinDenied", {
+          roomCode,
+          message: room.gameMode === "duel" ? "Duel rooms are limited to 2 players." : "Room is full.",
+        });
+        return;
+      }
 
       // Add as player
       room.players.push({
@@ -1092,6 +1229,14 @@ const handleLeave = async (io, socket, roomCode) => {
       players: room.players,
     });
 
+    // B-03: If game is active, check whether remaining players are all done
+    if (room.status === "active") {
+      if (room.players.length === 0 || room.players.every(p => p.finished || p.eliminated)) {
+        endGame(io, roomCode, room);
+        return;
+      }
+    }
+
     // If host left, assign new host or close room
     if (player.id === room.hostId) {
       if (room.players.length > 0) {
@@ -1135,7 +1280,14 @@ function safeRoomPayload(room) {
     totalQuestions: room.totalQuestions,
     timerDuration: room.timerDuration,
     pendingRequests: room.pendingRequests,
-    players: room.players,
+    players: room.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      avatarUrl: p.avatarUrl || null,
+      score: p.score,
+      finished: p.finished,
+      ready: p.ready || false,
+    })),
     createdAt: room.createdAt,
   };
 }
@@ -1158,9 +1310,7 @@ function sanitizeQuestion(question, category, challengeMode = "classic", room = 
     if (question.contextCode) base.contextCode = question.contextCode;
 
     // Interactive fields
-    if (question.interactionType === "type_answer") {
-      base.hint = question.hint;
-    } else if (question.interactionType === "drag_order") {
+    if (question.interactionType === "drag_order") {
       base.items = question.items; // Already shuffled by genAI, or we can shuffle here if needed
     } else if (question.interactionType === "drag_match") {
       // Shuffle right column, keep track of mapping for validation
@@ -1259,28 +1409,37 @@ async function endGame(io, roomCode, room) {
   if (room.status === "finished") return; // Prevent double-trigger
   room.status = "finished";
   room.endTime = Date.now();
+  clearTimeout(leaderboardTimers.get(roomCode));
+  leaderboardTimers.delete(roomCode);
   if (room._timerInterval) clearInterval(room._timerInterval);
   if (room._roundTimer) { clearTimeout(room._roundTimer); room._roundTimer = null; }
   if (room._blitzTimers) { room._blitzTimers.forEach(t => clearTimeout(t)); room._blitzTimers.clear(); }
 
   // Sort leaderboard — eliminated players go after finishers, sorted by score
   const finalLeaderboard = room.players
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      avatarUrl: p.avatarUrl,
-      score: p.score,
-      currentQuestion: p.currentQuestion,
-      correctAnswers: p.correctAnswers || 0,
-      finished: p.finished,
-      eliminated: p.eliminated || false,
-      timeTaken: p.finishTime
-        ? Math.floor((p.finishTime - room.startTime) / 1000)
-        : null,
-    }))
+    .map((p) => {
+      const perfectScore = p.finished && !p.eliminated && (p.correctAnswers || 0) === room.questions.length && room.questions.length > 0;
+      return {
+        id: p.id,
+        name: p.name,
+        avatarUrl: p.avatarUrl,
+        score: perfectScore ? p.score + 50 : p.score, // F-03: +50 XP for perfect accuracy
+        currentQuestion: p.currentQuestion,
+        correctAnswers: p.correctAnswers || 0,
+        finished: p.finished,
+        eliminated: p.eliminated || false,
+        perfectScore,
+        timeTaken: p.finishTime ? Math.floor((p.finishTime - room.startTime) / 1000) : null,
+      };
+    })
     .sort((a, b) => {
       if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
-      return b.score - a.score;
+      if (b.score !== a.score) return b.score - a.score;
+      // Tie-break: finished player who completed faster ranks higher
+      if (a.timeTaken === null && b.timeTaken === null) return 0;
+      if (a.timeTaken === null) return 1;
+      if (b.timeTaken === null) return -1;
+      return a.timeTaken - b.timeTaken;
     });
 
   let teamScores = null;
@@ -1290,6 +1449,19 @@ async function endGame(io, roomCode, room) {
       const team = room.playerTeam[p.id];
       if (team === 0 || team === 1) teamScores[team] += p.score;
     });
+
+    // F-05: Team win bonus — winning team members each get +15 XP
+    const winningTeam = teamScores[0] > teamScores[1] ? 0 : teamScores[1] > teamScores[0] ? 1 : null;
+    if (winningTeam !== null) {
+      finalLeaderboard.forEach(p => {
+        if (room.playerTeam[p.id] === winningTeam && p.finished && !p.eliminated) {
+          p.score += 15;
+          p.teamWinBonus = true;
+        }
+      });
+      // Update team totals after bonus
+      teamScores[winningTeam] += finalLeaderboard.filter(p => room.playerTeam[p.id] === winningTeam && p.teamWinBonus).length * 15;
+    }
   }
 
   io.to(roomCode).emit("gameOver", {
@@ -1298,8 +1470,8 @@ async function endGame(io, roomCode, room) {
     teamScores,
   });
 
-  // Award XP to winner (skip for practice mode)
-  if (room.gameMode !== "practice") awardXP(finalLeaderboard);
+  // Award XP (skip for practice mode)
+  if (room.gameMode !== "practice") awardXP(finalLeaderboard, finalLeaderboard.length);
 
   // Save results to DB — skip for practice (unranked)
   if (room.gameMode === "practice") {
@@ -1354,23 +1526,32 @@ function processSurvivalRound(io, roomCode, room) {
   const active = room.players.filter(p => !p.eliminated && !p.finished);
   if (active.length <= 1) { endGame(io, roomCode, room); return; }
 
-  // Eliminate the player with the lowest cumulative score
-  const sorted = [...active].sort((a, b) => a.score - b.score);
-  const lowestPlayer = sorted[0];
+  // B-06: Eliminate player(s) with lowest score, tiebroken by correctAnswers, then all still tied
+  const sorted = [...active].sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+    return (a.correctAnswers || 0) - (b.correctAnswers || 0);
+  });
+  const lowestScore = sorted[0].score;
+  const lowestCorrect = sorted[0].correctAnswers || 0;
+  const toEliminate = sorted.filter(p => p.score === lowestScore && (p.correctAnswers || 0) === lowestCorrect);
 
-  lowestPlayer.eliminated = true;
-  lowestPlayer.finished = true;
-  lowestPlayer.finishTime = Date.now();
+  const roundsPlayed = (room.roundIndex || 0) + 1; // B-09: rounds actually played so far
 
-  const lowestSocket = io.sockets.sockets.get(lowestPlayer.socketId);
-  if (lowestSocket) {
-    lowestSocket.emit("playerEliminated", {
-      score: lowestPlayer.score,
-      correctAnswers: lowestPlayer.correctAnswers || 0,
-      totalQuestions: room.questions.length,
-    });
-  }
-  io.to(roomCode).emit("playerEliminatedUpdate", { playerId: lowestPlayer.id, playerName: lowestPlayer.name });
+  toEliminate.forEach(lowestPlayer => {
+    lowestPlayer.eliminated = true;
+    lowestPlayer.finished = true;
+    lowestPlayer.finishTime = Date.now();
+
+    const lowestSocket = io.sockets.sockets.get(lowestPlayer.socketId);
+    if (lowestSocket) {
+      lowestSocket.emit("playerEliminated", {
+        score: lowestPlayer.score,
+        correctAnswers: lowestPlayer.correctAnswers || 0,
+        totalQuestions: roundsPlayed,
+      });
+    }
+    io.to(roomCode).emit("playerEliminatedUpdate", { playerId: lowestPlayer.id, playerName: lowestPlayer.name });
+  });
 
   room.roundAnswers = {};
   room.roundIndex = (room.roundIndex || 0) + 1;
@@ -1391,7 +1572,7 @@ function processSurvivalRound(io, roomCode, room) {
     p.lastQuestionTime = now;
     const sanitized = sanitizeQuestion(nextQ, room.category, room.challengeMode, room, room.roundIndex);
     const pSocket = io.sockets.sockets.get(p.socketId);
-    if (pSocket) pSocket.emit("nextQuestion", { question: sanitized, questionIndex: room.roundIndex });
+    if (pSocket) pSocket.emit("nextQuestion", { question: sanitized, questionIndex: room.roundIndex, isPower: room.questions.length > 1 && room.roundIndex === room.questions.length - 1 });
   });
 
   // 30s per-round timer — auto-submit wrong for non-responders
@@ -1431,7 +1612,7 @@ function setBlitzQuestionTimer(io, roomCode, room, player, questionIndex) {
       if (room.players.every(p => p.finished)) endGame(io, roomCode, room);
     } else {
       const nextQ = sanitizeQuestion(room.questions[nextIndex], room.category, room.challengeMode, room, nextIndex);
-      if (playerSocket) playerSocket.emit("nextQuestion", { question: nextQ, questionIndex: nextIndex });
+      if (playerSocket) playerSocket.emit("nextQuestion", { question: nextQ, questionIndex: nextIndex, isPower: room.questions.length > 1 && nextIndex === room.questions.length - 1 });
       setBlitzQuestionTimer(io, roomCode, room, player, nextIndex);
     }
   }, 15000);
@@ -1439,13 +1620,17 @@ function setBlitzQuestionTimer(io, roomCode, room, player, questionIndex) {
   room._blitzTimers.set(player.id, timer);
 }
 
-async function awardXP(leaderboard) {
+async function awardXP(leaderboard, totalPlayers = 2) {
+  // F-04: Scale XP by competition size — larger pools reward more
+  const sizeMult = Math.max(1, Math.log2(Math.max(totalPlayers, 2)));
+
   await Promise.all(
     leaderboard.map(async (playerEntry, i) => {
       if (playerEntry.score <= 0) return;
+      if (!playerEntry.finished || playerEntry.eliminated) return; // B-13: Only reward completed players
       try {
         const xpReward = i === 0 ? 100 : i === 1 ? 50 : 25;
-        const totalEarned = xpReward + Math.floor(playerEntry.score / 10);
+        const totalEarned = Math.round((xpReward + Math.floor(playerEntry.score / 10)) * sizeMult);
         const user = await User.findById(playerEntry.id);
         if (!user) return;
         const totalWins = await CompetitionResult.countDocuments({

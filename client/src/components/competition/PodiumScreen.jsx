@@ -4,7 +4,7 @@ import { Crown, Trophy, ArrowLeft, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const PodiumScreen = ({ leaderboard, userId, isHost, onHome }) => {
+const PodiumScreen = ({ leaderboard, userId, isHost, onHome, onPlayAgain, rematchVotes, onRequestRematch }) => {
   const sorted = [...leaderboard].sort((a, b) => {
     if ((a.eliminated || false) !== (b.eliminated || false)) return (a.eliminated || false) ? 1 : -1;
     return b.score - a.score;
@@ -134,6 +134,23 @@ const PodiumScreen = ({ leaderboard, userId, isHost, onHome }) => {
           </Card>
         )}
 
+        {onRequestRematch && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 space-y-2">
+            {rematchVotes?.voteCount > 0 && (
+              <p className="text-xs text-zinc-500 text-center">
+                {rematchVotes.voteCount}/{rematchVotes.totalPlayers} players voted for rematch
+                {rematchVotes.voterNames?.length > 0 && ` — ${rematchVotes.voterNames.join(", ")}`}
+              </p>
+            )}
+            <Button
+              onClick={onRequestRematch}
+              variant="outline"
+              className="w-full gap-2 border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 h-10"
+            >
+              🔄 Request Rematch
+            </Button>
+          </div>
+        )}
         <div className="flex gap-4 justify-center pt-4">
           <Button
             variant="outline"
@@ -142,9 +159,9 @@ const PodiumScreen = ({ leaderboard, userId, isHost, onHome }) => {
           >
             <ArrowLeft size={16} /> Return Home
           </Button>
-          {isHost && (
+          {isHost && onPlayAgain && (
             <Button
-              onClick={() => window.location.reload()}
+              onClick={onPlayAgain}
               className="gap-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white h-12 px-8 shadow-lg shadow-orange-900/20"
             >
               <Play size={16} fill="currentColor" /> Play Again

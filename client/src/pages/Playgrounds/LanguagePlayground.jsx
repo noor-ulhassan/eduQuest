@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Editor from "@monaco-editor/react";
@@ -20,9 +26,11 @@ import {
   RotateCcw,
   Star,
   Terminal,
+  Trophy,
   User,
   X,
   Menu,
+  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -35,7 +43,7 @@ import {
   completeProblem as completeProb,
   getCurriculum,
   enrollInPlayground,
-  clearPlaygroundCache
+  clearPlaygroundCache,
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
 import DiscussionPanel from "@/components/playground/DiscussionPanel";
@@ -110,32 +118,57 @@ setTimeout(function(){window.parent.postMessage({type:"IFRAME_READY"},__origin__
 
 // ─── Error simplifier ──────────────────────────────────────────────────────
 const ERROR_HINTS = {
-  ReferenceError:                 "Check that this variable or function is declared before you use it. Look for typos.",
-  TypeError:                      "You're using a value the wrong way — e.g. calling something that isn't a function, or reading a property of null/undefined.",
-  SyntaxError:                    "Your code has a formatting mistake — look for a missing bracket, parenthesis, colon, or quote near this line.",
-  RangeError:                     "A value is out of the allowed range — common cause is infinite recursion or an invalid array size.",
-  NameError:                      "This name doesn't exist here. Check spelling and make sure it's defined before this line.",
-  AttributeError:                 "This object doesn't have that property or method. Check the object type and spelling.",
-  IndexError:                     "List index out of range — your index is larger than the list length.",
-  KeyError:                       "Key not found in dictionary — double-check the key name for typos.",
-  ValueError:                     "Wrong value passed — e.g. passing a non-number string to int(), or an invalid argument.",
-  IndentationError:               "Python requires consistent indentation. Use 4 spaces per level and don't mix tabs with spaces.",
-  TabError:                       "Mixed tabs and spaces. Stick to spaces only (4 per indent level) in Python.",
-  ZeroDivisionError:              "You're dividing by zero. Add a check to make sure the divisor isn't 0 before dividing.",
-  ImportError:                    "This module couldn't be imported — it may not be available in the sandbox.",
-  ModuleNotFoundError:            "Module not found — this package isn't available in the sandbox.",
-  RecursionError:                 "Too many recursive calls. Make sure your base case is reachable and correct.",
-  "cannot find symbol":           "You used a variable or method that hasn't been declared. Declare it before this line.",
-  "';' expected":                 "Missing semicolon — Java requires `;` at the end of every statement.",
-  "incompatible types":           "Type mismatch — you're assigning or returning the wrong type. Cast it or change the type.",
-  "reached end of file":          "Unclosed block — a `}` is missing somewhere. Check your opening and closing braces match.",
-  "illegal start of expression":  "Unexpected character — check for a stray symbol or a misplaced keyword on this line.",
-  NullPointerException:           "You're calling a method or accessing a field on a null object. Check that the object is initialised before use.",
-  ArrayIndexOutOfBoundsException: "Array index out of bounds — your index is >= the array length.",
-  StackOverflowError:             "Stack overflow — your recursion has no reachable base case, or it's too deep.",
-  NumberFormatException:          "Can't convert this string to a number — make sure the input only contains digits.",
-  ArithmeticException:            "Arithmetic error — most likely division by zero.",
-  ClassCastException:             "Invalid cast — the object isn't the type you're trying to cast it to.",
+  ReferenceError:
+    "Check that this variable or function is declared before you use it. Look for typos.",
+  TypeError:
+    "You're using a value the wrong way — e.g. calling something that isn't a function, or reading a property of null/undefined.",
+  SyntaxError:
+    "Your code has a formatting mistake — look for a missing bracket, parenthesis, colon, or quote near this line.",
+  RangeError:
+    "A value is out of the allowed range — common cause is infinite recursion or an invalid array size.",
+  NameError:
+    "This name doesn't exist here. Check spelling and make sure it's defined before this line.",
+  AttributeError:
+    "This object doesn't have that property or method. Check the object type and spelling.",
+  IndexError:
+    "List index out of range — your index is larger than the list length.",
+  KeyError:
+    "Key not found in dictionary — double-check the key name for typos.",
+  ValueError:
+    "Wrong value passed — e.g. passing a non-number string to int(), or an invalid argument.",
+  IndentationError:
+    "Python requires consistent indentation. Use 4 spaces per level and don't mix tabs with spaces.",
+  TabError:
+    "Mixed tabs and spaces. Stick to spaces only (4 per indent level) in Python.",
+  ZeroDivisionError:
+    "You're dividing by zero. Add a check to make sure the divisor isn't 0 before dividing.",
+  ImportError:
+    "This module couldn't be imported — it may not be available in the sandbox.",
+  ModuleNotFoundError:
+    "Module not found — this package isn't available in the sandbox.",
+  RecursionError:
+    "Too many recursive calls. Make sure your base case is reachable and correct.",
+  "cannot find symbol":
+    "You used a variable or method that hasn't been declared. Declare it before this line.",
+  "';' expected":
+    "Missing semicolon — Java requires `;` at the end of every statement.",
+  "incompatible types":
+    "Type mismatch — you're assigning or returning the wrong type. Cast it or change the type.",
+  "reached end of file":
+    "Unclosed block — a `}` is missing somewhere. Check your opening and closing braces match.",
+  "illegal start of expression":
+    "Unexpected character — check for a stray symbol or a misplaced keyword on this line.",
+  NullPointerException:
+    "You're calling a method or accessing a field on a null object. Check that the object is initialised before use.",
+  ArrayIndexOutOfBoundsException:
+    "Array index out of bounds — your index is >= the array length.",
+  StackOverflowError:
+    "Stack overflow — your recursion has no reachable base case, or it's too deep.",
+  NumberFormatException:
+    "Can't convert this string to a number — make sure the input only contains digits.",
+  ArithmeticException: "Arithmetic error — most likely division by zero.",
+  ClassCastException:
+    "Invalid cast — the object isn't the type you're trying to cast it to.",
 };
 
 function parseRawError(raw, lang) {
@@ -148,24 +181,37 @@ function parseRawError(raw, lang) {
   if (lang === "python") {
     const lineMatch = r.match(/line (\d+)/);
     if (lineMatch) line = lineMatch[1];
-    const errMatch = r.match(/^([A-Z]\w*(?:Error|Exception|Warning|Interrupt)):\s*(.*)$/m);
-    if (errMatch) { type = errMatch[1]; message = errMatch[2].trim(); }
-
+    const errMatch = r.match(
+      /^([A-Z]\w*(?:Error|Exception|Warning|Interrupt)):\s*(.*)$/m,
+    );
+    if (errMatch) {
+      type = errMatch[1];
+      message = errMatch[2].trim();
+    }
   } else if (lang === "javascript") {
     // Node paths like /usercode/main.js:5:11 or main.js:5
     const lineMatch = r.match(/[/\\]?main\.js:(\d+)/);
     if (lineMatch) line = lineMatch[1];
-    const errMatch = r.match(/(ReferenceError|TypeError|SyntaxError|RangeError|URIError|EvalError|Error):\s*([^\n]+)/);
-    if (errMatch) { type = errMatch[1]; message = errMatch[2].trim(); }
-
+    const errMatch = r.match(
+      /(ReferenceError|TypeError|SyntaxError|RangeError|URIError|EvalError|Error):\s*([^\n]+)/,
+    );
+    if (errMatch) {
+      type = errMatch[1];
+      message = errMatch[2].trim();
+    }
   } else if (lang === "java") {
     // Compile error: Main.java:5: error: cannot find symbol
     const compileLineMatch = r.match(/\.java:(\d+):/);
     if (compileLineMatch) line = compileLineMatch[1];
     const compileMsg = r.match(/error:\s*([^\n]+)/);
-    if (compileMsg) { type = "Compile Error"; message = compileMsg[1].trim(); }
+    if (compileMsg) {
+      type = "Compile Error";
+      message = compileMsg[1].trim();
+    }
     // Runtime exception: Exception in thread "main" java.lang.NullPointerException
-    const rteMatch = r.match(/java\.lang\.(NullPointerException|ArrayIndexOutOfBoundsException|ClassCastException|StackOverflowError|NumberFormatException|ArithmeticException|IllegalArgumentException|IllegalStateException)([:\s]+([^\n]*))?/);
+    const rteMatch = r.match(
+      /java\.lang\.(NullPointerException|ArrayIndexOutOfBoundsException|ClassCastException|StackOverflowError|NumberFormatException|ArithmeticException|IllegalArgumentException|IllegalStateException)([:\s]+([^\n]*))?/,
+    );
     if (rteMatch) {
       type = rteMatch[1];
       message = rteMatch[3]?.trim() || "";
@@ -198,7 +244,7 @@ function parseRawError(raw, lang) {
   }
 
   const parts = [];
-  parts.push(line ? `Line ${line}  ·  ${type || "Error"}` : (type || "Error"));
+  parts.push(line ? `Line ${line}  ·  ${type || "Error"}` : type || "Error");
   if (message) parts.push(message);
   parts.push(`\n💡 ${hint}`);
   return parts.join("\n");
@@ -228,6 +274,9 @@ const LanguagePlayground = () => {
   const [dsaLang, setDsaLang] = useState("javascript");
   const reactDebounceRef = useRef(null);
   const [showDiscussion, setShowDiscussion] = useState(false);
+  const [isSidebarCompact, setIsSidebarCompact] = useState(true);
+  const [sessionXP, setSessionXP] = useState(0);
+  const [sessionSolved, setSessionSolved] = useState(0);
   const [data, setData] = useState(null);
   const isLivePreview =
     language?.toLowerCase() === "html" || language?.toLowerCase() === "css";
@@ -261,19 +310,18 @@ const LanguagePlayground = () => {
             }
           }
           setCompletedProblems(completedSet);
-          
+
           let firstUnsolved = null;
           for (const chapter of curRes.curriculum.chapters) {
-            const found = chapter.problems.find(
-              (p) => !completedSet.has(p.id),
-            );
+            const found = chapter.problems.find((p) => !completedSet.has(p.id));
             if (found) {
               firstUnsolved = found;
               break;
             }
           }
 
-          const targetProblem = firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+          const targetProblem =
+            firstUnsolved || curRes.curriculum.chapters[0].problems[0];
           setCurrentProblem(targetProblem);
           setCode(
             typeof targetProblem.starterCode === "object"
@@ -283,7 +331,7 @@ const LanguagePlayground = () => {
           setOutput(null);
           setTestResult(null);
           setShowHints(false);
-          
+
           if (!firstUnsolved) {
             setExpandedChapterId(curRes.curriculum.chapters[0].id);
           }
@@ -299,10 +347,10 @@ const LanguagePlayground = () => {
       }
     };
     initData();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [user, language, navigate]);
-
-
 
   const selectProblem = useCallback(
     (prob, chapterId) => {
@@ -325,7 +373,9 @@ const LanguagePlayground = () => {
   }, [currentProblem]);
 
   // Keep showHints ref in sync so stale-closure handlers can read latest value
-  useEffect(() => { showHintsRef.current = showHints; }, [showHints]);
+  useEffect(() => {
+    showHintsRef.current = showHints;
+  }, [showHints]);
 
   // Record when the user lands on a new problem — used for speed-bonus timing
   useEffect(() => {
@@ -337,7 +387,11 @@ const LanguagePlayground = () => {
     if (isReact && iframeRef.current && currentProblem) {
       if (reactDebounceRef.current) clearTimeout(reactDebounceRef.current);
       reactDebounceRef.current = setTimeout(() => {
-        if (iframeRef.current) iframeRef.current.srcdoc = buildReactDoc(code, window.location.origin);
+        if (iframeRef.current)
+          iframeRef.current.srcdoc = buildReactDoc(
+            code,
+            window.location.origin,
+          );
       }, 500);
       return () => clearTimeout(reactDebounceRef.current);
     }
@@ -359,25 +413,32 @@ const LanguagePlayground = () => {
 
   const fireBonusToasts = useCallback((response) => {
     if (response.earnedSpeedBonus) toast.success("Speed bonus earned!");
-    if (response.chapterCompleted) toast.success("Chapter complete! +100 XP bonus");
-    if (response.languageCompleted) toast.success("Language mastered! +500 XP bonus");
+    if (response.chapterCompleted)
+      toast.success("Chapter complete! +100 XP bonus");
+    if (response.languageCompleted)
+      toast.success("Language mastered! +500 XP bonus");
   }, []);
 
-  const handleGamificationReward = useCallback((response) => {
-    const prevUser = store.getState().auth.user;
-    dispatch(updateUserStats(response.user));
-    emit({ type: "xp", amount: response.xp });
-    if (response.user.level > (prevUser?.level || 1)) {
-      emit({ type: "levelUp", level: response.user.level });
-    }
-    if (response.user.rank !== prevUser?.rank) {
-      emit({ type: "rankUp", rank: response.user.rank });
-    }
-    const prevBadges = prevUser?.badges || [];
-    (response.user.badges || [])
-      .filter((b) => !prevBadges.find((pb) => pb.title === b.title))
-      .forEach((b) => emit({ type: "badge", ...b }));
-  }, [dispatch]);
+  const handleGamificationReward = useCallback(
+    (response) => {
+      const prevUser = store.getState().auth.user;
+      dispatch(updateUserStats(response.user));
+      emit({ type: "xp", amount: response.xp });
+      setSessionXP((prev) => prev + (response.xp || 0));
+      setSessionSolved((prev) => prev + 1);
+      if (response.user.level > (prevUser?.level || 1)) {
+        emit({ type: "levelUp", level: response.user.level });
+      }
+      if (response.user.rank !== prevUser?.rank) {
+        emit({ type: "rankUp", rank: response.user.rank });
+      }
+      const prevBadges = prevUser?.badges || [];
+      (response.user.badges || [])
+        .filter((b) => !prevBadges.find((pb) => pb.title === b.title))
+        .forEach((b) => emit({ type: "badge", ...b }));
+    },
+    [dispatch],
+  );
 
   // postMessage bridge for iframe-based tests (React + HTML/CSS)
   useEffect(() => {
@@ -469,8 +530,10 @@ const LanguagePlayground = () => {
             window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
             window.parent.postMessage({type:"IFRAME_READY"},"*");
           <\/script>`;
-          if (language === "css") iframe.srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}${testBridge}</body></html>`;
-          else iframe.srcdoc = `<!DOCTYPE html><html><head></head><body>${code}${testBridge}</body></html>`;
+          if (language === "css")
+            iframe.srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}${testBridge}</body></html>`;
+          else
+            iframe.srcdoc = `<!DOCTYPE html><html><head></head><body>${code}${testBridge}</body></html>`;
         } else {
           setIsRunning(false);
         }
@@ -558,7 +621,16 @@ const LanguagePlayground = () => {
     } finally {
       setIsRunning(false);
     }
-  }, [code, currentProblem, isRunning, language, isLivePreview, isReact, fireBonusToasts, handleGamificationReward]);
+  }, [
+    code,
+    currentProblem,
+    isRunning,
+    language,
+    isLivePreview,
+    isReact,
+    fireBonusToasts,
+    handleGamificationReward,
+  ]);
 
   // Keyboard shortcut
   useEffect(() => {
@@ -595,7 +667,13 @@ const LanguagePlayground = () => {
     } catch {
       toast.error("Failed to save progress");
     }
-  }, [currentProblem, language, dispatch, fireBonusToasts, handleGamificationReward]);
+  }, [
+    currentProblem,
+    language,
+    dispatch,
+    fireBonusToasts,
+    handleGamificationReward,
+  ]);
 
   useEffect(() => {
     if (isMobile) setIsSidebarOpen(false);
@@ -649,6 +727,25 @@ const LanguagePlayground = () => {
     return `main.${fileExtMap[activeLang] || activeLang}`;
   }, [currentProblem, dsaLang, language]);
 
+  // ── Loading ─────────────────────────────────────────────
+  if (isLoadingProgress) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white">
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#111111] border border-white/10 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-base capitalize">
+              {language} Playground
+            </p>
+            <p className="text-zinc-500 text-sm mt-1">Loading your progress…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Not found ──────────────────────────────────────────
   if (!data) {
     return (
@@ -670,8 +767,6 @@ const LanguagePlayground = () => {
       </div>
     );
   }
-
-
 
   // Go to next problem
   const goToNextProblem = () => {
@@ -722,7 +817,11 @@ const LanguagePlayground = () => {
         <header className="h-[60px] shrink-0 border-b border-white/10 bg-[#0a0a0a] flex items-center justify-between px-6 z-10">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              onClick={() =>
+                isMobile
+                  ? setIsSidebarOpen(!isSidebarOpen)
+                  : setIsSidebarCompact(!isSidebarCompact)
+              }
               className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-zinc-400 hover:text-white"
             >
               <Menu className="w-5 h-5" />
@@ -786,18 +885,20 @@ const LanguagePlayground = () => {
 
         {/* ═══════════ LEFT SIDEBAR ═══════════ */}
         <AnimatePresence initial={false}>
-          {(isSidebarOpen || isMobile) && (
+          {(!isMobile || isSidebarOpen) && (
             <motion.aside
-              initial={
-                isMobile ? { x: -280, opacity: 0 } : { width: 0, opacity: 0 }
-              }
+              initial={isMobile ? { x: -280, opacity: 0 } : false}
               animate={
-                isMobile ? { x: 0, opacity: 1 } : { width: 250, opacity: 1 }
+                isMobile
+                  ? { x: 0, opacity: 1 }
+                  : isSidebarCompact
+                    ? { width: 64, opacity: 1 }
+                    : { width: 250, opacity: 1 }
               }
-              exit={
-                isMobile ? { x: -280, opacity: 0 } : { width: 0, opacity: 0 }
-              }
+              exit={isMobile ? { x: -280, opacity: 0 } : undefined}
               transition={{ duration: 0.25, ease: "easeInOut" }}
+              onMouseEnter={() => !isMobile && setIsSidebarCompact(false)}
+              onMouseLeave={() => !isMobile && setIsSidebarCompact(true)}
               className={cn(
                 "h-full flex flex-col overflow-hidden shrink-0 bg-[#111111] border-r border-white/10",
                 isMobile
@@ -805,200 +906,267 @@ const LanguagePlayground = () => {
                   : "hidden md:flex",
               )}
             >
-              {/* Course header */}
-              <div className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 drop-shadow-sm">
-                  {getLanguageIconUrl(language) ? (
-                    <img
-                      src={getLanguageIconUrl(language)}
-                      alt={language}
-                      className="w-6 h-6 object-contain drop-shadow-md"
+              {/* ── Compact icon-only view ── */}
+              {!isMobile && isSidebarCompact ? (
+                <div className="flex flex-col items-center h-full pt-3 pb-4 gap-1.5 overflow-hidden">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mb-1">
+                    {getLanguageIconUrl(language) ? (
+                      <img
+                        src={getLanguageIconUrl(language)}
+                        alt={language}
+                        className="w-5 h-5 object-contain drop-shadow-md"
+                      />
+                    ) : (
+                      <FileCode2 className="w-4 h-4 text-red-400" />
+                    )}
+                  </div>
+
+                  <div className="w-8 h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2cf09d] rounded-full transition-all duration-500"
+                      style={{ width: `${progressPercent}%` }}
                     />
-                  ) : (
-                    <FileCode2 className="w-5 h-5 text-red-400" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-sm text-white truncate">
-                    {data.title}
-                  </h2>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">
-                    {data.subtitle || "BEGINNER LEVEL"}
-                  </span>
-                </div>
-                {isMobile && (
-                  <button
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="text-zinc-500 hover:text-zinc-300 p-1"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+                  </div>
 
-              {/* Progress */}
-              <div className="px-4 pb-3">
-                <div className="flex items-center justify-between text-xs uppercase tracking-widest font-semibold mb-2">
-                  <span className="text-zinc-500">Course Progress</span>
-                  <span className="text-[#2cf09d] font-bold">
-                    {progressPercent}%
-                  </span>
-                </div>
-                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#2cf09d] rounded-full transition-all duration-500 "
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-zinc-600 mt-2 block">
-                  {completedCount} of {totalProblems} lessons completed
-                </span>
-              </div>
+                  <div className="h-px bg-white/10 w-8 my-0.5" />
 
-              <div className="h-px bg-white/10" />
-
-              {/* Topic / chapter list */}
-              <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10">
-                {data.chapters.map((chapter, idx) => {
-                  const isActiveChapter = chapter.problems.some(
-                    (p) => p.id === currentProblem?.id,
-                  );
-                  const chapterDone = chapter.problems.every((p) =>
-                    completedProblems.has(p.id),
-                  );
-                  const chapterHasProgress = chapter.problems.some((p) =>
-                    completedProblems.has(p.id),
-                  );
-
-                  // All chapters are now fully unlocked for open exploration
-                  const isLocked = false;
-
-                  const isExpanded = expandedChapterId === chapter.id;
-
-                  return (
-                    <div key={chapter.id} className="mb-2">
-                      <button
-                        onClick={() => {
-                          if (isLocked) return;
-                          setExpandedChapterId(isExpanded ? null : chapter.id);
-                        }}
-                        disabled={isLocked}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left",
-                          isActiveChapter && "text-red-300",
-                          chapterDone &&
-                            !isActiveChapter &&
-                            "text-zinc-400 hover:bg-white/5",
-                          isLocked &&
-                            "text-zinc-600 cursor-not-allowed opacity-60",
-                          !isActiveChapter &&
-                            !chapterDone &&
-                            !isLocked &&
-                            "text-zinc-300 hover:bg-white/5",
-                        )}
-                      >
-                        <div className="flex items-center gap-3 truncate">
-                          <span
+                  <div className="flex-1 flex flex-col gap-1 overflow-y-auto w-full items-center no-scrollbar">
+                    {data.chapters.map((chapter) => {
+                      const isActiveChapter = chapter.problems.some(
+                        (p) => p.id === currentProblem?.id,
+                      );
+                      const chapterDone = chapter.problems.every((p) =>
+                        completedProblems.has(p.id),
+                      );
+                      return (
+                        <div
+                          key={chapter.id}
+                          className="relative group w-full flex justify-center"
+                        >
+                          <button
+                            onClick={() => {
+                              setIsSidebarCompact(false);
+                              setExpandedChapterId(chapter.id);
+                            }}
                             className={cn(
-                              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px]",
+                              "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
                               isActiveChapter
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-white/5 text-zinc-500",
+                                ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/30"
+                                : chapterDone
+                                  ? "bg-emerald-500/10 text-emerald-400"
+                                  : "bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-zinc-300",
                             )}
                           >
                             {chapterDone ? (
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                              <CheckCircle className="w-4 h-4" />
                             ) : isActiveChapter ? (
-                              <Play className="w-3.5 h-3.5 text-red-400 fill-red-400" />
+                              <Play className="w-3.5 h-3.5 fill-red-400" />
                             ) : (
                               <BookOpen className="w-3.5 h-3.5" />
                             )}
-                          </span>
-                          <span className="flex-1 truncate font-bold text-[14px]">
-                            {chapter.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {chapterDone && (
-                            <CheckCircle className="w-4 h-4 text-[#2cf07d]" />
-                          )}
-                          {isLocked && (
-                            <Lock className="w-3.5 h-3.5 text-zinc-600" />
-                          )}
-                          {!isLocked && (
-                            <ChevronRight
-                              className={cn(
-                                "w-4 h-4 text-zinc-500 transition-transform",
-                                isExpanded && "rotate-90",
-                              )}
-                            />
-                          )}
-                        </div>
-                      </button>
-
-                      <AnimatePresence>
-                        {isExpanded && !isLocked && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="pl-11 pr-2 py-1 flex flex-col gap-1">
-                              {chapter.problems.map((prob, pIdx) => {
-                                const isProbActive =
-                                  currentProblem?.id === prob.id;
-                                const isProbDone = completedProblems.has(
-                                  prob.id,
-                                );
-
-                                // All problems unlocked globally
-                                const isProbLocked = false;
-
-                                return (
-                                  <button
-                                    key={prob.id}
-                                    onClick={() => {
-                                      if (!isProbLocked) {
-                                        selectProblem(prob, chapter.id);
-                                        if (isMobile) setIsSidebarOpen(false);
-                                      }
-                                    }}
-                                    disabled={isProbLocked}
-                                    className={cn(
-                                      "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg text-sm transition-colors",
-                                      isProbActive
-                                        ? "bg-red-500/20 text-red-300 font-semibold border border-red-500/20"
-                                        : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
-                                      isProbLocked &&
-                                        "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
-                                      isProbDone &&
-                                        !isProbActive &&
-                                        "text-[#2cf07d] ",
-                                    )}
-                                  >
-                                    <span className="truncate">
-                                      {prob.title}
-                                    </span>
-                                    {isProbDone && (
-                                      <CheckCircle className="w-3.5 h-3.5 text-[#2cf07d] shrink-0 ml-2" />
-                                    )}
-                                    {isProbLocked && (
-                                      <Lock className="w-3 h-3 text-zinc-600 shrink-0 ml-2" />
-                                    )}
-                                  </button>
-                                );
-                              })}
+                          </button>
+                          {/* Tooltip */}
+                          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            <div className="bg-[#1a1a1a] text-xs text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap border border-white/10 shadow-lg">
+                              {chapter.title}
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* ── Full sidebar content ── */}
+                  {/* Course header */}
+                  <div className="p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 drop-shadow-sm">
+                      {getLanguageIconUrl(language) ? (
+                        <img
+                          src={getLanguageIconUrl(language)}
+                          alt={language}
+                          className="w-6 h-6 object-contain drop-shadow-md"
+                        />
+                      ) : (
+                        <FileCode2 className="w-5 h-5 text-red-400" />
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="font-semibold text-sm text-white truncate">
+                        {data.title}
+                      </h2>
+                      <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">
+                        {data.subtitle || "BEGINNER LEVEL"}
+                      </span>
+                    </div>
+                    {isMobile && (
+                      <button
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="text-zinc-500 hover:text-zinc-300 p-1 shrink-0"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
 
+                  {/* Progress */}
+                  <div className="px-4 pb-3">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-widest font-semibold mb-2">
+                      <span className="text-zinc-500">Course Progress</span>
+                      <span className="text-[#2cf09d] font-bold">
+                        {progressPercent}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#2cf09d] rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-zinc-600 mt-2 block">
+                      {completedCount} of {totalProblems} lessons completed
+                    </span>
+                  </div>
 
+                  <div className="h-px bg-white/10" />
+
+                  {/* Chapter list */}
+                  <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 thin-scroll">
+                    {data.chapters.map((chapter) => {
+                      const isActiveChapter = chapter.problems.some(
+                        (p) => p.id === currentProblem?.id,
+                      );
+                      const chapterDone = chapter.problems.every((p) =>
+                        completedProblems.has(p.id),
+                      );
+                      const isLocked = false;
+                      const isExpanded = expandedChapterId === chapter.id;
+
+                      return (
+                        <div key={chapter.id} className="mb-2">
+                          <button
+                            onClick={() => {
+                              if (isLocked) return;
+                              setExpandedChapterId(
+                                isExpanded ? null : chapter.id,
+                              );
+                            }}
+                            disabled={isLocked}
+                            className={cn(
+                              "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left",
+                              isActiveChapter && "text-red-300",
+                              chapterDone &&
+                                !isActiveChapter &&
+                                "text-zinc-400 hover:bg-white/5",
+                              isLocked &&
+                                "text-zinc-600 cursor-not-allowed opacity-60",
+                              !isActiveChapter &&
+                                !chapterDone &&
+                                !isLocked &&
+                                "text-zinc-300 hover:bg-white/5",
+                            )}
+                          >
+                            <div className="flex items-center gap-3 truncate">
+                              <span
+                                className={cn(
+                                  "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px]",
+                                  isActiveChapter
+                                    ? "bg-red-500/20 text-red-400"
+                                    : "bg-white/5 text-zinc-500",
+                                )}
+                              >
+                                {chapterDone ? (
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                                ) : isActiveChapter ? (
+                                  <Play className="w-3.5 h-3.5 text-red-400 fill-red-400" />
+                                ) : (
+                                  <BookOpen className="w-3.5 h-3.5" />
+                                )}
+                              </span>
+                              <span className="flex-1 truncate font-bold text-[14px]">
+                                {chapter.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {chapterDone && (
+                                <CheckCircle className="w-4 h-4 text-[#2cf07d]" />
+                              )}
+                              {isLocked && (
+                                <Lock className="w-3.5 h-3.5 text-zinc-600" />
+                              )}
+                              {!isLocked && (
+                                <ChevronRight
+                                  className={cn(
+                                    "w-4 h-4 text-zinc-500 transition-transform",
+                                    isExpanded && "rotate-90",
+                                  )}
+                                />
+                              )}
+                            </div>
+                          </button>
+
+                          <AnimatePresence>
+                            {isExpanded && !isLocked && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pl-11 pr-2 py-1 flex flex-col gap-1">
+                                  {chapter.problems.map((prob) => {
+                                    const isProbActive =
+                                      currentProblem?.id === prob.id;
+                                    const isProbDone = completedProblems.has(
+                                      prob.id,
+                                    );
+                                    const isProbLocked = false;
+                                    return (
+                                      <button
+                                        key={prob.id}
+                                        onClick={() => {
+                                          if (!isProbLocked) {
+                                            selectProblem(prob, chapter.id);
+                                            if (isMobile)
+                                              setIsSidebarOpen(false);
+                                          }
+                                        }}
+                                        disabled={isProbLocked}
+                                        className={cn(
+                                          "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg text-sm transition-colors",
+                                          isProbActive
+                                            ? "bg-red-500/20 text-red-300 font-semibold border border-red-500/20"
+                                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                                          isProbLocked &&
+                                            "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
+                                          isProbDone &&
+                                            !isProbActive &&
+                                            "text-[#2cf07d]",
+                                        )}
+                                      >
+                                        <span className="truncate">
+                                          {prob.title}
+                                        </span>
+                                        {isProbDone && (
+                                          <CheckCircle className="w-3.5 h-3.5 text-[#2cf07d] shrink-0 ml-2" />
+                                        )}
+                                        {isProbLocked && (
+                                          <Lock className="w-3 h-3 text-zinc-600 shrink-0 ml-2" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </motion.aside>
           )}
         </AnimatePresence>
@@ -1045,7 +1213,7 @@ const LanguagePlayground = () => {
           )}
 
           {/* ── Scrollable content ── */}
-          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10">
+          <div className="flex-1 overflow-y-auto thin-scroll">
             <div
               className={cn(
                 "mx-auto space-y-5",
@@ -1068,7 +1236,7 @@ const LanguagePlayground = () => {
               {/* Lesson title */}
               <h1
                 className={cn(
-                  "font-bold text-white leading-tight",
+                  "font-bold text-metallic leading-tight",
                   isMobile ? "text-xl mb-4" : "text-3xl mb-6",
                 )}
               >
@@ -1598,7 +1766,216 @@ const LanguagePlayground = () => {
           )}
         </div>
 
-        {/* ═══════════ RIGHT FABs (desktop) ═══════════ */}
+        {/* ═══════════ RIGHT SIDEBAR (desktop only) ═══════════ */}
+        {!isMobile && (
+          <aside
+            className="playground-sidebar w-[256px] shrink-0 border-l border-white/10 flex flex-col overflow-hidden relative"
+            style={{
+              backgroundImage: "url('/alone.jfif')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            <div className="absolute inset-0 bg-black/78 z-0" />
+            <div className="relative z-10 flex flex-col h-full overflow-hidden">
+              {/* ── User Stats ── */}
+              <div className="p-4 border-b border-white/10">
+                {/* User row */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 ring-1 ring-amber-400/30 shrink-0">
+                    {user?.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-red-600 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">
+                          {user?.name?.charAt(0) || "U"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-extrabold text-metallic truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-[11px] font-bold text-metallic-orange">
+                      Lv.{user?.level} · {user?.rank || "Beginner"}
+                    </p>
+                  </div>
+                  <Trophy className="w-4 h-4 text-metallic-orange shrink-0" />
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
+                      Session XP
+                    </p>
+                    <p className="text-[15px] font-bold text-[#2cf07d] flex items-center gap-1">
+                      <Zap className="w-3 h-3" />+{sessionXP}
+                    </p>
+                  </div>
+                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
+                      Solved
+                    </p>
+                    <p className="text-[15px] font-bold text-metallic">
+                      {sessionSolved}
+                    </p>
+                  </div>
+                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
+                      Progress
+                    </p>
+                    <p className="text-[15px] font-bold text-metallic-orange">
+                      {progressPercent}%
+                    </p>
+                  </div>
+                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
+                      Done
+                    </p>
+                    <p className="text-[15px] font-bold text-metallic">
+                      {completedCount}/{totalProblems}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Course Path ── */}
+              <div className="flex-1 overflow-y-auto thin-scroll">
+                <div className="p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-metallic mb-4">
+                    Course Path
+                  </p>
+
+                  {data.chapters.map((chapter) => {
+                    const isCurrentChapter = chapter.problems.some(
+                      (p) => p.id === currentProblem?.id,
+                    );
+                    const chapterDone = chapter.problems.every((p) =>
+                      completedProblems.has(p.id),
+                    );
+                    return (
+                      <div key={chapter.id} className="mb-5">
+                        {/* Chapter label */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div
+                            className={cn(
+                              "w-5 h-5 rounded-md flex items-center justify-center shrink-0",
+                              chapterDone
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : isCurrentChapter
+                                  ? "bg-red-500/20 text-red-400"
+                                  : "bg-white/5 text-zinc-600",
+                            )}
+                          >
+                            {chapterDone ? (
+                              <CheckCircle className="w-3 h-3" />
+                            ) : isCurrentChapter ? (
+                              <Play className="w-3 h-3 fill-red-400" />
+                            ) : (
+                              <BookOpen className="w-3 h-3" />
+                            )}
+                          </div>
+                          <span
+                            className={cn(
+                              "text-[11px] font-semibold truncate",
+                              chapterDone
+                                ? "text-emerald-400"
+                                : isCurrentChapter
+                                  ? "text-metallic"
+                                  : "text-zinc-500",
+                            )}
+                          >
+                            {chapter.title}
+                          </span>
+                        </div>
+
+                        {/* Problem nodes */}
+                        <div className="mt-1 space-y-0">
+                          {chapter.problems.map((prob, pIdx) => {
+                            const isDone = completedProblems.has(prob.id);
+                            const isCurrent = currentProblem?.id === prob.id;
+                            const isLast = pIdx === chapter.problems.length - 1;
+                            return (
+                              <div
+                                key={prob.id}
+                                className="flex items-stretch gap-2"
+                              >
+                                {/* Dot + connector */}
+                                <div className="flex flex-col items-center shrink-0 w-3">
+                                  <div
+                                    className={cn(
+                                      "w-2.5 h-2.5 rounded-full border-2 shrink-0 mt-2 transition-all",
+                                      isDone
+                                        ? "bg-[#2cf07d] border-[#2cf07d]"
+                                        : isCurrent
+                                          ? "bg-red-500 border-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+                                          : "bg-[#111111] border-zinc-700",
+                                    )}
+                                  />
+                                  {!isLast && (
+                                    <div className="w-px flex-1 bg-white/10 mt-0.5 mb-0.5" />
+                                  )}
+                                </div>
+                                {/* Title button */}
+                                <button
+                                  onClick={() =>
+                                    selectProblem(prob, chapter.id)
+                                  }
+                                  className="flex-1 flex items-center gap-1.5 py-1.5 text-left group min-w-0"
+                                >
+                                  <span
+                                    className={cn(
+                                      "text-[11px] leading-tight truncate transition-colors",
+                                      isDone
+                                        ? "text-[#2cf07d]"
+                                        : isCurrent
+                                          ? "text-metallic font-semibold"
+                                          : "text-zinc-500 group-hover:text-zinc-300",
+                                    )}
+                                  >
+                                    {prob.title}
+                                  </span>
+                                  {isCurrent && (
+                                    <span className="ml-auto shrink-0 text-[8px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                                      NOW
+                                    </span>
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Next XP reward ── */}
+              <div className="p-3 border-t border-white/10 bg-black/60 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <img src="/xp.svg" className="w-5 h-5" alt="XP" />
+                    <span className="text-xs text-metallic font-medium">
+                      Next reward
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-[#2cf07d]">
+                    {completedProblems.has(currentProblem?.id)
+                      ? "Earned!"
+                      : `+${currentProblem?.xp} XP`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );

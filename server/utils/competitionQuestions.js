@@ -393,19 +393,19 @@ function buildInteractivePrompt({
   // Distribute question types — pick randomly, ensuring variety
   const types = isGeneral
     ? [
-        "type_answer",
         "drag_order",
         "drag_match",
         "slider_adjust",
-        "type_answer",
+        "drag_order",
+        "drag_match",
       ]
     : [
-        "type_answer",
         "drag_order",
         "drag_match",
         "fill_blank",
         "predict_output",
         "slider_adjust",
+        "drag_order",
       ];
 
   // Build distribution then SHUFFLE so order is random each game
@@ -456,18 +456,13 @@ Generate them in THIS EXACT ORDER (do NOT rearrange):
 ${orderedList}
 
 Each question MUST have:
-- interactionType: one of "type_answer", "drag_order", "drag_match"${!isGeneral ? ', "fill_blank", "predict_output"' : ""}, "slider_adjust"
+- interactionType: one of "drag_order", "drag_match"${!isGeneral ? ', "fill_blank", "predict_output"' : ""}, "slider_adjust"
 - difficulty: "${difficulty}"
 
 CRITICAL RULES:
 1. Every question MUST be 100% ORIGINAL — create NEW content from scratch about "${topicForInstruction}"
 2. Every question must test a DIFFERENT concept — NO two questions should cover similar topics
 3. The schemas below show ONLY the JSON structure. ALL content inside must be YOUR OWN creation.
-
-=== type_answer ===
-User types a short text answer. Good for definitions, terminology, quick recall.
-Schema: { "interactionType": "type_answer", "question": "...", "hint": "...", "acceptedAnswers": ["ans1", "ans2", "ans3"], "explanation": "...", "difficulty": "${difficulty}" }
-Rules: Include 3-5 accepted answer format variations.
 
 === drag_order ===
 User drags items into correct sequential order. Good for process steps, sorting, ranking.
@@ -630,13 +625,6 @@ function validateQuestion(q, index) {
     }
     if (q.correctAnswer !== undefined && !q.options.includes(q.correctAnswer)) {
       console.warn(`[Validation] Q${index + 1}: correctAnswer not in options`);
-      return false;
-    }
-  } else if (iType === "type_answer") {
-    if (!Array.isArray(q.acceptedAnswers) || q.acceptedAnswers.length === 0) {
-      console.warn(
-        `[Validation] Q${index + 1}: type_answer missing acceptedAnswers`,
-      );
       return false;
     }
   } else if (iType === "drag_order") {

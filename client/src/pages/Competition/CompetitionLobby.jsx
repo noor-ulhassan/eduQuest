@@ -33,9 +33,6 @@ import ReadyScreen from "../../components/competition/ReadyScreen";
 import ResultsScreen from "../../components/competition/ResultsScreen";
 import GameOverScreen from "../../components/competition/GameOverScreen";
 import PodiumScreen from "../../components/competition/PodiumScreen";
-import { useVoiceChat } from "../../hooks/useVoiceChat";
-import VoiceControls from "../../components/competition/VoiceControls";
-import VoiceSpeakerIndicator from "../../components/competition/VoiceSpeakerIndicator";
 import VSScreen from "../../components/competition/VSScreen";
 import FloatingFeedback from "../../components/competition/FloatingFeedback";
 import AnimatedLeaderboard from "../../components/competition/AnimatedLeaderboard";
@@ -103,6 +100,7 @@ const CompetitionLobby = () => {
   const timerIntervalRef = useRef(null);
   const roomCodeRef = useRef("");
   const autoCreateFired = useRef(false);
+  const currentGameModeRef = useRef("classic");
 
   // Gamification state
   const [showVS, setShowVS] = useState(false);
@@ -115,19 +113,13 @@ const CompetitionLobby = () => {
   const isSpectator = searchParams.get("spectate") === "true";
   const [spectatorData, setSpectatorData] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [isReady, setIsReady] = useState(false);
+  const [spectatorCount, setSpectatorCount] = useState(0);
+  const [isPowerQuestion, setIsPowerQuestion] = useState(false);
+  const [gameEvents, setGameEvents] = useState([]);
+  const [rematchVotes, setRematchVotes] = useState({ voteCount: 0, totalPlayers: 0, voterNames: [] });
 
   const isHost = room?.hostId === user?._id;
-
-  // Voice chat
-  const {
-    isInVoice,
-    isMuted,
-    activeSpeakers,
-    voiceUsers,
-    joinVoice,
-    leaveVoice,
-    toggleMute,
-  } = useVoiceChat(socket, roomCode, user);
 
   // Reconnect recovery is handled by syncState below — no separate auto-rejoin needed
 
@@ -135,6 +127,11 @@ const CompetitionLobby = () => {
   useEffect(() => {
     roomCodeRef.current = roomCode;
   }, [roomCode]);
+
+  // Keep currentGameMode ref in sync so socket-event closures always see the latest value
+  useEffect(() => {
+    currentGameModeRef.current = currentGameMode;
+  }, [currentGameMode]);
 
   // Connect socket on mount
   useEffect(() => {
@@ -165,7 +162,15 @@ const CompetitionLobby = () => {
 
         // Restore game state
         setLeaderboard(state.leaderboard || []);
-        if (state.settings) setSettings(state.settings);
+        if (state.settings) {
+          setSettings(state.settings);
+          if (state.settings.gameMode) {
+            setCurrentGameMode(state.settings.gameMode);
+            currentGameModeRef.current = state.settings.gameMode;
+          }
+          if (state.settings.category) setGameCategory(state.settings.category);
+          if (state.settings.challengeMode) setGameChallengeMode(state.settings.challengeMode);
+        }
 
         if (state.gameState === "active") {
           setGameState("playing");
@@ -262,6 +267,7 @@ const CompetitionLobby = () => {
       category,
       challengeMode: cm,
       language,
+      isPower,
     }) => {
       // Store data and show VS screen first
       if (pt) setPlayerTeam(pt);
@@ -274,14 +280,17 @@ const CompetitionLobby = () => {
         challengeMode: cm,
         gameMode: gm || "classic",
         language,
+        isPower: isPower || false,
       });
       setShowVS(true);
       setIsStarting(false);
     };
 
-    const onNextQuestion = ({ question, questionIndex: qi }) => {
+    const onNextQuestion = ({ question, questionIndex: qi, isPower }) => {
+      setIsPowerQuestion(!!isPower);
       // Practice: store pending, don't auto-advance until user clicks
-      if (currentGameMode === "practice") {
+      // Use ref to avoid stale closure (effect captured currentGameMode at mount time)
+      if (currentGameModeRef.current === "practice") {
         pendingNextQuestion.current = { question, questionIndex: qi };
         return;
       }
@@ -292,8 +301,9 @@ const CompetitionLobby = () => {
       setIsSubmitting(false);
     };
 
-    const onLeaderboardUpdate = ({ leaderboard: lb }) => {
+    const onLeaderboardUpdate = ({ leaderboard: lb, spectatorCount: sc }) => {
       setLeaderboard(lb);
+      if (sc !== undefined) setSpectatorCount(sc);
     };
 
     // timerSync: server sends a correction every 30s to fix drift
@@ -346,6 +356,60 @@ const CompetitionLobby = () => {
 
     const onPlayerEliminatedUpdate = ({ playerName }) => {
       toast.error(`${playerName} was eliminated! 💀`);
+      setGameEvents(prev => [...prev.slice(-4), { type: "eliminated", name: playerName, time: Date.now() }]);
+    };
+
+    // B-08: Handle player finishing so other players get immediate feedback
+    const onPlayerFinishedUpdate = ({ playerName }) => {
+      toast.success(`${playerName} finished! 🏁`);
+      setGameEvents(prev => [...prev.slice(-4), { type: "finished", name: playerName, time: Date.now() }]);
+    };
+
+    // G-08: Rematch vote updates
+    const onRematchUpdate = (data) => {
+      setRematchVotes(data);
+    };
+
+    // G-06: Handle room reset — everyone goes back to lobby with fresh state
+    const onRoomReset = ({ room: resetRoom }) => {
+      setRoom(resetRoom);
+      setGameState("lobby");
+      setFinalResults(null);
+      setLeaderboard([]);
+      setCurrentQuestion(null);
+      setUserFinished(false);
+      setFinishData(null);
+      setComboCount(0);
+      setIsEliminated(false);
+      setTeamScores(null);
+      setPlayerTeam(null);
+      setIsReady(false);
+      confettiFired.current = false;
+      setSpectatorCount(0);
+      setIsPowerQuestion(false);
+      setGameEvents([]);
+      setRematchVotes({ voteCount: 0, totalPlayers: 0, voterNames: [] });
+      setSettings(s => ({
+        ...s,
+        category: resetRoom.category || s.category,
+        gameMode: resetRoom.gameMode || s.gameMode,
+        challengeMode: resetRoom.challengeMode || s.challengeMode,
+        difficulty: resetRoom.difficulty || s.difficulty,
+      }));
+      toast.success("Room reset — ready for another round!");
+    };
+
+    // G-04: Track per-player ready state
+    const onPlayerReadyUpdate = ({ playerId, ready, readyCount, totalPlayers }) => {
+      setRoom(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.map(p => p.id === playerId ? { ...p, ready } : p),
+          readyCount,
+          totalPlayers,
+        };
+      });
     };
 
     socket.on("playerJoined", onPlayerJoined);
@@ -361,6 +425,10 @@ const CompetitionLobby = () => {
     socket.on("gameOver", onGameOver);
     socket.on("playerEliminated", onPlayerEliminated);
     socket.on("playerEliminatedUpdate", onPlayerEliminatedUpdate);
+    socket.on("playerFinishedUpdate", onPlayerFinishedUpdate);
+    socket.on("roomReset", onRoomReset);
+    socket.on("playerReadyUpdate", onPlayerReadyUpdate);
+    socket.on("rematchUpdate", onRematchUpdate);
 
     // Join request notification (host)
     const onJoinRequest = ({ roomCode: rc, requester }) => {
@@ -394,6 +462,10 @@ const CompetitionLobby = () => {
       socket.off("gameOver", onGameOver);
       socket.off("playerEliminated", onPlayerEliminated);
       socket.off("playerEliminatedUpdate", onPlayerEliminatedUpdate);
+      socket.off("playerFinishedUpdate", onPlayerFinishedUpdate);
+      socket.off("roomReset", onRoomReset);
+      socket.off("playerReadyUpdate", onPlayerReadyUpdate);
+      socket.off("rematchUpdate", onRematchUpdate);
       socket.off("joinRequest", onJoinRequest);
     };
   }, [socket, user]);
@@ -460,7 +532,8 @@ const CompetitionLobby = () => {
           setRoomCode(response.room.roomCode);
           setPendingRequests(response.room.pendingRequests || []);
           setLeaderboard(response.room.leaderboard || []);
-          setTimeRemaining(response.room.timeRemaining || 0);
+          const timeLeft = response.room.timeRemaining || 0;
+          setTimeRemaining(timeLeft);
           setGameCategory(response.room.category);
           setGameState(
             response.room.status === "waiting"
@@ -469,6 +542,11 @@ const CompetitionLobby = () => {
                 ? "playing"
                 : response.room.status,
           );
+          // B-11: Fix spectator timer — start local countdown from the real elapsed time
+          if (response.room.status === "active" && response.room.timerDuration) {
+            gameDurationRef.current = response.room.timerDuration;
+            gameStartTimeRef.current = Date.now() - ((response.room.timerDuration - timeLeft) * 1000);
+          }
         } else {
           toast.error(response.message);
         }
@@ -492,6 +570,14 @@ const CompetitionLobby = () => {
   const handleDenyJoin = (requesterId) => {
     socket?.emit("denyJoin", { roomCode, requesterId });
     setPendingRequests((prev) => prev.filter((r) => r.id !== requesterId));
+  };
+
+  const handleToggleReady = () => {
+    if (!socket?.connected || !roomCode) return;
+    const newReady = !isReady;
+    socket.emit("setReady", { roomCode, ready: newReady }, (res) => {
+      if (res?.success) setIsReady(newReady);
+    });
   };
 
   const handleCreateRoom = useCallback(() => {
@@ -602,6 +688,13 @@ const CompetitionLobby = () => {
 
   const handleStartGame = () => {
     if (!socket?.connected) return;
+    const playerCount = room?.players?.length || 0;
+    const modeMinPlayers = { duel: 2, survival: 2, team: 2 };
+    const modeLabels = { duel: "Duel", survival: "Survival", team: "Team Battle" };
+    const required = modeMinPlayers[settings.gameMode];
+    if (required && playerCount < required) {
+      return toast.error(`${modeLabels[settings.gameMode]} mode requires at least ${required} players`);
+    }
     setIsStarting(true);
     socket.emit("startGame", { roomCode }, (response) => {
       if (!response.success) {
@@ -640,41 +733,46 @@ const CompetitionLobby = () => {
 
   const handlePlayAgain = useCallback(() => {
     if (!socket?.connected) return;
-    socket.emit("createRoom", (response) => {
-      if (response.success) {
-        setRoomCode(response.roomCode);
-        setRoom({ ...response.room, hostId: user._id });
-        setGameState("lobby");
-        setFinalResults(null);
-        setLeaderboard([]);
-        setCurrentQuestion(null);
-        setUserFinished(false);
-        setFinishData(null);
-        setComboCount(0);
-        confettiFired.current = false;
-        setSettings({
-          category: "general",
-          challengeMode: "classic",
-          gameMode: "classic",
-          difficulty: "medium",
-          language: "javascript",
-          totalQuestions: 5,
-          timerDuration: 300,
-          topic: "",
-          description: "",
-        });
-        setIsEliminated(false);
-        toast.success(`New room ${response.roomCode} created!`);
-      } else {
-        toast.error("Failed to create new room");
-      }
-    });
-  }, [socket, user]);
+    // G-06: Try resetting the existing room first so everyone stays together
+    if (roomCode) {
+      socket.emit("resetRoom", { roomCode }, (response) => {
+        if (response?.success) return; // onRoomReset socket event handles state reset for all players
+        // Fallback: create a new room if reset fails (e.g., room already cleaned up)
+        createNewRoom();
+      });
+    } else {
+      createNewRoom();
+    }
+
+    function createNewRoom() {
+      socket.emit("createRoom", (response) => {
+        if (response.success) {
+          setRoomCode(response.roomCode);
+          setRoom({ ...response.room, hostId: user._id });
+          setGameState("lobby");
+          setFinalResults(null);
+          setLeaderboard([]);
+          setCurrentQuestion(null);
+          setUserFinished(false);
+          setFinishData(null);
+          setComboCount(0);
+          confettiFired.current = false;
+          setIsEliminated(false);
+          setTeamScores(null);
+          setPlayerTeam(null);
+          toast.success(`New room ${response.roomCode} created!`);
+        } else {
+          toast.error("Failed to create new room");
+        }
+      });
+    }
+  }, [socket, user, roomCode]);
 
   const handleSubmitAnswer = (answer) => {
     if (!socket?.connected || isSubmitting) return;
     setIsSubmitting(true);
     setSelectedAnswer(answer);
+    const prevCombo = comboCount;
 
     // Fallback: reset isSubmitting if socket callback never fires (network blip)
     const submitTimeout = setTimeout(() => setIsSubmitting(false), 10000);
@@ -687,18 +785,17 @@ const CompetitionLobby = () => {
         setAnswerResult(result);
         setIsSubmitting(false);
 
-        // Combo tracking + sound effects
+        // Combo tracking + sound effects — use server's authoritative combo count
+        if (result?.comboCount !== undefined) setComboCount(result.comboCount);
         if (result?.isCorrect) {
-          setComboCount((prev) => prev + 1);
           playCorrectSound();
           setFeedbackResult({
             correct: true,
             xpGained: result.pointsEarned || 50,
           });
         } else {
-          setComboCount(0);
           playWrongSound();
-          setFeedbackResult({ correct: false });
+          setFeedbackResult({ correct: false, streakBroken: prevCombo >= 3 ? prevCombo : 0 });
         }
         setFeedbackKey((prev) => prev + 1);
       },
@@ -709,6 +806,13 @@ const CompetitionLobby = () => {
     socket?.emit("leaveRoom", { roomCode });
     navigate("/");
   };
+
+  const handleRequestRematch = useCallback(() => {
+    if (!socket?.connected || !roomCode) return;
+    socket.emit("requestRematch", { roomCode }, (res) => {
+      if (!res?.success) toast.error("Rematch request failed");
+    });
+  }, [socket, roomCode]);
 
   // Handler: VS screen finished → transition to playing
   const handleVSComplete = () => {
@@ -732,6 +836,9 @@ const CompetitionLobby = () => {
     setAnswerResult(null);
     setComboCount(0);
     setFeedbackResult(null);
+    setIsPowerQuestion(!!(vsData.isPower));
+    setGameEvents([]);
+    setRematchVotes({ voteCount: 0, totalPlayers: 0, voterNames: [] });
     setVsData(null);
 
     // Start local timer — updated immediately via server sync below
@@ -803,6 +910,22 @@ const CompetitionLobby = () => {
     );
     return () => clearInterval(interval);
   }, [currentGameMode, gameState, userFinished, questionIndex]);
+
+  // G-15: Keyboard shortcuts — 1/2/3/4 for MCQ options
+  useEffect(() => {
+    if (gameState !== "playing" || userFinished || !currentQuestion) return;
+    const handleKeyDown = (e) => {
+      if (isSubmitting || answerResult) return;
+      const choices = currentQuestion.choices;
+      if (!Array.isArray(choices) || choices.length === 0) return;
+      const idx = parseInt(e.key) - 1;
+      if (idx >= 0 && idx < choices.length) {
+        handleSubmitAnswer(choices[idx]);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameState, userFinished, currentQuestion, isSubmitting, answerResult]);
 
   // Practice: advance to next question on user request
   const handlePracticeNext = () => {
@@ -951,11 +1074,8 @@ const CompetitionLobby = () => {
                     className="w-8 h-8 rounded-full"
                     alt=""
                   />
-                  <span className="flex-1 text-sm font-medium truncate flex items-center">
+                  <span className="flex-1 text-sm font-medium truncate">
                     {p.name}
-                    {activeSpeakers.has(p.id) && (
-                      <VoiceSpeakerIndicator inline />
-                    )}
                   </span>
                   <span className="font-bold text-orange-400">{p.score}</span>
                 </div>
@@ -1024,7 +1144,10 @@ const CompetitionLobby = () => {
         currentGameMode={currentGameMode}
         teamScores={teamScores}
         playerTeam={playerTeam}
-        onHome={() => navigate("/")}
+        totalQuestions={totalQuestions}
+        rematchVotes={rematchVotes}
+        onRequestRematch={handleRequestRematch}
+        onHome={() => navigate("/competition/lobby")}
         onPlayAgain={handlePlayAgain}
       />
     );
@@ -1041,8 +1164,7 @@ const CompetitionLobby = () => {
         playerTeam={playerTeam}
         userId={user?._id}
         leaderboard={leaderboard}
-        activeSpeakers={activeSpeakers}
-        onHome={() => navigate("/")}
+        onHome={() => navigate("/competition/lobby")}
         onSpectate={() => {
           setUserFinished(false);
           setFinishData(null);
@@ -1162,26 +1284,40 @@ const CompetitionLobby = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Blitz per-question countdown */}
+              {/* Blitz per-question countdown — G-09: escalating urgency */}
               {currentGameMode === "blitz" && (
                 <motion.div
                   animate={
-                    blitzQuestionTime <= 5
-                      ? { scale: [1, 1.1, 1] }
-                      : { scale: 1 }
+                    blitzQuestionTime <= 3
+                      ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] }
+                      : blitzQuestionTime <= 5
+                        ? { scale: [1, 1.1, 1] }
+                        : blitzQuestionTime <= 10
+                          ? { scale: [1, 1.04, 1] }
+                          : { scale: 1 }
                   }
                   transition={{
-                    duration: 0.3,
-                    repeat: blitzQuestionTime <= 5 ? Infinity : 0,
+                    duration: blitzQuestionTime <= 3 ? 0.2 : blitzQuestionTime <= 5 ? 0.3 : 0.6,
+                    repeat: blitzQuestionTime <= 10 ? Infinity : 0,
                   }}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 border font-mono font-black text-2xl ${blitzQuestionTime <= 5 ? "bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.4)]" : blitzQuestionTime <= 10 ? "bg-orange-500/20 border-orange-500/40 text-orange-400" : "bg-zinc-900 border-zinc-700 text-white"}`}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 border font-mono font-black text-2xl ${
+                    blitzQuestionTime <= 3
+                      ? "bg-red-600/30 border-red-500/80 text-red-300 shadow-[0_0_30px_rgba(239,68,68,0.6)]"
+                      : blitzQuestionTime <= 5
+                        ? "bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+                        : blitzQuestionTime <= 10
+                          ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-400 shadow-[0_0_12px_rgba(234,179,8,0.3)]"
+                          : "bg-zinc-900 border-zinc-700 text-white"
+                  }`}
                 >
                   <Zap
                     size={16}
                     className={
                       blitzQuestionTime <= 5
                         ? "text-red-400"
-                        : "text-yellow-400"
+                        : blitzQuestionTime <= 10
+                          ? "text-yellow-400"
+                          : "text-zinc-400"
                     }
                   />
                   {blitzQuestionTime}s
@@ -1220,12 +1356,24 @@ const CompetitionLobby = () => {
                   {String(timeRemaining % 60).padStart(2, "0")}
                 </span>
               </motion.div>
+              {spectatorCount > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-1.5">
+                  <Eye size={12} />
+                  {spectatorCount} watching
+                </div>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Question Panel */}
-            <Card className="lg:col-span-2 bg-zinc-900 border-zinc-800 flex flex-col">
+            <Card className={`lg:col-span-2 flex flex-col ${isPowerQuestion ? "bg-zinc-900 border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.15)]" : "bg-zinc-900 border-zinc-800"}`}>
+              {isPowerQuestion && (
+                <div className="px-6 py-2.5 border-b border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2">
+                  <Zap size={14} className="text-yellow-400" fill="currentColor" />
+                  <span className="text-xs font-bold text-yellow-400 uppercase tracking-wide">Power Question — 2× Points!</span>
+                </div>
+              )}
               <div className="p-6 md:p-8 space-y-6 flex-1 flex flex-col">
                 {currentQuestion ? (
                   <AnimatePresence mode="wait">
@@ -1320,12 +1468,33 @@ const CompetitionLobby = () => {
                       Standings
                     </h3>
                   </div>
+                  {/* G-01: Live event feed */}
+                  {gameEvents.length > 0 && (
+                    <div className="px-2 pt-2 pb-1 border-b border-zinc-800 space-y-1">
+                      <AnimatePresence>
+                        {gameEvents.map((ev) => (
+                          <motion.div
+                            key={ev.time}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                            className={`text-[10px] px-2 py-1 rounded flex items-center gap-1.5 ${
+                              ev.type === "eliminated"
+                                ? "bg-red-500/10 text-red-400"
+                                : "bg-green-500/10 text-green-400"
+                            }`}
+                          >
+                            {ev.type === "eliminated" ? "💀" : "🏁"} {ev.name}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  )}
                   <div className="p-2">
                     <AnimatedLeaderboard
                       leaderboard={leaderboard}
                       userId={user?._id}
                       totalQuestions={totalQuestions}
-                      activeSpeakers={activeSpeakers}
                     />
                   </div>
                 </Card>
@@ -1333,15 +1502,6 @@ const CompetitionLobby = () => {
             </div>
           </div>
         </div>
-        <VoiceControls
-          isInVoice={isInVoice}
-          isMuted={isMuted}
-          voiceUsers={voiceUsers}
-          activeSpeakers={activeSpeakers}
-          onJoin={joinVoice}
-          onLeave={leaveVoice}
-          onToggleMute={toggleMute}
-        />
       </div>
     );
   }
@@ -1448,7 +1608,20 @@ const CompetitionLobby = () => {
                 {String(timeRemaining % 60).padStart(2, "0")}
               </span>
             </motion.div>
+            {spectatorCount > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-1.5">
+                <Eye size={12} />
+                {spectatorCount} watching
+              </div>
+            )}
           </div>
+
+          {isPowerQuestion && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
+              <Zap size={14} className="text-yellow-400" fill="currentColor" />
+              <span className="text-xs font-bold text-yellow-400 uppercase tracking-wide">Power Question — 2× Points!</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-140px)]">
             {/* Problem Description (Left Col) */}
@@ -1487,26 +1660,37 @@ const CompetitionLobby = () => {
                   Standings
                 </h3>
               </div>
+              {gameEvents.length > 0 && (
+                <div className="px-2 pt-2 pb-1 border-b border-zinc-800 space-y-1">
+                  <AnimatePresence>
+                    {gameEvents.map((ev) => (
+                      <motion.div
+                        key={ev.time}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                        className={`text-[10px] px-2 py-1 rounded flex items-center gap-1.5 ${
+                          ev.type === "eliminated"
+                            ? "bg-red-500/10 text-red-400"
+                            : "bg-green-500/10 text-green-400"
+                        }`}
+                      >
+                        {ev.type === "eliminated" ? "💀" : "🏁"} {ev.name}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
               <div className="p-2 overflow-y-auto flex-1 custom-scrollbar">
                 <AnimatedLeaderboard
                   leaderboard={leaderboard}
                   userId={user?._id}
                   totalQuestions={totalQuestions}
-                  activeSpeakers={activeSpeakers}
                 />
               </div>
             </Card>
           </div>
         </div>
-        <VoiceControls
-          isInVoice={isInVoice}
-          isMuted={isMuted}
-          voiceUsers={voiceUsers}
-          activeSpeakers={activeSpeakers}
-          onJoin={joinVoice}
-          onLeave={leaveVoice}
-          onToggleMute={toggleMute}
-        />
       </div>
     );
   }
@@ -1518,7 +1702,10 @@ const CompetitionLobby = () => {
         leaderboard={leaderboard}
         userId={user?._id}
         isHost={isHost}
-        onHome={() => navigate("/")}
+        rematchVotes={rematchVotes}
+        onRequestRematch={handleRequestRematch}
+        onHome={() => navigate("/competition/lobby")}
+        onPlayAgain={isHost ? handlePlayAgain : undefined}
       />
     );
   }
@@ -1558,6 +1745,7 @@ const CompetitionLobby = () => {
                   isStarting={isStarting}
                   onUpdateSettings={handleUpdateSettings}
                   onStartGame={handleStartGame}
+                  playerCount={room?.players?.length || 0}
                 />
               )}
               <JoinRequestsPanel
@@ -1568,21 +1756,20 @@ const CompetitionLobby = () => {
             </div>
             <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
               <ParticipantsPanel room={room} userId={user?._id} />
-              {!isHost && <GuestWaitingCard settings={settings} />}
+              {!isHost && (
+                <GuestWaitingCard
+                  settings={settings}
+                  isReady={isReady}
+                  onToggleReady={handleToggleReady}
+                  readyCount={room?.readyCount}
+                  totalPlayers={room?.players?.length}
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <VoiceControls
-        isInVoice={isInVoice}
-        isMuted={isMuted}
-        voiceUsers={voiceUsers}
-        activeSpeakers={activeSpeakers}
-        onJoin={joinVoice}
-        onLeave={leaveVoice}
-        onToggleMute={toggleMute}
-      />
     </div>
   );
 };

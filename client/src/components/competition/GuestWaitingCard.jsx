@@ -1,7 +1,7 @@
 import React from "react";
-import { Swords, Code, BookOpen } from "lucide-react";
+import { Swords, Code, BookOpen, CheckCircle2 } from "lucide-react";
 
-const GuestWaitingCard = ({ settings }) => (
+const GuestWaitingCard = ({ settings, isReady, onToggleReady, readyCount, totalPlayers }) => (
   <div className="rounded-2xl overflow-hidden" style={{ background: "#0c0c0c", border: "1px solid #1a1a1a" }}>
     <div className="p-6 text-center space-y-5">
       <div className="relative w-14 h-14 mx-auto">
@@ -58,6 +58,24 @@ const GuestWaitingCard = ({ settings }) => (
             {i < arr.length - 1 && <div className="mt-3 h-px bg-zinc-900" />}
           </div>
         ))}
+      </div>
+
+      {/* G-04: Ready system */}
+      <div className="space-y-2">
+        {readyCount !== undefined && totalPlayers > 0 && (
+          <p className="text-[11px] text-zinc-600">{readyCount}/{totalPlayers} ready</p>
+        )}
+        <button
+          onClick={onToggleReady}
+          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+            isReady
+              ? "bg-green-500/15 border border-green-500/30 text-green-400"
+              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+          }`}
+        >
+          <CheckCircle2 size={15} className={isReady ? "text-green-400" : "text-zinc-600"} />
+          {isReady ? "Ready ✓" : "Mark as Ready"}
+        </button>
       </div>
     </div>
   </div>

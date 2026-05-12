@@ -79,9 +79,10 @@ const courses = [
 ];
 
 const navLinks = [
-  { label: "Create & Learn", path: "/workspace" },
   { label: "Compete", path: "/competition" },
   { label: "Playground", path: "/playground" },
+  { label: "Create & Learn", path: "/workspace" },
+
   { label: "Documents", path: "/documents" },
 ];
 
@@ -113,7 +114,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <img src="/logo1.png" alt="" width={35} height={35} />
+          <img src="/quest.png" alt="" width={40} height={40} />
           <span className="font-hand font-extrabold text-3xl tracking-tight">
             <span className="text-metallic">Edu</span>
             <span className="text-metallic">Quest</span>

@@ -68,6 +68,9 @@ const GameOverScreen = ({
   currentGameMode,
   teamScores,
   playerTeam,
+  totalQuestions,
+  rematchVotes,
+  onRequestRematch,
 }) => {
   // ─── Team Battle result screen ───────────────────────────
   if (currentGameMode === "team" && teamScores && playerTeam) {
@@ -199,6 +202,21 @@ const GameOverScreen = ({
           </div>
 
           {/* Actions */}
+          {onRequestRematch && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 space-y-2">
+              {rematchVotes?.voteCount > 0 && (
+                <p className="text-xs text-zinc-500 text-center">
+                  {rematchVotes.voteCount}/{rematchVotes.totalPlayers} voted for rematch
+                </p>
+              )}
+              <button
+                onClick={onRequestRematch}
+                className="w-full py-2.5 rounded-xl text-sm font-bold bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 transition flex items-center justify-center gap-2"
+              >
+                🔄 Request Rematch
+              </button>
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               onClick={onHome}
@@ -257,7 +275,7 @@ const GameOverScreen = ({
                 </p>
                 <div className="flex items-center gap-3 text-[11px] text-zinc-500">
                   <span>
-                    {player.correctAnswers || 0}/{player.currentQuestion}{" "}
+                    {player.correctAnswers || 0}/{totalQuestions || player.currentQuestion}{" "}
                     correct
                   </span>
                   {player.timeTaken != null && (
@@ -270,9 +288,13 @@ const GameOverScreen = ({
                       </span>
                     </>
                   )}
-                  {!player.finished && (
+                  {player.eliminated ? (
+                    <span className="text-red-400">💀 Eliminated</span>
+                  ) : !player.finished ? (
                     <span className="text-red-400">DNF</span>
-                  )}
+                  ) : player.perfectScore ? (
+                    <span className="text-yellow-400">✨ Perfect</span>
+                  ) : null}
                 </div>
               </div>
               <span className="font-bold text-lg text-orange-400">
@@ -283,6 +305,22 @@ const GameOverScreen = ({
           ))}
         </div>
 
+        {onRequestRematch && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 space-y-2">
+            {rematchVotes?.voteCount > 0 && (
+              <p className="text-xs text-zinc-500 text-center">
+                {rematchVotes.voteCount}/{rematchVotes.totalPlayers} voted for rematch
+                {rematchVotes.voterNames?.length > 0 && ` (${rematchVotes.voterNames.join(", ")})`}
+              </p>
+            )}
+            <button
+              onClick={onRequestRematch}
+              className="w-full py-2.5 rounded-xl text-sm font-bold bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 transition flex items-center justify-center gap-2"
+            >
+              🔄 Request Rematch
+            </button>
+          </div>
+        )}
         <div className="flex gap-3">
           <button
             onClick={onHome}
