@@ -32,7 +32,7 @@ export const getPublicProfile = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const user = await User.findById(userId)
     .select(
-      "name username avatarUrl bannerUrl xp level dayStreak friends rank createdAt",
+      "name username avatarUrl bannerUrl xp level dayStreak friends league createdAt",
     )
     .populate("friends", "name username avatarUrl")
     .lean();
@@ -297,7 +297,7 @@ export const getUserAnalytics = asyncHandler(async (req, res) => {
     global: {
       totalXP: user.xp || 0,
       level: user.level || 1,
-      rank: user.rank || "Bronze",
+      league: user.league || "Bronze",
       dayStreak: user.dayStreak || 0,
       badges: user.badges || [],
     },

@@ -1,7 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
 import { Course } from "../models/AiCourse.js";
 import Enrollment from "../models/EnrollmentModel.js";
+import { User } from "../models/user.model.js";
 import { callAiModel, callAiModelChat } from "../config/aiProvider.js";
+import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -231,23 +233,22 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
     throw new ApiError(400, "enrollmentId and chapterName are required");
   }
 
-  const updatedEnrollment = await Enrollment.findOneAndUpdate(
-    { _id: enrollmentId, userEmail: req.user.email },
-    {
-      $addToSet: { completedChapters: chapterName },
-    },
+  // Snapshot previous state so we can detect first-time course completion
+  const prevEnrollment = await Enrollment.findOne({ _id: enrollmentId, userEmail: req.user.email });
+  if (!prevEnrollment) throw new ApiError(404, "Enrollment not found");
+  const chapterIsNew = !prevEnrollment.completedChapters.includes(chapterName);
+
+  const updatedEnrollment = await Enrollment.findByIdAndUpdate(
+    enrollmentId,
+    { $addToSet: { completedChapters: chapterName } },
     { new: true },
   );
 
-  if (!updatedEnrollment) throw new ApiError(404, "Enrollment not found");
-
-  const course = await Course.findOne({
-    courseId: updatedEnrollment.courseId,
-  });
+  const course = await Course.findOne({ courseId: updatedEnrollment.courseId });
   if (course) {
-    const totalChapters =
-      course.noOfChapters || course.courseOutput?.chapters?.length || 1;
+    const totalChapters = course.noOfChapters || course.courseOutput?.chapters?.length || 1;
     const completedCount = updatedEnrollment.completedChapters.length;
+    const isCourseNewlyComplete = chapterIsNew && completedCount >= totalChapters;
     const achievements = course.courseOutput?.achievements || [];
     const newUnlocks = [];
 
@@ -266,15 +267,54 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
         $addToSet: { unlockedAchievements: { $each: newUnlocks } },
       });
       const finalEnrollment = await Enrollment.findById(enrollmentId);
-      return res
-        .status(200)
-        .json(new ApiResponse(200, { enrollment: finalEnrollment }));
+      const user = await User.findById(req.user._id);
+      const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, { courseCompleted: isCourseNewlyComplete });
+      return res.status(200).json(
+        new ApiResponse(200, {
+          enrollment: finalEnrollment,
+          xpAwarded: isCourseNewlyComplete ? 300 : 150,
+          courseCompleted: isCourseNewlyComplete,
+          user: {
+            xp: updatedUser.xp,
+            level: updatedUser.level,
+            league: updatedUser.league,
+            badges: updatedUser.badges,
+          },
+        }),
+      );
     }
+
+    const user = await User.findById(req.user._id);
+    const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, { courseCompleted: isCourseNewlyComplete });
+    return res.status(200).json(
+      new ApiResponse(200, {
+        enrollment: updatedEnrollment,
+        xpAwarded: isCourseNewlyComplete ? 300 : 150,
+        courseCompleted: isCourseNewlyComplete,
+        user: {
+          xp: updatedUser.xp,
+          level: updatedUser.level,
+          league: updatedUser.league,
+          badges: updatedUser.badges,
+        },
+      }),
+    );
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { enrollment: updatedEnrollment }));
+  const user = await User.findById(req.user._id);
+  const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, {});
+  return res.status(200).json(
+    new ApiResponse(200, {
+      enrollment: updatedEnrollment,
+      xpAwarded: 150,
+      user: {
+        xp: updatedUser.xp,
+        level: updatedUser.level,
+        league: updatedUser.league,
+        badges: updatedUser.badges,
+      },
+    }),
+  );
 });
 
 export const getUserEnrollments = asyncHandler(async (req, res) => {

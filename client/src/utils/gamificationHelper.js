@@ -8,10 +8,7 @@ export const grantXP = async (dispatch, amount) => {
   try {
     const prevUser = store.getState().auth.user;
 
-    const response = await api.post(
-      "http://localhost:8080/api/v1/ai/update-user-xp",
-      { xpAmount: amount },
-    );
+    const response = await api.post("/ai/update-user-xp", { xpAmount: amount });
 
     if (response.success && response.data.user) {
       dispatch(updateUserStats(response.data.user));
@@ -22,8 +19,8 @@ export const grantXP = async (dispatch, amount) => {
         emit({ type: "levelUp", level: response.data.user.level });
       }
 
-      if (response.data.user.rank !== prevUser?.rank) {
-        emit({ type: "rankUp", rank: response.data.user.rank });
+      if (response.data.user.league !== prevUser?.league) {
+        emit({ type: "rankUp", league: response.data.user.league });
       }
 
       const prevBadges = prevUser?.badges || [];

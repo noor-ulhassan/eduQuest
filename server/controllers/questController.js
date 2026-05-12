@@ -47,7 +47,7 @@ export const claimReward = asyncHandler(async (req, res) => {
         user: {
           xp: user.xp,
           level: user.level,
-          rank: user.rank,
+          league: user.league,
           badges: user.badges,
           streakShields: user.streakShields,
         },

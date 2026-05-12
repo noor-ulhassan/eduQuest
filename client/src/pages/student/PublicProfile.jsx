@@ -313,7 +313,7 @@ const PublicProfile = () => {
           />
           <StatCard
             label="Global Rank"
-            value={`#${profile.rank || "N/A"}`}
+            value={`#${profile.league || "N/A"}`}
             icon={<Trophy className="w-6 h-6 text-indigo-400" />}
             glowClass="group-hover:shadow-[0_0_30px_rgba(129,140,248,0.2)]"
           />

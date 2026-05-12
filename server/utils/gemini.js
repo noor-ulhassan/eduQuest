@@ -1,6 +1,6 @@
 import { User } from "../models/user.model.js";
 import { callAiModel } from "../config/aiProvider.js";
-import { addXP } from "./progression.js";
+import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
 import { asyncHandler } from "./asyncHandler.js";
 import { ApiError } from "./ApiError.js";
 import { ApiResponse } from "./ApiResponse.js";
@@ -18,7 +18,7 @@ export const updateUserXP = asyncHandler(async (req, res) => {
   if (!user) throw new ApiError(404, "User not found");
 
   const prevLevel = user.level;
-  await addXP(user, parsedXP);
+  await processEvent(user, XP_EVENTS.QUEST_CLAIMED, { xpReward: parsedXP });
   const leveledUp = user.level > prevLevel;
 
   return res.status(200).json(
@@ -28,7 +28,7 @@ export const updateUserXP = asyncHandler(async (req, res) => {
         user: {
           xp: user.xp,
           level: user.level,
-          rank: user.rank,
+          league: user.league,
           badges: user.badges,
         },
       },

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Play } from "lucide-react";
 import api from "@/features/auth/authApi";
 import { useDispatch, useSelector } from "react-redux";
-import { grantXP } from "@/utils/gamificationHelper.js";
+import { updateUserStats } from "@/features/auth/authSlice";
+import { emit } from "@/lib/gamificationBus";
 import SlideshowPlayer from "./SlideshowPlayer";
 
 mermaid.initialize({ startOnLoad: false, theme: "neutral" });
@@ -113,13 +114,27 @@ function ChapterContent({
   const handleMarkCompleted = async () => {
     if (!enrollment?._id) return;
     try {
-      await api.post("http://localhost:8080/api/v1/ai/mark-chapter-completed", {
+      const response = await api.post("http://localhost:8080/api/v1/ai/mark-chapter-completed", {
         enrollmentId: enrollment._id,
         chapterName: chapter.chapterName,
         userEmail: user?.email,
       });
 
-      await grantXP(dispatch, 150);
+      if (response?.data?.user) {
+        const prevUser = user;
+        dispatch(updateUserStats(response.data.user));
+        emit({ type: "xp", amount: response.data.xpAwarded });
+        if (response.data.user.level > (prevUser?.level ?? 0)) {
+          emit({ type: "levelUp", level: response.data.user.level });
+        }
+        if (response.data.user.league !== prevUser?.league) {
+          emit({ type: "rankUp", league: response.data.user.league });
+        }
+        const prevBadges = prevUser?.badges ?? [];
+        (response.data.user.badges ?? [])
+          .filter((b) => !prevBadges.find((pb) => pb.title === b.title))
+          .forEach((b) => emit({ type: "badge", ...b }));
+      }
 
       onProgressUpdate();
     } catch (error) {

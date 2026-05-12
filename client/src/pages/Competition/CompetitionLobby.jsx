@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { updateUserStats } from "../../features/auth/authSlice";
+import { store } from "@/store/store";
+import { emit as emitGamification } from "@/lib/gamificationBus";
 import { connectSocket, disconnectSocket, getSocket } from "../../lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -51,6 +54,7 @@ const CompetitionLobby = () => {
   const { roomCode: paramCode } = useParams();
   const [searchParams] = useSearchParams();
   const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
 
   const [socket, setSocket] = useState(null);
   const [room, setRoom] = useState(null);
@@ -412,6 +416,14 @@ const CompetitionLobby = () => {
       });
     };
 
+    const onUserXPUpdated = ({ xpGained, leveledUp, rankedUp, newBadges, user: updatedUser }) => {
+      dispatch(updateUserStats(updatedUser));
+      if (xpGained > 0) emitGamification({ type: "xp", amount: xpGained });
+      if (leveledUp) emitGamification({ type: "levelUp", level: updatedUser.level });
+      if (rankedUp) emitGamification({ type: "rankUp", league: updatedUser.league });
+      (newBadges || []).forEach((b) => emitGamification({ type: "badge", ...b }));
+    };
+
     socket.on("playerJoined", onPlayerJoined);
     socket.on("playerLeft", onPlayerLeft);
     socket.on("settingsUpdated", onSettingsUpdated);
@@ -429,6 +441,7 @@ const CompetitionLobby = () => {
     socket.on("roomReset", onRoomReset);
     socket.on("playerReadyUpdate", onPlayerReadyUpdate);
     socket.on("rematchUpdate", onRematchUpdate);
+    socket.on("userXPUpdated", onUserXPUpdated);
 
     // Join request notification (host)
     const onJoinRequest = ({ roomCode: rc, requester }) => {
@@ -467,8 +480,9 @@ const CompetitionLobby = () => {
       socket.off("playerReadyUpdate", onPlayerReadyUpdate);
       socket.off("rematchUpdate", onRematchUpdate);
       socket.off("joinRequest", onJoinRequest);
+      socket.off("userXPUpdated", onUserXPUpdated);
     };
-  }, [socket, user]);
+  }, [socket, user, dispatch]);
 
   // Auto-join if roomCode in URL — wait for socket to be connected
   useEffect(() => {

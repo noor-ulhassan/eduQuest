@@ -234,7 +234,7 @@ const Profile = () => {
               username={user.username || "newbie"}
               level={user.level || 1}
               totalXP={user.xp || 0}
-              rank={user.rank || "Bronze"}
+              rank={user.league || "Bronze"}
               badges={user.badges?.length || 0}
               dayStreak={user.dayStreak || 0}
             />

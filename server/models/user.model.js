@@ -23,9 +23,28 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
-    rank: {
+    league: {
       type: String,
-      default: "Novice",
+      default: "Bronze",
+    },
+    titles: {
+      type: [String],
+      default: [],
+    },
+    xpLog: {
+      type: [
+        {
+          source: { type: String },
+          amount: { type: Number },
+          timestamp: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
+    achievementProgress: {
+      type: Map,
+      of: Number,
+      default: {},
     },
     badges: [
       {

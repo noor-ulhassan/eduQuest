@@ -1,7 +1,7 @@
 import PlaygroundProgress from "../models/PlaygroundProgress.js";
 import { User } from "../models/user.model.js";
 import { incrementStreak } from "../utils/streak.js";
-import { addXP } from "../utils/progression.js";
+import { processEvent, computeXP, XP_EVENTS } from "../services/GamificationService.js";
 import { Curriculum } from "../models/Curriculum.js";
 import { onPlaygroundSolve, updateStreakKeeperQuest } from "../utils/questEngine.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -85,13 +85,7 @@ export const completeProblem = asyncHandler(async (req, res) => {
       ? req.body.solveTimeMs
       : null;
 
-  const penaltyFactor = usedHints ? 0.9 : 1.0;
-  const diffLower = difficulty.toLowerCase();
-  const isHardOrExpert = diffLower === "hard" || diffLower === "expert";
-  const earnedSpeedBonus =
-    isHardOrExpert && solveTimeMs !== null && solveTimeMs <= 600_000;
-  const speedFactor = earnedSpeedBonus ? 1.25 : 1.0;
-  const adjustedXP = Math.max(1, Math.round(baseXP * penaltyFactor * speedFactor));
+  const adjustedXP = computeXP(XP_EVENTS.PROBLEM_SOLVED, { baseXP, usedHints, difficulty, solveTimeMs });
 
   const updatedProgress = await PlaygroundProgress.findOneAndUpdate(
     { userId, language, completedProblems: { $ne: problemId } },
@@ -137,10 +131,10 @@ export const completeProblem = asyncHandler(async (req, res) => {
 
   let user = await User.findById(userId);
   user = await incrementStreak(user, { autoSave: false });
-  user = await addXP(
+  user = await processEvent(
     user,
-    adjustedXP,
-    { totalSolved: progress.completedProblems.length, earnedSpeedBonus },
+    XP_EVENTS.PROBLEM_SOLVED,
+    { baseXP, usedHints, difficulty, solveTimeMs, totalSolved: progress.completedProblems.length },
     { autoSave: false },
   );
   await user.save();
@@ -159,27 +153,29 @@ export const completeProblem = asyncHandler(async (req, res) => {
     chapterCompleted = solvedChapter.problems.every((p) =>
       completedSet.has(p.id),
     );
-    if (chapterCompleted) bonusXP += 100;
+    if (chapterCompleted) {
+      bonusXP += computeXP(XP_EVENTS.CHAPTER_COMPLETED, {});
+      user = await processEvent(user, XP_EVENTS.CHAPTER_COMPLETED, {}, { autoSave: false });
+    }
 
     languageCompleted = curriculum.chapters.every((ch) =>
       ch.problems.every((p) => completedSet.has(p.id)),
     );
-    if (languageCompleted) bonusXP += 500;
+    if (languageCompleted) {
+      bonusXP += computeXP(XP_EVENTS.LANGUAGE_MASTERED, { language });
+      user = await processEvent(user, XP_EVENTS.LANGUAGE_MASTERED, { language }, { autoSave: false });
+    }
   }
 
-  if (bonusXP > 0) {
-    user = await addXP(
-      user,
-      bonusXP,
-      { chapterCompleted, languageCompleted, language },
-      { autoSave: true },
-    );
-  }
+  if (bonusXP > 0) await user.save();
 
-  onPlaygroundSolve(userId, { language, difficulty: diffLower, usedHints })
+  onPlaygroundSolve(userId, { language, difficulty: difficulty.toLowerCase(), usedHints })
     .catch((err) => console.error("[Playground] Quest update error:", err));
   updateStreakKeeperQuest(userId, user.dayStreak)
     .catch((err) => console.error("[Playground] Streak quest update error:", err));
+
+  const isHardOrExpert = ["hard", "expert"].includes(difficulty.toLowerCase());
+  const earnedSpeedBonus = isHardOrExpert && solveTimeMs != null && solveTimeMs <= 600_000;
 
   const updatedUser = {
     _id: user._id,
@@ -188,7 +184,7 @@ export const completeProblem = asyncHandler(async (req, res) => {
     avatarUrl: user.avatarUrl,
     xp: user.xp,
     level: user.level,
-    rank: user.rank,
+    league: user.league,
     badges: user.badges,
     dayStreak: user.dayStreak,
   };

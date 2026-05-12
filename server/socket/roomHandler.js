@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import { generateCompetitionQuestions } from "../utils/competitionQuestions.js";
 import { CompetitionResult } from "../models/CompetitionResult.model.js";
-import { addXP } from "../utils/progression.js";
+import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
 
 // In-memory room storage
 const rooms = new Map();
@@ -1470,8 +1470,8 @@ async function endGame(io, roomCode, room) {
     teamScores,
   });
 
-  // Award XP (skip for practice mode)
-  if (room.gameMode !== "practice") awardXP(finalLeaderboard, finalLeaderboard.length);
+  // Award XP (skip for practice mode) — fire-and-forget; emits userXPUpdated per player
+  if (room.gameMode !== "practice") awardXP(io, finalLeaderboard, room, finalLeaderboard.length);
 
   // Save results to DB — skip for practice (unranked)
   if (room.gameMode === "practice") {
@@ -1620,25 +1620,53 @@ function setBlitzQuestionTimer(io, roomCode, room, player, questionIndex) {
   room._blitzTimers.set(player.id, timer);
 }
 
-async function awardXP(leaderboard, totalPlayers = 2) {
-  // F-04: Scale XP by competition size — larger pools reward more
-  const sizeMult = Math.max(1, Math.log2(Math.max(totalPlayers, 2)));
-
+async function awardXP(io, leaderboard, room, totalPlayers = 2) {
   await Promise.all(
     leaderboard.map(async (playerEntry, i) => {
       if (playerEntry.score <= 0) return;
       if (!playerEntry.finished || playerEntry.eliminated) return; // B-13: Only reward completed players
       try {
-        const xpReward = i === 0 ? 100 : i === 1 ? 50 : 25;
-        const totalEarned = Math.round((xpReward + Math.floor(playerEntry.score / 10)) * sizeMult);
         const user = await User.findById(playerEntry.id);
         if (!user) return;
+
+        const prevXP = user.xp;
+        const prevLevel = user.level;
+        const prevLeague = user.league;
+        const prevBadgeTitles = new Set((user.badges || []).map((b) => b.title));
+
         const totalWins = await CompetitionResult.countDocuments({
           userId: user._id,
           rank: 1,
           status: "completed",
         });
-        await addXP(user, totalEarned, { totalWins });
+        await processEvent(user, XP_EVENTS.COMPETITION_FINISHED, {
+          placement: i,
+          score: playerEntry.score,
+          totalPlayers,
+          totalWins,
+        });
+
+        const xpGained = Math.max(0, user.xp - prevXP);
+        const leveledUp = user.level > prevLevel;
+        const rankedUp = user.league !== prevLeague;
+        const newBadges = (user.badges || []).filter((b) => !prevBadgeTitles.has(b.title));
+
+        // Emit the update to the individual player's socket
+        const player = room.players.find((p) => String(p.id) === String(playerEntry.id));
+        if (player?.socketId) {
+          io.to(player.socketId).emit("userXPUpdated", {
+            xpGained,
+            leveledUp,
+            rankedUp,
+            newBadges,
+            user: {
+              xp: user.xp,
+              level: user.level,
+              league: user.league,
+              badges: user.badges,
+            },
+          });
+        }
       } catch (err) {
         console.error(`[Socket] Error awarding XP for ${playerEntry.name}:`, err);
       }

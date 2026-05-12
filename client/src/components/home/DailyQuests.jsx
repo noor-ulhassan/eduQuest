@@ -140,8 +140,8 @@ const DailyQuests = () => {
         if (res.data.user.level > (prevUser?.level || 1)) {
           emit({ type: "levelUp", level: res.data.user.level });
         }
-        if (res.data.user.rank !== prevUser?.rank) {
-          emit({ type: "rankUp", rank: res.data.user.rank });
+        if (res.data.user.league !== prevUser?.league) {
+          emit({ type: "rankUp", league: res.data.user.league });
         }
         const prevBadges = prevUser?.badges || [];
         (res.data.user.badges || [])

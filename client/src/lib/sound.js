@@ -121,3 +121,68 @@ export const playRankChangeSound = () =>
     ],
     0.1,
   );
+
+// ─── Gamification ──────────────────────────────────────────
+// Level-up fanfare: bass impact → ascending scale → triumphant chord
+export const playLevelUpSound = () =>
+  synth(
+    [
+      { freq: 82.41,  dur: 0.32, type: "sine",     gain: 0.42 },
+      { freq: 110,    dur: 0.28, type: "triangle",  gain: 0.24 },
+      { freq: 261.63, dur: 0.09, type: "sine", gain: 0.28, delay: 0.07 },
+      { freq: 329.63, dur: 0.09, type: "sine", gain: 0.30, delay: 0.15 },
+      { freq: 392,    dur: 0.09, type: "sine", gain: 0.30, delay: 0.23 },
+      { freq: 523.25, dur: 0.09, type: "sine", gain: 0.32, delay: 0.31 },
+      { freq: 659.25, dur: 0.09, type: "sine", gain: 0.34, delay: 0.39 },
+      { freq: 1046.5, dur: 0.22, type: "sine", gain: 0.40, delay: 0.47 },
+      { freq: 523.25, dur: 1.1,  type: "sine", gain: 0.18, delay: 0.68 },
+      { freq: 659.25, dur: 1.1,  type: "sine", gain: 0.14, delay: 0.68 },
+      { freq: 783.99, dur: 1.1,  type: "sine", gain: 0.12, delay: 0.68 },
+      { freq: 1046.5, dur: 1.1,  type: "sine", gain: 0.20, delay: 0.68 },
+    ],
+    0.3,
+  );
+
+// Badge earned — 4 rarity tiers with escalating drama
+export const playBadgeEarnedSound = (rarity = "Common") => {
+  const configs = {
+    Common: [
+      { freq: 659.25, dur: 0.12, gain: 0.22 },
+      { freq: 880,    dur: 0.22, delay: 0.1, gain: 0.20 },
+    ],
+    Rare: [
+      { freq: 523.25, dur: 0.09, gain: 0.24 },
+      { freq: 659.25, dur: 0.09, delay: 0.09, gain: 0.24 },
+      { freq: 1046.5, dur: 0.32, delay: 0.18, gain: 0.26 },
+    ],
+    Epic: [
+      { freq: 392,    dur: 0.08, gain: 0.22 },
+      { freq: 523.25, dur: 0.08, delay: 0.08, gain: 0.24 },
+      { freq: 659.25, dur: 0.08, delay: 0.16, gain: 0.26 },
+      { freq: 1046.5, dur: 0.45, delay: 0.24, gain: 0.30 },
+      { freq: 1318.5, dur: 0.35, delay: 0.30, gain: 0.14 },
+    ],
+    Legendary: [
+      { freq: 82.41,  dur: 0.22, type: "sine", gain: 0.38 },
+      { freq: 329.63, dur: 0.08, gain: 0.26, delay: 0.07 },
+      { freq: 440,    dur: 0.08, gain: 0.28, delay: 0.15 },
+      { freq: 554.37, dur: 0.08, gain: 0.28, delay: 0.23 },
+      { freq: 880,    dur: 0.08, gain: 0.30, delay: 0.31 },
+      { freq: 1174.7, dur: 0.55, gain: 0.32, delay: 0.39 },
+      { freq: 587.33, dur: 0.55, gain: 0.14, delay: 0.56 },
+      { freq: 880,    dur: 0.55, gain: 0.12, delay: 0.56 },
+      { freq: 1174.7, dur: 0.55, gain: 0.18, delay: 0.56 },
+    ],
+  };
+  synth(configs[rarity] ?? configs.Common, 0.28);
+};
+
+// Subtle XP chime — a quick soft pop
+export const playXPGainSound = () =>
+  synth(
+    [
+      { freq: 1046.5, dur: 0.07, gain: 0.12 },
+      { freq: 1318.5, dur: 0.12, delay: 0.06, gain: 0.10 },
+    ],
+    0.12,
+  );

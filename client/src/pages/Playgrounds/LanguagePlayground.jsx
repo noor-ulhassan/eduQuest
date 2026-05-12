@@ -429,8 +429,8 @@ const LanguagePlayground = () => {
       if (response.user.level > (prevUser?.level || 1)) {
         emit({ type: "levelUp", level: response.user.level });
       }
-      if (response.user.rank !== prevUser?.rank) {
-        emit({ type: "rankUp", rank: response.user.rank });
+      if (response.user.league !== prevUser?.league) {
+        emit({ type: "rankUp", league: response.user.league });
       }
       const prevBadges = prevUser?.badges || [];
       (response.user.badges || [])
@@ -1802,7 +1802,7 @@ const LanguagePlayground = () => {
                       {user?.name}
                     </p>
                     <p className="text-[11px] font-bold text-metallic-orange">
-                      Lv.{user?.level} · {user?.rank || "Beginner"}
+                      Lv.{user?.level} · {user?.league || "Bronze"}
                     </p>
                   </div>
                   <Trophy className="w-4 h-4 text-metallic-orange shrink-0" />

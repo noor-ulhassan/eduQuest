@@ -30,9 +30,9 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
 
       <div className="p-6 space-y-6">
 
-        {/* Target Domain */}
+        {/* Category */}
         <div className="space-y-2.5">
-          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.18em]">Target Domain</p>
+          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.18em]">Category</p>
           <div className="grid grid-cols-2 gap-2.5">
             {[
               { id: "programming", label: "Programming", icon: <Code size={18} />, activeColor: "#f97316", activeBg: "rgba(249,115,22,0.1)", activeBorder: "rgba(249,115,22,0.35)" },
@@ -267,7 +267,7 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
             style={{ background: "linear-gradient(135deg,rgba(255,255,255,0.06),transparent)" }}
           />
           {isStarting ? (
-            <><Loader2 size={20} className="animate-spin" /><span>Initiating...</span></>
+            <><Loader2 size={20} className="animate-spin" /><span>Starting...</span></>
           ) : (
             <><Swords size={20} /><span>Begin Competition</span></>
           )}

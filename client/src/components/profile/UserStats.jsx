@@ -36,7 +36,7 @@ const UserStats = () => {
   const name = user?.name || "Guest User";
   const level = user?.level || 1;
   const xp = user?.xp || 0;
-  const rank = user?.rank || "Bronze";
+  const rank = user?.league || "Bronze";
   const badges = user?.badges?.length || 0;
   const dayStreak = user?.dayStreak || 0;
   const avatarUrl = user?.avatarUrl || "/Avatar.png";

@@ -872,7 +872,7 @@ const MCQQuestion = ({
           <div className="px-4 py-3 bg-zinc-900 border-b border-zinc-800 flex items-center gap-2">
             <Code size={16} className="text-orange-400" />
             <span className="text-[11px] text-zinc-400 uppercase tracking-widest font-black">
-              {question.buggyCode ? "Code to Review" : "System Context"}
+              {question.buggyCode ? "Code to Review" : "Context"}
             </span>
           </div>
           <pre className="p-5 text-[15px] text-zinc-300 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed custom-scrollbar">

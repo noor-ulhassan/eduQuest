@@ -5,7 +5,7 @@
 
 import { UserQuestProgress } from "../models/UserQuestProgress.model.js";
 import { User } from "../models/user.model.js";
-import { addXP } from "./progression.js";
+import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
 import { ApiError } from "./ApiError.js";
 
 // ─── Quest Catalog ────────────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ export const claimQuestReward = async (userId, questId, period) => {
   if (!user) throw new ApiError(404, "User not found");
 
   // Award XP through the central pipeline
-  await addXP(user, def.xpReward, {}, { autoSave: false });
+  await processEvent(user, XP_EVENTS.QUEST_CLAIMED, { xpReward: def.xpReward }, { autoSave: false });
 
   // Award shield if this quest grants one (cap at 2)
   let shieldAwarded = 0;

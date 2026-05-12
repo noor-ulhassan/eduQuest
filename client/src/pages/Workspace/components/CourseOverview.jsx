@@ -570,21 +570,21 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                   </div>
                 </div>
                 <h4 className="text-xl sm:text-2xl font-bold text-metallic">
-                  {user?.rank || "Novice"}
+                  {user?.league || "Bronze"}
                 </h4>
                 <div className="mt-3 sm:mt-4 flex gap-1">
-                  {["Novice", "Bronze", "Silver", "Gold", "Diamond"].map(
+                  {["Bronze", "Silver", "Gold", "Platinum", "Diamond"].map(
                     (tier, i) => (
                       <div
                         key={tier}
                         className={`flex-1 h-1.5 rounded-full transition-all duration-700 ${
                           [
-                            "Novice",
                             "Bronze",
                             "Silver",
                             "Gold",
+                            "Platinum",
                             "Diamond",
-                          ].indexOf(user?.rank || "Novice") >= i
+                          ].indexOf(user?.league || "Bronze") >= i
                             ? "bg-yellow-500"
                             : "bg-white/10"
                         }`}

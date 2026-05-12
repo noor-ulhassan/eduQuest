@@ -1,538 +1,685 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { getGlobalLeaderboard } from "../../features/leaderboard/leaderboardApi";
+import { motion } from "framer-motion";
+import {
+  getGlobalLeaderboard,
+  getPlaygroundLeaderboard,
+  getCompetitionLeaderboard,
+  getLearnerLeaderboard,
+  getWeeklyLeaderboard,
+} from "../../features/leaderboard/leaderboardApi";
 import {
   Trophy,
   Medal,
   Crown,
-  User as UserIcon,
-  Search,
-  ChevronDown,
   Shield,
-  TrendingUp,
-  Sparkles,
+  Code2,
+  BookOpen,
+  Swords,
+  CalendarDays,
+  Zap,
+  ChevronRight,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+// ─── Inline gradient text styles (metallic classes are playground-sidebar-scoped) ──
+const METALLIC = {
+  background: "linear-gradient(135deg, #d4d4d4 0%, #ffffff 28%, #a8a8a8 52%, #f5f5f5 76%, #c8c8c8 100%)",
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  color: "transparent",
+};
+const METALLIC_ORANGE = {
+  background: "linear-gradient(135deg, #fb923c 0%, #fcd34d 28%, #c2410c 52%, #fbbf24 76%, #f97316 100%)",
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  color: "transparent",
+};
+
+// ─── League config (mirrors server/utils/progression.js LEAGUES) ──────────────
+
+const LEAGUE_LEVELS = [
+  { name: "Bronze",      minLevel: 1   },
+  { name: "Silver",      minLevel: 5   },
+  { name: "Gold",        minLevel: 10  },
+  { name: "Platinum",    minLevel: 25  },
+  { name: "Diamond",     minLevel: 50  },
+  { name: "Master",      minLevel: 75  },
+  { name: "Grandmaster", minLevel: 100 },
+];
+
+const LEAGUE_STYLE = {
+  Grandmaster: { color: "text-red-400",     bar: "bg-red-400",     icon: Crown  },
+  Master:      { color: "text-purple-400",  bar: "bg-purple-400",  icon: Crown  },
+  Diamond:     { color: "text-cyan-400",    bar: "bg-cyan-400",    icon: Shield },
+  Platinum:    { color: "text-emerald-400", bar: "bg-emerald-400", icon: Shield },
+  Gold:        { color: "text-yellow-400",  bar: "bg-yellow-400",  icon: Trophy },
+  Silver:      { color: "text-zinc-300",    bar: "bg-zinc-300",    icon: Medal  },
+  Bronze:      { color: "text-orange-400",  bar: "bg-orange-400",  icon: Medal  },
+};
+
+const getLeagueStyle = (league) => LEAGUE_STYLE[league] ?? LEAGUE_STYLE.Bronze;
+
+const getLeagueProgress = (level, league) => {
+  const idx = LEAGUE_LEVELS.findIndex((l) => l.name === league);
+  if (idx === -1 || idx === LEAGUE_LEVELS.length - 1)
+    return { nextLeague: null, levelsNeeded: 0, progress: 100 };
+  const curr = LEAGUE_LEVELS[idx];
+  const next = LEAGUE_LEVELS[idx + 1];
+  const progress = ((level - curr.minLevel) / (next.minLevel - curr.minLevel)) * 100;
+  return {
+    nextLeague: next.name,
+    levelsNeeded: Math.max(0, next.minLevel - level),
+    progress: Math.min(100, Math.max(0, progress)),
+  };
+};
+
+// ─── Tab definitions ───────────────────────────────────────────────────────────
+
+const TABS = [
+  {
+    id: "global",
+    label: "Global XP",
+    icon: Zap,
+    description: "All-time ranking by total XP earned across every feature.",
+    colLabel: "XP",
+    fetchFn: getGlobalLeaderboard,
+    metricFn: (e) => `${(e.xp ?? 0).toLocaleString()} XP`,
+  },
+  {
+    id: "playground",
+    label: "Playground",
+    icon: Code2,
+    description: "Top coders ranked by total problems solved across all languages.",
+    colLabel: "SOLVES",
+    fetchFn: getPlaygroundLeaderboard,
+    metricFn: (e) => `${e.totalSolved ?? 0} Solves`,
+  },
+  {
+    id: "competition",
+    label: "Competition",
+    icon: Swords,
+    description: "Top competitors ranked by all-time match wins.",
+    colLabel: "WINS",
+    fetchFn: getCompetitionLeaderboard,
+    metricFn: (e) => `${e.totalWins ?? 0}W / ${e.totalMatches ?? 0}G`,
+  },
+  {
+    id: "learner",
+    label: "Learner",
+    icon: BookOpen,
+    description: "Top learners ranked by total workspace chapters completed.",
+    colLabel: "CHAPTERS",
+    fetchFn: getLearnerLeaderboard,
+    metricFn: (e) => `${e.totalChapters ?? 0} Ch`,
+  },
+  {
+    id: "weekly",
+    label: "Weekly",
+    icon: CalendarDays,
+    description: "This week's competition XP — resets every Monday at midnight.",
+    colLabel: "WEEKLY XP",
+    fetchFn: getWeeklyLeaderboard,
+    metricFn: (e) => `${e.weeklyXP ?? 0} XP`,
+  },
+];
+
+// ─── Small reusable pieces ─────────────────────────────────────────────────────
+
+const Avatar = ({ src, seed, size = "md", className = "" }) => {
+  const sz =
+    size === "xl" ? "w-24 h-24" :
+    size === "lg" ? "w-16 h-16" :
+    "w-10 h-10";
+  return (
+    <img
+      src={src || `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`}
+      alt="avatar"
+      className={cn(sz, "rounded-full object-cover shrink-0", className)}
+    />
+  );
+};
+
+const RankBadge = ({ rank }) => {
+  if (rank === 1)
+    return (
+      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-xs shadow-[0_0_10px_rgba(234,179,8,0.5)]">
+        1
+      </div>
+    );
+  if (rank === 2)
+    return (
+      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-500 flex items-center justify-center font-black text-black text-xs">
+        2
+      </div>
+    );
+  if (rank === 3)
+    return (
+      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-amber-700 flex items-center justify-center font-black text-black text-xs">
+        3
+      </div>
+    );
+  return (
+    <span className="text-zinc-600 font-bold text-sm w-7 text-center">#{rank}</span>
+  );
+};
+
+const RowSkeleton = () => (
+  <div
+    className="h-[68px] rounded-xl animate-pulse"
+    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}
+  />
+);
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const Leaderboard = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
   const navigate = useNavigate();
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
+  const [activeTab, setActiveTab] = useState("global");
+  const [tabData, setTabData] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const activeTabDef = TABS.find((t) => t.id === activeTab);
+  const leaderboard = tabData[activeTab] ?? [];
+
+  const fetchTab = useCallback(
+    async (tabId) => {
+      if (tabData[tabId]) return;
+      setLoading(true);
       try {
-        const response = await getGlobalLeaderboard();
+        const tabDef = TABS.find((t) => t.id === tabId);
+        const response = await tabDef.fetchFn();
         if (response.success) {
-          setLeaderboard(response.data);
+          // ApiResponse wraps data as { data: { data: [...] } } — unwrap both layers
+          setTabData((prev) => ({ ...prev, [tabId]: response.data?.data ?? [] }));
         }
-      } catch (error) {
-        console.error("Failed to fetch leaderboard", error);
+      } catch (err) {
+        console.error(`Failed to fetch ${tabId} leaderboard`, err);
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [tabData],
+  );
 
-    fetchLeaderboard();
+  useEffect(() => {
+    fetchTab("global");
   }, []);
 
-  const getRankIcon = (rank) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="w-5 h-5 text-yellow-500 fill-yellow-500" />;
-      case 2:
-        return <Medal className="w-5 h-5 text-gray-400 fill-gray-400" />;
-      case 3:
-        return <Medal className="w-5 h-5 text-amber-700 fill-amber-700" />;
-      default:
-        // Return null for > 3 so we can just show numbers
-        return null;
-    }
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    fetchTab(tabId);
   };
 
-  const getLeagueInfo = (xp) => {
-    if (xp >= 20000)
-      return {
-        name: "Diamond",
-        color: "text-cyan-400",
-        bg: "bg-cyan-400/10",
-        border: "border-cyan-400/20",
-        icon: Shield,
-      };
-    if (xp >= 10000)
-      return {
-        name: "Platinum",
-        color: "text-emerald-400",
-        bg: "bg-emerald-400/10",
-        border: "border-emerald-400/20",
-        icon: Shield,
-      };
-    if (xp >= 5000)
-      return {
-        name: "Gold",
-        color: "text-yellow-500",
-        bg: "bg-yellow-500/10",
-        border: "border-yellow-500/20",
-        icon: Trophy,
-      };
-    if (xp >= 1000)
-      return {
-        name: "Silver",
-        color: "text-gray-400",
-        bg: "bg-gray-400/10",
-        border: "border-gray-400/20",
-        icon: Medal,
-      };
-    return {
-      name: "Bronze",
-      color: "text-amber-700",
-      bg: "bg-amber-700/10",
-      border: "border-amber-700/20",
-      icon: Medal,
-    };
-  };
+  const top3 = leaderboard.slice(0, 3);
+  const rest = leaderboard.slice(3);
 
-  const getNextLeagueTarget = (xp) => {
-    if (xp >= 20000) return null; // Max level
-    if (xp >= 10000) return { name: "Diamond", target: 20000 };
-    if (xp >= 5000) return { name: "Platinum", target: 10000 };
-    if (xp >= 1000) return { name: "Gold", target: 5000 };
-    return { name: "Silver", target: 1000 };
-  };
+  const currentUserRank = currentUser
+    ? leaderboard.findIndex(
+        (u) => u._id?.toString() === currentUser._id?.toString(),
+      ) + 1
+    : 0;
 
-  // Group users by league
-  const groupedUsers = leaderboard.reduce((acc, user) => {
-    const league = getLeagueInfo(user.xp).name;
-    if (!acc[league]) acc[league] = [];
-    acc[league].push(user);
-    return acc;
-  }, {});
+  const leagueProgressData = currentUser
+    ? getLeagueProgress(currentUser.level ?? 1, currentUser.league ?? "Bronze")
+    : null;
 
-  // Sort league keys so higher leagues come first
-  const leagueOrder = ["Diamond", "Platinum", "Gold", "Silver", "Bronze"];
-
-  // Current user progress
-  const userLeague = currentUser ? getLeagueInfo(currentUser.xp) : null;
-  const nextTarget = currentUser ? getNextLeagueTarget(currentUser.xp) : null;
-
-  // Progress calculation
-  const getProgress = (current, target) => {
-    let base = 0;
-    if (target === 1000) base = 0;
-    else if (target === 5000) base = 1000;
-    else if (target === 10000) base = 5000;
-    else if (target === 20000) base = 10000;
-
-    const totalNeeded = target - base;
-    const currentProgress = current - base;
-    return Math.min(100, Math.max(0, (currentProgress / totalNeeded) * 100));
-  };
-
-  const userProgress = nextTarget
-    ? getProgress(currentUser.xp, nextTarget.target)
-    : 100;
-
-  // Sort all users unconditionally by XP descending for the overall list
-  const sortedLeaderboard = [...leaderboard].sort((a, b) => b.xp - a.xp);
-
-  // Identify top 3
-  const top3 = sortedLeaderboard.slice(0, 3);
-  const restOfLeaderboard = sortedLeaderboard.slice(3);
-
-  // Helper for formatting tier names
-  const formatTier = (name) => {
-    return `${name} Tier`;
-  };
-
-  // Get rank class for podium glow
-  const getPodiumGlowParams = (rank) => {
-    switch (rank) {
-      case 1:
-        return {
-          glow: "ring-[#eab308]",
-          badgeBg: "bg-[#eab308] text-black",
-          text: "text-[#3f48ef]",
-        };
-      case 2:
-        return {
-          glow: "ring-[#d1d5db]",
-          badgeBg: "bg-[#d1d5db] text-black",
-          text: "text-[#3f48ef]",
-        };
-      case 3:
-        return {
-          glow: "ring-[#f59e0b]",
-          badgeBg: "bg-[#f59e0b] text-black",
-          text: "text-[#3f48ef]",
-        };
-      default:
-        return {
-          glow: "",
-          badgeBg: "bg-zinc-700 text-white",
-          text: "text-zinc-400",
-        };
-    }
-  };
-
-  // ─── Render ───
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col min-h-screen bg-[#0d0b1a] text-white font-sans overflow-hidden">
-      {/* ── Navbar ── */}
-      <header className="h-[70px] shrink-0 border-b border-[#1e1b38] bg-[#0d0b1a] flex items-center justify-between px-6 z-20">
+    <div className="flex flex-col min-h-screen bg-[#030305] text-white font-inter overflow-hidden">
+
+      {/* Ambient glow blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-orange-600/5 rounded-full blur-[200px]" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[400px] bg-purple-900/8 rounded-full blur-[160px]" />
+      </div>
+
+      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
+      <header
+        className="relative z-20 h-[60px] shrink-0 flex items-center justify-between px-6"
+        style={{
+          background: "rgba(3,3,5,0.85)",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          backdropFilter: "blur(12px)",
+        }}
+      >
+        {/* Left: logo + nav */}
         <div className="flex items-center gap-10 h-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#3F48EF] flex items-center justify-center">
-              <span className="font-bold text-white tracking-widest text-xs">
-                EQ
-              </span>
+          <div
+            className="flex items-center gap-2.5 cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            <div className="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-black text-white tracking-widest">EQ</span>
             </div>
-            <span className="font-bold text-lg tracking-wide">EduQuest</span>
+            <span className="text-sm font-black tracking-wide hidden sm:block">
+              <span style={METALLIC}>Edu</span>
+              <span style={METALLIC_ORANGE}>Quest</span>
+            </span>
           </div>
 
-          {/* Links */}
-          <nav className="hidden md:flex items-center gap-8 h-full">
-            {["Dashboard", "Challenges", "Leaderboard", "Profile"].map(
-              (link) => {
-                const isActive = link === "Leaderboard";
-                return (
-                  <button
-                    key={link}
-                    onClick={() => {
-                      if (link === "Dashboard") navigate("/");
-                      if (link === "Challenges") navigate("/playground");
-                      if (link === "Profile") navigate("/profile");
-                    }}
-                    className={cn(
-                      "h-full px-1 text-[13px] font-bold tracking-wide transition-colors relative flex items-center",
-                      isActive
-                        ? "text-[#3F48EF]"
-                        : "text-zinc-400 hover:text-white",
-                    )}
-                  >
-                    {link}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3F48EF] rounded-t-full" />
-                    )}
-                  </button>
-                );
-              },
-            )}
+          <nav className="hidden md:flex items-center gap-6 h-full">
+            {[
+              { label: "Dashboard",   path: "/"           },
+              { label: "Challenges",  path: "/playground" },
+              { label: "Leaderboard", path: "/leaderboard"},
+              { label: "Profile",     path: "/profile"    },
+            ].map(({ label, path }) => {
+              const isActive = label === "Leaderboard";
+              return (
+                <button
+                  key={label}
+                  onClick={() => navigate(path)}
+                  className={cn(
+                    "h-full px-1 text-[13px] font-semibold transition-colors relative flex items-center",
+                    isActive
+                      ? "text-orange-400"
+                      : "text-zinc-500 hover:text-zinc-200",
+                  )}
+                >
+                  {label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-t-full" />
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center bg-[#1e1b38] rounded-full px-4 py-2 border border-[#2d2755]">
-            <Search className="w-4 h-4 text-zinc-500 mr-2" />
-            <input
-              type="text"
-              placeholder="Find players..."
-              className="bg-transparent text-sm focus:outline-none text-white w-40 placeholder:text-zinc-500"
+        {/* Right: avatar */}
+        <button
+          onClick={() => navigate("/profile")}
+          className="w-8 h-8 rounded-full overflow-hidden border border-zinc-800 hover:border-orange-500/40 transition-colors flex items-center justify-center bg-zinc-900"
+        >
+          {currentUser?.avatarUrl || currentUser?.imageUrl ? (
+            <img
+              src={currentUser.avatarUrl || currentUser.imageUrl}
+              alt="me"
+              className="w-full h-full object-cover"
             />
-          </div>
-          <button className="bg-[#3F48EF] hover:bg-[#343cc4] text-white text-[13px] font-bold px-5 py-2.5 rounded-full transition-colors hidden sm:block">
-            Upgrade Pro
-          </button>
-          <button
-            onClick={() => navigate("/profile")}
-            className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-transparent hover:border-zinc-600 transition-colors overflow-hidden flex items-center justify-center shrink-0"
-          >
-            {currentUser?.imageUrl ? (
-              <img
-                src={currentUser.imageUrl}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="w-full h-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center">
-                {currentUser?.name?.charAt(0) || "U"}
-              </span>
-            )}
-          </button>
-        </div>
+          ) : (
+            <span className="w-full h-full bg-orange-900/40 text-orange-400 font-bold text-xs flex items-center justify-center">
+              {currentUser?.name?.charAt(0) || "U"}
+            </span>
+          )}
+        </button>
       </header>
 
-      {/* ── Main content area ── */}
-      <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2d2755]">
-        <div className="max-w-[1000px] mx-auto px-6 pt-12">
-          {/* Header & Filter */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+      {/* ── Main content ─────────────────────────────────────────────────────── */}
+      <div className="relative z-10 flex-1 overflow-y-auto thin-scroll pb-28">
+        <div className="max-w-[960px] mx-auto px-4 sm:px-6 pt-10">
+
+          {/* Page header */}
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Hall of Fame</h1>
-              <p className="text-zinc-400 text-[15px]">
-                Global ranking based on total XP earned.
+              <div
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-4"
+                style={{
+                  background: "rgba(234,88,12,0.08)",
+                  border: "1px solid rgba(234,88,12,0.2)",
+                }}
+              >
+                <Trophy size={9} />
+                Hall of Fame
+              </div>
+              <h1 className="text-4xl sm:text-5xl font-black leading-none mb-3" style={METALLIC}>
+                Rankings
+              </h1>
+              <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">
+                {activeTabDef.description}
               </p>
             </div>
-            <div className="flex items-center bg-[#1e1b38] rounded-lg p-1.5 border border-[#2d2755]">
-              {["Global", "Friends", "Monthly"].map((filter) => (
-                <button
-                  key={filter}
-                  className={cn(
-                    "px-6 py-2 rounded-md text-sm font-bold transition-all",
-                    filter === "Global"
-                      ? "bg-[#2d2755] text-white shadow"
-                      : "text-zinc-400 hover:text-white",
-                  )}
-                >
-                  {filter}
-                </button>
-              ))}
+
+            {/* Tab strip */}
+            <div className="flex flex-wrap gap-1.5 shrink-0 lg:pt-2">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap",
+                      isActive
+                        ? "text-orange-400 border border-orange-500/30"
+                        : "text-zinc-500 border border-white/5 hover:text-zinc-200 hover:border-white/10",
+                    )}
+                    style={
+                      isActive
+                        ? { background: "rgba(234,88,12,0.1)" }
+                        : { background: "rgba(255,255,255,0.02)" }
+                    }
+                  >
+                    <Icon className="w-3 h-3" />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Top 3 Podium */}
-          {!loading && top3.length > 0 && (
-            <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-16">
-              {/* 2nd Place */}
-              {top3[1] && (
-                <div className="w-[260px] bg-[#161B2E] border border-[#2d2755] rounded-3xl p-6 flex flex-col items-center mt-8 relative">
-                  <div className="relative mb-4">
-                    <img
-                      src={
-                        top3[1].avatarUrl ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[1]._id}`
-                      }
-                      alt="avatar"
-                      className="w-20 h-20 rounded-full object-cover ring-4 ring-[#161B2E] outline outline-4 outline-[#d1d5db]"
-                    />
-                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-[#d1d5db] text-black font-bold flex items-center justify-center rounded-full text-sm border-2 border-[#161B2E]">
-                      2
-                    </div>
-                  </div>
-                  <h3 className="font-bold text-lg">
-                    {top3[1].username || top3[1].name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-zinc-400 text-sm mt-1 mb-4">
-                    {(() => {
-                      const Icon = getLeagueInfo(top3[1].xp).icon;
-                      return <Icon className="w-3.5 h-3.5 text-zinc-400" />;
-                    })()}
-                    {formatTier(getLeagueInfo(top3[1].xp).name)}
-                  </div>
-                  <div className="text-[#3F48EF] font-bold text-lg">
-                    {top3[1].xp.toLocaleString()} XP
-                  </div>
-                </div>
-              )}
+          {/* ── Podium — global tab only ────────────────────────────────────── */}
+          {activeTab === "global" && !loading && top3.length > 0 && (
+            <div className="flex flex-col md:flex-row items-end justify-center gap-3 mb-12">
 
-              {/* 1st Place */}
-              {top3[0] && (
-                <div className="w-[300px] bg-gradient-to-b from-[#1c1836] to-[#0d0b1a] border border-[#3F48EF]/30 rounded-[32px] p-8 flex flex-col items-center relative shadow-[0_0_40px_-10px_rgba(63,72,239,0.3)] z-10">
-                  <div className="absolute -top-6 text-yellow-500">
-                    <Crown className="w-12 h-12 fill-yellow-500 stroke-black stroke-2" />
-                  </div>
-                  <div className="relative mb-5 mt-4">
-                    <img
-                      src={
-                        top3[0].avatarUrl ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[0]._id}`
-                      }
-                      alt="avatar"
-                      className="w-28 h-28 rounded-full object-cover ring-4 ring-[#161B2E] outline outline-4 outline-[#eab308] shadow-[0_0_20px_rgba(234,179,8,0.4)]"
-                    />
-                    <div className="absolute -bottom-1 -right-2 w-8 h-8 bg-[#eab308] text-black font-bold flex items-center justify-center rounded-full text-sm border-4 border-[#161B2E]">
-                      1
+              {/* 2nd place */}
+              {top3[1] && (() => {
+                const s = getLeagueStyle(top3[1].league ?? "Bronze");
+                const LI = s.icon;
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.25 }}
+                    onClick={() => navigate(`/profile/${top3[1]._id}`)}
+                    className="flex-1 max-w-[220px] rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
+                    style={{ background: "#080808", border: "1px solid #1a1a1a" }}
+                  >
+                    <div className="relative mb-1">
+                      <Avatar src={top3[1].avatarUrl} seed={top3[1]._id} size="lg" className="ring-2 ring-zinc-700" />
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br from-zinc-300 to-zinc-500 flex items-center justify-center text-[10px] font-black text-black border-2 border-[#080808]">
+                        2
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="font-bold text-2xl">
-                    {top3[0].username || top3[0].name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-yellow-500 text-sm mt-1 mb-6 font-semibold">
-                    {(() => {
-                      const Icon = getLeagueInfo(top3[0].xp).icon;
-                      return <Icon className="w-4 h-4 fill-yellow-500" />;
-                    })()}
-                    Grandmaster
-                  </div>
-                  <div className="text-[#3F48EF] font-extrabold text-2xl tracking-wide font-mono">
-                    {top3[0].xp.toLocaleString()} XP
-                  </div>
-                </div>
-              )}
+                    <span className="font-bold text-sm text-white text-center truncate max-w-full">
+                      {top3[1].username || top3[1].name}
+                    </span>
+                    <div className={cn("flex items-center gap-1 text-[11px] font-semibold", s.color)}>
+                      <LI className="w-3 h-3" />
+                      {top3[1].league ?? "Bronze"}
+                    </div>
+                    <span className="font-black text-base mt-0.5" style={METALLIC_ORANGE}>
+                      {activeTabDef.metricFn(top3[1])}
+                    </span>
+                  </motion.div>
+                );
+              })()}
 
-              {/* 3rd Place */}
-              {top3[2] && (
-                <div className="w-[260px] bg-[#161B2E] border border-[#2d2755] rounded-3xl p-6 flex flex-col items-center mt-8 relative">
-                  <div className="relative mb-4">
-                    <img
-                      src={
-                        top3[2].avatarUrl ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[2]._id}`
-                      }
-                      alt="avatar"
-                      className="w-20 h-20 rounded-full object-cover ring-4 ring-[#161B2E] outline outline-4 outline-[#f59e0b]"
-                    />
-                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-[#f59e0b] text-black font-bold flex items-center justify-center rounded-full text-sm border-2 border-[#161B2E]">
-                      3
+              {/* 1st place */}
+              {top3[0] && (() => {
+                const s = getLeagueStyle(top3[0].league ?? "Bronze");
+                const LI = s.icon;
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.04, duration: 0.25 }}
+                    onClick={() => navigate(`/profile/${top3[0]._id}`)}
+                    className="flex-1 max-w-[260px] rounded-2xl p-8 flex flex-col items-center gap-2 cursor-pointer relative hover:scale-[1.02] transition-transform"
+                    style={{
+                      background: "linear-gradient(160deg, #0f0a04 0%, #080604 100%)",
+                      border: "1px solid rgba(234,88,12,0.25)",
+                      boxShadow: "0 0 60px -10px rgba(249,115,22,0.2)",
+                    }}
+                  >
+                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent rounded-t-2xl" />
+                    <div className="absolute -top-5">
+                      <Crown className="w-10 h-10 fill-yellow-400 text-yellow-400" />
                     </div>
-                  </div>
-                  <h3 className="font-bold text-lg">
-                    {top3[2].username || top3[2].name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-zinc-400 text-sm mt-1 mb-4">
-                    {(() => {
-                      const Icon = getLeagueInfo(top3[2].xp).icon;
-                      return <Icon className="w-3.5 h-3.5 text-zinc-400" />;
-                    })()}
-                    {formatTier(getLeagueInfo(top3[2].xp).name)}
-                  </div>
-                  <div className="text-[#3F48EF] font-bold text-lg">
-                    {top3[2].xp.toLocaleString()} XP
-                  </div>
-                </div>
-              )}
+                    <div className="relative mt-5 mb-1">
+                      <Avatar
+                        src={top3[0].avatarUrl}
+                        seed={top3[0]._id}
+                        size="xl"
+                        className="ring-2 ring-orange-500/50 shadow-[0_0_24px_rgba(249,115,22,0.35)]"
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-xs font-black text-black border-2 border-[#0f0a04] shadow-[0_0_8px_rgba(234,179,8,0.5)]">
+                        1
+                      </div>
+                    </div>
+                    <span className="font-black text-lg text-white text-center truncate max-w-full mt-1">
+                      {top3[0].username || top3[0].name}
+                    </span>
+                    <div className={cn("flex items-center gap-1.5 text-[11px] font-semibold", s.color)}>
+                      <LI className="w-3.5 h-3.5" />
+                      {top3[0].league ?? "Bronze"}
+                    </div>
+                    <span className="font-black text-xl mt-1" style={METALLIC_ORANGE}>
+                      {activeTabDef.metricFn(top3[0])}
+                    </span>
+                  </motion.div>
+                );
+              })()}
+
+              {/* 3rd place */}
+              {top3[2] && (() => {
+                const s = getLeagueStyle(top3[2].league ?? "Bronze");
+                const LI = s.icon;
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.16, duration: 0.25 }}
+                    onClick={() => navigate(`/profile/${top3[2]._id}`)}
+                    className="flex-1 max-w-[220px] rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
+                    style={{ background: "#080808", border: "1px solid #1a1a1a" }}
+                  >
+                    <div className="relative mb-1">
+                      <Avatar src={top3[2].avatarUrl} seed={top3[2]._id} size="lg" className="ring-2 ring-amber-800/50" />
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-amber-700 flex items-center justify-center text-[10px] font-black text-black border-2 border-[#080808]">
+                        3
+                      </div>
+                    </div>
+                    <span className="font-bold text-sm text-white text-center truncate max-w-full">
+                      {top3[2].username || top3[2].name}
+                    </span>
+                    <div className={cn("flex items-center gap-1 text-[11px] font-semibold", s.color)}>
+                      <LI className="w-3 h-3" />
+                      {top3[2].league ?? "Bronze"}
+                    </div>
+                    <span className="font-black text-base mt-0.5" style={METALLIC_ORANGE}>
+                      {activeTabDef.metricFn(top3[2])}
+                    </span>
+                  </motion.div>
+                );
+              })()}
             </div>
           )}
 
-          {/* List Headers */}
-          <div className="grid grid-cols-[3rem_minmax(150px,2fr)_minmax(150px,1.5fr)_1fr_4rem] gap-4 px-6 text-[11px] font-bold text-zinc-500 tracking-[0.2em] mb-4 pb-4 border-b border-[#2d2755]">
-            <div>RANK</div>
-            <div>PLAYER</div>
-            <div>TIER</div>
-            <div className="text-right">XP</div>
-            <div className="text-right">ACTION</div>
+          {/* ── Column headers ────────────────────────────────────────────────── */}
+          <div
+            className="grid items-center gap-3 px-4 mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600"
+            style={{ gridTemplateColumns: "2rem 1fr 9rem 6.5rem 1.5rem" }}
+          >
+            <div>Rank</div>
+            <div>Player</div>
+            <div>League</div>
+            <div className="text-right">{activeTabDef.colLabel}</div>
+            <div />
           </div>
 
-          {/* List Content */}
-          <div className="space-y-3">
+          {/* ── List ─────────────────────────────────────────────────────────── */}
+          <div className="space-y-1.5">
             {loading ? (
-              // Skeletons
-              [...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-[#161B2E] border border-[#2d2755] rounded-xl h-[72px] px-6 flex items-center gap-4"
-                >
-                  <Skeleton className="w-6 h-6 rounded bg-[#2d2755] shrink-0" />
-                  <Skeleton className="w-10 h-10 rounded-full bg-[#2d2755] shrink-0" />
-                  <Skeleton className="h-4 w-32 bg-[#2d2755]" />
-                  <div className="flex-1" />
-                  <Skeleton className="h-4 w-20 bg-[#2d2755]" />
-                </div>
-              ))
-            ) : restOfLeaderboard.length > 0 ? (
-              // Actual remaining list
-              restOfLeaderboard.map((user, idx) => {
-                const globalRank = idx + 4; // since top 3 are extracted
-                const leagueStyle = getLeagueInfo(user.xp);
+              [...Array(7)].map((_, i) => <RowSkeleton key={i} />)
+            ) : leaderboard.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-24 flex flex-col items-center gap-4"
+              >
+                <Trophy className="w-10 h-10 text-zinc-800" />
+                <p className="text-zinc-600 font-semibold text-sm">
+                  No rankings yet — be the first to earn a spot!
+                </p>
+              </motion.div>
+            ) : (
+              (activeTab === "global" ? rest : leaderboard).map((entry, idx) => {
+                const rank = activeTab === "global" ? idx + 4 : idx + 1;
+                const ls = getLeagueStyle(entry.league ?? "Bronze");
+                const LI = ls.icon;
+                const isMe =
+                  currentUser &&
+                  entry._id?.toString() === currentUser._id?.toString();
+
                 return (
-                  <div
-                    key={user._id}
-                    onClick={() => navigate(`/profile/${user._id}`)}
-                    className="group bg-[#161B2E] hover:bg-[#1e1b38] border border-[#2d2755] hover:border-[#3F48EF]/50 transition-colors rounded-xl h-[76px] px-6 grid grid-cols-[3rem_minmax(150px,2fr)_minmax(150px,1.5fr)_1fr_4rem] items-center gap-4 cursor-pointer"
+                  <motion.div
+                    key={entry._id}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.025, duration: 0.2 }}
+                    onClick={() => navigate(`/profile/${entry._id}`)}
+                    className="grid items-center gap-3 px-4 h-[68px] rounded-xl cursor-pointer transition-all group"
+                    style={{
+                      gridTemplateColumns: "2rem 1fr 9rem 6.5rem 1.5rem",
+                      background: isMe
+                        ? "rgba(234,88,12,0.06)"
+                        : "rgba(255,255,255,0.02)",
+                      border: isMe
+                        ? "1px solid rgba(234,88,12,0.22)"
+                        : "1px solid transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isMe)
+                        e.currentTarget.style.border =
+                          "1px solid rgba(255,255,255,0.07)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isMe)
+                        e.currentTarget.style.border = "1px solid transparent";
+                    }}
                   >
-                    <div className="font-bold text-zinc-400 text-lg">
-                      #{globalRank}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <img
-                        src={
-                          user.avatarUrl ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user._id}`
-                        }
-                        alt="avatar"
-                        className="w-10 h-10 rounded-full bg-[#2d2755]"
-                      />
-                      <span className="font-bold text-[15px]">
-                        {user.username || user.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <div
+                    {/* Rank */}
+                    <RankBadge rank={rank} />
+
+                    {/* Player */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar src={entry.avatarUrl} seed={entry._id} />
+                      <div className="min-w-0">
+                        <p
                           className={cn(
-                            "w-2.5 h-2.5 rounded-full border border-black",
-                            `bg-[${leagueStyle.color.replace("text-", "")}]`,
+                            "font-bold text-sm truncate",
+                            isMe ? "text-orange-400" : "text-white",
                           )}
-                        />
-                        <span className="text-sm font-medium text-zinc-300">
-                          {formatTier(leagueStyle.name)}
-                        </span>
+                        >
+                          {entry.username || entry.name}
+                        </p>
+                        {isMe && (
+                          <span className="text-[9px] font-black tracking-widest text-orange-500 uppercase">
+                            You
+                          </span>
+                        )}
                       </div>
-                      <span className="px-2 py-0.5 rounded bg-[#2d2755] text-zinc-400 text-[10px] font-bold">
-                        Lvl {user.level || 1}
+                    </div>
+
+                    {/* League */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", ls.bar)} />
+                      <span className={cn("text-xs font-semibold truncate", ls.color)}>
+                        {entry.league ?? "Bronze"}
+                      </span>
+                      <span
+                        className="text-[10px] text-zinc-600 font-bold px-1.5 py-0.5 rounded shrink-0"
+                        style={{ background: "rgba(255,255,255,0.04)" }}
+                      >
+                        Lv{entry.level ?? 1}
                       </span>
                     </div>
-                    <div className="text-right font-bold text-[15px] tabular-nums">
-                      {user.xp.toLocaleString()}
+
+                    {/* Metric */}
+                    <div className="text-right font-black text-sm tabular-nums" style={METALLIC_ORANGE}>
+                      {activeTabDef.metricFn(entry)}
                     </div>
-                    <div className="flex justify-end pr-2">
-                      <ChevronDown className="w-4 h-4 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity -rotate-90" />
-                    </div>
-                  </div>
+
+                    {/* Arrow */}
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </motion.div>
                 );
               })
-            ) : (
-              <div className="py-20 text-center text-zinc-500 font-medium">
-                No subsequent ranks found.
-              </div>
             )}
           </div>
-
-          {!loading && restOfLeaderboard.length >= 5 && (
-            <button className="w-full mt-6 py-4 rounded-xl border border-dashed border-[#2d2755] text-zinc-400 font-bold text-sm tracking-wide hover:bg-[#1e1b38] hover:text-white transition-colors flex items-center justify-center gap-2">
-              View More Ranks <ChevronDown className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* ── Sticky Bottom Bar ── */}
+      {/* ── Sticky bottom bar ─────────────────────────────────────────────────── */}
       {currentUser && (
-        <div className="fixed bottom-0 left-0 right-0 h-[80px] bg-[#0A0914] border-t border-[#1e1b38] z-30 px-6 sm:px-12 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="w-12 h-12 rounded-full border border-[#2d2755] flex items-center justify-center text-[#3F48EF] font-bold text-xl bg-[#1e1b38]/50">
-              {leaderboard.findIndex((u) => u._id === currentUser._id) + 1 ||
-                "-"}
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 px-4 sm:px-8 flex items-center justify-between"
+          style={{
+            height: "68px",
+            background: "rgba(3,3,5,0.96)",
+            borderTop: "1px solid rgba(255,255,255,0.05)",
+            backdropFilter: "blur(16px)",
+          }}
+        >
+          {/* Left: user identity */}
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm text-orange-400 shrink-0"
+              style={{
+                background: "rgba(234,88,12,0.1)",
+                border: "1px solid rgba(234,88,12,0.2)",
+              }}
+            >
+              {currentUserRank || "—"}
             </div>
-            <img
-              src={
-                currentUser.imageUrl ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser._id}`
-              }
-              alt="My Avatar"
-              className="w-12 h-12 rounded-full ring-2 ring-[#3F48EF]"
+            <Avatar
+              src={currentUser?.avatarUrl || currentUser?.imageUrl}
+              seed={currentUser?._id}
+              className="ring-2 ring-orange-500/40"
             />
             <div>
-              <div className="text-[#3F48EF] text-[10px] font-extrabold tracking-widest uppercase mb-0.5">
-                Your Rank
+              <div className="text-[9px] font-black tracking-widest text-orange-500 uppercase">
+                Global Rank #{currentUserRank || "—"}
               </div>
-              <div className="font-bold text-[17px]">
+              <div className="font-bold text-[13px] text-white">
                 {currentUser.username || currentUser.name}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-12">
-            <div className="hidden sm:block">
-              <div className="text-zinc-500 text-xs mb-1">Current XP</div>
-              <div className="font-bold text-xl tabular-nums">
-                {currentUser.xp.toLocaleString()}{" "}
-                <span className="text-[#3F48EF] text-sm font-extrabold ml-0.5">
-                  XP
-                </span>
-              </div>
-            </div>
-
-            {nextTarget && (
-              <div className="w-[300px] hidden md:block">
-                <div className="flex justify-between text-[11px] mb-2 font-bold text-zinc-400">
-                  <span>{userLeague?.name || "Bronze"} Tier</span>
-                  <span>Next: {nextTarget.name.substring(0, 4)}</span>
+          {/* Right: league + progress */}
+          <div className="hidden sm:flex items-center gap-8">
+            {/* League badge */}
+            {(() => {
+              const s = getLeagueStyle(currentUser.league ?? "Bronze");
+              const LI = s.icon;
+              return (
+                <div>
+                  <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-bold mb-0.5">
+                    Your League
+                  </div>
+                  <div className={cn("flex items-center gap-1.5 font-black text-sm", s.color)}>
+                    <LI className="w-4 h-4" />
+                    {currentUser.league ?? "Bronze"}
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-[#1e1b38] overflow-hidden">
+              );
+            })()}
+
+            {/* Progress toward next league */}
+            {leagueProgressData?.nextLeague && (
+              <div className="w-48 hidden md:block">
+                <div className="flex justify-between text-[10px] font-bold text-zinc-600 mb-1.5">
+                  <span>{currentUser.league ?? "Bronze"}</span>
+                  <span>
+                    {leagueProgressData.nextLeague} in{" "}
+                    {leagueProgressData.levelsNeeded} lvl
+                    {leagueProgressData.levelsNeeded !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div
+                  className="h-1.5 rounded-full overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                >
                   <div
-                    className="h-full bg-[#3F48EF] rounded-full"
-                    style={{ width: `${userProgress}%` }}
+                    className="h-full bg-orange-500 rounded-full transition-all duration-700"
+                    style={{ width: `${leagueProgressData.progress}%` }}
                   />
                 </div>
-                <div className="text-right text-[10px] text-zinc-500 mt-2 font-medium">
-                  {(nextTarget.target - currentUser.xp).toLocaleString()} XP to
-                  tier up
+                <div className="text-right text-[9px] text-zinc-700 mt-1 font-medium">
+                  Level {currentUser.level ?? 1} →{" "}
+                  {LEAGUE_LEVELS.find(
+                    (l) => l.name === leagueProgressData.nextLeague,
+                  )?.minLevel}{" "}
+                  for {leagueProgressData.nextLeague}
                 </div>
               </div>
             )}
