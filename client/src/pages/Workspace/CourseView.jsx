@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "@/features/auth/authApi";
 import { useSelector } from "react-redux";
 import CourseOverview from "./components/CourseOverview";
@@ -8,6 +8,7 @@ import CourseLearning from "./components/CourseLearning";
 function CourseView() {
   const { courseId } = useParams();
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
 
   const [course, setCourse] = useState(null);
   const [enrollment, setEnrollment] = useState(null);
@@ -20,13 +21,11 @@ function CourseView() {
       if (!courseId || !user?.email) return;
       if (showLoader) setLoading(true);
       try {
-        const res = await api.get(
-          `http://localhost:8080/api/v1/ai/course/${courseId}`,
-        );
+        const res = await api.get(`/ai/course/${courseId}`);
         setCourse(res.data.course);
 
         const enrollRes = await api.get(
-          `http://localhost:8080/api/v1/ai/enrollment-status?courseId=${courseId}&email=${user.email}`,
+          `/ai/enrollment-status?courseId=${courseId}`,
         );
         setEnrollment(enrollRes.data.enrollment);
       } catch (err) {
@@ -75,7 +74,7 @@ function CourseView() {
 
   const handleNavigate = (mode) => {
     if (mode === "overview") {
-      window.location.href = "/workspace";
+      navigate("/workspace");
     } else if (typeof mode === "number") {
       // Clamp to valid chapter range so callers don't need to worry about bounds.
       const clamped = Math.max(0, Math.min(mode, chapters.length - 1));

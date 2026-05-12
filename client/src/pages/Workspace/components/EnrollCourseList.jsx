@@ -15,9 +15,7 @@ function EnrollCourseList({ userEmail }) {
   const fetchEnrolledCourses = async () => {
     try {
       setLoading(true);
-      const res = await api.get(
-        `http://localhost:8080/api/v1/ai/user-enrollments?email=${userEmail}`,
-      );
+      const res = await api.get("/ai/user-enrollments");
       setEnrolledCourses(res.data.enrolledCourses);
     } catch (error) {
       console.error("Error fetching enrolled courses:", error);

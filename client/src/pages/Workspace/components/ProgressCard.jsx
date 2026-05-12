@@ -35,13 +35,9 @@ function ProgressCard({ course, progress }) {
   e.preventDefault();
   e.stopPropagation();
   try {
-   const response = await api.post(
-    "http://localhost:8080/api/v1/ai/enroll-course",
-    {
+   const response = await api.post("/ai/enroll-course", {
      courseId: course?.courseId,
-     userEmail: user?.email,
-    }
-   );
+    });
 
    if (response.success) {
     navigate(`/course/${course?.courseId}`);

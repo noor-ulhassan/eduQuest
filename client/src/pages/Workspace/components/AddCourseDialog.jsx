@@ -165,11 +165,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader, Loader2Icon, Layers } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // Change 1: Use useNavigate instead of useRoutes
+import { Loader2Icon, Layers } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import api from "@/features/auth/authApi";
+import { toast } from "sonner";
 
-function AddCourseDialog({ children, setCourseList, user }) {
+function AddCourseDialog({ children, setCourseList }) {
   const [open, setOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -181,7 +182,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
     category: "",
   });
 
-  const navigate = useNavigate(); // Change 2: Initialize navigate
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const onHandleInputChange = (field, value) => {
@@ -192,15 +193,26 @@ function AddCourseDialog({ children, setCourseList, user }) {
   };
 
   const onGenerate = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Please enter a course name.");
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error("Please enter a course description.");
+      return;
+    }
+    if (!formData.category.trim()) {
+      toast.error("Please enter at least one category.");
+      return;
+    }
+    if (!formData.noOfChapters || formData.noOfChapters < 1) {
+      toast.error("Number of chapters must be at least 1.");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Change 3: Include user data in the request body
-      const res = await api.post(
-        "http://localhost:8080/api/v1/ai/generate-course",
-        {
-          ...formData,
-        },
-      );
+      const res = await api.post("/ai/generate-course", { ...formData });
 
       console.log("Generated Course ID:", res.data.courseId);
 
@@ -217,6 +229,7 @@ function AddCourseDialog({ children, setCourseList, user }) {
     } catch (error) {
       setLoading(false);
       console.error(error);
+      toast.error("Failed to generate course. Please try again.");
     }
   };
 

@@ -17,9 +17,7 @@ function CourseList() {
 
  const GetCourseList = async () => {
   try {
-   const result = await api.get(
-    `http://localhost:8080/api/v1/ai/courses?email=${user.email}`
-   );
+   const result = await api.get("/ai/courses");
    setCourseList(result.data.courses);
   } catch (error) {
    console.error("Error fetching courses:", error);

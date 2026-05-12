@@ -61,7 +61,7 @@ export default function CourseMentor({
     }));
 
    const res = await api.post(
-    "http://localhost:8080/api/v1/ai/course-mentor-chat",
+    "/ai/course-mentor-chat",
     {
      courseId,
      chapterIndex,

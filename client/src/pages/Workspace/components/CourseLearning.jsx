@@ -88,7 +88,7 @@ export default function CourseLearning({
         const overlayTimer = setTimeout(() => setIsGenerating(true), 800);
         try {
           const res = await api.post(
-            "http://localhost:8080/api/v1/ai/generate-chapter-content",
+            "/ai/generate-chapter-content",
             {
               courseId: course.courseId,
               chapter: currentChapter,
@@ -131,7 +131,7 @@ export default function CourseLearning({
   const handleMarkCompleted = async () => {
     if (!enrollment?._id) return;
     try {
-      await api.post("http://localhost:8080/api/v1/ai/mark-chapter-completed", {
+      await api.post("/ai/mark-chapter-completed", {
         enrollmentId: enrollment._id,
         chapterName: currentChapter.chapterName,
         userEmail: user?.email,
@@ -165,7 +165,7 @@ export default function CourseLearning({
       }, 2500);
 
       const res = await api.post(
-        "http://localhost:8080/api/v1/ai/generate-flashcards",
+        "/ai/generate-flashcards",
         {
           courseId: course?.courseId,
           chapterIndex: currentChapterIndex,

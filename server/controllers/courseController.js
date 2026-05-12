@@ -174,9 +174,7 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
 });
 
 export const getAllCourses = asyncHandler(async (req, res) => {
-  const { email } = req.query;
-
-  const courses = await Course.find({ userEmail: email }).sort({
+  const courses = await Course.find({ userEmail: req.user.email }).sort({
     createdAt: -1,
   });
 
@@ -184,10 +182,11 @@ export const getAllCourses = asyncHandler(async (req, res) => {
 });
 
 export const enrollToCourse = asyncHandler(async (req, res) => {
-  const { courseId, userEmail } = req.body;
+  const { courseId } = req.body;
+  const userEmail = req.user.email;
 
-  if (!courseId || !userEmail) {
-    throw new ApiError(400, "Course ID and User Email are required");
+  if (!courseId) {
+    throw new ApiError(400, "Course ID is required");
   }
 
   const existingEnrollment = await Enrollment.findOne({
@@ -217,8 +216,8 @@ export const enrollToCourse = asyncHandler(async (req, res) => {
 });
 
 export const getEnrollmentStatus = asyncHandler(async (req, res) => {
-  const { courseId, email } = req.query;
-  const enrollment = await Enrollment.findOne({ courseId, userEmail: email });
+  const { courseId } = req.query;
+  const enrollment = await Enrollment.findOne({ courseId, userEmail: req.user.email });
 
   if (!enrollment) throw new ApiError(404, "Enrollment not found");
 
@@ -232,8 +231,8 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
     throw new ApiError(400, "enrollmentId and chapterName are required");
   }
 
-  const updatedEnrollment = await Enrollment.findByIdAndUpdate(
-    enrollmentId,
+  const updatedEnrollment = await Enrollment.findOneAndUpdate(
+    { _id: enrollmentId, userEmail: req.user.email },
     {
       $addToSet: { completedChapters: chapterName },
     },
@@ -279,9 +278,7 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
 });
 
 export const getUserEnrollments = asyncHandler(async (req, res) => {
-  const { email } = req.query;
-
-  const enrollments = await Enrollment.find({ userEmail: email });
+  const enrollments = await Enrollment.find({ userEmail: req.user.email });
 
   const enrolledCourses = await Promise.all(
     enrollments.map(async (enroll) => {
