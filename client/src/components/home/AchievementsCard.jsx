@@ -553,4 +553,3 @@ const AchievementsCard = () => {
 };
 
 export default AchievementsCard;
-com;
