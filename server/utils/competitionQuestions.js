@@ -844,18 +844,6 @@ export const AVAILABLE_MODES = {
       icon: "🎭",
       description: "Real-world narrative-based problems",
     },
-    {
-      id: "missing",
-      name: "The Missing Link",
-      icon: "🧩",
-      description: "Connect the dots between system parts",
-    },
-    {
-      id: "interactive",
-      name: "Interactive",
-      icon: "🎮",
-      description: "Type, drag, match & predict — mixed interactive challenges",
-    },
   ],
   programming: [
     {
@@ -881,24 +869,6 @@ export const AVAILABLE_MODES = {
       name: "Production Outage",
       icon: "🚨",
       description: "High-pressure incident response",
-    },
-    {
-      id: "refactor",
-      name: "Code Refactor",
-      icon: "♻️",
-      description: "Improve messy but working code",
-    },
-    {
-      id: "missing",
-      name: "The Missing Link",
-      icon: "🧩",
-      description: "Fill in the missing system piece",
-    },
-    {
-      id: "interactive",
-      name: "Interactive",
-      icon: "🎮",
-      description: "Type, drag, match & predict — mixed interactive challenges",
     },
   ],
 };

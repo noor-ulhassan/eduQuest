@@ -143,7 +143,7 @@ export function DraggableCards() {
 
   if (isLoading) {
     return (
-      <div className="relative flex h-[520px] w-[520px] items-center justify-center overflow-hidden rounded-3xl bg-transparent">
+      <div className="relative flex h-[520px] w-[450px] items-center justify-center overflow-hidden rounded-3xl bg-transparent">
         <div className="text-zinc-400 text-sm">Loading playgrounds…</div>
       </div>
     );
@@ -152,7 +152,7 @@ export function DraggableCards() {
   // NOTE: No empty state check anymore since we always show cards
 
   return (
-    <div className="relative flex h-[520px] w-[520px] items-center justify-center">
+    <div className="relative flex h-[520px] w-[450px] items-center justify-center">
       <div className="relative w-[450px] h-[460px]">
         <AnimatePresence>
           {cards.map((card, index) => {

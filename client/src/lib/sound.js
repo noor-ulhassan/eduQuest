@@ -112,14 +112,16 @@ export const playVictorySound = () =>
 export const playTimerWarningSound = () =>
   synth([{ freq: 880, dur: 0.07, type: "sine", gain: 0.18 }]);
 
-// Subtle rank-change whoosh
+// Rank-change whoosh — ascending 4-note sweep
 export const playRankChangeSound = () =>
   synth(
     [
-      { freq: 400, dur: 0.08, type: "sine", gain: 0.1 },
-      { freq: 560, dur: 0.1, delay: 0.06, type: "sine", gain: 0.08 },
+      { freq: 440,    dur: 0.08, type: "sine", gain: 0.18 },
+      { freq: 587.33, dur: 0.08, delay: 0.07, type: "sine", gain: 0.18 },
+      { freq: 783.99, dur: 0.12, delay: 0.14, type: "sine", gain: 0.20 },
+      { freq: 1046.5, dur: 0.28, delay: 0.22, type: "sine", gain: 0.16 },
     ],
-    0.1,
+    0.20,
   );
 
 // ─── Gamification ──────────────────────────────────────────
@@ -177,12 +179,13 @@ export const playBadgeEarnedSound = (rarity = "Common") => {
   synth(configs[rarity] ?? configs.Common, 0.28);
 };
 
-// Subtle XP chime — a quick soft pop
+// XP chime — punchy 3-note ascending arpeggio
 export const playXPGainSound = () =>
   synth(
     [
-      { freq: 1046.5, dur: 0.07, gain: 0.12 },
-      { freq: 1318.5, dur: 0.12, delay: 0.06, gain: 0.10 },
+      { freq: 783.99,  dur: 0.08, gain: 0.20 },
+      { freq: 1046.5,  dur: 0.08, delay: 0.07, gain: 0.20 },
+      { freq: 1318.5,  dur: 0.20, delay: 0.14, gain: 0.22 },
     ],
-    0.12,
+    0.20,
   );

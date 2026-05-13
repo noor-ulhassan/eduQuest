@@ -23,13 +23,11 @@ const Streak = () => {
         <div className="flex items-center gap-1">
           <span
             key={dayStreak}
-            className="text-4xl font-bold text-black dark:text-white leading-tight animate-bounce"
+            className="text-4xl font-bold text-black dark:text-white leading-tight "
           >
             {dayStreak}
           </span>
-          <Zap
-            className={`w-6 h-6 ${dayStreak > 0 ? "text-yellow-500 fill-yellow-500 animate-pulse" : "text-zinc-200 fill-zinc-200"}`}
-          />
+          <img src="./Duoxp.svg" alt="streak" height={40} width={40} />
         </div>
         <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
           Day Streak

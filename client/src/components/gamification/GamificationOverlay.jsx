@@ -184,7 +184,7 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
             width: 220,
             height: 220,
             left: "50%",
-            top: "46%",
+            top: "50%",
             x: "-50%",
             y: "-50%",
             border: "1.5px solid rgba(251,191,36,0.32)",
@@ -202,7 +202,7 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
           width: 320,
           height: 320,
           left: "50%",
-          top: "46%",
+          top: "50%",
           x: "-50%",
           y: "-50%",
           background: "radial-gradient(circle, rgba(251,191,36,0.22) 0%, transparent 70%)",
@@ -328,7 +328,7 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
           New rewards unlocked ✦
         </motion.div>
 
-        <p className="text-[10px] text-white/18 mt-0.5 font-medium">
+        <p className="text-[10px] text-white/40 mt-0.5 font-medium tracking-wide">
           tap anywhere to dismiss
         </p>
       </motion.div>
@@ -460,7 +460,7 @@ const RankUpBanner = ({ league, eventKey, onDismiss }) => {
             <motion.div
               key={i}
               className="absolute w-1 h-1 rounded-full bg-yellow-400 pointer-events-none z-20"
-              style={{ left: "18px", top: "50%" }}
+              style={{ left: "22px", top: "50%", transform: "translateY(-50%)" }}
               initial={{ x: 0, y: 0, opacity: 0, scale: 0.5 }}
               animate={{
                 x: Math.cos(angle) * 22,

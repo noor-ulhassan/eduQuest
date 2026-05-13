@@ -63,6 +63,14 @@ const ParticipantsPanel = ({ room, userId }) => (
                 {player.id === room.hostId ? "Host" : player.ready ? <span className="text-green-500">Ready ✓</span> : "Waiting..."}
               </p>
             </div>
+            <div className="text-right shrink-0 flex flex-col items-end">
+              <span className="text-xs font-bold text-zinc-300">
+                Lvl {player.level || 1}
+              </span>
+              <span className="text-[10px] text-zinc-500 font-medium">
+                {player.winPercentage || 0}% Win
+              </span>
+            </div>
           </motion.div>
         ))}
         {Array.from({ length: Math.max(0, 2 - (room?.players?.length || 0)) }).map((_, i) => (

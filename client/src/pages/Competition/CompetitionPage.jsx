@@ -111,12 +111,8 @@ const CompetitionPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-orange-400"
-          style={{
-            background: "rgba(234,88,12,0.08)",
-            border: "1px solid rgba(234,88,12,0.2)",
-          }}
         >
-          Live Competition Arena
+          <img src="/swordgold.png" alt="" height={150} width={150} />
         </motion.div>
 
         {/* Heading */}

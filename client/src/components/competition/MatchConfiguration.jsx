@@ -110,15 +110,10 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
                   { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world engineering narratives" },
                   { id: "debug", name: "Debug Detective", icon: "🔍", desc: "Find and fix critical bugs" },
                   { id: "outage", name: "Production Outage", icon: "🚨", desc: "High-pressure incident response" },
-                  { id: "refactor", name: "Code Refactor", icon: "♻️", desc: "Optimize messy legacy code" },
-                  { id: "missing", name: "Missing Link", icon: "🧩", desc: "Implement the missing component" },
-                  { id: "interactive", name: "Interactive", icon: "🎮", desc: "Drag, drop, and type answers" },
                 ]
               : [
                   { id: "classic", name: "Classic Quiz", icon: "📝", desc: "Standard multiple-choice" },
-                  { id: "interactive", name: "Interactive", icon: "🎮", desc: "Drag, drop, and type answers" },
                   { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world situations" },
-                  { id: "missing", name: "Missing Link", icon: "🧩", desc: "Connect the system concepts" },
                 ]
             ).map((mode) => {
               const active = settings.challengeMode === mode.id;

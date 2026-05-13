@@ -31,6 +31,8 @@ function scheduleLeaderboardBroadcast(io, roomCode, room) {
           finished: p.finished,
           eliminated: p.eliminated || false,
           team: room.playerTeam ? room.playerTeam[p.id] : null,
+          level: p.level || 1,
+          winPercentage: p.winPercentage || 0,
         }))
         .sort((a, b) => b.score - a.score);
 
@@ -68,6 +70,8 @@ function broadcastRoomListUpdate(io) {
             id: p.id,
             name: p.name,
             avatarUrl: p.avatarUrl || null,
+            level: p.level || 1,
+            winPercentage: p.winPercentage || 0,
           })),
           spectatorCount: (room.spectators || []).length,
           maxPlayers: 20,
@@ -120,13 +124,19 @@ export function initializeSocket(io) {
       );
       if (!user) return next(new Error("User not found"));
 
+      const results = await CompetitionResult.find({ userId: user._id, status: "completed" });
+      const totalGames = results.length;
+      const wins = results.filter((r) => r.rank === 1).length;
+      const winPercentage = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
       socket.user = {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
         avatarUrl: user.avatarUrl,
         xp: user.xp,
-        level: user.level,
+        level: user.level || 1,
+        winPercentage,
       };
       next();
     } catch (err) {
@@ -200,6 +210,8 @@ export function initializeSocket(io) {
             correctAnswers: p.correctAnswers || 0,
             finished: p.finished,
             eliminated: p.eliminated || false,
+            level: p.level || 1,
+            winPercentage: p.winPercentage || 0,
           }))
           .sort((a, b) => b.score - a.score),
         settings: {
@@ -263,6 +275,8 @@ export function initializeSocket(io) {
             finished: false,
             lastQuestionTime: null,
             finishTime: null,
+            level: socket.user.level || 1,
+            winPercentage: socket.user.winPercentage || 0,
           },
         ],
         questions: [],
@@ -326,6 +340,8 @@ export function initializeSocket(io) {
         finished: false,
         lastQuestionTime: null,
         finishTime: null,
+        level: socket.user.level || 1,
+        winPercentage: socket.user.winPercentage || 0,
       });
 
       socket.join(roomCode);
@@ -1287,6 +1303,8 @@ function safeRoomPayload(room) {
       score: p.score,
       finished: p.finished,
       ready: p.ready || false,
+      level: p.level || 1,
+      winPercentage: p.winPercentage || 0,
     })),
     createdAt: room.createdAt,
   };

@@ -134,9 +134,7 @@ export const getFriends = asyncHandler(async (req, res) => {
     "friends",
     "name username avatarUrl",
   );
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { friends: user.friends }));
+  return res.status(200).json(new ApiResponse(200, { friends: user.friends }));
 });
 
 export const getFriendRequests = asyncHandler(async (req, res) => {

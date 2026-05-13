@@ -48,7 +48,6 @@ import {
 } from "@/lib/sound";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
-
 const CompetitionLobby = () => {
   const navigate = useNavigate();
   const { roomCode: paramCode } = useParams();
@@ -1161,7 +1160,10 @@ const CompetitionLobby = () => {
         totalQuestions={totalQuestions}
         rematchVotes={rematchVotes}
         onRequestRematch={handleRequestRematch}
-        onHome={() => navigate("/competition/lobby")}
+        onHome={() => {
+          if (roomCode) socket?.emit("leaveRoom", { roomCode });
+          window.location.href = "/competition/lobby";
+        }}
         onPlayAgain={handlePlayAgain}
       />
     );
@@ -1178,7 +1180,10 @@ const CompetitionLobby = () => {
         playerTeam={playerTeam}
         userId={user?._id}
         leaderboard={leaderboard}
-        onHome={() => navigate("/competition/lobby")}
+        onHome={() => {
+          if (roomCode) socket?.emit("leaveRoom", { roomCode });
+          window.location.href = "/competition/lobby";
+        }}
         onSpectate={() => {
           setUserFinished(false);
           setFinishData(null);
@@ -1745,15 +1750,15 @@ const CompetitionLobby = () => {
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-5">
           <LobbyHeader isHost={isHost} onLeave={handleLeave} />
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
-            <div className="space-y-5 min-w-0">
-              <RoomCodeCard
-                roomCode={roomCode}
-                copied={copied}
-                onCopyCode={handleCopyCode}
-                onCopyLink={handleCopyLink}
-              />
-              {isHost && (
+          {isHost ? (
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+              <div className="space-y-5 min-w-0 flex flex-col">
+                <RoomCodeCard
+                  roomCode={roomCode}
+                  copied={copied}
+                  onCopyCode={handleCopyCode}
+                  onCopyLink={handleCopyLink}
+                />
                 <MatchConfiguration
                   settings={settings}
                   isStarting={isStarting}
@@ -1761,16 +1766,25 @@ const CompetitionLobby = () => {
                   onStartGame={handleStartGame}
                   playerCount={room?.players?.length || 0}
                 />
-              )}
-              <JoinRequestsPanel
-                pendingRequests={pendingRequests}
-                onApprove={handleApproveJoin}
-                onDeny={handleDenyJoin}
-              />
+                <JoinRequestsPanel
+                  pendingRequests={pendingRequests}
+                  onApprove={handleApproveJoin}
+                  onDeny={handleDenyJoin}
+                />
+              </div>
+              <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+                <ParticipantsPanel room={room} userId={user?._id} />
+              </div>
             </div>
-            <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-              <ParticipantsPanel room={room} userId={user?._id} />
-              {!isHost && (
+          ) : (
+            <div className="space-y-6">
+              <RoomCodeCard
+                roomCode={roomCode}
+                copied={copied}
+                onCopyCode={handleCopyCode}
+                onCopyLink={handleCopyLink}
+              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 <GuestWaitingCard
                   settings={settings}
                   isReady={isReady}
@@ -1778,9 +1792,10 @@ const CompetitionLobby = () => {
                   readyCount={room?.readyCount}
                   totalPlayers={room?.players?.length}
                 />
-              )}
+                <ParticipantsPanel room={room} userId={user?._id} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
