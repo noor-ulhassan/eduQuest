@@ -28,14 +28,11 @@ export default function CourseInfo({ course }) {
         setCurrentGenIndex(index);
         console.log(`Generating content for chapter: ${index + 1}`);
 
-        await api.post(
-          "http://localhost:8080/api/v1/ai/generate-chapter-content",
-          {
-            courseId: course?.courseId,
-            chapter: chapters[index],
-            index: index,
-          },
-        );
+        await api.post("/ai/generate-chapter-content", {
+          courseId: course?.courseId,
+          chapter: chapters[index],
+          index: index,
+        });
       }
 
       // Show finalizing step briefly

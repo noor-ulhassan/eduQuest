@@ -43,7 +43,7 @@ const tokenCls = (color, filled = false) =>
 const shuffle = (arr) => (arr ? [...arr].sort(() => Math.random() - 0.5) : []);
 
 // ─── Main component ──────────────────────────────────────────────────────────
-const InteractiveProblem = ({ problem, onSolve, isAlreadySolved }) => {
+const InteractiveProblem = ({ problem, onSolve, onAttempt, isAlreadySolved }) => {
   const [blanksState, setBlanksState] = useState({}); // { blankId → token }
   const [selectedTokenId, setSelectedTokenId] = useState(null);
   const [checkResult, setCheckResult] = useState(
@@ -126,13 +126,14 @@ const InteractiveProblem = ({ problem, onSolve, isAlreadySolved }) => {
       correct,
       message: correct ? "Correct! 🎉" : "Not quite — try again!",
     });
+    onAttempt?.(correct);
     if (correct) {
       onSolve?.();
     } else {
       setShake(true);
       setTimeout(() => setShake(false), 600);
     }
-  }, [allFilled, blanksState, problem.answers, onSolve]);
+  }, [allFilled, blanksState, problem.answers, onSolve, onAttempt]);
 
   // ── render code template ──────────────────────────────────────────────────
   const renderTemplate = () =>

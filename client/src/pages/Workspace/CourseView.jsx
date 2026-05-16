@@ -21,7 +21,7 @@ function CourseView() {
       if (!courseId || !user?.email) return;
       if (showLoader) setLoading(true);
       try {
-        const res = await api.get(`/ai/course/${courseId}`);
+        const res = await api.get(`/ai/get-course/${courseId}`);
         setCourse(res.data.course);
 
         const enrollRes = await api.get(

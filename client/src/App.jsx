@@ -19,7 +19,6 @@ import HomePage from "./pages/Homepage/HomePage";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
 import AboutPage from "./pages/about/About";
-import LearnPage from "./pages/Learn/LearnPage";
 import QuizPage from "./pages/student/QuizPage";
 
 // ─── Lazily loaded (heavy pages, code-split on demand) ──────────────────────
@@ -43,6 +42,7 @@ const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
 const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
+const GamificationDashboard = lazy(() => import("./pages/Dashboard/GamificationDashboard"));
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
 const AdminCourses = lazy(() => import("./pages/Admin/AdminCourses"));
@@ -66,7 +66,7 @@ const appRouter = createBrowserRouter([
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
       { path: "about", element: <AboutPage /> },
-      { path: "learn", element: <LearnPage /> },
+      { path: "learn", element: <Navigate to="/workspace" replace /> },
       { path: "quiz", element: <QuizPage /> },
       { path: "playground", element: <Lazy element={Playground} /> },
       { path: "community", element: <Lazy element={CommunityHome} /> },
@@ -202,6 +202,14 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Lazy element={LeaderboardPage} />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute>
+            <Lazy element={GamificationDashboard} />
           </ProtectedRoute>
         ),
       },

@@ -4,6 +4,7 @@ import {
   getLanguageProgress,
   enrollPlayground,
   completeProblem,
+  trackLinkedAttempt,
 } from "../controllers/playgroundController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 
@@ -22,5 +23,6 @@ router.get("/progress", authenticate, getProgress);
 router.get("/progress/:language", authenticate, getLanguageProgress);
 router.post("/enroll", authenticate, enrollPlayground);
 router.post("/complete", authenticate, completeLimiter, completeProblem);
+router.post("/track-attempt", authenticate, trackLinkedAttempt);
 
 export default router;

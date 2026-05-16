@@ -1,4 +1,5 @@
 import PlaygroundProgress from "../models/PlaygroundProgress.js";
+import TopicPerformance from "../models/TopicPerformance.js";
 import { User } from "../models/user.model.js";
 import { incrementStreak } from "../utils/streak.js";
 import { processEvent, computeXP, XP_EVENTS } from "../services/GamificationService.js";
@@ -7,6 +8,48 @@ import { onPlaygroundSolve, updateStreakKeeperQuest } from "../utils/questEngine
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+
+export const trackLinkedAttempt = asyncHandler(async (req, res) => {
+  const { exerciseId, courseId, chapterIndex, passed } = req.body;
+  const userId = req.user._id;
+
+  if (!exerciseId || !courseId || chapterIndex == null || passed == null) {
+    throw new ApiError(400, "exerciseId, courseId, chapterIndex and passed are required");
+  }
+
+  const existing = await TopicPerformance.findOne({ userId, exerciseId });
+
+  // Already passed — ignore entirely
+  if (existing?.passed) {
+    return res.status(200).json(new ApiResponse(200, null, "Already passed, not tracked"));
+  }
+
+  if (!existing) {
+    await TopicPerformance.create({
+      userId,
+      courseId,
+      chapterIndex,
+      exerciseId,
+      attemptCount: 1,
+      passed: !!passed,
+      lastAttemptAt: new Date(),
+    });
+  } else {
+    // Still working towards a pass
+    await TopicPerformance.updateOne(
+      { userId, exerciseId },
+      {
+        $inc: { attemptCount: 1 },
+        $set: {
+          passed: passed ? true : existing.passed,
+          lastAttemptAt: new Date(),
+        },
+      },
+    );
+  }
+
+  return res.status(200).json(new ApiResponse(200, null, "Attempt tracked"));
+});
 
 export const getProgress = asyncHandler(async (req, res) => {
   const userId = req.user._id;

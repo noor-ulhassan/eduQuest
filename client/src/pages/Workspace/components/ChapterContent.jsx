@@ -114,10 +114,9 @@ function ChapterContent({
   const handleMarkCompleted = async () => {
     if (!enrollment?._id) return;
     try {
-      const response = await api.post("http://localhost:8080/api/v1/ai/mark-chapter-completed", {
+      const response = await api.post("/ai/mark-chapter-completed", {
         enrollmentId: enrollment._id,
         chapterName: chapter.chapterName,
-        userEmail: user?.email,
       });
 
       if (response?.data?.user) {

@@ -118,7 +118,7 @@ export default function CourseLearning({
 
   const handlePracticeLinkedProblem = (problem) => {
     dispatch(setPlaygroundTask(problem));
-    navigate(`/playground/${course?.linkedPlayground || course?.language || "python"}`);
+    navigate(`/playground/${course?.linkedPlayground || course?.language || "python"}?problem=${problem.id}`);
   };
 
   // Load ALL linked curriculum problems for this course once, grouped by chapterIndex

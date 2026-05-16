@@ -1,4 +1,5 @@
 // Code execution via backend proxy (avoids CORS/cert issues with Piston directly)
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
 
 // Canonical Piston language IDs + versions. Add more as needed.
 const LANGUAGE_VERSIONS = {
@@ -79,7 +80,7 @@ export async function executeCode(language, code) {
       };
     }
 
-    const response = await fetch("http://localhost:8080/api/v1/code/execute", {
+    const response = await fetch(`${API_BASE}/code/execute`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

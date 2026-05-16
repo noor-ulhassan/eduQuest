@@ -16,7 +16,7 @@ import {
   updateCourseMetadata,
   aiEditTopic,
 } from "../controllers/courseController.js";
-import { updateUserXP } from "../utils/gemini.js";
+import { updateUserXP } from "../controllers/user.controller.js";
 import { authenticate, requireAdmin } from "../middleware/authMiddleware.js";
 import {
   chatWithDocument,
@@ -36,16 +36,15 @@ router.post("/course/:courseId/topic/ai-edit", authenticate, requireAdmin, aiEdi
 
 // Shared routes (admin + students)
 router.get("/get-course/:courseId", authenticate, getCourseById);
-router.post("/generate-chapter-content", authenticate, generateChapterContent);
+router.post("/generate-chapter-content", authenticate, requireAdmin, generateChapterContent);
 router.get("/courses", authenticate, getAllCourses);
-router.get("/course/:courseId", authenticate, getCourseById);
 
 // Student routes
 router.post("/enroll-course", authenticate, enrollToCourse);
 router.get("/enrollment-status", authenticate, getEnrollmentStatus);
 router.post("/mark-chapter-completed", authenticate, markChapterCompleted);
 router.get("/user-enrollments", authenticate, getUserEnrollments);
-router.post("/update-user-xp", authenticate, updateUserXP);
+router.post("/update-user-xp", authenticate, requireAdmin, updateUserXP);
 router.post("/generate-flashcards", authenticate, generateFlashcards);
 router.post("/course-mentor-chat", authenticate, courseMentorChat);
 // RAG Routes

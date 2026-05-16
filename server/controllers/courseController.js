@@ -344,29 +344,14 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
       await Enrollment.findByIdAndUpdate(enrollmentId, {
         $addToSet: { unlockedAchievements: { $each: newUnlocks } },
       });
-      const finalEnrollment = await Enrollment.findById(enrollmentId);
-      const user = await User.findById(req.user._id);
-      const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, { courseCompleted: isCourseNewlyComplete });
-      return res.status(200).json(
-        new ApiResponse(200, {
-          enrollment: finalEnrollment,
-          xpAwarded: isCourseNewlyComplete ? 300 : 150,
-          courseCompleted: isCourseNewlyComplete,
-          user: {
-            xp: updatedUser.xp,
-            level: updatedUser.level,
-            league: updatedUser.league,
-            badges: updatedUser.badges,
-          },
-        }),
-      );
     }
 
+    const finalEnrollment = await Enrollment.findById(enrollmentId);
     const user = await User.findById(req.user._id);
     const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, { courseCompleted: isCourseNewlyComplete });
     return res.status(200).json(
       new ApiResponse(200, {
-        enrollment: updatedEnrollment,
+        enrollment: finalEnrollment,
         xpAwarded: isCourseNewlyComplete ? 300 : 150,
         courseCompleted: isCourseNewlyComplete,
         user: {

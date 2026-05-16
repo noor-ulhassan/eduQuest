@@ -57,7 +57,7 @@ const Profile = () => {
   const addSkillsToBackend = async (newSkills) => {
     if (!user) return;
     try {
-      const res = await api.post("http://localhost:8080/api/skills", {
+      const res = await api.post("/skills", {
         skills: newSkills,
       });
       setSkills(res.data.skills);

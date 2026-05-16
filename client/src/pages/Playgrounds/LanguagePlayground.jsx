@@ -5,7 +5,7 @@ import React, {
   useRef,
   useMemo,
 } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Editor from "@monaco-editor/react";
 import { executeCode, getMonacoLanguage } from "../../lib/piston";
@@ -43,6 +43,7 @@ import api from "../../features/auth/authApi";
 import {
   getLanguageProgress,
   completeProblem as completeProb,
+  trackLinkedAttempt,
   getCurriculum,
   enrollInPlayground,
   clearPlaygroundCache,
@@ -255,7 +256,10 @@ function parseRawError(raw, lang) {
 const LanguagePlayground = () => {
   const { language } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
+  // Capture on mount only — if navigated from a course chapter the param is set once
+  const requestedProblemIdRef = useRef(new URLSearchParams(location.search).get("problem"));
   const user = useSelector((state) => state.auth.user);
   const activeTask = useSelector((state) => state.playgroundTask?.activeTask ?? null);
   const [taskTestResults, setTaskTestResults] = useState([]);
@@ -330,8 +334,19 @@ const LanguagePlayground = () => {
             }
           }
 
-          const targetProblem =
-            firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+          // If navigated from a course chapter, jump straight to that problem
+          let targetProblem;
+          const reqId = requestedProblemIdRef.current;
+          if (reqId) {
+            let requested = null;
+            for (const ch of curRes.curriculum.chapters) {
+              requested = ch.problems.find((p) => p.id === reqId);
+              if (requested) break;
+            }
+            targetProblem = requested || firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+          } else {
+            targetProblem = firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+          }
           setCurrentProblem(targetProblem);
           setCode(
             typeof targetProblem.starterCode === "object"
@@ -482,6 +497,14 @@ const LanguagePlayground = () => {
         setIsRunning(false);
         const prob = currentProblemRef.current;
         if (!prob) return;
+        if (prob.courseChapterLink?.courseId) {
+          trackLinkedAttempt({
+            exerciseId: prob.id,
+            courseId: prob.courseChapterLink.courseId,
+            chapterIndex: prob.courseChapterLink.chapterIndex,
+            passed: success,
+          }).catch(() => {});
+        }
         if (success) {
           try {
             const response = await completeProb(language, prob.id, {
@@ -605,6 +628,14 @@ const LanguagePlayground = () => {
       });
       if (parsedTest) {
         setTestResult(parsedTest);
+        if (currentProblem.courseChapterLink?.courseId) {
+          trackLinkedAttempt({
+            exerciseId: currentProblem.id,
+            courseId: currentProblem.courseChapterLink.courseId,
+            chapterIndex: currentProblem.courseChapterLink.chapterIndex,
+            passed: parsedTest.success,
+          }).catch(() => {});
+        }
         if (parsedTest.success) {
           try {
             const response = await completeProb(language, currentProblem.id, {
@@ -1460,6 +1491,17 @@ const LanguagePlayground = () => {
                     problem={currentProblem}
                     onSolve={handleInteractiveSolve}
                     isAlreadySolved={completedProblems.has(currentProblem.id)}
+                    onAttempt={
+                      currentProblem.courseChapterLink?.courseId
+                        ? (correct) =>
+                            trackLinkedAttempt({
+                              exerciseId: currentProblem.id,
+                              courseId: currentProblem.courseChapterLink.courseId,
+                              chapterIndex: currentProblem.courseChapterLink.chapterIndex,
+                              passed: correct,
+                            }).catch(() => {})
+                        : undefined
+                    }
                   />
                 </div>
               ) : (

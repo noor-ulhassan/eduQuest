@@ -24,10 +24,10 @@ import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 
 
 const navLinks = [
+  { label: "Dashboard", path: "/dashboard" },
   { label: "Compete", path: "/competition" },
   { label: "Playground", path: "/playground" },
   { label: "Create & Learn", path: "/workspace" },
-
   { label: "Documents", path: "/documents" },
 ];
 

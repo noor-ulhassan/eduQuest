@@ -5,6 +5,7 @@ import { CompetitionResult } from "../models/CompetitionResult.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs/promises";
 import { checkStreak } from "../utils/streak.js";
+import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -241,6 +242,27 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (!user) throw new ApiError(404, "User not found");
 
   return res.status(200).json(new ApiResponse(200, { user }));
+});
+
+export const updateUserXP = asyncHandler(async (req, res) => {
+  const { xpAmount } = req.body;
+  const parsedXP = Number(xpAmount);
+  if (!Number.isFinite(parsedXP) || parsedXP <= 0) {
+    throw new ApiError(400, "xpAmount must be a positive number");
+  }
+
+  const user = await User.findOne({ email: req.user.email });
+  if (!user) throw new ApiError(404, "User not found");
+
+  const prevLevel = user.level;
+  await processEvent(user, XP_EVENTS.QUEST_CLAIMED, { xpReward: parsedXP });
+  const leveledUp = user.level > prevLevel;
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      user: { xp: user.xp, level: user.level, league: user.league, badges: user.badges },
+    }, leveledUp ? "Level Up!" : "XP Updated"),
+  );
 });
 
 export const getUserAnalytics = asyncHandler(async (req, res) => {

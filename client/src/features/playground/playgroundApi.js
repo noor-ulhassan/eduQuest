@@ -137,3 +137,6 @@ export const completeProblem = async (language, problemId, opts = {}) => {
   });
   return response.data;
 };
+
+export const trackLinkedAttempt = ({ exerciseId, courseId, chapterIndex, passed }) =>
+  api.post("/playground/track-attempt", { exerciseId, courseId, chapterIndex, passed });

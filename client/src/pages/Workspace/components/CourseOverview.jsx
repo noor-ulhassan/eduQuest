@@ -144,7 +144,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
     if (!course && user?.email) {
       api
         .get(
-          `http://localhost:8080/api/v1/ai/user-enrollments?email=${user.email}`,
+          "/ai/user-enrollments",
         )
         .then((res) => {
           if (res.data.enrolledCourses && res.data.enrolledCourses.length > 0) {
