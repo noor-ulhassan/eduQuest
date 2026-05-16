@@ -7,6 +7,7 @@ import {
   updateCourseChapter,
   updateCourseMetadata,
   publishCourse,
+  generateChapterContent,
 } from "@/features/workspace/courseApi";
 import EditorSidebar from "./components/editor/EditorSidebar";
 import EditorMainArea from "./components/editor/EditorMainArea";
@@ -17,6 +18,7 @@ function EditCourse() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingChapter, setGeneratingChapter] = useState(false);
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
   const [editedChapters, setEditedChapters] = useState([]);
   const [editedMeta, setEditedMeta] = useState(null);
@@ -82,6 +84,21 @@ function EditCourse() {
     }
   };
 
+  const handleGenerateChapter = async () => {
+    const chapter = editedChapters[selectedChapterIndex];
+    if (!chapter) return;
+    setGeneratingChapter(true);
+    try {
+      await generateChapterContent(courseId, chapter, selectedChapterIndex);
+      toast.success("Chapter content generated");
+      await fetchCourse();
+    } catch (err) {
+      toast.error("Failed to generate chapter content");
+    } finally {
+      setGeneratingChapter(false);
+    }
+  };
+
   const handlePublish = async () => {
     try {
       const updated = await publishCourse(courseId);
@@ -124,6 +141,8 @@ function EditCourse() {
           course={{ ...course, ...editedMeta }}
           onChapterChange={handleChapterChange}
           onMetadataChange={handleMetadataChange}
+          onGenerateChapter={handleGenerateChapter}
+          generatingChapter={generatingChapter}
         />
       </div>
       <SaveBar

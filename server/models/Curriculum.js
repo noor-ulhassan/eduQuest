@@ -11,6 +11,10 @@ const problemSchema = new mongoose.Schema({
   testFunction: { type: String }, // Optional depending on problem type
   baseHtml: { type: String }, // Optional (mainly for CSS problems)
   type: { type: String }, // Optional (e.g., "interactive")
+  courseChapterLink: {
+    courseId: { type: String, default: null },
+    chapterIndex: { type: Number, default: null },
+  },
 });
 
 const chapterSchema = new mongoose.Schema({
@@ -27,10 +31,17 @@ const curriculumSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      enum: ["javascript", "html", "css", "python", "react", "dsa"],
     },
     title: { type: String, required: true },
     subtitle: { type: String },
+    executionMode: {
+      type: String,
+      enum: ["piston", "livepreview", "react", "dsa"],
+    },
+    pistonLanguage: {
+      type: String,
+      default: null,
+    },
     chapters: [chapterSchema],
   },
   { timestamps: true }

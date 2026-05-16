@@ -30,6 +30,15 @@ export const chatWithDocument = asyncHandler(async (req, res) => {
       filter,
     );
 
+    // --- ADDED LOGGING HERE ---
+    console.log(`\n[chatWithDocument] RAG Search found ${rawResults.length} relevant chunks.`);
+    rawResults.forEach(([doc, score], index) => {
+      console.log(
+        `  -> Chunk ${index} | Page: ${doc.metadata?.pageNumber || "N/A"} | Score: ${score.toFixed(4)} | Snippet: "${doc.pageContent.substring(0, 40).replace(/\n/g, " ")}..."`
+      );
+    });
+    // --------------------------
+
     results = rawResults.map(([doc]) => doc);
   } catch (filterErr) {
     console.warn("Filtered search failed:", filterErr.message);
@@ -97,6 +106,13 @@ export const explainText = asyncHandler(async (req, res) => {
       6,
       semanticFilter,
     );
+
+    // --- ADDED LOGGING HERE ---
+    console.log(`\n[explainText] Initial semantic search found ${rawResults.length} chunks.`);
+    rawResults.forEach(([doc, score], index) => {
+      console.log(`  -> Chunk ${index} | Page: ${doc.metadata?.pageNumber || "N/A"} | Score: ${score.toFixed(4)}`);
+    });
+    // --------------------------
 
     semanticResults = rawResults.map(([doc]) => doc);
   } catch (filterErr) {
@@ -203,6 +219,17 @@ export const generateQuiz = asyncHandler(async (req, res) => {
     }
   }
 
+  // --- ADDED LOGGING HERE ---
+  console.log(`\n[generateQuiz] Search completed. Retrieved ${results.length} chunks.`);
+  console.log(`[generateQuiz] Search Strategy Used: ${topic ? "Similarity Search (Topic-based)" : "MMR Search (Broad coverage)"}`);
+  
+  results.forEach((doc, index) => {
+    console.log(
+      `  -> Chunk ${index} | Page: ${doc.metadata?.pageNumber || "N/A"} | Chapter: ${doc.metadata?.chapterNumber || "N/A"}`
+    );
+  });
+  console.log("\n");
+  // --------------------------
   if (results.length === 0) {
     throw new ApiError(404, "No document content found. Please upload a document first.");
   }

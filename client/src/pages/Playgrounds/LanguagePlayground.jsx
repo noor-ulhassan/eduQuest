@@ -8,7 +8,7 @@ import React, {
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Editor from "@monaco-editor/react";
-import { executeCode } from "../../lib/piston";
+import { executeCode, getMonacoLanguage } from "../../lib/piston";
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
 import {
@@ -38,6 +38,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { updateUserStats } from "../../features/auth/authSlice";
 import { store } from "@/store/store";
 import { emit } from "@/lib/gamificationBus";
+import { clearTask } from "../../features/playground/playgroundTaskSlice";
+import api from "../../features/auth/authApi";
 import {
   getLanguageProgress,
   completeProblem as completeProb,
@@ -255,6 +257,9 @@ const LanguagePlayground = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const activeTask = useSelector((state) => state.playgroundTask?.activeTask ?? null);
+  const [taskTestResults, setTaskTestResults] = useState([]);
+  const [isRunningTask, setIsRunningTask] = useState(false);
   const [currentProblem, setCurrentProblem] = useState(null);
   const [code, setCode] = useState("");
   const [output, setOutput] = useState(null);
@@ -278,9 +283,14 @@ const LanguagePlayground = () => {
   const [sessionXP, setSessionXP] = useState(0);
   const [sessionSolved, setSessionSolved] = useState(0);
   const [data, setData] = useState(null);
-  const isLivePreview =
-    language?.toLowerCase() === "html" || language?.toLowerCase() === "css";
-  const isReact = language?.toLowerCase() === "react";
+  // Derive execution mode from the curriculum doc; fall back to language name for old docs
+  const executionMode = data?.executionMode || (
+    ["html", "css"].includes(language?.toLowerCase()) ? "livepreview" :
+    language?.toLowerCase() === "react" ? "react" :
+    language?.toLowerCase() === "dsa" ? "dsa" : "piston"
+  );
+  const isLivePreview = executionMode === "livepreview";
+  const isReact = executionMode === "react";
 
   // Fetch curriculum and progress
   useEffect(() => {
@@ -381,6 +391,16 @@ const LanguagePlayground = () => {
   useEffect(() => {
     if (currentProblem?.id) problemStartTimeRef.current = Date.now();
   }, [currentProblem?.id]);
+
+  // Pre-load starter code when a course task is dispatched
+  useEffect(() => {
+    if (activeTask?.starterCode) {
+      setCode(activeTask.starterCode);
+      setOutput(null);
+      setTestResult(null);
+      setTaskTestResults([]);
+    }
+  }, [activeTask]);
 
   // Live preview: update iframe when code changes
   useEffect(() => {
@@ -547,9 +567,10 @@ const LanguagePlayground = () => {
 
     // Piston execution
     let codeToRun = code;
-    // For DSA multi-language problems, send the exact dsaLang instead of the playground's overarching language
-    const execLanguage =
-      typeof currentProblem.starterCode === "object" ? dsaLang : language;
+    const pistonLang = data?.pistonLanguage || language;
+    const execLanguage = (executionMode === "dsa" || typeof currentProblem.starterCode === "object")
+      ? dsaLang
+      : pistonLang;
 
     if (currentProblem.testFunction)
       codeToRun = code + "\n" + currentProblem.testFunction;
@@ -675,6 +696,28 @@ const LanguagePlayground = () => {
     handleGamificationReward,
   ]);
 
+  // Run task test cases via backend executor
+  const handleRunTask = useCallback(async () => {
+    if (!activeTask || isRunningTask) return;
+    setIsRunningTask(true);
+    setTaskTestResults([]);
+    try {
+      const execLang = (executionMode === "dsa" || language === "dsa")
+        ? dsaLang
+        : (data?.pistonLanguage || language)?.toLowerCase();
+      const res = await api.post("/code/run-task", {
+        language: execLang,
+        code,
+        testCases: activeTask.testCases || [],
+      });
+      setTaskTestResults(res.testResults || []);
+    } catch (err) {
+      toast.error("Failed to run task tests");
+    } finally {
+      setIsRunningTask(false);
+    }
+  }, [activeTask, code, language, dsaLang, isRunningTask]);
+
   useEffect(() => {
     if (isMobile) setIsSidebarOpen(false);
   }, [isMobile]);
@@ -780,20 +823,13 @@ const LanguagePlayground = () => {
   };
 
   // ── Editor language mapping ────────────────────────────
-  const editorLang =
-    typeof currentProblem?.starterCode === "object"
-      ? dsaLang === "java"
-        ? "java"
-        : dsaLang === "python"
-          ? "python"
-          : "javascript"
-      : isReact || language === "javascript"
-        ? "javascript"
-        : language === "css"
-          ? "css"
-          : language === "python"
-            ? "python"
-            : "html";
+  const editorLang = (executionMode === "dsa" || typeof currentProblem?.starterCode === "object")
+    ? getMonacoLanguage(dsaLang)
+    : isReact
+      ? "javascript"
+      : isLivePreview
+        ? (language === "css" ? "css" : "html")
+        : getMonacoLanguage(data?.pistonLanguage || language);
 
   // ── Loading state ──────────────────────────────────────
   if (isLoadingProgress || !currentProblem) {
@@ -1220,8 +1256,31 @@ const LanguagePlayground = () => {
                 isMobile ? "px-4 py-4" : "max-w-4xl px-8 py-8",
               )}
             >
+              {/* Course Task Banner */}
+              {activeTask && (
+                <div className="bg-indigo-950/60 border border-indigo-500/40 rounded-2xl p-5 shadow-lg shadow-indigo-500/10">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                        Course Task
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => dispatch(clearTask())}
+                      className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {activeTask.instruction}
+                  </p>
+                </div>
+              )}
+
               {/* Desktop: Lesson badge + XP reward */}
-              {!isMobile && (
+              {!isMobile && !activeTask && (
                 <div className="flex items-center justify-between">
                   <span className="bg-red-500/20 text-red-400 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
                     Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
@@ -1426,7 +1485,7 @@ const LanguagePlayground = () => {
                             {fileName}
                           </div>
 
-                          {typeof currentProblem?.starterCode === "object" && (
+                          {(executionMode === "dsa" || typeof currentProblem?.starterCode === "object") && (
                             <select
                               value={dsaLang}
                               onChange={(e) => {
@@ -1649,6 +1708,65 @@ const LanguagePlayground = () => {
                     )}
                   </div>
                 )}
+
+              {/* ── Task Run Button + Results ── */}
+              {activeTask && (
+                <div className="space-y-3">
+                  <button
+                    onClick={handleRunTask}
+                    disabled={isRunningTask}
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-lg shadow-indigo-500/20"
+                  >
+                    {isRunningTask ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Running Tests…
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 fill-white" /> Run Task Tests
+                      </>
+                    )}
+                  </button>
+                  {taskTestResults.length > 0 && (
+                    <div className="rounded-xl border border-white/10 overflow-hidden">
+                      <div className="px-4 py-2 bg-[#111111] border-b border-white/10 text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                        Test Results
+                      </div>
+                      <div className="divide-y divide-white/5">
+                        {taskTestResults.map((r, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-start gap-3 px-4 py-3 text-xs font-mono ${r.passed ? "bg-emerald-500/5" : "bg-red-500/5"}`}
+                          >
+                            <span className="shrink-0 mt-0.5">
+                              {r.passed ? (
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <X className="w-3.5 h-3.5 text-red-400" />
+                              )}
+                            </span>
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              {r.input && (
+                                <p className="text-zinc-500">
+                                  in: <span className="text-zinc-300">{r.input}</span>
+                                </p>
+                              )}
+                              <p className={r.passed ? "text-emerald-400" : "text-red-400"}>
+                                got: {r.actualOutput}
+                              </p>
+                              {!r.passed && (
+                                <p className="text-zinc-500">
+                                  expected: {r.expectedOutput}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ── Discussion Section ── */}
               <div className="mt-4">

@@ -52,6 +52,16 @@ const courseSchema = new mongoose.Schema(
       enum: ["javascript", "html", "css", "python", "react", "dsa", "general"],
       default: "general",
     },
+    linkedPlayground: {
+      type: String,
+      default: null,
+    },
+    chapters: [{ type: mongoose.Schema.Types.ObjectId, ref: "Chapter" }],
+    status: {
+      type: String,
+      enum: ["outline", "draft", "published"],
+      default: "outline",
+    },
   },
   {
     timestamps: true,

@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
+import { nanoid } from "nanoid";
 import { Course } from "../models/AiCourse.js";
+import { Chapter } from "../models/Chapter.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import { User } from "../models/user.model.js";
 import { callAiModel, callAiModelChat } from "../config/aiProvider.js";
@@ -77,6 +79,7 @@ export const geminiCourseGenerator = asyncHandler(async (req, res) => {
     userName: resolvedUserName,
     userProfileImage: resolvedUserProfileImage,
     language: language || "general",
+    status: "outline",
   });
 
   console.log("New Course Created: ", newCourse);
@@ -102,74 +105,111 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
   const { courseId, chapter, index } = req.body;
 
   const existingCourse = await Course.findOne({ courseId });
-  if (existingCourse) {
-    const existingChapter = existingCourse.courseOutput?.chapters?.[index];
-    const existingTopics = existingChapter?.topics || [];
-    if (existingTopics.length > 0 && typeof existingTopics[0] === "object") {
-      return res.status(200).json(
-        new ApiResponse(200, { data: existingChapter, cached: true }),
-      );
-    }
+  if (!existingCourse) throw new ApiError(404, "Course not found");
+
+  // Cache: return existing Chapter doc if blocks already generated
+  const existingChapter = await Chapter.findOne({ courseId, chapterNumber: index + 1 });
+  if (existingChapter?.blocks?.length > 0) {
+    return res.status(200).json(
+      new ApiResponse(200, { data: existingChapter, cached: true })
+    );
   }
 
-  const prompt = `Depends on Chapter name and Topic Generate content for each topic in HTML
-    and give response in JSON format.
-    Schema: {
-      "chapterName": "string",
-      "topics": [
-        {
-          "topic": "string",
-          "content": "string (html format)",
-          "proTip": "string (a useful pro tip about the topic)",
-          "keyConcepts": [
-             { "title": "string", "description": "string", "icon": "string (material symbol name like 'dns' or 'stream')" }
-          ],
-          "imagePrompt": "string (abstract futuristic digital architecture concept describing the topic)",
-          "diagram": "string (valid Mermaid.js graph TD syntax if the topic involves a process, flow, algorithm, architecture, sequence, comparison, or data structure — otherwise empty string \"\")"
-        }
-      ]
-    }
-    Rules for the diagram field:
-    - Use ONLY "graph TD" as the diagram type. No other Mermaid diagram types allowed.
-    - Return valid, renderable Mermaid.js syntax with no markdown fences or backticks — plain string only.
-    - Return empty string "" for topics that are simple definitions, introductions, or concept explanations that do not involve steps, flows, or structural relationships.
-    : User Input: ${JSON.stringify(chapter)}`;
+  const language = existingCourse.language || "general";
+  const includePlaygroundTask = !["general", "dsa"].includes(language);
+  const codeLanguage = ["general", "dsa"].includes(language) ? "python" : language;
 
-  let chapterContentData = await callAiModel(prompt);
+  const playgroundBlockExample = includePlaygroundTask
+    ? `,\n    { "id": "b7", "type": "playground-task", "language": "${language}", "instruction": "Clear coding task instruction", "starterCode": "# write your code here\\n", "testCases": [{ "input": "", "expectedOutput": "expected output here" }] }`
+    : "";
 
-  const courseName = existingCourse?.name || "";
+  const prompt = `You are a technical course content generator for an online CS learning platform.
+Generate rich, structured chapter content for the chapter below.
+Return ONLY valid JSON — no markdown fences, no backticks, no explanation outside the JSON.
 
-  const fetchVideoId = async (topicName) => {
+Course: "${existingCourse.name}"
+Language/Technology: "${language}"
+Chapter input: ${JSON.stringify(chapter)}
+
+Return this exact JSON structure:
+{
+  "title": "Chapter Title",
+  "blocks": [
+    { "id": "b1", "type": "text", "content": "## Heading\\nMarkdown explanation with **bold**, bullet points, and clear structure." },
+    { "id": "b2", "type": "concept-card", "title": "Key Term", "subtitle": "One-line definition of the term" },
+    { "id": "b3", "type": "code", "language": "${codeLanguage}", "code": "# real, runnable example code" },
+    { "id": "b4", "type": "pro-tip", "content": "A concise, practical tip the student should remember" },
+    { "id": "b5", "type": "mermaid", "content": "graph TD; A[Start] --> B[Step]; B --> C[End]" },
+    { "id": "b6", "type": "youtube", "url": "", "videoTitle": "specific YouTube search query for this topic" }${playgroundBlockExample}
+  ]
+}
+
+Rules (follow strictly):
+1. Return ONLY valid JSON. No markdown fences. No text outside the JSON object.
+2. Generate between 6 and 10 blocks total.
+3. Use "text" blocks for all Markdown explanations. Write proper Markdown: ## headings, bullet points, **bold** terms.
+4. Always include at least one "code" block with real, runnable example code.
+5. Always include at least one "pro-tip" block with a practical takeaway.
+6. Include "concept-card" blocks for key terms (title = term name, subtitle = one-line definition).
+7. Include a "mermaid" block ONLY if the topic has a clear flow, process, algorithm, or data structure. Use ONLY "graph TD" syntax. Return empty string "" for mermaid content if not applicable — but prefer omitting the block entirely.
+8. For every "youtube" block: leave "url" as empty string. Set "videoTitle" to a specific search query that finds a good tutorial video.
+9. ${includePlaygroundTask
+    ? `Include exactly one "playground-task" block with: a clear instruction, working starterCode in "${language}", and at least one testCase where expectedOutput matches what the code should print/return.`
+    : `Do NOT include any "playground-task" blocks. The course language "${language}" does not support live execution tasks.`}
+10. All block "id" values must be unique strings (b1, b2, b3, ...).`;
+
+  const aiResponse = await callAiModel(prompt);
+
+  if (!aiResponse?.title || !Array.isArray(aiResponse?.blocks)) {
+    throw new ApiError(500, "AI returned invalid chapter structure");
+  }
+
+  // Fetch real YouTube URLs for youtube blocks
+  const fetchYouTubeUrl = async (videoTitle) => {
     try {
-      const query = encodeURIComponent(`${courseName} ${topicName} programming tutorial`);
-      const url = `https://www.googleapis.com/youtube/v3/search?part=id,snippet&type=video&maxResults=1&relevanceLanguage=en&videoDuration=medium&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
-      const ytRes = await fetch(url);
+      const query = encodeURIComponent(`${existingCourse.name} ${videoTitle}`);
+      const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=1&relevanceLanguage=en&videoDuration=medium&q=${query}&key=${process.env.YOUTUBE_API_KEY}`;
+      const ytRes = await fetch(apiUrl);
       const ytData = await ytRes.json();
-      return ytData?.items?.[0]?.id?.videoId ?? null;
+      const videoId = ytData?.items?.[0]?.id?.videoId;
+      return videoId ? `https://www.youtube.com/watch?v=${videoId}` : "";
     } catch {
-      return null;
+      return "";
     }
   };
 
-  const videoIds = await Promise.all(
-    chapterContentData.topics.map((t) => fetchVideoId(t.topic)),
+  // Replace AI placeholder IDs with nanoid and fill YouTube URLs
+  const blocks = await Promise.all(
+    aiResponse.blocks.map(async (block) => {
+      const id = nanoid(8);
+      if (block.type === "youtube" && block.videoTitle && !block.url) {
+        const url = await fetchYouTubeUrl(block.videoTitle);
+        return { ...block, id, url };
+      }
+      return { ...block, id };
+    })
   );
 
-  chapterContentData.topics = chapterContentData.topics.map((t, i) => ({
-    ...t,
-    videoId: videoIds[i],
-  }));
+  // Upsert Chapter document
+  const savedChapter = await Chapter.findOneAndUpdate(
+    { courseId, chapterNumber: index + 1 },
+    { courseId, chapterNumber: index + 1, title: aiResponse.title, blocks },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 
+  // Link Chapter ObjectId into Course.chapters array and set status to draft
   await Course.findOneAndUpdate(
-    { courseId: courseId },
+    { courseId },
     {
-      $set: { [`courseOutput.chapters.${index}`]: chapterContentData },
-    },
+      $addToSet: { chapters: savedChapter._id },
+      $set: {
+        status: "draft",
+        [`courseOutput.chapters.${index}`]: { chapterName: aiResponse.title, blocks },
+      },
+    }
   );
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { data: chapterContentData }));
+  return res.status(200).json(new ApiResponse(200, { data: savedChapter }));
 });
 
 export const getAllCourses = asyncHandler(async (req, res) => {
@@ -189,6 +229,8 @@ export const publishCourse = asyncHandler(async (req, res) => {
   if (!course) throw new ApiError(404, "Course not found");
 
   course.isPublished = !course.isPublished;
+  if (course.isPublished) course.status = "published";
+  else if (course.status === "published") course.status = "draft";
   await course.save();
 
   return res.status(200).json(
@@ -453,7 +495,7 @@ Rules:
 
 export const updateCourseMetadata = asyncHandler(async (req, res) => {
   const { courseId } = req.params;
-  const { name, description, level, category, language } = req.body;
+  const { name, description, level, category, language, linkedPlayground } = req.body;
 
   const updateFields = {};
   if (name !== undefined) updateFields.name = name;
@@ -461,6 +503,7 @@ export const updateCourseMetadata = asyncHandler(async (req, res) => {
   if (level !== undefined) updateFields.level = level;
   if (category !== undefined) updateFields.category = category;
   if (language !== undefined) updateFields.language = language;
+  if (linkedPlayground !== undefined) updateFields.linkedPlayground = linkedPlayground || null;
 
   const course = await Course.findOneAndUpdate(
     { courseId },

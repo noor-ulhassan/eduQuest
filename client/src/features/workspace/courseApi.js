@@ -83,3 +83,26 @@ export const aiEditTopic = async (courseId, { chapterIndex, topicIndex, context 
   });
   return res.data.topic;
 };
+
+// ── Chapter Block API ─────────────────────────────────────
+
+export const getChaptersByCourse = async (courseId) => {
+  const res = await api.get(`/chapters/${courseId}`);
+  return res.data.chapters;
+};
+
+export const updateChapter = async (chapterId, data) => {
+  const res = await api.put(`/chapters/${chapterId}`, data);
+  return res.data.chapter;
+};
+
+export const removeBlock = async (chapterId, blockId) => {
+  const res = await api.delete(`/chapters/${chapterId}/blocks/${blockId}`);
+  return res.data.chapter;
+};
+
+export const reorderBlocks = async (chapterId, blockIds) => {
+  const res = await api.put(`/chapters/${chapterId}/reorder`, { blockIds });
+  return res.data.chapter;
+};
+

@@ -21,6 +21,7 @@ import {
   CreditCard,
   Play,
   Terminal,
+  Gamepad2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/features/auth/authApi";
@@ -33,6 +34,10 @@ import CourseMentor from "./CourseMentor";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import MermaidDiagram from "./MermaidDiagram";
 import SlideshowPlayer from "./SlideshowPlayer";
+import BlockRenderer from "./BlockRenderer";
+import { getChaptersByCourse } from "@/features/workspace/courseApi";
+import { getCurriculum } from "@/features/playground/playgroundApi";
+import { setPlaygroundTask } from "@/features/playground/playgroundTaskSlice";
 
 export default function CourseLearning({
   course,
@@ -46,6 +51,9 @@ export default function CourseLearning({
   const dispatch = useDispatch();
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [chapterBlocks, setChapterBlocks] = useState(null);
+  const [linkedProblems, setLinkedProblems] = useState([]);
+  const [linkedByChapter, setLinkedByChapter] = useState({});
 
   // Flashcard state
   const [flashcards, setFlashcards] = useState([]);
@@ -85,37 +93,66 @@ export default function CourseLearning({
   // Check if content needs to be generated (if topics array contains strings instead of objects)
   const isContentPending = topics.length > 0 && typeof topics[0] === "string";
 
+  // Load Chapter blocks when course changes
   useEffect(() => {
-    const generateContent = async () => {
-      if (isContentPending && !isGenerating && course?.courseId) {
-        // Delay showing overlay — if server returns cached data (<800ms), skip overlay entirely
-        const overlayTimer = setTimeout(() => setIsGenerating(true), 800);
-        try {
-          const res = await api.post(
-            "/ai/generate-chapter-content",
-            {
-              courseId: course.courseId,
-              chapter: currentChapter,
-              index: currentChapterIndex,
-            },
-          );
-          clearTimeout(overlayTimer);
-          // If server returned cached data, no need to show/hide overlay
-          if (!res.data.cached) {
-            onProgressUpdate(); // Refresh course data with new JSON objects
-          } else {
-            onProgressUpdate(); // Still refresh to get the object-form topics
+    if (!course?.courseId) return;
+    let cancelled = false;
+    getChaptersByCourse(course.courseId)
+      .then((allChapters) => {
+        if (cancelled) return;
+        const chap = allChapters.find(
+          (c) => c.chapterNumber === currentChapterIndex + 1,
+        );
+        setChapterBlocks(chap?.blocks?.length > 0 ? chap.blocks : null);
+      })
+      .catch(() => setChapterBlocks(null));
+    return () => { cancelled = true; };
+  }, [course?.courseId, currentChapterIndex]);
+
+  const hasBlocks = Array.isArray(chapterBlocks) && chapterBlocks.length > 0;
+
+  const handleOpenInPlayground = (block) => {
+    dispatch(setPlaygroundTask(block));
+    navigate(`/playground/${course.language || "python"}`);
+  };
+
+  const handlePracticeLinkedProblem = (problem) => {
+    dispatch(setPlaygroundTask(problem));
+    navigate(`/playground/${course?.linkedPlayground || course?.language || "python"}`);
+  };
+
+  // Load ALL linked curriculum problems for this course once, grouped by chapterIndex
+  useEffect(() => {
+    const lang = course?.linkedPlayground;
+    if (!course?.courseId || !lang) {
+      setLinkedByChapter({});
+      setLinkedProblems([]);
+      return;
+    }
+    let cancelled = false;
+    getCurriculum(lang)
+      .then((res) => {
+        if (cancelled) return;
+        const allProblems = (res?.curriculum?.chapters || []).flatMap((ch) => ch.problems || []);
+        const grouped = {};
+        allProblems.forEach((p) => {
+          if (p.courseChapterLink?.courseId === course.courseId && p.courseChapterLink?.chapterIndex != null) {
+            const ci = p.courseChapterLink.chapterIndex;
+            if (!grouped[ci]) grouped[ci] = [];
+            grouped[ci].push(p);
           }
-        } catch (error) {
-          clearTimeout(overlayTimer);
-          console.error("Failed to generate chapter content:", error);
-        } finally {
-          setIsGenerating(false);
-        }
-      }
-    };
-    generateContent();
-  }, [currentChapterIndex, isContentPending, course?.courseId]);
+        });
+        setLinkedByChapter(grouped);
+        setLinkedProblems(grouped[currentChapterIndex] || []);
+      })
+      .catch(() => { setLinkedByChapter({}); setLinkedProblems([]); });
+    return () => { cancelled = true; };
+  }, [course?.courseId, course?.linkedPlayground]);
+
+  // Swap current chapter's problems when navigating
+  useEffect(() => {
+    setLinkedProblems(linkedByChapter[currentChapterIndex] || []);
+  }, [currentChapterIndex, linkedByChapter]);
 
   // Hero image — use Lorem Picsum with a seed based on chapter name for consistency
   // Pollinations AI was returning 530 errors so we switched to a reliable provider
@@ -358,6 +395,15 @@ export default function CourseLearning({
                       >
                         {chap.chapterName}
                       </span>
+                      {linkedByChapter[idx]?.length > 0 && (
+                        <span className={cn(
+                          "flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
+                          isActive ? "bg-white/20 text-white" : "bg-indigo-500/20 text-indigo-400"
+                        )}>
+                          <Gamepad2 className="w-3 h-3" />
+                          {linkedByChapter[idx].length}
+                        </span>
+                      )}
                       {isCompleted && (
                         <CheckCircle2 className="text-green-500 w-4 h-4 ml-auto" />
                       )}
@@ -445,110 +491,163 @@ export default function CourseLearning({
               </header>
 
               <div className="flex flex-col gap-16">
-                {topics.map((topicNode, idx) => (
-                  <div key={idx} className="space-y-8">
-                    {/* Topic Title & Description */}
-                    <div className="flex flex-col gap-4">
-                      <h2 className="text-2xl font-bold text-white mb-6 font-space-grotesk flex items-center gap-4">
-                        <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-red-600/20 text-red-400 text-sm border border-red-500/30">
-                          {idx + 1}
-                        </span>
-                        {typeof topicNode === "object"
-                          ? topicNode.topic
-                          : topicNode}
-                      </h2>
+                {hasBlocks ? (
+                  <BlockRenderer
+                    blocks={chapterBlocks}
+                    chapterIndex={currentChapterIndex}
+                    courseLanguage={course?.language}
+                    onOpenInPlayground={handleOpenInPlayground}
+                  />
+                ) : (
+                  topics.map((topicNode, idx) => (
+                    <div key={idx} className="space-y-8">
+                      {/* Topic Title & Description */}
+                      <div className="flex flex-col gap-4">
+                        <h2 className="text-2xl font-bold text-white mb-6 font-space-grotesk flex items-center gap-4">
+                          <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-red-600/20 text-red-400 text-sm border border-red-500/30">
+                            {idx + 1}
+                          </span>
+                          {typeof topicNode === "object"
+                            ? topicNode.topic
+                            : topicNode}
+                        </h2>
 
-                      {/* Render raw HTML content from Gemini */}
-                      {topicNode.content && (
-                        <div className="prose prose-zinc prose-invert max-w-none 
-                        prose-p:text-lg prose-p:leading-relaxed prose-p:text-zinc-300
-                        prose-headings:font-space-grotesk prose-headings:text-white
-                        prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
-                        prose-a:text-red-400 prose-a:no-underline hover:prose-a:underline
-                        prose-strong:text-white prose-strong:font-semibold
-                        prose-code:text-red-300 prose-code:bg-red-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-                        prose-pre:bg-[#111111] prose-pre:border prose-pre:border-white/10
-                        prose-ul:text-zinc-300 prose-li:marker:text-red-500">
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: topicNode.content,
-                            }}
+                        {/* Render raw HTML content from Gemini */}
+                        {topicNode.content && (
+                          <div className="prose prose-zinc prose-invert max-w-none
+                          prose-p:text-lg prose-p:leading-relaxed prose-p:text-zinc-300
+                          prose-headings:font-space-grotesk prose-headings:text-white
+                          prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
+                          prose-a:text-red-400 prose-a:no-underline hover:prose-a:underline
+                          prose-strong:text-white prose-strong:font-semibold
+                          prose-code:text-red-300 prose-code:bg-red-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+                          prose-pre:bg-[#111111] prose-pre:border prose-pre:border-white/10
+                          prose-ul:text-zinc-300 prose-li:marker:text-red-500">
+                            <div
+                              dangerouslySetInnerHTML={{
+                                __html: topicNode.content,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Pro Tip Callout */}
+                      {topicNode.proTip && (
+                        <div className="bg-gradient-to-r from-red-600/10 to-red-500/5 dark:from-red-600/15 dark:to-red-500/5 border-l-4 border-red-500 p-6 rounded-r-2xl shadow-md shadow-red-500/10">
+                          <div className="flex items-start gap-4">
+                            <Lightbulb className="text-red-400 w-8 h-8 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-bold text-red-400 text-sm uppercase tracking-wider mb-1">
+                                Pro Tip
+                              </h4>
+                              <p className="text-zinc-400 ">{topicNode.proTip}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Concept Cards Grid */}
+                      {topicNode.keyConcepts?.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                          {topicNode.keyConcepts.map((concept, cidx) => (
+                            <div
+                              key={cidx}
+                              className="bg-[#111111] p-6 rounded-2xl border border-white/10 shadow-md shadow-black/50 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-red-500/30"
+                            >
+                              {cidx % 2 === 0 ? (
+                                <Server className="text-red-400 mb-3 w-6 h-6" />
+                              ) : (
+                                <Activity className="text-red-400 mb-3 w-6 h-6" />
+                              )}
+                              <h5 className="font-bold mb-2">{concept.title}</h5>
+                              <p className="text-sm text-zinc-400 ">
+                                {concept.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* YouTube Video Embed */}
+                      {topicNode.videoId && (
+                        <div className="bg-[#111111] rounded-2xl border border-white/10 shadow-md shadow-black/50 overflow-hidden">
+                          <p className="text-sm font-bold text-red-400 px-5 pt-5 pb-3">
+                            Watch: {topicNode.topic}
+                          </p>
+                          <div className="aspect-video w-full">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${topicNode.videoId}`}
+                              title={topicNode.topic}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="w-full h-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mermaid Concept Diagram */}
+                      {topicNode.diagram && (
+                        <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
+                          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
+                            Concept Diagram
+                          </p>
+                          <MermaidDiagram
+                            diagram={topicNode.diagram}
+                            id={`mermaid-cl-${currentChapterIndex}-${idx}`}
                           />
                         </div>
                       )}
                     </div>
-
-                    {/* Pro Tip Callout */}
-                    {topicNode.proTip && (
-                      <div className="bg-gradient-to-r from-red-600/10 to-red-500/5 dark:from-red-600/15 dark:to-red-500/5 border-l-4 border-red-500 p-6 rounded-r-2xl shadow-md shadow-red-500/10">
-                        <div className="flex items-start gap-4">
-                          <Lightbulb className="text-red-400 w-8 h-8 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h4 className="font-bold text-red-400 text-sm uppercase tracking-wider mb-1">
-                              Pro Tip
-                            </h4>
-                            <p className="text-zinc-400 ">{topicNode.proTip}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Concept Cards Grid */}
-                    {topicNode.keyConcepts?.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                        {topicNode.keyConcepts.map((concept, cidx) => (
-                          <div
-                            key={cidx}
-                            className="bg-[#111111] p-6 rounded-2xl border border-white/10 shadow-md shadow-black/50 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-red-500/30"
-                          >
-                            {/* Map Gemini icon string to basic Lucide or fallback */}
-                            {cidx % 2 === 0 ? (
-                              <Server className="text-red-400 mb-3 w-6 h-6" />
-                            ) : (
-                              <Activity className="text-red-400 mb-3 w-6 h-6" />
-                            )}
-                            <h5 className="font-bold mb-2">{concept.title}</h5>
-                            <p className="text-sm text-zinc-400 ">
-                              {concept.description}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* YouTube Video Embed */}
-                    {topicNode.videoId && (
-                      <div className="bg-[#111111] rounded-2xl border border-white/10 shadow-md shadow-black/50 overflow-hidden">
-                        <p className="text-sm font-bold text-red-400 px-5 pt-5 pb-3">
-                          Watch: {topicNode.topic}
-                        </p>
-                        <div className="aspect-video w-full">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${topicNode.videoId}`}
-                            title={topicNode.topic}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mermaid Concept Diagram */}
-                    {topicNode.diagram && (
-                      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
-                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
-                          Concept Diagram
-                        </p>
-                        <MermaidDiagram
-                          diagram={topicNode.diagram}
-                          id={`mermaid-cl-${currentChapterIndex}-${idx}`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
+
+              {/* Linked Practice Problems */}
+              {linkedProblems.length > 0 && (
+                <div className="mt-12 border border-indigo-500/30 rounded-2xl overflow-hidden">
+                  <div className="px-6 py-4 bg-indigo-950/60 border-b border-indigo-500/20 flex items-center gap-3">
+                    <Gamepad2 className="w-5 h-5 text-indigo-400" />
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-white">Practice This Chapter</h3>
+                      <p className="text-xs text-indigo-400/70 mt-0.5 capitalize">
+                        {linkedProblems.length} {linkedProblems.length === 1 ? "activity" : "activities"} · {course?.linkedPlayground} playground
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col divide-y divide-white/5 bg-indigo-950/20">
+                    {linkedProblems.map((prob, i) => (
+                      <div key={prob.id} className="flex items-center gap-4 px-6 py-4 hover:bg-indigo-950/30 transition-colors">
+                        <span className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white">{prob.title}</p>
+                          {prob.description && (
+                            <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">{prob.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            prob.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                            prob.difficulty === "Medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                            prob.difficulty === "Hard" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                            "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          }`}>{prob.difficulty}</span>
+                          <span className="text-xs font-bold text-[#2cf07d]">+{prob.xp} XP</span>
+                          <button
+                            onClick={() => handlePracticeLinkedProblem(prob)}
+                            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-indigo-500/20"
+                          >
+                            <Play className="w-3 h-3 fill-white" /> Solve
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Footer Action */}
               <div className="mt-20 pt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6">

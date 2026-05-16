@@ -2,13 +2,13 @@ import React from "react";
 import { Menu, Terminal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function PlaygroundNavbar({ 
-  isMobile, 
-  isSidebarOpen, 
-  setIsSidebarOpen, 
-  language, 
-  getLanguageIconUrl, 
-  user 
+export default function PlaygroundNavbar({
+  isMobile,
+  isSidebarOpen,
+  setIsSidebarOpen,
+  language,
+  getLanguageIconUrl,
+  user,
 }) {
   const navigate = useNavigate();
 
@@ -35,7 +35,7 @@ export default function PlaygroundNavbar({
           )}
         </div>
         <span className="font-bold text-lg tracking-wide hidden sm:block">
-          {language.charAt(0).toUpperCase() + language.slice(1)} Playground
+          {language.charAt(0).toUpperCase() + language.slice(1)} random
         </span>
       </div>
 

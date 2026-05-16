@@ -16,6 +16,7 @@ import leaderboardRoute from "./routes/leaderboardRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import competitionRoutes from "./routes/competitionRoutes.js";
 import codeRoute from "./routes/codeRoutes.js";
+import chapterRoute from "./routes/chapterRoutes.js";
 import discussionRoutes from "./routes/discussionRoutes.js";
 import { initializeSocket } from "./socket/roomHandler.js";
 import quizAttemptRoute from "./routes/quizAttemptRoutes.js";
@@ -75,6 +76,7 @@ app.use("/api/v1/leaderboard", leaderboardRoute);
 app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/competition", competitionRoutes);
 app.use("/api/v1/code", codeRoute);
+app.use("/api/v1/chapters", chapterRoute);
 app.use("/api/v1/discussions", discussionRoutes);
 app.use("/api/v1/quests", questRoute);
 

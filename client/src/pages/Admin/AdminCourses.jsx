@@ -286,12 +286,18 @@ const AdminCourses = () => {
                   </span>
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      course.isPublished
+                      course.status === "published" || course.isPublished
                         ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                        : course.status === "draft"
+                        ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
                         : "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"
                     }`}
                   >
-                    {course.isPublished ? "Published" : "Draft"}
+                    {course.status === "published" || course.isPublished
+                      ? "Published"
+                      : course.status === "draft"
+                      ? "Draft"
+                      : "Outline"}
                   </span>
                 </div>
 
