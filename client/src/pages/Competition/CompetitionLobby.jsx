@@ -5,26 +5,10 @@ import { updateUserStats } from "../../features/auth/authSlice";
 import { store } from "@/store/store";
 import { emit as emitGamification } from "@/lib/gamificationBus";
 import { connectSocket, disconnectSocket, getSocket } from "../../lib/socket";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Users,
-  Crown,
-  Play,
-  Loader2,
-  ArrowLeft,
-  Swords,
-  BookOpen,
-  Code,
-  Timer,
-  Trophy,
-  Eye,
-  Zap,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { playNotificationSound, playPlayerJoinedSound } from "@/lib/sound";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import InteractiveQuestion from "../../components/competition/InteractiveQuestion";
 import LobbyHeader from "../../components/competition/LobbyHeader";
 import RoomCodeCard from "../../components/competition/RoomCodeCard";
 import MatchConfiguration from "../../components/competition/MatchConfiguration";
@@ -37,8 +21,9 @@ import ResultsScreen from "../../components/competition/ResultsScreen";
 import GameOverScreen from "../../components/competition/GameOverScreen";
 import PodiumScreen from "../../components/competition/PodiumScreen";
 import VSScreen from "../../components/competition/VSScreen";
-import FloatingFeedback from "../../components/competition/FloatingFeedback";
-import AnimatedLeaderboard from "../../components/competition/AnimatedLeaderboard";
+import SpectatorView from "../../components/competition/SpectatorView";
+import GamePlayView from "../../components/competition/GamePlayView";
+import ClassicPlayView from "../../components/competition/ClassicPlayView";
 import confetti from "canvas-confetti";
 import {
   playCorrectSound,
@@ -96,6 +81,7 @@ const CompetitionLobby = () => {
   const [blitzQuestionTime, setBlitzQuestionTime] = useState(15);
   const pendingNextQuestion = useRef(null);
   const [finalResults, setFinalResults] = useState(null);
+  const [isDraw, setIsDraw] = useState(false);
   const confettiFired = useRef(false);
   const prevTimerRef = useRef(null);
   const gameStartTimeRef = useRef(null);
@@ -120,18 +106,18 @@ const CompetitionLobby = () => {
   const [spectatorCount, setSpectatorCount] = useState(0);
   const [isPowerQuestion, setIsPowerQuestion] = useState(false);
   const [gameEvents, setGameEvents] = useState([]);
-  const [rematchVotes, setRematchVotes] = useState({ voteCount: 0, totalPlayers: 0, voterNames: [] });
+  const [rematchVotes, setRematchVotes] = useState({
+    voteCount: 0,
+    totalPlayers: 0,
+    voterNames: [],
+  });
 
   const isHost = room?.hostId === user?._id;
 
-  // Reconnect recovery is handled by syncState below — no separate auto-rejoin needed
-
-  // Keep ref in sync for cleanup closure
   useEffect(() => {
     roomCodeRef.current = roomCode;
   }, [roomCode]);
 
-  // Keep currentGameMode ref in sync so socket-event closures always see the latest value
   useEffect(() => {
     currentGameModeRef.current = currentGameMode;
   }, [currentGameMode]);
@@ -151,7 +137,6 @@ const CompetitionLobby = () => {
     };
   }, [user]);
 
-  // CLI-3: Reconnection recovery — sync state from server if we reconnect mid-game
   useEffect(() => {
     if (!socket) return;
 
@@ -172,7 +157,8 @@ const CompetitionLobby = () => {
             currentGameModeRef.current = state.settings.gameMode;
           }
           if (state.settings.category) setGameCategory(state.settings.category);
-          if (state.settings.challengeMode) setGameChallengeMode(state.settings.challengeMode);
+          if (state.settings.challengeMode)
+            setGameChallengeMode(state.settings.challengeMode);
         }
 
         if (state.gameState === "active") {
@@ -291,8 +277,7 @@ const CompetitionLobby = () => {
 
     const onNextQuestion = ({ question, questionIndex: qi, isPower }) => {
       setIsPowerQuestion(!!isPower);
-      // Practice: store pending, don't auto-advance until user clicks
-      // Use ref to avoid stale closure (effect captured currentGameMode at mount time)
+
       if (currentGameModeRef.current === "practice") {
         pendingNextQuestion.current = { question, questionIndex: qi };
         return;
@@ -329,12 +314,14 @@ const CompetitionLobby = () => {
       leaderboard: lb,
       playerTeam: pt,
       teamScores: ts,
+      isDraw: draw,
     }) => {
       setGameState("finished");
       setFinalResults(lb);
       setLeaderboard(lb);
       if (pt) setPlayerTeam(pt);
       if (ts) setTeamScores(ts);
+      if (draw) setIsDraw(true);
     };
 
     const onPlayerEliminated = ({
@@ -359,13 +346,19 @@ const CompetitionLobby = () => {
 
     const onPlayerEliminatedUpdate = ({ playerName }) => {
       toast.error(`${playerName} was eliminated! 💀`);
-      setGameEvents(prev => [...prev.slice(-4), { type: "eliminated", name: playerName, time: Date.now() }]);
+      setGameEvents((prev) => [
+        ...prev.slice(-4),
+        { type: "eliminated", name: playerName, time: Date.now() },
+      ]);
     };
 
     // B-08: Handle player finishing so other players get immediate feedback
     const onPlayerFinishedUpdate = ({ playerName }) => {
       toast.success(`${playerName} finished! 🏁`);
-      setGameEvents(prev => [...prev.slice(-4), { type: "finished", name: playerName, time: Date.now() }]);
+      setGameEvents((prev) => [
+        ...prev.slice(-4),
+        { type: "finished", name: playerName, time: Date.now() },
+      ]);
     };
 
     // G-08: Rematch vote updates
@@ -386,13 +379,14 @@ const CompetitionLobby = () => {
       setIsEliminated(false);
       setTeamScores(null);
       setPlayerTeam(null);
+      setIsDraw(false);
       setIsReady(false);
       confettiFired.current = false;
       setSpectatorCount(0);
       setIsPowerQuestion(false);
       setGameEvents([]);
       setRematchVotes({ voteCount: 0, totalPlayers: 0, voterNames: [] });
-      setSettings(s => ({
+      setSettings((s) => ({
         ...s,
         category: resetRoom.category || s.category,
         gameMode: resetRoom.gameMode || s.gameMode,
@@ -403,24 +397,41 @@ const CompetitionLobby = () => {
     };
 
     // G-04: Track per-player ready state
-    const onPlayerReadyUpdate = ({ playerId, ready, readyCount, totalPlayers }) => {
-      setRoom(prev => {
+    const onPlayerReadyUpdate = ({
+      playerId,
+      ready,
+      readyCount,
+      totalPlayers,
+    }) => {
+      setRoom((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
-          players: prev.players.map(p => p.id === playerId ? { ...p, ready } : p),
+          players: prev.players.map((p) =>
+            p.id === playerId ? { ...p, ready } : p,
+          ),
           readyCount,
           totalPlayers,
         };
       });
     };
 
-    const onUserXPUpdated = ({ xpGained, leveledUp, rankedUp, newBadges, user: updatedUser }) => {
+    const onUserXPUpdated = ({
+      xpGained,
+      leveledUp,
+      rankedUp,
+      newBadges,
+      user: updatedUser,
+    }) => {
       dispatch(updateUserStats(updatedUser));
       if (xpGained > 0) emitGamification({ type: "xp", amount: xpGained });
-      if (leveledUp) emitGamification({ type: "levelUp", level: updatedUser.level });
-      if (rankedUp) emitGamification({ type: "rankUp", league: updatedUser.league });
-      (newBadges || []).forEach((b) => emitGamification({ type: "badge", ...b }));
+      if (leveledUp)
+        emitGamification({ type: "levelUp", level: updatedUser.level });
+      if (rankedUp)
+        emitGamification({ type: "rankUp", league: updatedUser.league });
+      (newBadges || []).forEach((b) =>
+        emitGamification({ type: "badge", ...b }),
+      );
     };
 
     socket.on("playerJoined", onPlayerJoined);
@@ -516,7 +527,13 @@ const CompetitionLobby = () => {
 
   // Auto-create room when arriving at /competition/lobby with no code or join param
   useEffect(() => {
-    if (paramCode || searchParams.get("join") || room || autoCreateFired.current) return;
+    if (
+      paramCode ||
+      searchParams.get("join") ||
+      room ||
+      autoCreateFired.current
+    )
+      return;
     if (!socket) return;
 
     const attemptCreate = () => {
@@ -556,9 +573,13 @@ const CompetitionLobby = () => {
                 : response.room.status,
           );
           // B-11: Fix spectator timer — start local countdown from the real elapsed time
-          if (response.room.status === "active" && response.room.timerDuration) {
+          if (
+            response.room.status === "active" &&
+            response.room.timerDuration
+          ) {
             gameDurationRef.current = response.room.timerDuration;
-            gameStartTimeRef.current = Date.now() - ((response.room.timerDuration - timeLeft) * 1000);
+            gameStartTimeRef.current =
+              Date.now() - (response.room.timerDuration - timeLeft) * 1000;
           }
         } else {
           toast.error(response.message);
@@ -703,10 +724,16 @@ const CompetitionLobby = () => {
     if (!socket?.connected) return;
     const playerCount = room?.players?.length || 0;
     const modeMinPlayers = { duel: 2, survival: 2, team: 2 };
-    const modeLabels = { duel: "Duel", survival: "Survival", team: "Team Battle" };
+    const modeLabels = {
+      duel: "Duel",
+      survival: "Survival",
+      team: "Team Battle",
+    };
     const required = modeMinPlayers[settings.gameMode];
     if (required && playerCount < required) {
-      return toast.error(`${modeLabels[settings.gameMode]} mode requires at least ${required} players`);
+      return toast.error(
+        `${modeLabels[settings.gameMode]} mode requires at least ${required} players`,
+      );
     }
     setIsStarting(true);
     socket.emit("startGame", { roomCode }, (response) => {
@@ -746,11 +773,10 @@ const CompetitionLobby = () => {
 
   const handlePlayAgain = useCallback(() => {
     if (!socket?.connected) return;
-    // G-06: Try resetting the existing room first so everyone stays together
+
     if (roomCode) {
       socket.emit("resetRoom", { roomCode }, (response) => {
-        if (response?.success) return; // onRoomReset socket event handles state reset for all players
-        // Fallback: create a new room if reset fails (e.g., room already cleaned up)
+        if (response?.success) return;
         createNewRoom();
       });
     } else {
@@ -808,7 +834,10 @@ const CompetitionLobby = () => {
           });
         } else {
           playWrongSound();
-          setFeedbackResult({ correct: false, streakBroken: prevCombo >= 3 ? prevCombo : 0 });
+          setFeedbackResult({
+            correct: false,
+            streakBroken: prevCombo >= 3 ? prevCombo : 0,
+          });
         }
         setFeedbackKey((prev) => prev + 1);
       },
@@ -849,7 +878,7 @@ const CompetitionLobby = () => {
     setAnswerResult(null);
     setComboCount(0);
     setFeedbackResult(null);
-    setIsPowerQuestion(!!(vsData.isPower));
+    setIsPowerQuestion(!!vsData.isPower);
     setGameEvents([]);
     setRematchVotes({ voteCount: 0, totalPlayers: 0, voterNames: [] });
     setVsData(null);
@@ -865,7 +894,8 @@ const CompetitionLobby = () => {
     socket?.emit("getTimerSync", { roomCode: capturedRoomCode }, (res) => {
       if (res?.remaining !== undefined) {
         setTimeRemaining(res.remaining);
-        gameStartTimeRef.current = Date.now() - ((capturedDuration - res.remaining) * 1000);
+        gameStartTimeRef.current =
+          Date.now() - (capturedDuration - res.remaining) * 1000;
       }
     });
   };
@@ -882,9 +912,10 @@ const CompetitionLobby = () => {
 
     const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
     const winnerId = sorted[0]?.id;
+    const topTied = sorted.length >= 2 && sorted[0].score === sorted[1].score;
 
     setTimeout(() => {
-      if (winnerId === user?._id) playVictorySound();
+      if (winnerId === user?._id && !topTied) playVictorySound();
       confetti({
         particleCount: 150,
         spread: 80,
@@ -992,7 +1023,6 @@ const CompetitionLobby = () => {
     };
   }, [gameState]);
 
-  // ─── RENDER: VS Screen ─────────────────────────────────
   if (showVS && room?.players) {
     return (
       <VSScreen
@@ -1003,117 +1033,20 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Spectator View ─────────────────────────────
   if (isSpectator && (spectatorData || gameState === "playing")) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6">
-        <div className="max-w-lg mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-1 text-zinc-400 hover:text-white transition text-sm"
-            >
-              <ArrowLeft size={16} /> Leave
-            </button>
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2">
-              <Eye size={14} className="text-purple-400" />
-              <span className="text-sm text-purple-400 font-semibold">
-                Spectating
-              </span>
-            </div>
-          </div>
-
-          {/* Room Info */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center">
-            <h2 className="text-xl font-bold mb-1">
-              {spectatorData?.topic ||
-                (gameCategory === "programming"
-                  ? "Coding Challenge"
-                  : "General Quiz")}
-            </h2>
-            <p className="text-sm text-zinc-400">
-              Hosted by {spectatorData?.hostName || "Unknown"} •{" "}
-              {spectatorData?.difficulty || "medium"} difficulty
-            </p>
-          </div>
-
-          {/* Timer */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center justify-center gap-2">
-            <Timer size={16} className="text-orange-400" />
-            <span
-              className={`font-mono font-bold text-xl ${timeRemaining < 30 ? "text-red-400" : "text-white"}`}
-            >
-              {Math.floor(timeRemaining / 60)}:
-              {String(timeRemaining % 60).padStart(2, "0")}
-            </span>
-            <span className="text-zinc-500 text-sm ml-2">remaining</span>
-          </div>
-
-          {/* Live Leaderboard */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Trophy size={14} className="text-yellow-400" /> Live Standings
-            </h3>
-            <div className="space-y-2">
-              {leaderboard.length === 0 && (
-                <p className="text-zinc-500 text-sm text-center py-4">
-                  Waiting for game to start...
-                </p>
-              )}
-              {leaderboard.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl ${
-                    i === 0
-                      ? "bg-yellow-500/10 border border-yellow-500/20"
-                      : "bg-zinc-800/50"
-                  }`}
-                >
-                  <span
-                    className={`w-7 h-7 flex items-center justify-center rounded-full font-bold text-xs ${
-                      i === 0
-                        ? "bg-yellow-500 text-black"
-                        : i === 1
-                          ? "bg-zinc-400 text-black"
-                          : i === 2
-                            ? "bg-orange-700 text-white"
-                            : "bg-zinc-800 text-zinc-400"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <img
-                    src={p.avatarUrl || "/Avatar.png"}
-                    className="w-8 h-8 rounded-full"
-                    alt=""
-                  />
-                  <span className="flex-1 text-sm font-medium truncate">
-                    {p.name}
-                  </span>
-                  <span className="font-bold text-orange-400">{p.score}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {gameState === "finished" && finalResults && (
-            <div className="text-center">
-              <Trophy size={36} className="text-yellow-400 mx-auto mb-2" />
-              <h2 className="text-2xl font-bold">Game Over!</h2>
-              <button
-                onClick={() => navigate("/")}
-                className="mt-4 px-8 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
-              >
-                Back to Home
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <SpectatorView
+        spectatorData={spectatorData}
+        gameState={gameState}
+        finalResults={finalResults}
+        leaderboard={leaderboard}
+        timeRemaining={timeRemaining}
+        gameCategory={gameCategory}
+        navigate={navigate}
+      />
     );
   }
 
-  // ─── RENDER: No Room Yet (auto-creating / auto-joining) ──
   if (!room) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-950">
@@ -1130,12 +1063,11 @@ const CompetitionLobby = () => {
       </div>
     );
   }
-  // ─── RENDER: Generating ─────────────────────────────────
+
   if (gameState === "generating") {
     return <GeneratingScreen />;
   }
 
-  // ─── RENDER: Ready (Wait for Host) ──────────────────────
   if (gameState === "ready") {
     return (
       <ReadyScreen
@@ -1153,6 +1085,7 @@ const CompetitionLobby = () => {
     return (
       <GameOverScreen
         finalResults={finalResults}
+        isDraw={isDraw}
         userId={user?._id}
         currentGameMode={currentGameMode}
         teamScores={teamScores}
@@ -1169,7 +1102,6 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Individual Results (Player Finished or Eliminated) ──────────────────
   if (gameState === "playing" && userFinished && finishData) {
     return (
       <ResultsScreen
@@ -1196,332 +1128,36 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Playing (Quiz / Scenario Mode) ───────────────────────
   if (
     gameState === "playing" &&
     (gameCategory === "general" || gameChallengeMode !== "classic")
   ) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6">
-        {/* Floating Feedback */}
-        <FloatingFeedback
-          result={feedbackResult}
-          comboCount={comboCount}
-          triggerKey={feedbackKey}
-        />
-
-        {/* Animated Timer Bar */}
-        <div className="fixed top-0 left-0 w-full h-2 z-30 bg-zinc-900/80 backdrop-blur-sm">
-          <motion.div
-            className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
-            animate={{
-              width: `${(timeRemaining / (gameDurationRef.current || settings.timerDuration || 300)) * 100}%`,
-            }}
-            transition={{ ease: "linear", duration: 1 }}
-          />
-          {timeRemaining <= 30 && (
-            <motion.div
-              className="absolute inset-0 bg-red-500/20"
-              animate={{ opacity: [0, 0.5, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          )}
-        </div>
-
-        {/* Combo Indicator */}
-        {comboCount >= 2 && (
-          <motion.div
-            initial={{ scale: 0, y: -20 }}
-            animate={{ scale: 1, y: 0 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-gradient-to-r from-orange-600 to-red-600 px-4 py-2 rounded-full shadow-2xl"
-          >
-            <span className="text-lg">🔥</span>
-            <span className="text-white font-bold text-sm">
-              {comboCount}x Combo!
-            </span>
-          </motion.div>
-        )}
-
-        <div className="max-w-[1400px] mx-auto space-y-4 md:space-y-6 mt-4">
-          {/* Header */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="pixel"
-                size="icon"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Are you sure you want to leave the ongoing competition?",
-                    )
-                  )
-                    handleLeave();
-                }}
-                className="text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-full h-10 w-10 mr-1"
-              >
-                <ArrowLeft size={20} />
-              </Button>
-              <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                <BookOpen size={20} className="text-orange-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-lg">
-                    Challenge {questionIndex + 1}
-                  </h2>
-                  {currentGameMode === "practice" && (
-                    <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase">
-                      Practice
-                    </span>
-                  )}
-                  {currentGameMode === "duel" && (
-                    <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">
-                      ⚔️ Duel
-                    </span>
-                  )}
-                  {currentGameMode === "team" && (
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
-                      style={{
-                        backgroundColor:
-                          playerTeam?.[user?._id] === 0
-                            ? "rgba(59,130,246,0.2)"
-                            : "rgba(239,68,68,0.2)",
-                        color:
-                          playerTeam?.[user?._id] === 0 ? "#93c5fd" : "#fca5a5",
-                      }}
-                    >
-                      {playerTeam?.[user?._id] === 0
-                        ? "🔵 Team Blue"
-                        : "🔴 Team Red"}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
-                  Question {questionIndex + 1} of {totalQuestions}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Blitz per-question countdown — G-09: escalating urgency */}
-              {currentGameMode === "blitz" && (
-                <motion.div
-                  animate={
-                    blitzQuestionTime <= 3
-                      ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] }
-                      : blitzQuestionTime <= 5
-                        ? { scale: [1, 1.1, 1] }
-                        : blitzQuestionTime <= 10
-                          ? { scale: [1, 1.04, 1] }
-                          : { scale: 1 }
-                  }
-                  transition={{
-                    duration: blitzQuestionTime <= 3 ? 0.2 : blitzQuestionTime <= 5 ? 0.3 : 0.6,
-                    repeat: blitzQuestionTime <= 10 ? Infinity : 0,
-                  }}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 border font-mono font-black text-2xl ${
-                    blitzQuestionTime <= 3
-                      ? "bg-red-600/30 border-red-500/80 text-red-300 shadow-[0_0_30px_rgba(239,68,68,0.6)]"
-                      : blitzQuestionTime <= 5
-                        ? "bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.4)]"
-                        : blitzQuestionTime <= 10
-                          ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-400 shadow-[0_0_12px_rgba(234,179,8,0.3)]"
-                          : "bg-zinc-900 border-zinc-700 text-white"
-                  }`}
-                >
-                  <Zap
-                    size={16}
-                    className={
-                      blitzQuestionTime <= 5
-                        ? "text-red-400"
-                        : blitzQuestionTime <= 10
-                          ? "text-yellow-400"
-                          : "text-zinc-400"
-                    }
-                  />
-                  {blitzQuestionTime}s
-                </motion.div>
-              )}
-              <motion.div
-                animate={
-                  timeRemaining > 0 && timeRemaining <= 15
-                    ? { scale: [1, 1.07, 1] }
-                    : { scale: 1 }
-                }
-                transition={{
-                  duration: 0.35,
-                  repeat:
-                    timeRemaining > 0 && timeRemaining <= 15 ? Infinity : 0,
-                  repeatDelay: 0.65,
-                }}
-                className={`flex items-center gap-2 rounded-full px-5 py-2.5 border transition-all ${
-                  timeRemaining <= 60
-                    ? "bg-red-500/10 border-red-500/40 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                    : "bg-zinc-900 border-zinc-800"
-                }`}
-              >
-                <Timer
-                  size={18}
-                  className={
-                    timeRemaining <= 60 ? "text-red-400" : "text-orange-400"
-                  }
-                />
-                <span
-                  className={`font-mono font-bold text-lg ${
-                    timeRemaining <= 60 ? "text-red-400" : "text-white"
-                  }`}
-                >
-                  {Math.floor(timeRemaining / 60)}:
-                  {String(timeRemaining % 60).padStart(2, "0")}
-                </span>
-              </motion.div>
-              {spectatorCount > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-1.5">
-                  <Eye size={12} />
-                  {spectatorCount} watching
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Question Panel */}
-            <Card className={`lg:col-span-2 flex flex-col ${isPowerQuestion ? "bg-zinc-900 border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.15)]" : "bg-zinc-900 border-zinc-800"}`}>
-              {isPowerQuestion && (
-                <div className="px-6 py-2.5 border-b border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2">
-                  <Zap size={14} className="text-yellow-400" fill="currentColor" />
-                  <span className="text-xs font-bold text-yellow-400 uppercase tracking-wide">Power Question — 2× Points!</span>
-                </div>
-              )}
-              <div className="p-6 md:p-8 space-y-6 flex-1 flex flex-col">
-                {currentQuestion ? (
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={questionIndex}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.18 }}
-                      className="flex-1 flex flex-col"
-                    >
-                      <InteractiveQuestion
-                        question={currentQuestion}
-                        onSubmit={handleSubmitAnswer}
-                        result={answerResult}
-                        isSubmitting={isSubmitting}
-                        selectedAnswer={selectedAnswer}
-                      />
-                    </motion.div>
-                  </AnimatePresence>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-zinc-500 gap-4">
-                    <Loader2
-                      className="animate-spin text-orange-500"
-                      size={32}
-                    />
-                    <p>Loading validation data...</p>
-                  </div>
-                )}
-              </div>
-              {currentGameMode === "practice" &&
-                answerResult &&
-                !userFinished && (
-                  <div className="px-6 pb-5 border-t border-zinc-800 pt-4">
-                    <Button
-                      onClick={handlePracticeNext}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl"
-                    >
-                      Next Question →
-                    </Button>
-                  </div>
-                )}
-            </Card>
-
-            {/* Sidebar (Leaderboard / Duel) */}
-            <div className="space-y-6">
-              {currentGameMode === "duel" ? (
-                <Card className="bg-zinc-900 border-zinc-800 p-4 space-y-4 h-fit sticky top-6">
-                  <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                    <span>⚔️</span> Duel
-                  </h3>
-                  {(() => {
-                    const me = leaderboard.find((p) => p.id === user?._id);
-                    const opp = leaderboard.find((p) => p.id !== user?._id);
-                    return (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
-                          <span className="text-sm font-bold text-orange-400 truncate">
-                            {me?.name || "You"}
-                          </span>
-                          <span className="text-xl font-black text-orange-400">
-                            {me?.score ?? 0}
-                          </span>
-                        </div>
-                        <div className="text-center text-xs text-zinc-600 font-bold uppercase tracking-widest">
-                          vs
-                        </div>
-                        <div className="flex items-center justify-between gap-2 bg-zinc-800/60 border border-zinc-700 rounded-xl p-3">
-                          <span className="text-sm font-bold text-zinc-300 truncate">
-                            {opp?.name || "Opponent"}
-                          </span>
-                          <span className="text-xl font-black text-zinc-300">
-                            {opp?.score ?? 0}
-                          </span>
-                        </div>
-                        {opp && (
-                          <div className="text-[10px] text-zinc-500 text-center">
-                            {opp.finished
-                              ? "Opponent finished ✓"
-                              : `Opponent on Q${(opp.currentQuestion || 0) + 1}`}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </Card>
-              ) : (
-                <Card className="bg-zinc-900 border-zinc-800 p-0 overflow-hidden h-fit sticky top-6 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
-                  <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
-                    <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                      <Trophy size={14} className="text-yellow-400" /> Live
-                      Standings
-                    </h3>
-                  </div>
-                  {/* G-01: Live event feed */}
-                  {gameEvents.length > 0 && (
-                    <div className="px-2 pt-2 pb-1 border-b border-zinc-800 space-y-1">
-                      <AnimatePresence>
-                        {gameEvents.map((ev) => (
-                          <motion.div
-                            key={ev.time}
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0 }}
-                            className={`text-[10px] px-2 py-1 rounded flex items-center gap-1.5 ${
-                              ev.type === "eliminated"
-                                ? "bg-red-500/10 text-red-400"
-                                : "bg-green-500/10 text-green-400"
-                            }`}
-                          >
-                            {ev.type === "eliminated" ? "💀" : "🏁"} {ev.name}
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  )}
-                  <div className="p-2">
-                    <AnimatedLeaderboard
-                      leaderboard={leaderboard}
-                      userId={user?._id}
-                      totalQuestions={totalQuestions}
-                    />
-                  </div>
-                </Card>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <GamePlayView
+        feedbackResult={feedbackResult}
+        comboCount={comboCount}
+        feedbackKey={feedbackKey}
+        timeRemaining={timeRemaining}
+        gameDuration={gameDurationRef.current || settings.timerDuration || 300}
+        questionIndex={questionIndex}
+        currentGameMode={currentGameMode}
+        playerTeam={playerTeam}
+        userId={user?._id}
+        totalQuestions={totalQuestions}
+        blitzQuestionTime={blitzQuestionTime}
+        spectatorCount={spectatorCount}
+        handleLeave={handleLeave}
+        isPowerQuestion={isPowerQuestion}
+        currentQuestion={currentQuestion}
+        answerResult={answerResult}
+        isSubmitting={isSubmitting}
+        selectedAnswer={selectedAnswer}
+        handleSubmitAnswer={handleSubmitAnswer}
+        handlePracticeNext={handlePracticeNext}
+        userFinished={userFinished}
+        leaderboard={leaderboard}
+        gameEvents={gameEvents}
+      />
     );
   }
 
@@ -1532,193 +1168,34 @@ const CompetitionLobby = () => {
     gameChallengeMode === "classic"
   ) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white p-6">
-        {/* Floating Feedback */}
-        <FloatingFeedback
-          result={feedbackResult}
-          comboCount={comboCount}
-          triggerKey={feedbackKey}
-        />
-
-        {/* Animated Timer Bar */}
-        <div className="fixed top-0 left-0 w-full h-1.5 z-30 bg-zinc-800">
-          <motion.div
-            className={`h-full ${timeRemaining <= 30 ? "bg-gradient-to-r from-red-500 to-orange-500" : "bg-gradient-to-r from-green-500 to-emerald-400"}`}
-            animate={{
-              width: `${(timeRemaining / (gameDurationRef.current || settings.timerDuration || 300)) * 100}%`,
-            }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-
-        {comboCount >= 2 && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-gradient-to-r from-orange-600 to-red-600 px-4 py-2 rounded-full shadow-2xl"
-          >
-            <span className="text-lg">🔥</span>
-            <span className="text-white font-bold text-sm">
-              {comboCount}x Combo!
-            </span>
-          </motion.div>
-        )}
-
-        <div className="max-w-[1400px] mx-auto space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Are you sure you want to leave the ongoing competition?",
-                    )
-                  )
-                    handleLeave();
-                }}
-                className="text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-full h-10 w-10 mr-1"
-              >
-                <ArrowLeft size={20} />
-              </Button>
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                <Code size={20} className="text-orange-400" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg leading-tight">
-                  Challenge {questionIndex + 1}
-                </h2>
-                <div className="text-xs text-zinc-500 font-mono">
-                  {currentQuestion?.title || "Loading Problem..."}
-                </div>
-              </div>
-            </div>
-            <motion.div
-              animate={
-                timeRemaining > 0 && timeRemaining <= 15
-                  ? { scale: [1, 1.07, 1] }
-                  : { scale: 1 }
-              }
-              transition={{
-                duration: 0.35,
-                repeat: timeRemaining > 0 && timeRemaining <= 15 ? Infinity : 0,
-                repeatDelay: 0.65,
-              }}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 border transition-all ${
-                timeRemaining <= 60
-                  ? "bg-red-500/10 border-red-500/40 animate-pulse"
-                  : "bg-zinc-900 border-zinc-800"
-              }`}
-            >
-              <Timer
-                size={16}
-                className={
-                  timeRemaining <= 60 ? "text-red-400" : "text-zinc-400"
-                }
-              />
-              <span
-                className={`font-mono font-bold text-lg ${
-                  timeRemaining <= 60 ? "text-red-400" : "text-white"
-                }`}
-              >
-                {Math.floor(timeRemaining / 60)}:
-                {String(timeRemaining % 60).padStart(2, "0")}
-              </span>
-            </motion.div>
-            {spectatorCount > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-1.5">
-                <Eye size={12} />
-                {spectatorCount} watching
-              </div>
-            )}
-          </div>
-
-          {isPowerQuestion && (
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
-              <Zap size={14} className="text-yellow-400" fill="currentColor" />
-              <span className="text-xs font-bold text-yellow-400 uppercase tracking-wide">Power Question — 2× Points!</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-140px)]">
-            {/* Problem Description (Left Col) */}
-            <Card className="lg:col-span-1 bg-zinc-900 border-zinc-800 overflow-hidden flex flex-col h-full">
-              <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
-                <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                  <BookOpen size={14} /> Problem Statement
-                </h3>
-              </div>
-              <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
-                <h3 className="font-bold text-lg mb-4 text-metallic">
-                  {currentQuestion?.title}
-                </h3>
-                <div className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed space-y-4">
-                  {currentQuestion?.description}
-                </div>
-              </div>
-            </Card>
-
-            {/* Code Editor (Middle Cols) */}
-            <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full shadow-2xl">
-              <ProgrammingEditor
-                question={currentQuestion}
-                language={settings.language}
-                onSubmit={handleSubmitAnswer}
-                isSubmitting={isSubmitting}
-                answerResult={answerResult}
-              />
-            </div>
-
-            {/* Leaderboard (Right Col) */}
-            <Card className="lg:col-span-1 bg-zinc-900 border-zinc-800 overflow-hidden flex flex-col h-full">
-              <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
-                <h3 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                  <Trophy size={14} className="text-yellow-400" /> Live
-                  Standings
-                </h3>
-              </div>
-              {gameEvents.length > 0 && (
-                <div className="px-2 pt-2 pb-1 border-b border-zinc-800 space-y-1">
-                  <AnimatePresence>
-                    {gameEvents.map((ev) => (
-                      <motion.div
-                        key={ev.time}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0 }}
-                        className={`text-[10px] px-2 py-1 rounded flex items-center gap-1.5 ${
-                          ev.type === "eliminated"
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-green-500/10 text-green-400"
-                        }`}
-                      >
-                        {ev.type === "eliminated" ? "💀" : "🏁"} {ev.name}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-              <div className="p-2 overflow-y-auto flex-1 custom-scrollbar">
-                <AnimatedLeaderboard
-                  leaderboard={leaderboard}
-                  userId={user?._id}
-                  totalQuestions={totalQuestions}
-                />
-              </div>
-            </Card>
-          </div>
-        </div>
-      </div>
+      <ClassicPlayView
+        feedbackResult={feedbackResult}
+        comboCount={comboCount}
+        feedbackKey={feedbackKey}
+        timeRemaining={timeRemaining}
+        gameDuration={gameDurationRef.current || settings.timerDuration || 300}
+        questionIndex={questionIndex}
+        currentQuestion={currentQuestion}
+        handleLeave={handleLeave}
+        spectatorCount={spectatorCount}
+        isPowerQuestion={isPowerQuestion}
+        language={settings.language}
+        handleSubmitAnswer={handleSubmitAnswer}
+        isSubmitting={isSubmitting}
+        answerResult={answerResult}
+        leaderboard={leaderboard}
+        gameEvents={gameEvents}
+        userId={user?._id}
+        totalQuestions={totalQuestions}
+      />
     );
   }
 
-  // ─── RENDER: Game Finished (Results) ─────────────────────────────
   if (gameState === "finished") {
     return (
       <PodiumScreen
         leaderboard={leaderboard}
+        isDraw={isDraw}
         userId={user?._id}
         isHost={isHost}
         rematchVotes={rematchVotes}
@@ -1729,7 +1206,6 @@ const CompetitionLobby = () => {
     );
   }
 
-  // ─── RENDER: Lobby (Waiting Room) ──────────────────────
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-orange-500/30">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -1798,150 +1274,7 @@ const CompetitionLobby = () => {
           )}
         </div>
       </div>
-
     </div>
-  );
-};
-
-// ─── PROGRAMMING EDITOR COMPONENT ─────────────────────────
-import Editor from "@monaco-editor/react";
-import { executeCode } from "../../lib/piston";
-
-const ProgrammingEditor = ({
-  question,
-  language,
-  onSubmit,
-  isSubmitting,
-  answerResult,
-}) => {
-  const [code, setCode] = useState(question?.starterCode || "");
-  const [output, setOutput] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
-
-  useEffect(() => {
-    setCode(question?.starterCode || "");
-    setOutput(null);
-  }, [question]);
-
-  const handleRun = async () => {
-    if (isRunning) return;
-    setIsRunning(true);
-    setOutput(null);
-
-    try {
-      const codeToRun = code + "\n" + (question?.testCases || "");
-      const result = await executeCode(language, codeToRun);
-
-      let displayOutput = result.output || "";
-      let testResult = null;
-
-      if (displayOutput) {
-        const lines = displayOutput.split("\n");
-        const jsonLineIdx = lines.findIndex((l) =>
-          l.trim().startsWith('{"success":'),
-        );
-        if (jsonLineIdx !== -1) {
-          try {
-            testResult = JSON.parse(lines[jsonLineIdx].trim());
-            displayOutput = lines
-              .filter((_, i) => i !== jsonLineIdx)
-              .join("\n")
-              .trim();
-          } catch (e) {}
-        }
-      }
-
-      setOutput({
-        text: displayOutput,
-        error: result.error || null,
-        testResult,
-      });
-
-      // If all tests passed, submit to server
-      if (testResult?.success) {
-        onSubmit({ allPassed: true, code });
-      }
-    } catch (err) {
-      setOutput({ text: "", error: err.message, testResult: null });
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900/80 flex items-center justify-between shrink-0">
-        <span className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-2">
-          <Code size={14} className="text-zinc-600" />
-          {language} Editor
-        </span>
-        <Button
-          size="sm"
-          onClick={handleRun}
-          disabled={isRunning || isSubmitting}
-          className="bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 text-white h-8 text-xs font-semibold px-4 transition-all"
-        >
-          {isRunning ? (
-            <Loader2 size={13} className="animate-spin mr-2" />
-          ) : (
-            <Play size={13} fill="currentColor" className="mr-2" />
-          )}
-          Run & Test
-        </Button>
-      </div>
-      <div className="flex-1 min-h-0">
-        <Editor
-          height="100%"
-          language={language}
-          value={code}
-          onChange={(val) => setCode(val || "")}
-          theme="vs-dark"
-          options={{
-            fontSize: 14,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            padding: { top: 12 },
-            fontFamily: "monospace",
-          }}
-        />
-      </div>
-      {output && (
-        <div className="border-t border-zinc-800 p-3 bg-zinc-950 max-h-40 overflow-y-auto custom-scrollbar shrink-0">
-          <div className="text-[10px] text-zinc-500 uppercase font-bold mb-1">
-            Output Console
-          </div>
-          {output.text && (
-            <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono">
-              {output.text}
-            </pre>
-          )}
-          {output.error && (
-            <pre className="text-xs text-red-400 whitespace-pre-wrap font-mono mt-1">
-              {output.error}
-            </pre>
-          )}
-          {output.testResult && (
-            <div
-              className={`mt-2 text-xs font-semibold p-2 rounded border ${
-                output.testResult.success
-                  ? "text-green-400 bg-green-500/10 border-green-500/20"
-                  : "text-red-400 bg-red-500/10 border-red-500/20"
-              }`}
-            >
-              {output.testResult.success
-                ? "✓ All tests passed successfully!"
-                : `✗ ${output.testResult.message || "Tests failed"}`}
-            </div>
-          )}
-          {answerResult && (
-            <div className="mt-2 text-xs font-semibold text-green-400 p-2 rounded bg-green-500/10 border border-green-500/20">
-              +{answerResult.pointsEarned} XP Earned!
-            </div>
-          )}
-        </div>
-      )}
-    </>
   );
 };
 

@@ -366,7 +366,7 @@ export function initializeSocket(io) {
 
       // Validate and apply settings with allow-lists and bounds
       const validCategories = ["programming", "general"];
-      const validModes = ["classic", "scenario", "debug", "outage", "refactor", "missing", "interactive"];
+      const validModes = ["classic", "scenario", "debug", "outage", "refactor", "missing", "interactive", "visual_interactive"];
       const validGameModes = ["classic", "survival", "blitz", "team", "duel", "practice"];
       const validDifficulties = ["easy", "medium", "hard"];
 
@@ -827,6 +827,15 @@ export function initializeSocket(io) {
             });
           }
           if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
+        } else if (iType === "visual_sequence" || iType === "code_trace") {
+          const submitted = answer?.value;
+          const correct   = question.correctOrder;
+          isCorrect =
+            Array.isArray(submitted) &&
+            Array.isArray(correct) &&
+            submitted.length === correct.length &&
+            submitted.every((v, i) => Number(v) === Number(correct[i]));
+          if (isCorrect) pointsEarned = calcSpeedBonus(100, 50);
 
         // ─── CODE EXECUTION (programming + classic) ───────────
         } else if (room.category === "programming" && (!room.challengeMode || room.challengeMode === "classic")) {
@@ -857,9 +866,11 @@ export function initializeSocket(io) {
         // Build correct answer info for feedback
         let correctAnswerData = question.correctAnswer || null;
         if (question.interactionType === "drag_order") {
-          correctAnswerData = question.correctOrder;
+          correctAnswerData = question.correctOrder.map(
+            (i) => question.items?.[i] ?? String(i),
+          );
         } else if (question.interactionType === "drag_match") {
-          correctAnswerData = question.pairs?.map((p) => p.right);
+          correctAnswerData = question.pairs?.map((p) => `${p.left} → ${p.right}`);
         } else if (question.interactionType === "fill_blank") {
           correctAnswerData = question.blanks;
         } else if (question.interactionType === "predict_output") {
@@ -867,6 +878,14 @@ export function initializeSocket(io) {
         } else if (question.interactionType === "slider_adjust") {
           correctAnswerData = question.sliders?.map(
             (s) => `${s.label}: ${s.correctValue}${s.unit}`,
+          );
+        } else if (question.interactionType === "visual_sequence") {
+          correctAnswerData = question.correctOrder.map(
+            (i) => question.items?.[i] ?? String(i),
+          );
+        } else if (question.interactionType === "code_trace") {
+          correctAnswerData = question.correctOrder.map(
+            (i) => question.steps?.[i]?.lineLabel ?? String(i),
           );
         }
 
@@ -1373,6 +1392,7 @@ function sanitizeQuestion(question, category, challengeMode = "classic", room = 
       base.hint = question.hint;
     } else if (question.interactionType === "predict_output") {
       base.codeSnippet = question.codeSnippet;
+      base.language    = room?.language || "javascript";
     } else if (question.interactionType === "slider_adjust") {
       // Send slider config WITHOUT correctValue/tolerance
       base.sliders = question.sliders?.map((s) => ({
@@ -1382,6 +1402,16 @@ function sanitizeQuestion(question, category, challengeMode = "classic", room = 
         max: s.max,
         step: s.step,
       }));
+    } else if (question.interactionType === "visual_sequence") {
+      base.gridConfig = question.gridConfig;
+      base.items      = question.items;
+      base.context    = question.context;
+      // correctOrder stays server-side for validation
+    } else if (question.interactionType === "code_trace") {
+      base.codeSnippet = question.codeSnippet;
+      base.steps       = question.steps;
+      base.language    = room?.language || "javascript";
+      // correctOrder stays server-side for validation
     }
 
     return base;
@@ -1453,12 +1483,16 @@ async function endGame(io, roomCode, room) {
     .sort((a, b) => {
       if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
       if (b.score !== a.score) return b.score - a.score;
-      // Tie-break: finished player who completed faster ranks higher
+      // Tie-break by time only when both players have scored (draws show as draws, not decided by speed)
       if (a.timeTaken === null && b.timeTaken === null) return 0;
       if (a.timeTaken === null) return 1;
       if (b.timeTaken === null) return -1;
       return a.timeTaken - b.timeTaken;
     });
+
+  // Detect draw: top non-eliminated finished players share the same score
+  const activePlayers = finalLeaderboard.filter(p => !p.eliminated && p.finished);
+  const isDraw = activePlayers.length >= 2 && activePlayers[0].score === activePlayers[1].score;
 
   let teamScores = null;
   if (room.playerTeam) {
@@ -1486,10 +1520,11 @@ async function endGame(io, roomCode, room) {
     leaderboard: finalLeaderboard,
     playerTeam: room.playerTeam || null,
     teamScores,
+    isDraw,
   });
 
   // Award XP (skip for practice mode) — fire-and-forget; emits userXPUpdated per player
-  if (room.gameMode !== "practice") awardXP(io, finalLeaderboard, room, finalLeaderboard.length);
+  if (room.gameMode !== "practice") awardXP(io, finalLeaderboard, room, finalLeaderboard.length, isDraw);
 
   // Save results to DB — skip for practice (unranked)
   if (room.gameMode === "practice") {
@@ -1638,7 +1673,8 @@ function setBlitzQuestionTimer(io, roomCode, room, player, questionIndex) {
   room._blitzTimers.set(player.id, timer);
 }
 
-async function awardXP(io, leaderboard, room, totalPlayers = 2) {
+async function awardXP(io, leaderboard, room, totalPlayers = 2, isDraw = false) {
+  const topScore = leaderboard[0]?.score ?? 0;
   await Promise.all(
     leaderboard.map(async (playerEntry, i) => {
       if (playerEntry.score <= 0) return;
@@ -1657,8 +1693,10 @@ async function awardXP(io, leaderboard, room, totalPlayers = 2) {
           rank: 1,
           status: "completed",
         });
+        // In a draw, all top-tied players share first-place placement so no one gets an unearned win bonus
+        const effectivePlacement = (isDraw && playerEntry.score === topScore) ? 0 : i;
         await processEvent(user, XP_EVENTS.COMPETITION_FINISHED, {
-          placement: i,
+          placement: effectivePlacement,
           score: playerEntry.score,
           totalPlayers,
           totalWins,

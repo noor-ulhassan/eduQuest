@@ -8,7 +8,7 @@ const questEntrySchema = new mongoose.Schema(
     claimed: { type: Boolean, default: false },
     meta: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const userQuestProgressSchema = new mongoose.Schema(
@@ -22,7 +22,7 @@ const userQuestProgressSchema = new mongoose.Schema(
     periodStart: { type: Date, required: true },
     quests: [questEntrySchema],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // One document per user per period type; old period replaced on rollover
@@ -31,5 +31,5 @@ userQuestProgressSchema.index({ periodStart: 1 });
 
 export const UserQuestProgress = mongoose.model(
   "UserQuestProgress",
-  userQuestProgressSchema
+  userQuestProgressSchema,
 );

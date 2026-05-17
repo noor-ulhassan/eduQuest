@@ -2,7 +2,13 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Loader2, Play, X, CheckCircle2 } from "lucide-react";
 
-const ReadyScreen = ({ isHost, readyQuestionCount, isStarting, onLaunch, onCancel }) => (
+const ReadyScreen = ({
+  isHost,
+  readyQuestionCount,
+  isStarting,
+  onLaunch,
+  onCancel,
+}) => (
   <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 relative overflow-hidden">
     {/* Ambient */}
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -50,7 +56,10 @@ const ReadyScreen = ({ isHost, readyQuestionCount, isStarting, onLaunch, onCance
               Questions Ready!
             </h2>
             <p className="text-zinc-500 text-sm">
-              <span className="text-green-400 font-semibold">{readyQuestionCount}</span> challenges generated successfully.
+              <span className="text-green-400 font-semibold">
+                {readyQuestionCount}
+              </span>{" "}
+              challenges generated successfully.
             </p>
           </div>
 
@@ -66,7 +75,11 @@ const ReadyScreen = ({ isHost, readyQuestionCount, isStarting, onLaunch, onCance
                 <button
                   onClick={onCancel}
                   className="py-3 px-4 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #242424", color: "#71717a" }}
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid #242424",
+                    color: "#71717a",
+                  }}
                 >
                   <X size={15} />
                   Cancel
@@ -78,12 +91,16 @@ const ReadyScreen = ({ isHost, readyQuestionCount, isStarting, onLaunch, onCance
                   style={{
                     background: "linear-gradient(135deg, #16a34a, #15803d)",
                     border: "1px solid rgba(34,197,94,0.3)",
-                    boxShadow: "0 0 24px rgba(34,197,94,0.15), 0 1px 0 rgba(255,255,255,0.06) inset",
+                    boxShadow:
+                      "0 0 24px rgba(34,197,94,0.15), 0 1px 0 rgba(255,255,255,0.06) inset",
                   }}
                 >
                   <div
                     className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300"
-                    style={{ background: "linear-gradient(135deg,rgba(255,255,255,0.06),transparent)" }}
+                    style={{
+                      background:
+                        "linear-gradient(135deg,rgba(255,255,255,0.06),transparent)",
+                    }}
                   />
                   {isStarting ? (
                     <Loader2 size={16} className="animate-spin" />
@@ -97,7 +114,10 @@ const ReadyScreen = ({ isHost, readyQuestionCount, isStarting, onLaunch, onCance
           ) : (
             <div
               className="rounded-xl p-4 flex items-center justify-center gap-3"
-              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #1e1e1e" }}
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid #1e1e1e",
+              }}
             >
               <div className="flex gap-1">
                 {[0, 1, 2].map((i) => (
@@ -105,11 +125,17 @@ const ReadyScreen = ({ isHost, readyQuestionCount, isStarting, onLaunch, onCance
                     key={i}
                     className="w-1.5 h-1.5 rounded-full bg-zinc-500"
                     animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.1, 0.8] }}
-                    transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      delay: i * 0.2,
+                    }}
                   />
                 ))}
               </div>
-              <span className="text-sm text-zinc-500">Waiting for host to launch...</span>
+              <span className="text-sm text-zinc-500">
+                Waiting for host to launch...
+              </span>
             </div>
           )}
         </div>

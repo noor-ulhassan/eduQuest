@@ -128,6 +128,7 @@ const TeamColumn = ({
 
 const GameOverScreen = ({
   finalResults,
+  isDraw,
   userId,
   onHome,
   onPlayAgain,
@@ -370,7 +371,7 @@ const GameOverScreen = ({
 
   // ─── Individual mode result screen (PUBG Premium Aesthetics) ───────────────────────
   const myRankIndex = finalResults.findIndex((p) => p.id === userId);
-  const iWon = myRankIndex === 0; // Rank 1 takes Victory
+  const iWon = myRankIndex === 0 && !isDraw; // Rank 1 takes Victory, unless it's a draw
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden selection:bg-orange-500/30 font-sans">
@@ -394,7 +395,7 @@ const GameOverScreen = ({
           {/* Ambient Backlight Glow behind illustration */}
           <div
             className={`absolute inset-0 w-48 h-48 sm:w-56 sm:h-56 mx-auto rounded-full blur-3xl opacity-30 pointer-events-none ${
-              iWon ? "bg-orange-500" : "bg-red-600"
+              isDraw ? "bg-zinc-400" : iWon ? "bg-orange-500" : "bg-red-600"
             }`}
           />
           <motion.div
@@ -402,22 +403,32 @@ const GameOverScreen = ({
             transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
             className="relative z-10"
           >
-            <img
-              src={iWon ? "/victory.png" : "/defeat.png"}
-              alt={iWon ? "Victory" : "Defeat"}
-              className={`w-64 sm:w-80 h-auto object-contain filter ${
-                iWon
-                  ? "drop-shadow-[0_12px_30px_rgba(234,88,12,0.5)]"
-                  : "drop-shadow-[0_12px_30px_rgba(220,38,38,0.5)]"
-              }`}
-            />
+            {isDraw ? (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <span className="text-8xl leading-none select-none">🤝</span>
+              </div>
+            ) : (
+              <img
+                src={iWon ? "/victory.png" : "/defeat.png"}
+                alt={iWon ? "Victory" : "Defeat"}
+                className={`w-64 sm:w-80 h-auto object-contain filter ${
+                  iWon
+                    ? "drop-shadow-[0_12px_30px_rgba(234,88,12,0.5)]"
+                    : "drop-shadow-[0_12px_30px_rgba(220,38,38,0.5)]"
+                }`}
+              />
+            )}
           </motion.div>
         </motion.div>
 
         {/* Heading Vibe */}
         <div className="text-center space-y-1 relative z-10">
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight uppercase leading-tight">
-            {iWon ? (
+            {isDraw ? (
+              <span className="bg-gradient-to-r from-zinc-200 via-zinc-300 to-zinc-200 bg-clip-text text-transparent">
+                It&apos;s a Draw!
+              </span>
+            ) : iWon ? (
               <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent ml-20 filter drop-shadow-[0_2px_10px_rgba(251,146,60,0.3)]">
                 Winner Winner Chicken Dinner!
               </span>

@@ -23,14 +23,12 @@ import { emit } from "@/lib/gamificationBus";
 
 const ICON_MAP = { Zap, TrendingUp, Brain, Globe, Flame, Mountain };
 
-/* ─── Quest Card ─────────────────────────────────────────── */
 const QuestCard = ({ quest, onClaim, claiming }) => {
   const Icon = ICON_MAP[quest.icon] || Zap;
   const pct = Math.min(100, Math.round((quest.progress / quest.target) * 100));
   const canClaim = quest.completed && !quest.claimed;
   const isClaiming = claiming === quest.id;
 
-  // State-based theming
   const isClaimed = quest.claimed;
   const isComplete = quest.completed && !quest.claimed;
 
@@ -172,7 +170,6 @@ const QuestCard = ({ quest, onClaim, claiming }) => {
   );
 };
 
-/* ─── Section Header ─────────────────────────────────────── */
 const SectionHeader = ({ title, subtitle, icon: SectionIcon }) => (
   <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/[0.05]">
     <div className="flex items-center gap-2">
@@ -185,7 +182,6 @@ const SectionHeader = ({ title, subtitle, icon: SectionIcon }) => (
   </div>
 );
 
-/* ─── Main Component ─────────────────────────────────────── */
 const DailyQuests = () => {
   const dispatch = useDispatch();
   const [quests, setQuests] = useState(null);

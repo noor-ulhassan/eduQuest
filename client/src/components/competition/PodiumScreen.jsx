@@ -4,7 +4,7 @@ import { Crown, Trophy, ArrowLeft, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const PodiumScreen = ({ leaderboard, userId, isHost, onHome, onPlayAgain, rematchVotes, onRequestRematch }) => {
+const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain, rematchVotes, onRequestRematch }) => {
   const sorted = [...leaderboard].sort((a, b) => {
     if ((a.eliminated || false) !== (b.eliminated || false)) return (a.eliminated || false) ? 1 : -1;
     return b.score - a.score;
@@ -13,7 +13,9 @@ const PodiumScreen = ({ leaderboard, userId, isHost, onHome, onPlayAgain, rematc
   const second = sorted[1];
   const third = sorted[2];
   const rest = sorted.slice(3);
-  const isWinner = winner?.id === userId;
+  // isDraw comes from server; also derive locally as fallback for leaderboard-only renders
+  const topTied = isDraw ?? (winner && second && !winner.eliminated && !second.eliminated && winner.score === second.score);
+  const isWinner = !topTied && winner?.id === userId;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans selection:bg-orange-500/30 flex flex-col items-center justify-center">
@@ -26,9 +28,13 @@ const PodiumScreen = ({ leaderboard, userId, isHost, onHome, onPlayAgain, rematc
           <motion.h1
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="text-4xl md:text-5xl font-black bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 bg-clip-text text-transparent"
+            className={`text-4xl md:text-5xl font-black bg-clip-text text-transparent ${
+              topTied
+                ? "bg-gradient-to-r from-zinc-300 via-zinc-100 to-zinc-300"
+                : "bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600"
+            }`}
           >
-            {isWinner ? "🏆 Victory!" : "Competition Ended"}
+            {topTied ? "🤝 It's a Draw!" : isWinner ? "🏆 Victory!" : "Competition Ended"}
           </motion.h1>
           <p className="text-zinc-400 text-lg">Final standings</p>
         </div>

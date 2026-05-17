@@ -106,10 +106,11 @@ const MatchConfiguration = ({ settings, isStarting, onUpdateSettings, onStartGam
           <div className="space-y-1 max-h-[200px] overflow-y-auto pr-0.5 custom-scrollbar">
             {(settings.category === "programming"
               ? [
-                  { id: "classic", name: "Classic Coding", icon: "💻", desc: "Standard algorithmic challenges" },
-                  { id: "scenario", name: "Scenario Challenge", icon: "🎭", desc: "Real-world engineering narratives" },
-                  { id: "debug", name: "Debug Detective", icon: "🔍", desc: "Find and fix critical bugs" },
-                  { id: "outage", name: "Production Outage", icon: "🚨", desc: "High-pressure incident response" },
+                  { id: "classic",            name: "Classic Coding",      icon: "💻", desc: "Standard algorithmic challenges" },
+                  { id: "scenario",           name: "Scenario Challenge",  icon: "🎭", desc: "Real-world engineering narratives" },
+                  { id: "debug",              name: "Debug Detective",      icon: "🔍", desc: "Find and fix critical bugs" },
+                  { id: "outage",             name: "Production Outage",   icon: "🚨", desc: "High-pressure incident response" },
+                  { id: "visual_interactive", name: "Visual Interactive",  icon: "🎮", desc: "Grid puzzles & code tracing" },
                 ]
               : [
                   { id: "classic", name: "Classic Quiz", icon: "📝", desc: "Standard multiple-choice" },

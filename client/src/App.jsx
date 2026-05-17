@@ -18,7 +18,7 @@ import AdminRoute from "./components/auth/AdminRoute";
 import HomePage from "./pages/Homepage/HomePage";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
-import AboutPage from "./pages/about/About";
+
 import QuizPage from "./pages/student/QuizPage";
 
 // ─── Lazily loaded (heavy pages, code-split on demand) ──────────────────────
@@ -27,14 +27,12 @@ const Profile = lazy(() => import("./pages/student/Profile"));
 const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
 const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
 const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
-const DocumentsPage = lazy(
-  () => import("./pages/Documents/DocumentsPage"),
-);
+const DocumentsPage = lazy(() => import("./pages/Documents/DocumentsPage"));
 const Playground = lazy(() => import("./pages/Playgrounds/Page"));
 const LanguagePlayground = lazy(
   () => import("./pages/Playgrounds/LanguagePlayground"),
 );
-const CommunityHome = lazy(() => import("./pages/Community/components/Home"));
+
 const CompetitionPage = lazy(
   () => import("./pages/Competition/CompetitionPage"),
 );
@@ -42,7 +40,9 @@ const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
 const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
-const GamificationDashboard = lazy(() => import("./pages/Dashboard/GamificationDashboard"));
+const GamificationDashboard = lazy(
+  () => import("./pages/Dashboard/GamificationDashboard"),
+);
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
 const AdminCourses = lazy(() => import("./pages/Admin/AdminCourses"));
@@ -65,11 +65,9 @@ const appRouter = createBrowserRouter([
       { path: "home", element: <Navigate to="/" replace /> },
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
-      { path: "about", element: <AboutPage /> },
       { path: "learn", element: <Navigate to="/workspace" replace /> },
       { path: "quiz", element: <QuizPage /> },
       { path: "playground", element: <Lazy element={Playground} /> },
-      { path: "community", element: <Lazy element={CommunityHome} /> },
 
       // Protected routes
       {
