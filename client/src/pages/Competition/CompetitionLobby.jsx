@@ -8,7 +8,7 @@ import { connectSocket, disconnectSocket, getSocket } from "../../lib/socket";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { playNotificationSound, playPlayerJoinedSound } from "@/lib/sound";
+import { playNotificationSound, playPlayerJoinedSound, playLobbyMusic, stopLobbyMusic, muteLobbyMusic, unmuteLobbyMusic } from "@/lib/sound";
 import LobbyHeader from "../../components/competition/LobbyHeader";
 import RoomCodeCard from "../../components/competition/RoomCodeCard";
 import MatchConfiguration from "../../components/competition/MatchConfiguration";
@@ -82,6 +82,7 @@ const CompetitionLobby = () => {
   const pendingNextQuestion = useRef(null);
   const [finalResults, setFinalResults] = useState(null);
   const [isDraw, setIsDraw] = useState(false);
+  const [isMusicMuted, setIsMusicMuted] = useState(false);
   const confettiFired = useRef(false);
   const prevTimerRef = useRef(null);
   const gameStartTimeRef = useRef(null);
@@ -753,6 +754,7 @@ const CompetitionLobby = () => {
 
   const handleLaunchGame = () => {
     if (!socket?.connected) return;
+    stopLobbyMusic();
     setIsStarting(true);
     socket.emit("launchGame", { roomCode }, (response) => {
       if (!response.success) {
@@ -942,6 +944,18 @@ const CompetitionLobby = () => {
       );
     }, 300);
   }, [gameState, leaderboard, user]);
+
+  // ─── Lobby background music ─────────────────────────────
+  useEffect(() => {
+    playLobbyMusic();
+    return () => stopLobbyMusic();
+  }, []);
+
+  useEffect(() => {
+    if (gameState === "playing" || gameState === "finished") {
+      stopLobbyMusic();
+    }
+  }, [gameState]);
 
   // ─── Blitz: per-question 15s countdown, resets on new question ──
   useEffect(() => {
@@ -1225,7 +1239,18 @@ const CompetitionLobby = () => {
 
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-5">
-          <LobbyHeader isHost={isHost} onLeave={handleLeave} />
+          <LobbyHeader
+            isHost={isHost}
+            onLeave={handleLeave}
+            isMusicMuted={isMusicMuted}
+            onToggleMusic={() => {
+              setIsMusicMuted((prev) => {
+                const next = !prev;
+                next ? muteLobbyMusic() : unmuteLobbyMusic();
+                return next;
+              });
+            }}
+          />
           {isHost ? (
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
               <div className="space-y-5 min-w-0 flex flex-col">

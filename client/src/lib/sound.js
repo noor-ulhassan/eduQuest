@@ -16,20 +16,24 @@ const getCtx = () => {
 const synth = (notes, masterGain = 0.3) => {
   try {
     const ctx = getCtx();
-    notes.forEach(({ freq, dur, delay = 0, type = "sine", gain = masterGain }) => {
-      const t = ctx.currentTime + delay;
-      const osc = ctx.createOscillator();
-      const vol = ctx.createGain();
-      osc.connect(vol);
-      vol.connect(ctx.destination);
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t);
-      vol.gain.setValueAtTime(gain, t);
-      vol.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      osc.start(t);
-      osc.stop(t + dur + 0.02);
-    });
-  } catch { /* audio unavailable */ }
+    notes.forEach(
+      ({ freq, dur, delay = 0, type = "sine", gain = masterGain }) => {
+        const t = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const vol = ctx.createGain();
+        osc.connect(vol);
+        vol.connect(ctx.destination);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t);
+        vol.gain.setValueAtTime(gain, t);
+        vol.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        osc.start(t);
+        osc.stop(t + dur + 0.02);
+      },
+    );
+  } catch {
+    /* audio unavailable */
+  }
 };
 
 // File-based fallback for ambient/UI sounds
@@ -38,12 +42,48 @@ const play = (src, volume = 0.6) => {
     const audio = new Audio(src);
     audio.volume = Math.min(1, Math.max(0, volume));
     audio.play().catch(() => {});
-  } catch { /* audio unavailable */ }
+  } catch {
+    /* audio unavailable */
+  }
 };
 
 // ─── UI / Lobby ────────────────────────────────────────────
 export const playNotificationSound = () => play("/notification.mp3", 0.45);
 export const playPlayerJoinedSound = () => play("/pop.mp3", 0.5);
+export const playCompeteClickSound = () => play("/sounds/sword-cut.mp3", 0.9);
+
+// ─── Match Configuration ────────────────────────────────────
+export const playSelectSound = () => play("/sounds/game-select.mp3", 0.55);
+export const playModeSelectSound = () => play("/sounds/game-select.mp3", 0.55);
+export const playMetricSelectSound = () =>
+  play("/sounds/mouse-click.mp3", 0.45);
+export const playBeginCompetitionSound = () =>
+  play("/sounds/mouse-click.mp3", 0.75);
+
+// ─── Lobby Background Music ────────────────────────────────
+let _lobbyMusic = null;
+
+export const playLobbyMusic = () => {
+  if (_lobbyMusic) return;
+  try {
+    _lobbyMusic = new Audio("/sounds/be-more-serious.mp3");
+    _lobbyMusic.loop = true;
+    _lobbyMusic.volume = 0.75;
+    _lobbyMusic.play().catch(() => {});
+  } catch {
+    /* audio unavailable */
+  }
+};
+
+export const stopLobbyMusic = () => {
+  if (!_lobbyMusic) return;
+  _lobbyMusic.pause();
+  _lobbyMusic.currentTime = 0;
+  _lobbyMusic = null;
+};
+
+export const muteLobbyMusic = () => { if (_lobbyMusic) _lobbyMusic.muted = true; };
+export const unmuteLobbyMusic = () => { if (_lobbyMusic) _lobbyMusic.muted = false; };
 
 // ─── VS Screen ─────────────────────────────────────────────
 export const playVSScreenSound = () =>
@@ -76,24 +116,9 @@ export const playCountdownGoSound = () =>
 export const playStartGameSound = playCountdownGoSound;
 
 // ─── In-Game ───────────────────────────────────────────────
-export const playCorrectSound = () =>
-  synth(
-    [
-      { freq: 523.25, dur: 0.1 },
-      { freq: 659.25, dur: 0.12, delay: 0.09 },
-      { freq: 783.99, dur: 0.22, delay: 0.19 },
-    ],
-    0.3,
-  );
+export const playCorrectSound = () => play("/sounds/correct.mp3", 0.6);
 
-export const playWrongSound = () =>
-  synth(
-    [
-      { freq: 280, dur: 0.09, type: "sawtooth", gain: 0.18 },
-      { freq: 210, dur: 0.18, delay: 0.08, type: "sawtooth", gain: 0.14 },
-    ],
-    0.18,
-  );
+export const playWrongSound = () => play("/sounds/error.mp3", 0.6);
 
 export const playVictorySound = () =>
   synth(
@@ -116,41 +141,24 @@ export const playTimerWarningSound = () =>
 export const playRankChangeSound = () =>
   synth(
     [
-      { freq: 440,    dur: 0.08, type: "sine", gain: 0.18 },
+      { freq: 440, dur: 0.08, type: "sine", gain: 0.18 },
       { freq: 587.33, dur: 0.08, delay: 0.07, type: "sine", gain: 0.18 },
-      { freq: 783.99, dur: 0.12, delay: 0.14, type: "sine", gain: 0.20 },
+      { freq: 783.99, dur: 0.12, delay: 0.14, type: "sine", gain: 0.2 },
       { freq: 1046.5, dur: 0.28, delay: 0.22, type: "sine", gain: 0.16 },
     ],
-    0.20,
+    0.2,
   );
 
 // ─── Gamification ──────────────────────────────────────────
 // Level-up fanfare: bass impact → ascending scale → triumphant chord
-export const playLevelUpSound = () =>
-  synth(
-    [
-      { freq: 82.41,  dur: 0.32, type: "sine",     gain: 0.42 },
-      { freq: 110,    dur: 0.28, type: "triangle",  gain: 0.24 },
-      { freq: 261.63, dur: 0.09, type: "sine", gain: 0.28, delay: 0.07 },
-      { freq: 329.63, dur: 0.09, type: "sine", gain: 0.30, delay: 0.15 },
-      { freq: 392,    dur: 0.09, type: "sine", gain: 0.30, delay: 0.23 },
-      { freq: 523.25, dur: 0.09, type: "sine", gain: 0.32, delay: 0.31 },
-      { freq: 659.25, dur: 0.09, type: "sine", gain: 0.34, delay: 0.39 },
-      { freq: 1046.5, dur: 0.22, type: "sine", gain: 0.40, delay: 0.47 },
-      { freq: 523.25, dur: 1.1,  type: "sine", gain: 0.18, delay: 0.68 },
-      { freq: 659.25, dur: 1.1,  type: "sine", gain: 0.14, delay: 0.68 },
-      { freq: 783.99, dur: 1.1,  type: "sine", gain: 0.12, delay: 0.68 },
-      { freq: 1046.5, dur: 1.1,  type: "sine", gain: 0.20, delay: 0.68 },
-    ],
-    0.3,
-  );
+export const playLevelUpSound = () => play("/sounds/level-up.mp3", 0.7);
 
 // Badge earned — 4 rarity tiers with escalating drama
 export const playBadgeEarnedSound = (rarity = "Common") => {
   const configs = {
     Common: [
       { freq: 659.25, dur: 0.12, gain: 0.22 },
-      { freq: 880,    dur: 0.22, delay: 0.1, gain: 0.20 },
+      { freq: 880, dur: 0.22, delay: 0.1, gain: 0.2 },
     ],
     Rare: [
       { freq: 523.25, dur: 0.09, gain: 0.24 },
@@ -158,21 +166,21 @@ export const playBadgeEarnedSound = (rarity = "Common") => {
       { freq: 1046.5, dur: 0.32, delay: 0.18, gain: 0.26 },
     ],
     Epic: [
-      { freq: 392,    dur: 0.08, gain: 0.22 },
+      { freq: 392, dur: 0.08, gain: 0.22 },
       { freq: 523.25, dur: 0.08, delay: 0.08, gain: 0.24 },
       { freq: 659.25, dur: 0.08, delay: 0.16, gain: 0.26 },
-      { freq: 1046.5, dur: 0.45, delay: 0.24, gain: 0.30 },
-      { freq: 1318.5, dur: 0.35, delay: 0.30, gain: 0.14 },
+      { freq: 1046.5, dur: 0.45, delay: 0.24, gain: 0.3 },
+      { freq: 1318.5, dur: 0.35, delay: 0.3, gain: 0.14 },
     ],
     Legendary: [
-      { freq: 82.41,  dur: 0.22, type: "sine", gain: 0.38 },
+      { freq: 82.41, dur: 0.22, type: "sine", gain: 0.38 },
       { freq: 329.63, dur: 0.08, gain: 0.26, delay: 0.07 },
-      { freq: 440,    dur: 0.08, gain: 0.28, delay: 0.15 },
+      { freq: 440, dur: 0.08, gain: 0.28, delay: 0.15 },
       { freq: 554.37, dur: 0.08, gain: 0.28, delay: 0.23 },
-      { freq: 880,    dur: 0.08, gain: 0.30, delay: 0.31 },
+      { freq: 880, dur: 0.08, gain: 0.3, delay: 0.31 },
       { freq: 1174.7, dur: 0.55, gain: 0.32, delay: 0.39 },
       { freq: 587.33, dur: 0.55, gain: 0.14, delay: 0.56 },
-      { freq: 880,    dur: 0.55, gain: 0.12, delay: 0.56 },
+      { freq: 880, dur: 0.55, gain: 0.12, delay: 0.56 },
       { freq: 1174.7, dur: 0.55, gain: 0.18, delay: 0.56 },
     ],
   };
@@ -180,12 +188,4 @@ export const playBadgeEarnedSound = (rarity = "Common") => {
 };
 
 // XP chime — punchy 3-note ascending arpeggio
-export const playXPGainSound = () =>
-  synth(
-    [
-      { freq: 783.99,  dur: 0.08, gain: 0.20 },
-      { freq: 1046.5,  dur: 0.08, delay: 0.07, gain: 0.20 },
-      { freq: 1318.5,  dur: 0.20, delay: 0.14, gain: 0.22 },
-    ],
-    0.20,
-  );
+export const playXPGainSound = () => play("/sounds/level-up-0", 0.5);

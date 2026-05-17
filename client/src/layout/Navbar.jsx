@@ -20,8 +20,7 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
 import { Menu, ChevronDown, ChevronRight } from "lucide-react";
-
-
+import { playCompeteClickSound } from "@/lib/sound.js";
 
 const navLinks = [
   { label: "Dashboard", path: "/dashboard" },
@@ -69,11 +68,12 @@ const Navbar = () => {
         {/* Nav Links */}
         <NavigationMenu>
           <NavigationMenuList className="flex gap-8">
-            
-           
             {/* Dynamic top-level links */}
             {navLinks.map((link) => (
-              <NavigationMenuItem key={link.path}>
+              <NavigationMenuItem
+                key={link.path}
+                onClick={link.label === "Compete" ? playCompeteClickSound : undefined}
+              >
                 <NavigationMenuLink asChild>
                   <Link
                     to={link.path}
@@ -167,7 +167,10 @@ const Navbar = () => {
                 {navLinks.map((link) => (
                   <button
                     key={link.path}
-                    onClick={() => handleLinkClick(link.path)}
+                    onClick={() => {
+                      if (link.label === "Compete") playCompeteClickSound();
+                      handleLinkClick(link.path);
+                    }}
                     className="w-full px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
                   >
                     {link.label}
