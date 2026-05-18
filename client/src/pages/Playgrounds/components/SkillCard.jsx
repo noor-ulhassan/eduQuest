@@ -7,7 +7,7 @@ import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 
 const LANG_META = {
-  Html: {
+  html: {
     desc: "Semantic markup & web structure",
     difficulty: "Beginner",
     diffColor: "text-emerald-400",
@@ -22,7 +22,7 @@ const LANG_META = {
       "SEO-friendly structure",
     ],
   },
-  Css: {
+  css: {
     desc: "Styling, layouts & animations",
     difficulty: "Beginner",
     diffColor: "text-emerald-400",
@@ -37,7 +37,7 @@ const LANG_META = {
       "Responsive design",
     ],
   },
-  JavaScript: {
+  javascript: {
     desc: "Dynamic scripting for the web",
     difficulty: "Intermediate",
     diffColor: "text-yellow-400",
@@ -52,7 +52,7 @@ const LANG_META = {
       "Error handling",
     ],
   },
-  Python: {
+  python: {
     desc: "AI, data science & automation",
     difficulty: "Beginner",
     diffColor: "text-emerald-400",
@@ -67,7 +67,7 @@ const LANG_META = {
       "OOP in Python",
     ],
   },
-  React: {
+  react: {
     desc: "Component-driven reactive UIs",
     difficulty: "Intermediate",
     diffColor: "text-yellow-400",
@@ -82,7 +82,7 @@ const LANG_META = {
       "Component design",
     ],
   },
-  "Data Structures & Algorithms": {
+  dsa: {
     desc: "Ace every technical interview",
     difficulty: "Advanced",
     diffColor: "text-red-400",
@@ -102,6 +102,7 @@ const LANG_META = {
 const SPRING = { type: "spring", stiffness: 300, damping: 30, mass: 0.85 };
 
 export default function SkillCard({
+  language,
   title,
   img,
   href,
@@ -119,7 +120,7 @@ export default function SkillCard({
   const progressPct = progress?.total
     ? Math.min(100, Math.round((progress.completed / progress.total) * 100))
     : 0;
-  const meta = LANG_META[title] || {
+  const meta = LANG_META[language] || {
     desc: "",
     difficulty: "",
     diffColor: "text-zinc-400",

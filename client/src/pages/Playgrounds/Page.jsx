@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
+import { useQuery } from "@tanstack/react-query";
 import SkillCard from "./components/SkillCard";
 import {
   getPlaygroundProgress,
@@ -8,11 +9,21 @@ import {
 import { Terminal } from "lucide-react";
 import { DottedGlowBackground } from "../../components/ui/dotted-glow-background";
 
+const LANGUAGE_IMAGES = {
+  html: "/html1.png",
+  css: "/css1.png",
+  javascript: "/js2.png",
+  python: "/python1.png",
+  react: "/react.png",
+  dsa: "/dsa1.jpg",
+  cpp: "/c.png",
+  typescript: "/ts.png",
+  java: "/java.png",
+};
+const IMG_FALLBACK = "/code.png";
+
 export default function Playground() {
   const user = useSelector((state) => state.auth.user);
-  const [progressData, setProgressData] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [activeCard, setActiveCard] = useState(null);
 
   useEffect(() => {
@@ -23,57 +34,70 @@ export default function Playground() {
     };
   }, [activeCard]);
 
-  useEffect(() => {
-    const fetchProgress = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const [{ progress }, { metadata }] = await Promise.all([
-          getPlaygroundProgress(),
-          getCurriculumsMetadata(),
-        ]);
+  // enabled: !!user  →  queries only run when the user is logged in.
+  // staleTime: 5 min →  navigating away and back will NOT re-fetch within that window.
+  const {
+    data: progressPayload,
+    isLoading: progressLoading,
+    isError: progressError,
+  } = useQuery({
+    queryKey: ["playground", "progress"],
+    queryFn: getPlaygroundProgress,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 
-        const progressMap = {};
+  const {
+    data: metadataPayload,
+    isLoading: metadataLoading,
+    isError: metadataError,
+  } = useQuery({
+    queryKey: ["curriculum", "metadata"],
+    queryFn: getCurriculumsMetadata,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 
-        // Default init with total problems
-        if (metadata) {
-          metadata.forEach((m) => {
-            progressMap[m.language] = {
-              enrolled: false,
-              completed: 0,
-              total: m.totalProblems,
-            };
-          });
+  const error =
+    progressError || metadataError
+      ? "Failed to load progress. Please refresh the page."
+      : null;
+
+  // Build the progressMap whenever either payload arrives.
+  // progressPayload  →  { progress: [...] }
+  // metadataPayload  →  { metadata: [...] }
+  const progressData = useMemo(() => {
+    const map = {};
+    const metadata = metadataPayload?.metadata;
+    const progress = progressPayload?.progress;
+
+    if (metadata) {
+      metadata.forEach((m) => {
+        map[m.language] = {
+          enrolled: false,
+          completed: 0,
+          total: m.totalProblems,
+        };
+      });
+    }
+
+    if (progress && Array.isArray(progress)) {
+      progress.forEach((p) => {
+        if (map[p.language]) {
+          map[p.language].enrolled = true;
+          map[p.language].completed = p.completedProblems?.length || 0;
+        } else {
+          map[p.language] = {
+            enrolled: true,
+            completed: p.completedProblems?.length || 0,
+            total: 0,
+          };
         }
+      });
+    }
 
-        if (progress && Array.isArray(progress)) {
-          progress.forEach((p) => {
-            if (progressMap[p.language]) {
-              progressMap[p.language].enrolled = true;
-              progressMap[p.language].completed =
-                p.completedProblems?.length || 0;
-            } else {
-              // fallback if metadata is somehow missing for an enrolled language
-              progressMap[p.language] = {
-                enrolled: true,
-                completed: p.completedProblems?.length || 0,
-                total: 0,
-              };
-            }
-          });
-        }
-        setProgressData(progressMap);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to load progress. Please refresh the page.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProgress();
-  }, [user]);
+    return map;
+  }, [progressPayload, metadataPayload]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] font-sans pb-24 text-white">
@@ -137,56 +161,27 @@ export default function Playground() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 justify-items-center">
-          {[
-            {
-              title: "Html",
-              img: "/html1.png",
-              key: "html",
-              href: "/playground/html",
-            },
-            {
-              title: "Css",
-              img: "/css1.png",
-              key: "css",
-              href: "/playground/css",
-            },
-            {
-              title: "JavaScript",
-              img: "/js2.png",
-              key: "javascript",
-              href: "/playground/javascript",
-            },
-            {
-              title: "Python",
-              img: "/python1.png",
-              key: "python",
-              href: "/playground/python",
-            },
-            {
-              title: "React",
-              img: "/react.png",
-              key: "react",
-              href: "/playground/react",
-            },
-            {
-              title: "Data Structures & Algorithms",
-              img: "/dsa1.jpg",
-              key: "dsa",
-              href: "/playground/dsa",
-            },
-          ].map(({ title, img, key, href }) => (
-            <SkillCard
-              key={title}
-              title={title}
-              img={img}
-              href={href}
-              progress={progressData[key]}
-              isLoading={isLoading}
-              active={activeCard === title}
-              onOpen={() => setActiveCard(title)}
-              onClose={() => setActiveCard(null)}
-            />
-          ))}
+          {metadataLoading
+            ? Array.from({ length: 6 }, (_, i) => (
+                <div
+                  key={i}
+                  className="w-full max-w-[270px] h-[340px] rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse"
+                />
+              ))
+            : (metadataPayload?.metadata || []).map(({ language, title }) => (
+                <SkillCard
+                  key={language}
+                  language={language}
+                  title={title}
+                  img={LANGUAGE_IMAGES[language] || IMG_FALLBACK}
+                  href={`/playground/${language}`}
+                  progress={progressData[language]}
+                  isLoading={progressLoading}
+                  active={activeCard === language}
+                  onOpen={() => setActiveCard(language)}
+                  onClose={() => setActiveCard(null)}
+                />
+              ))}
         </div>
       </div>
     </div>

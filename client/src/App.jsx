@@ -19,12 +19,7 @@ import HomePage from "./pages/Homepage/HomePage";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
 
-import QuizPage from "./pages/student/QuizPage";
-
 // ─── Lazily loaded (heavy pages, code-split on demand) ──────────────────────
-const MyLearning = lazy(() => import("./pages/student/MyLearning"));
-const Profile = lazy(() => import("./pages/student/Profile"));
-const PublicProfile = lazy(() => import("./pages/student/PublicProfile"));
 const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
 const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
 const DocumentsPage = lazy(() => import("./pages/Documents/DocumentsPage"));
@@ -40,9 +35,6 @@ const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
 const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
-const GamificationDashboard = lazy(
-  () => import("./pages/Dashboard/GamificationDashboard"),
-);
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
 const AdminCourses = lazy(() => import("./pages/Admin/AdminCourses"));
@@ -66,34 +58,9 @@ const appRouter = createBrowserRouter([
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
       { path: "learn", element: <Navigate to="/workspace" replace /> },
-      { path: "quiz", element: <QuizPage /> },
       { path: "playground", element: <Lazy element={Playground} /> },
 
       // Protected routes
-      {
-        path: "my-learning",
-        element: (
-          <ProtectedRoute>
-            <Lazy element={MyLearning} />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "profile",
-        element: (
-          <ProtectedRoute>
-            <Lazy element={Profile} />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "profile/:userId",
-        element: (
-          <ProtectedRoute>
-            <Lazy element={PublicProfile} />
-          </ProtectedRoute>
-        ),
-      },
       {
         path: "course/:courseId",
         element: (
@@ -200,14 +167,6 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Lazy element={LeaderboardPage} />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "dashboard",
-        element: (
-          <ProtectedRoute>
-            <Lazy element={GamificationDashboard} />
           </ProtectedRoute>
         ),
       },

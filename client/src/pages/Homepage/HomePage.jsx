@@ -16,6 +16,7 @@ import { GoogleGeminiEffect } from "@/components/ui/google-gemini-effect";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards";
 import { MacbookScroll } from "@/components/ui/macbook-scroll";
 import { StickyScroll } from "@/components/ui/sticky-scroll-reveal";
+import SmartSuggestion from "@/components/home/SmartSuggestion";
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -161,6 +162,12 @@ const HomePage = () => {
             <DailyQuests />
           </div>
 
+          <div className="flex flex-col lg:flex-row gap-4 items-start">
+          <div className="w-full lg:w-80 shrink-0">
+            <SmartSuggestion />
+          </div>
+          
+        </div>
           {/* Competition Stats */}
 
           {/* Hall of Fame */}

@@ -22,7 +22,6 @@ const MainLayout = () => {
     location.pathname.startsWith("/problem/") ||
     location.pathname.startsWith("/documents") ||
     location.pathname === "/workspace" ||
-    location.pathname === "/dashboard" ||
     location.pathname.startsWith("/course/") ||
     isPlaygroundRoute ||
     location.pathname.startsWith("/competition") ||

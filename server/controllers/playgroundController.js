@@ -70,11 +70,10 @@ export const enrollPlayground = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { language } = req.body;
 
-  if (
-    !["html", "css", "javascript", "python", "react", "dsa"].includes(language)
-  ) {
-    throw new ApiError(400, "Invalid language");
-  }
+  if (!language?.trim()) throw new ApiError(400, "Language is required");
+
+  const curriculumExists = await Curriculum.exists({ language });
+  if (!curriculumExists) throw new ApiError(400, "Invalid language");
 
   let progress = await PlaygroundProgress.findOne({ userId, language });
 

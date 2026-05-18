@@ -6,15 +6,21 @@ import { callAiModel } from "../config/aiProvider.js";
 import { nanoid } from "nanoid";
 
 export const getAllCurriculumsMetadata = asyncHandler(async (req, res) => {
-  const curriculums = await Curriculum.find({}, 'language chapters.title chapters.problems._id');
+  const curriculums = await Curriculum.find(
+    {},
+    'language title subtitle executionMode chapters.title chapters.problems._id'
+  );
 
   const metadata = curriculums.map(c => {
     const totalProblems = c.chapters.reduce((sum, ch) => sum + ch.problems.length, 0);
     return {
       language: c.language,
+      title: c.title,
+      subtitle: c.subtitle || "",
+      executionMode: c.executionMode || "piston",
       totalProblems,
       totalChapters: c.chapters.length,
-      lessons: c.chapters.slice(0, 2).map(ch => ch.title)
+      lessons: c.chapters.slice(0, 2).map(ch => ch.title),
     };
   });
 

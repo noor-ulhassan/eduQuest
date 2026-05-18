@@ -10,7 +10,6 @@ const PlaygroundProgressSchema = new mongoose.Schema(
     language: {
       type: String,
       required: true,
-      enum: ["html", "css", "javascript", "python", "react", "dsa"],
     },
     completedProblems: {
       type: [String],

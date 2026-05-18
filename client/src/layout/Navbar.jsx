@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
-import NotificationBell from "@/components/social/NotificationBell";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -23,7 +22,6 @@ import { Menu, ChevronDown, ChevronRight } from "lucide-react";
 import { playCompeteClickSound } from "@/lib/sound.js";
 
 const navLinks = [
-  { label: "Dashboard", path: "/dashboard" },
   { label: "Compete", path: "/competition" },
   { label: "Playground", path: "/playground" },
   { label: "Create & Learn", path: "/workspace" },
@@ -87,9 +85,7 @@ const Navbar = () => {
           </NavigationMenuList>
         </NavigationMenu>
 
-        {/* Notification Bell + Auth */}
         <div className="flex items-center gap-3 shrink-0">
-          <NotificationBellConditional />
           <NavbarAuthButtons />
         </div>
       </div>
@@ -105,8 +101,6 @@ const Navbar = () => {
         </Link>
 
         <div className="flex items-center gap-3">
-          {user && <NotificationBell />}
-
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <button
@@ -245,13 +239,6 @@ const NavbarAuthButtons = () => {
       </button>
     </div>
   );
-};
-
-// Only render NotificationBell when user is logged in
-const NotificationBellConditional = () => {
-  const { user } = useSelector((state) => state.auth);
-  if (!user) return null;
-  return <NotificationBell />;
 };
 
 export default Navbar;
