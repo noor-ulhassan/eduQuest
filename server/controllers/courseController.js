@@ -9,16 +9,11 @@ import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { computeAndSave } from "../services/SuggestionEngine.js";
 
 export const geminiCourseGenerator = asyncHandler(async (req, res) => {
-  const {
-    name,
-    description,
-    category,
-    level,
-    noOfChapters,
-    language,
-  } = req.body;
+  const { name, description, category, level, noOfChapters, language } =
+    req.body;
 
   if (!name || !description || !category || !level || !noOfChapters) {
     throw new ApiError(400, "All fields are required");
@@ -63,7 +58,8 @@ export const geminiCourseGenerator = asyncHandler(async (req, res) => {
     }
     Return ONLY raw JSON. No markdown. No backticks.`;
 
-  const aiResponse = await callAiModel(prompt, { model: "gemini-3.1-flash-lite-preview" });
+  // const aiResponse = await callAiModel(prompt, { model: "gemini-3.1-flash-lite-preview" });
+  const aiResponse = await callAiModel(prompt);
 
   const courseId = uuidv4();
 
@@ -108,16 +104,21 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
   if (!existingCourse) throw new ApiError(404, "Course not found");
 
   // Cache: return existing Chapter doc if blocks already generated
-  const existingChapter = await Chapter.findOne({ courseId, chapterNumber: index + 1 });
+  const existingChapter = await Chapter.findOne({
+    courseId,
+    chapterNumber: index + 1,
+  });
   if (existingChapter?.blocks?.length > 0) {
-    return res.status(200).json(
-      new ApiResponse(200, { data: existingChapter, cached: true })
-    );
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { data: existingChapter, cached: true }));
   }
 
   const language = existingCourse.language || "general";
   const includePlaygroundTask = !["general", "dsa"].includes(language);
-  const codeLanguage = ["general", "dsa"].includes(language) ? "python" : language;
+  const codeLanguage = ["general", "dsa"].includes(language)
+    ? "python"
+    : language;
 
   const playgroundBlockExample = includePlaygroundTask
     ? `,\n    { "id": "b7", "type": "playground-task", "language": "${language}", "instruction": "Clear coding task instruction", "starterCode": "# write your code here\\n", "testCases": [{ "input": "", "expectedOutput": "expected output here" }] }`
@@ -153,9 +154,11 @@ Rules (follow strictly):
 6. Include "concept-card" blocks for key terms (title = term name, subtitle = one-line definition).
 7. Include a "mermaid" block ONLY if the topic has a clear flow, process, algorithm, or data structure. Use ONLY "graph TD" syntax. Return empty string "" for mermaid content if not applicable — but prefer omitting the block entirely.
 8. For every "youtube" block: leave "url" as empty string. Set "videoTitle" to a specific search query that finds a good tutorial video.
-9. ${includePlaygroundTask
-    ? `Include exactly one "playground-task" block with: a clear instruction, working starterCode in "${language}", and at least one testCase where expectedOutput matches what the code should print/return.`
-    : `Do NOT include any "playground-task" blocks. The course language "${language}" does not support live execution tasks.`}
+9. ${
+    includePlaygroundTask
+      ? `Include exactly one "playground-task" block with: a clear instruction, working starterCode in "${language}", and at least one testCase where expectedOutput matches what the code should print/return.`
+      : `Do NOT include any "playground-task" blocks. The course language "${language}" does not support live execution tasks.`
+  }
 10. All block "id" values must be unique strings (b1, b2, b3, ...).`;
 
   const aiResponse = await callAiModel(prompt);
@@ -187,14 +190,14 @@ Rules (follow strictly):
         return { ...block, id, url };
       }
       return { ...block, id };
-    })
+    }),
   );
 
   // Upsert Chapter document
   const savedChapter = await Chapter.findOneAndUpdate(
     { courseId, chapterNumber: index + 1 },
     { courseId, chapterNumber: index + 1, title: aiResponse.title, blocks },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true },
   );
 
   // Link Chapter ObjectId into Course.chapters array and set status to draft
@@ -204,9 +207,12 @@ Rules (follow strictly):
       $addToSet: { chapters: savedChapter._id },
       $set: {
         status: "draft",
-        [`courseOutput.chapters.${index}`]: { chapterName: aiResponse.title, blocks },
+        [`courseOutput.chapters.${index}`]: {
+          chapterName: aiResponse.title,
+          blocks,
+        },
       },
-    }
+    },
   );
 
   return res.status(200).json(new ApiResponse(200, { data: savedChapter }));
@@ -215,9 +221,7 @@ Rules (follow strictly):
 export const getAllCourses = asyncHandler(async (req, res) => {
   const isAdmin = req.user?.role === "admin";
 
-  const query = isAdmin
-    ? { userEmail: req.user.email }
-    : { isPublished: true };
+  const query = isAdmin ? { userEmail: req.user.email } : { isPublished: true };
 
   const courses = await Course.find(query).sort({ createdAt: -1 });
   return res.status(200).json(new ApiResponse(200, { courses }));
@@ -233,9 +237,15 @@ export const publishCourse = asyncHandler(async (req, res) => {
   else if (course.status === "published") course.status = "draft";
   await course.save();
 
-  return res.status(200).json(
-    new ApiResponse(200, { course }, course.isPublished ? "Course published" : "Course unpublished")
-  );
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { course },
+        course.isPublished ? "Course published" : "Course unpublished",
+      ),
+    );
 });
 
 export const deleteCourse = asyncHandler(async (req, res) => {
@@ -255,7 +265,7 @@ export const updateCourseChapter = asyncHandler(async (req, res) => {
 
   await Course.findOneAndUpdate(
     { courseId },
-    { $set: { [`courseOutput.chapters.${index}`]: chapterData } }
+    { $set: { [`courseOutput.chapters.${index}`]: chapterData } },
   );
 
   return res.status(200).json(new ApiResponse(200, null, "Chapter updated"));
@@ -275,13 +285,15 @@ export const enrollToCourse = asyncHandler(async (req, res) => {
   });
 
   if (existingEnrollment) {
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        { enrollment: existingEnrollment },
-        "User is already enrolled",
-      ),
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { enrollment: existingEnrollment },
+          "User is already enrolled",
+        ),
+      );
   }
 
   const newEnrollment = await Enrollment.create({
@@ -290,14 +302,23 @@ export const enrollToCourse = asyncHandler(async (req, res) => {
     completedChapters: [],
   });
 
-  return res.status(201).json(
-    new ApiResponse(201, { enrollment: newEnrollment }, "Enrolled successfully"),
-  );
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { enrollment: newEnrollment },
+        "Enrolled successfully",
+      ),
+    );
 });
 
 export const getEnrollmentStatus = asyncHandler(async (req, res) => {
   const { courseId } = req.query;
-  const enrollment = await Enrollment.findOne({ courseId, userEmail: req.user.email });
+  const enrollment = await Enrollment.findOne({
+    courseId,
+    userEmail: req.user.email,
+  });
 
   if (!enrollment) throw new ApiError(404, "Enrollment not found");
 
@@ -312,7 +333,10 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
   }
 
   // Snapshot previous state so we can detect first-time course completion
-  const prevEnrollment = await Enrollment.findOne({ _id: enrollmentId, userEmail: req.user.email });
+  const prevEnrollment = await Enrollment.findOne({
+    _id: enrollmentId,
+    userEmail: req.user.email,
+  });
   if (!prevEnrollment) throw new ApiError(404, "Enrollment not found");
   const chapterIsNew = !prevEnrollment.completedChapters.includes(chapterName);
 
@@ -324,9 +348,11 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
 
   const course = await Course.findOne({ courseId: updatedEnrollment.courseId });
   if (course) {
-    const totalChapters = course.noOfChapters || course.courseOutput?.chapters?.length || 1;
+    const totalChapters =
+      course.noOfChapters || course.courseOutput?.chapters?.length || 1;
     const completedCount = updatedEnrollment.completedChapters.length;
-    const isCourseNewlyComplete = chapterIsNew && completedCount >= totalChapters;
+    const isCourseNewlyComplete =
+      chapterIsNew && completedCount >= totalChapters;
     const achievements = course.courseOutput?.achievements || [];
     const newUnlocks = [];
 
@@ -348,7 +374,10 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
 
     const finalEnrollment = await Enrollment.findById(enrollmentId);
     const user = await User.findById(req.user._id);
-    const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, { courseCompleted: isCourseNewlyComplete });
+    const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, {
+      courseCompleted: isCourseNewlyComplete,
+    });
+    computeAndSave(req.user).catch(() => {});
     return res.status(200).json(
       new ApiResponse(200, {
         enrollment: finalEnrollment,
@@ -366,6 +395,7 @@ export const markChapterCompleted = asyncHandler(async (req, res) => {
 
   const user = await User.findById(req.user._id);
   const updatedUser = await processEvent(user, XP_EVENTS.WORKSPACE_CHAPTER, {});
+  computeAndSave(req.user).catch(() => {});
   return res.status(200).json(
     new ApiResponse(200, {
       enrollment: updatedEnrollment,
@@ -480,7 +510,8 @@ Rules:
 
 export const updateCourseMetadata = asyncHandler(async (req, res) => {
   const { courseId } = req.params;
-  const { name, description, level, category, language, linkedPlayground } = req.body;
+  const { name, description, level, category, language, linkedPlayground } =
+    req.body;
 
   const updateFields = {};
   if (name !== undefined) updateFields.name = name;
@@ -488,12 +519,13 @@ export const updateCourseMetadata = asyncHandler(async (req, res) => {
   if (level !== undefined) updateFields.level = level;
   if (category !== undefined) updateFields.category = category;
   if (language !== undefined) updateFields.language = language;
-  if (linkedPlayground !== undefined) updateFields.linkedPlayground = linkedPlayground || null;
+  if (linkedPlayground !== undefined)
+    updateFields.linkedPlayground = linkedPlayground || null;
 
   const course = await Course.findOneAndUpdate(
     { courseId },
     { $set: updateFields },
-    { new: true }
+    { new: true },
   );
   if (!course) throw new ApiError(404, "Course not found");
 
@@ -540,4 +572,3 @@ export const aiEditTopic = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse(200, { topic: newTopicData }));
 });
-

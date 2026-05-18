@@ -2,6 +2,7 @@ import TopicPerformance from "../models/TopicPerformance.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import { Course } from "../models/AiCourse.js";
 import { Curriculum } from "../models/Curriculum.js";
+import { Suggestion } from "../models/Suggestion.js";
 
 const norm = (s) => (s || "").trim().toLowerCase();
 
@@ -114,4 +115,19 @@ export async function generateSuggestion(user) {
 
   // ── Priority 4: Fallback ─────────────────────────────────────────────────
   return null;
+}
+
+/**
+ * Generate + persist a suggestion for a user.
+ * Safe to call fire-and-forget: generates the payload and upserts the Suggestion doc.
+ * @param {import("../models/user.model.js").User} user - full Mongoose user doc
+ */
+export async function computeAndSave(user) {
+  const payload = await generateSuggestion(user);
+  if (!payload) return;
+  await Suggestion.findOneAndUpdate(
+    { userId: user._id },
+    { ...payload, userId: user._id, generatedAt: new Date(), actedOn: false },
+    { upsert: true, new: true },
+  );
 }

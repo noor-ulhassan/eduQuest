@@ -8,6 +8,7 @@ import { onPlaygroundSolve, updateStreakKeeperQuest } from "../utils/questEngine
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { computeAndSave } from "../services/SuggestionEngine.js";
 
 export const trackLinkedAttempt = asyncHandler(async (req, res) => {
   const { exerciseId, courseId, chapterIndex, passed } = req.body;
@@ -48,6 +49,7 @@ export const trackLinkedAttempt = asyncHandler(async (req, res) => {
     );
   }
 
+  computeAndSave(req.user).catch(() => {});
   return res.status(200).json(new ApiResponse(200, null, "Attempt tracked"));
 });
 
@@ -216,6 +218,7 @@ export const completeProblem = asyncHandler(async (req, res) => {
     .catch((err) => console.error("[Playground] Quest update error:", err));
   updateStreakKeeperQuest(userId, user.dayStreak)
     .catch((err) => console.error("[Playground] Streak quest update error:", err));
+  computeAndSave(req.user).catch(() => {});
 
   const isHardOrExpert = ["hard", "expert"].includes(difficulty.toLowerCase());
   const earnedSpeedBonus = isHardOrExpert && solveTimeMs != null && solveTimeMs <= 600_000;
