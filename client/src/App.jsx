@@ -20,6 +20,7 @@ import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
 
 // ─── Lazily loaded (heavy pages, code-split on demand) ──────────────────────
+const Profile = lazy(() => import("./pages/Profile/Profile"));
 const CourseView = lazy(() => import("./pages/Workspace/CourseView"));
 const EditCourse = lazy(() => import("./pages/Workspace/EditCourse"));
 const DocumentsPage = lazy(() => import("./pages/Documents/DocumentsPage"));
@@ -61,6 +62,15 @@ const appRouter = createBrowserRouter([
       { path: "playground", element: <Lazy element={Playground} /> },
 
       // Protected routes
+      {
+        path: "profile",
+        element: (
+          <ProtectedRoute>
+            <Lazy element={Profile} />
+          </ProtectedRoute>
+        ),
+      },
+
       {
         path: "course/:courseId",
         element: (

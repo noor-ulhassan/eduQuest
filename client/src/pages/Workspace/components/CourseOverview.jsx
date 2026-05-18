@@ -20,7 +20,7 @@ import {
   FileText,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+
 import WelcomeBanner from "./WelcomeBanner";
 import CourseList from "./CourseList";
 import { cn } from "@/lib/utils";
@@ -117,13 +117,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
     return () => document.head.removeChild(style);
   }, []);
 
-  const SidebarOptions = [
-    { title: "Dashboard", icon: LayoutDashboard, path: "/workspace" },
-    { title: "My Learning", icon: Book, path: "/my-learning" },
-    { title: "Documents", icon: FileText, path: "/documents" },
-    { title: "Explore Courses", icon: BookOpen, path: "/#" },
-    { title: "Profile", icon: UserIcon, path: "/profile" },
-  ];
+  
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -207,97 +201,8 @@ export default function CourseOverview({ course, enrollment, onResume }) {
       <div className="fixed inset-0 pointer-events-none z-0 bg-[#0a0a0a]">
         <DottedGlowBackground color="rgba(255, 255, 255, 0.2)" glowColor="rgba(249, 115, 22, 0.6)" />
       </div>
-      {/* Sidebar Navigation */}
-      <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="bg-[#111111] border-r border-white/10 h-[calc(100vh-56px)] sticky top-14 justify-between z-40">
-          {/* ── Top ── */}
-          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-            {/* Logo */}
-            {open ? (
-              <div className="flex items-center gap-3 px-3 pt-4 pb-6">
-                <img
-                  src="/logo1.png"
-                  alt="logo"
-                  width={30}
-                  height={30}
-                  className="shrink-0 shadow-lg rounded"
-                />
-                <motion.h2
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-3xl font-bold tracking-tight text-metallic whitespace-pre"
-                >
-                  Work<span className="text-metallic-orange">space</span>
-                </motion.h2>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center pt-4 pb-6">
-                <img
-                  src="/logo1.png"
-                  alt="logo"
-                  width={30}
-                  height={30}
-                  className="shrink-0 shadow-lg rounded"
-                />
-              </div>
-            )}
-
-
-            {/* Nav Links */}
-            <div className="flex flex-col gap-1 px-2">
-              {SidebarOptions.map((item, index) => (
-                <SidebarLink
-                  key={index}
-                  link={{
-                    label: item.title,
-                    href: item.path,
-                    icon: (
-                      <item.icon
-                        className={`h-5 w-5 shrink-0 ${
-                          currentPath === item.path ||
-                          (currentPath.startsWith(item.path) &&
-                            item.path !== "/#")
-                            ? "text-red-400"
-                            : "text-zinc-400"
-                        }`}
-                      />
-                    ),
-                  }}
-                  className={cn(
-                    "rounded-lg font-medium transition-colors",
-                    open ? "py-2.5 px-2" : "py-2.5 justify-center ",
-                    currentPath === item.path ||
-                      (currentPath.startsWith(item.path) && item.path !== "/#")
-                      ? "text-red-400 bg-white/10"
-                      : "hover:bg-white/5 text-zinc-300",
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* ── Bottom: Pro upgrade ── */}
-          <div className={open ? "px-3 pb-2" : "flex justify-center pb-2"}>
-            {open ? (
-              <div className="bg-gradient-to-br from-red-600/15 to-orange-600/10 rounded-xl p-4 border border-white/10">
-                <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
-                  Pro Access
-                </p>
-                <p className="text-sm text-zinc-400 mb-3">
-                  Unlock unlimited premium features.
-                </p>
-                <button className="w-full bg-[#111111] py-2 rounded-lg border border-red-500/30 text-xs font-bold text-red-400 hover:bg-red-600/10 transition-colors">
-                  Upgrade Now
-                </button>
-              </div>
-            ) : (
-              <button className="w-8 h-8 bg-[#111111] rounded-lg border border-red-500/30 text-[9px] font-bold text-red-400 hover:bg-red-600/10 transition-colors flex items-center justify-center">
-                PRO
-              </button>
-            )}
-          </div>
-        </SidebarBody>
-      </Sidebar>
+      
+      
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen relative z-10">

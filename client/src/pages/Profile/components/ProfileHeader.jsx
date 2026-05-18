@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-import EditProfileModal from "@/components/profile/EditProfileModal";
+import EditProfileModal from "./EditProfileModal";
 
 const ProfileHeader = ({
   displayName: initialDisplayName = "Arisha Akbar",
