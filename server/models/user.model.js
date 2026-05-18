@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    questsCompleted: {
+      type: Number,
+      default: 0,
+    },
     streakShields: {
       type: Number,
       default: 0,

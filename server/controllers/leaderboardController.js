@@ -131,16 +131,7 @@ export const getWeeklyLeaderboard = asyncHandler(async (req, res) => {
     {
       $group: {
         _id: "$userId",
-        weeklyXP: {
-          // Base reward only (score bonus excluded — score not stored per-result)
-          $sum: {
-            $cond: [
-              { $eq: ["$rank", 1] },
-              100,
-              { $cond: [{ $eq: ["$rank", 2] }, 50, 25] },
-            ],
-          },
-        },
+        weeklyXP: { $sum: "$xpAwarded" },
         weeklyWins: {
           $sum: { $cond: [{ $eq: ["$rank", 1] }, 1, 0] },
         },

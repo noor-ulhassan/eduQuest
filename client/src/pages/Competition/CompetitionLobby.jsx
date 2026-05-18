@@ -24,6 +24,7 @@ import VSScreen from "../../components/competition/VSScreen";
 import SpectatorView from "../../components/competition/SpectatorView";
 import GamePlayView from "../../components/competition/GamePlayView";
 import ClassicPlayView from "../../components/competition/ClassicPlayView";
+import MatchSnapshot from "../../components/competition/MatchSnapshot";
 import useGameActivityFeed from "@/hooks/useGameActivityFeed";
 import { resetFeedbackOrchestrator } from "@/lib/feedbackOrchestrator";
 import confetti from "canvas-confetti";
@@ -1287,7 +1288,7 @@ const CompetitionLobby = () => {
             }}
           />
           {isHost ? (
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
               <div className="space-y-5 min-w-0 flex flex-col">
                 <RoomCodeCard
                   roomCode={roomCode}
@@ -1310,6 +1311,7 @@ const CompetitionLobby = () => {
               </div>
               <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
                 <ParticipantsPanel room={room} userId={user?._id} />
+                <MatchSnapshot settings={settings} />
               </div>
             </div>
           ) : (

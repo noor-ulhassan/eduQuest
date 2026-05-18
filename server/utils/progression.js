@@ -1,11 +1,11 @@
 export const LEAGUES = [
-  { rank: "Bronze", minLevel: 1 },
-  { rank: "Silver", minLevel: 5 },
-  { rank: "Gold", minLevel: 10 },
-  { rank: "Platinum", minLevel: 25 },
-  { rank: "Diamond", minLevel: 50 },
-  { rank: "Master", minLevel: 75 },
-  { rank: "Grandmaster", minLevel: 100 },
+  { rank: "Bronze",      minXP: 0 },
+  { rank: "Silver",      minXP: 700 },
+  { rank: "Gold",        minXP: 2700 },
+  { rank: "Platinum",    minXP: 16200 },
+  { rank: "Diamond",     minXP: 63700 },
+  { rank: "Master",      minXP: 142450 },
+  { rank: "Grandmaster", minXP: 252450 },
 ];
 
 export const getXPForLevel = (level) => {
@@ -18,10 +18,10 @@ export const getLevelFromXP = (xp) => {
   return Math.max(1, Math.floor((-1 + Math.sqrt(9 + (4 * xp) / 25)) / 2));
 };
 
-export const calculateRank = (level) => {
+export const calculateRank = (xp) => {
   let currentRank = "Bronze";
   for (const league of LEAGUES) {
-    if (level >= league.minLevel) {
+    if (xp >= league.minXP) {
       currentRank = league.rank;
     } else {
       break;
@@ -455,7 +455,7 @@ export const addXP = async (
 
   user.level = getLevelFromXP(user.xp);
 
-  user.league = calculateRank(user.level);
+  user.league = calculateRank(user.xp);
 
   if (!user.xpLog) user.xpLog = [];
   user.xpLog.unshift({
@@ -474,7 +474,7 @@ export const addXP = async (
     if (bonusXP > 0) {
       user.xp += bonusXP;
       user.level = getLevelFromXP(user.xp);
-      user.league = calculateRank(user.level);
+      user.league = calculateRank(user.xp);
       user.xpLog.unshift({
         source: "achievement_stage",
         amount: bonusXP,
@@ -486,6 +486,7 @@ export const addXP = async (
 
   // Save changes to DB
   if (options.autoSave !== false) {
+    user.markModified("achievementProgress");
     await user.save();
   }
   return user;

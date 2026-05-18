@@ -1,17 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import {
-  Settings,
-  Code,
-  BookOpen,
-  Loader2,
-  Swords,
-  Flag,
-  Flame,
-  Zap,
-  Users,
-  Target,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -24,63 +13,138 @@ import {
 const GAME_MODES = [
   {
     id: "classic",
-    Icon: Flag,
+    iconSrc: "/classic.png",
     name: "Classic",
     desc: "Race to finish",
+    badge: null,
     color: "#f97316",
     glow: "rgba(249,115,22,0.18)",
     border: "rgba(249,115,22,0.45)",
   },
   {
     id: "survival",
-    Icon: Flame,
+    iconSrc: "/survival.png",
     name: "Survival",
     desc: "Lowest score out",
+    badge: "2+",
     color: "#ef4444",
     glow: "rgba(239,68,68,0.18)",
     border: "rgba(239,68,68,0.45)",
   },
   {
     id: "blitz",
-    Icon: Zap,
+    iconSrc: "/blitz.png",
     name: "Blitz",
     desc: "15s per question",
+    badge: null,
     color: "#eab308",
     glow: "rgba(234,179,8,0.18)",
     border: "rgba(234,179,8,0.45)",
   },
   {
     id: "team",
-    Icon: Users,
+    iconSrc: "/team.png",
     name: "Team",
     desc: "2v2 combined",
+    badge: "2v2",
     color: "#06b6d4",
     glow: "rgba(6,182,212,0.18)",
     border: "rgba(6,182,212,0.45)",
   },
   {
     id: "duel",
-    Icon: Swords,
+    iconSrc: "/swords-silver.png",
     name: "Duel",
     desc: "1v1, 5 questions",
+    badge: "1v1",
     color: "#a855f7",
     glow: "rgba(168,85,247,0.18)",
     border: "rgba(168,85,247,0.45)",
   },
   {
     id: "practice",
-    Icon: Target,
+    iconSrc: "/practice.png",
     name: "Practice",
     desc: "Solo, no rank",
+    badge: "Solo",
     color: "#71717a",
     glow: "rgba(113,113,122,0.12)",
     border: "rgba(113,113,122,0.35)",
   },
 ];
 
+const CATEGORIES = [
+  {
+    id: "programming",
+    label: "Programming",
+    sublabel: "Code challenges & algorithms",
+    iconSrc: "/visual-basic.png",
+    activeColor: "#f97316",
+    activeBg: "rgba(249,115,22,0.1)",
+    activeBorder: "rgba(249,115,22,0.35)",
+  },
+  {
+    id: "general",
+    label: "General",
+    sublabel: "Knowledge & trivia quizzes",
+    iconSrc: "/book01.png",
+    activeColor: "#60a5fa",
+    activeBg: "rgba(59,130,246,0.1)",
+    activeBorder: "rgba(59,130,246,0.35)",
+  },
+];
+
+const PROGRAMMING_CHALLENGES = [
+  {
+    id: "classic",
+    name: "Classic Coding",
+    iconSrc: "/visual-basic.png",
+    desc: "Standard algorithmic challenges",
+  },
+  {
+    id: "scenario",
+    name: "Scenario Challenge",
+    iconSrc: "/scenario.png",
+    desc: "Real-world engineering narratives",
+  },
+  {
+    id: "debug",
+    name: "Debug Detective",
+    iconSrc: "/debug.png",
+    desc: "Find and fix critical bugs",
+  },
+  {
+    id: "outage",
+    name: "Production Outage",
+    iconSrc: "/siren.png",
+    desc: "High-pressure incident response",
+  },
+  {
+    id: "visual_interactive",
+    name: "Visual Interactive",
+    iconSrc: "/interactive.png",
+    desc: "Grid puzzles & code tracing",
+  },
+];
+
+const GENERAL_CHALLENGES = [
+  {
+    id: "classic",
+    name: "Classic Quiz",
+    iconSrc: "/book01.png",
+    desc: "Standard multiple-choice",
+  },
+  {
+    id: "scenario",
+    name: "Scenario Challenge",
+    iconSrc: "/books.png",
+    desc: "Real-world situations",
+  },
+];
+
 const SectionLabel = ({ children }) => (
-  <div className="flex items-center gap-2 mb-2.5">
-    <span className="w-0.5 h-3 rounded-full bg-orange-500 shrink-0" />
+  <div className="flex items-center gap-2 mb-3">
+    <span className="w-0.5 h-3.5 rounded-full bg-orange-500 shrink-0" />
     <p className="text-[10px] font-bold text-metallic uppercase tracking-[0.18em]">
       {children}
     </p>
@@ -103,6 +167,11 @@ const MatchConfiguration = ({
   const requiredCount = modeMinPlayers[settings.gameMode];
   const insufficientPlayers =
     requiredCount !== undefined && playerCount < requiredCount;
+  const durationMins = Math.round(settings.timerDuration / 60);
+  const challengeModes =
+    settings.category === "programming"
+      ? PROGRAMMING_CHALLENGES
+      : GENERAL_CHALLENGES;
 
   return (
     <motion.div
@@ -115,53 +184,46 @@ const MatchConfiguration = ({
         style={{ background: "#0c0c0c", border: "1px solid #1a1a1a" }}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-900/80 flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{
-              background: "rgba(249,115,22,0.1)",
-              border: "1px solid rgba(249,115,22,0.18)",
-            }}
-          >
-            <Settings size={16} className="text-orange-500" />
+        <div className="px-6 py-4 border-b border-zinc-900/80 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+              <img src="/settings.png" alt="" width={30} height={30} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-metallic">
+                Match Configuration
+              </h2>
+              <p className="text-[11px] text-zinc-600">
+                Customize your competition
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-metallic">
-              Match Configuration
-            </h2>
-            <p className="text-[11px] text-zinc-600">
-              Customize your competition
-            </p>
-          </div>
+          {playerCount > 0 && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+              style={{
+                background: "rgba(34,197,94,0.07)",
+                border: "1px solid rgba(34,197,94,0.18)",
+                color: "#4ade80",
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+              {playerCount} {playerCount === 1 ? "player" : "players"} in lobby
+            </div>
+          )}
         </div>
 
         <div className="p-6 space-y-6">
           {/* Category */}
           <div>
             <SectionLabel>Category</SectionLabel>
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                {
-                  id: "programming",
-                  label: "Programming",
-                  Icon: Code,
-                  activeColor: "#f97316",
-                  activeBg: "rgba(249,115,22,0.1)",
-                  activeBorder: "rgba(249,115,22,0.35)",
-                },
-                {
-                  id: "general",
-                  label: "General",
-                  Icon: BookOpen,
-                  activeColor: "#60a5fa",
-                  activeBg: "rgba(59,130,246,0.1)",
-                  activeBorder: "rgba(59,130,246,0.35)",
-                },
-              ].map(
+            <div className="grid grid-cols-2 gap-3">
+              {CATEGORIES.map(
                 ({
                   id,
                   label,
-                  Icon: BtnIcon,
+                  sublabel,
+                  iconSrc,
                   activeColor,
                   activeBg,
                   activeBorder,
@@ -170,7 +232,7 @@ const MatchConfiguration = ({
                   return (
                     <motion.button
                       key={id}
-                      whileHover={{ scale: active ? 1 : 1.02 }}
+                      whileHover={{ scale: active ? 1 : 1.01 }}
                       onClick={() => {
                         playSelectSound();
                         onUpdateSettings({
@@ -187,17 +249,32 @@ const MatchConfiguration = ({
                         boxShadow: active ? `0 0 20px ${activeBg}` : "none",
                       }}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <BtnIcon
-                          size={18}
-                          style={{ color: active ? activeColor : "#52525b" }}
-                        />
-                        <span
-                          className={`text-sm font-bold ${active ? "text-metallic" : ""}`}
-                          style={{ color: active ? undefined : "#71717a" }}
-                        >
-                          {label}
-                        </span>
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center justify-center shrink-0 mt-0.5">
+                          <img
+                            src={iconSrc}
+                            alt={label}
+                            className="w-6 h-6 object-contain"
+                            style={{
+                              opacity: active ? 1 : 0.5,
+                              filter: active ? "none" : "grayscale(100%)",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <span
+                            className="block text-sm font-bold"
+                            style={{ color: active ? "#e5e7eb" : "#71717a" }}
+                          >
+                            {label}
+                          </span>
+                          <span
+                            className="block text-[10px] mt-0.5"
+                            style={{ color: active ? "#6b7280" : "#3f3f46" }}
+                          >
+                            {sublabel}
+                          </span>
+                        </div>
                       </div>
                       {active && (
                         <div
@@ -235,32 +312,50 @@ const MatchConfiguration = ({
                         updates.totalQuestions = 5;
                       onUpdateSettings(updates);
                     }}
-                    className="relative p-3 rounded-xl text-center transition-colors duration-200"
+                    className="relative p-3.5 rounded-xl text-center transition-colors duration-200 flex flex-col items-center"
                     style={{
-                      background: active
-                        ? `${gm.glow}`
-                        : "rgba(255,255,255,0.02)",
+                      background: active ? gm.glow : "rgba(255,255,255,0.02)",
                       border: `1px solid ${active ? gm.border : "#1c1c1c"}`,
                       boxShadow: active ? `0 0 20px ${gm.glow}` : "none",
                     }}
                   >
-                    <gm.Icon
-                      size={18}
-                      className="mx-auto mb-1.5"
-                      style={{ color: active ? gm.color : "#52525b" }}
+                    <img
+                      src={gm.iconSrc}
+                      alt={gm.name}
+                      className="w-7 h-7 object-contain mb-1.5"
+                      style={{
+                        opacity: active ? 1 : 0.5,
+                        filter: active
+                          ? "none"
+                          : "grayscale(100%) brightness(0.8)",
+                      }}
                     />
                     <span
-                      className="block text-[11px] font-bold"
+                      className="block text-[11px] font-bold leading-tight"
                       style={{ color: active ? gm.color : "#71717a" }}
                     >
                       {gm.name}
                     </span>
                     <span
-                      className="block text-[9px] mt-0.5"
+                      className="block text-[9px] mt-0.5 leading-tight"
                       style={{ color: active ? `${gm.color}99` : "#3f3f46" }}
                     >
                       {gm.desc}
                     </span>
+                    {gm.badge && (
+                      <span
+                        className="absolute -top-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold"
+                        style={{
+                          background: active
+                            ? `${gm.color}25`
+                            : "rgba(255,255,255,0.05)",
+                          border: `1px solid ${active ? `${gm.color}40` : "#2a2a2a"}`,
+                          color: active ? gm.color : "#52525b",
+                        }}
+                      >
+                        {gm.badge}
+                      </span>
+                    )}
                   </motion.button>
                 );
               })}
@@ -270,55 +365,8 @@ const MatchConfiguration = ({
           {/* Challenge Type */}
           <div>
             <SectionLabel>Challenge Type</SectionLabel>
-            <div className="space-y-1 max-h-[200px] overflow-y-auto pr-0.5 custom-scrollbar">
-              {(settings.category === "programming"
-                ? [
-                    {
-                      id: "classic",
-                      name: "Classic Coding",
-                      icon: "💻",
-                      desc: "Standard algorithmic challenges",
-                    },
-                    {
-                      id: "scenario",
-                      name: "Scenario Challenge",
-                      icon: "🎭",
-                      desc: "Real-world engineering narratives",
-                    },
-                    {
-                      id: "debug",
-                      name: "Debug Detective",
-                      icon: "🔍",
-                      desc: "Find and fix critical bugs",
-                    },
-                    {
-                      id: "outage",
-                      name: "Production Outage",
-                      icon: "🚨",
-                      desc: "High-pressure incident response",
-                    },
-                    {
-                      id: "visual_interactive",
-                      name: "Visual Interactive",
-                      icon: "🎮",
-                      desc: "Grid puzzles & code tracing",
-                    },
-                  ]
-                : [
-                    {
-                      id: "classic",
-                      name: "Classic Quiz",
-                      icon: "📝",
-                      desc: "Standard multiple-choice",
-                    },
-                    {
-                      id: "scenario",
-                      name: "Scenario Challenge",
-                      icon: "🎭",
-                      desc: "Real-world situations",
-                    },
-                  ]
-              ).map((mode) => {
+            <div className="space-y-1">
+              {challengeModes.map((mode) => {
                 const active = settings.challengeMode === mode.id;
                 return (
                   <button
@@ -338,7 +386,17 @@ const MatchConfiguration = ({
                         : "3px solid transparent",
                     }}
                   >
-                    <span className="text-base shrink-0">{mode.icon}</span>
+                    <div className="shrink-0 flex items-center justify-center">
+                      <img
+                        src={mode.iconSrc}
+                        alt={mode.name}
+                        className="w-5 h-5 object-contain"
+                        style={{
+                          opacity: active ? 1 : 0.6,
+                          filter: active ? "none" : "grayscale(100%)",
+                        }}
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <span
                         className={`block text-[13px] font-semibold ${active ? "text-metallic-orange" : ""}`}
@@ -389,94 +447,97 @@ const MatchConfiguration = ({
           </div>
 
           {/* Metrics */}
-          <div className="grid grid-cols-3 gap-3">
-            {/* Difficulty */}
-            <div className="space-y-2">
-              <SectionLabel>Difficulty</SectionLabel>
-              <div className="flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900">
-                {[
-                  { id: "easy", label: "Eas", color: "#22c55e" },
-                  { id: "medium", label: "Med", color: "#f97316" },
-                  { id: "hard", label: "Hard", color: "#ef4444" },
-                ].map(({ id, label, color }) => {
-                  const active = settings.difficulty === id;
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => {
-                        playMetricSelectSound();
-                        onUpdateSettings("difficulty", id);
-                      }}
-                      className="flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all"
-                      style={{
-                        background: active
-                          ? "rgba(255,255,255,0.06)"
-                          : "transparent",
-                        color: active ? color : "#52525b",
-                        boxShadow: active ? `0 0 10px ${color}30` : "none",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+          <div className="space-y-3">
+            {/* Row 1: Difficulty + Questions */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Difficulty */}
+              <div className="space-y-2">
+                <SectionLabel>Difficulty</SectionLabel>
+                <div className="flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900">
+                  {[
+                    { id: "easy", label: "Easy", color: "#22c55e" },
+                    { id: "medium", label: "Med", color: "#f97316" },
+                    { id: "hard", label: "Hard", color: "#ef4444" },
+                  ].map(({ id, label, color }) => {
+                    const active = settings.difficulty === id;
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => {
+                          playMetricSelectSound();
+                          onUpdateSettings("difficulty", id);
+                        }}
+                        className="flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all"
+                        style={{
+                          background: active
+                            ? "rgba(255,255,255,0.06)"
+                            : "transparent",
+                          color: active ? color : "#52525b",
+                          boxShadow: active ? `0 0 10px ${color}30` : "none",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Questions */}
+              <div className="space-y-2">
+                <SectionLabel>
+                  Questions{" "}
+                  {settings.gameMode === "duel" ? (
+                    <span className="text-orange-600/70 normal-case font-normal">
+                      (locked)
+                    </span>
+                  ) : settings.totalQuestions > 0 &&
+                    settings.timerDuration > 0 ? (
+                    <span className="text-zinc-600 normal-case font-normal">
+                      ~
+                      {Math.round(
+                        settings.timerDuration / settings.totalQuestions,
+                      )}
+                      s
+                    </span>
+                  ) : null}
+                </SectionLabel>
+                <div
+                  className={`flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900 ${settings.gameMode === "duel" ? "opacity-40 pointer-events-none" : ""}`}
+                >
+                  {[3, 5, 10].map((n) => {
+                    const active = settings.totalQuestions === n;
+                    return (
+                      <button
+                        key={n}
+                        onClick={() => {
+                          playMetricSelectSound();
+                          onUpdateSettings("totalQuestions", n);
+                        }}
+                        disabled={settings.gameMode === "duel"}
+                        className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                        style={{
+                          background: active
+                            ? "rgba(249,115,22,0.12)"
+                            : "transparent",
+                          color: active ? "#fb923c" : "#52525b",
+                          boxShadow: active
+                            ? "0 0 10px rgba(249,115,22,0.1)"
+                            : "none",
+                        }}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Questions */}
-            <div className="space-y-2">
-              <SectionLabel>
-                Questions{" "}
-                {settings.gameMode === "duel" ? (
-                  <span className="text-orange-600/70 normal-case font-normal">
-                    (locked)
-                  </span>
-                ) : settings.totalQuestions > 0 &&
-                  settings.timerDuration > 0 ? (
-                  <span className="text-zinc-600 normal-case font-normal">
-                    ~
-                    {Math.round(
-                      settings.timerDuration / settings.totalQuestions,
-                    )}
-                    s
-                  </span>
-                ) : null}
-              </SectionLabel>
-              <div
-                className={`flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900 ${settings.gameMode === "duel" ? "opacity-40 pointer-events-none" : ""}`}
-              >
-                {[3, 5, 10].map((n) => {
-                  const active = settings.totalQuestions === n;
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => {
-                        playMetricSelectSound();
-                        onUpdateSettings("totalQuestions", n);
-                      }}
-                      disabled={settings.gameMode === "duel"}
-                      className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
-                      style={{
-                        background: active
-                          ? "rgba(249,115,22,0.12)"
-                          : "transparent",
-                        color: active ? "#fb923c" : "#52525b",
-                        boxShadow: active
-                          ? "0 0 10px rgba(249,115,22,0.1)"
-                          : "none",
-                      }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Duration */}
+            {/* Row 2: Duration — full width */}
             <div className="space-y-2">
               <SectionLabel>Duration</SectionLabel>
-              <div className="flex bg-zinc-950 rounded-xl p-0.5 border border-zinc-900 flex-wrap">
+              <div className="grid grid-cols-6 bg-zinc-950 rounded-xl p-0.5 border border-zinc-900">
                 {[1, 3, 5, 10, 15, 30].map((m) => {
                   const active = settings.timerDuration === m * 60;
                   return (
@@ -486,7 +547,7 @@ const MatchConfiguration = ({
                         playMetricSelectSound();
                         onUpdateSettings("timerDuration", m * 60);
                       }}
-                      className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all min-w-[14%]"
+                      className="py-1.5 rounded-lg text-[10px] font-bold transition-all"
                       style={{
                         background: active
                           ? "rgba(249,115,22,0.12)"
@@ -523,70 +584,49 @@ const MatchConfiguration = ({
             </div>
           )}
 
-          {/* Begin Competition */}
-          <motion.div
-            className="rounded-2xl"
-            animate={{
-              boxShadow: [
-                "0 0 20px rgba(234,88,12,0.15), 0 4px 15px rgba(234,88,12,0.1)",
-                "0 0 55px rgba(234,88,12,0.45), 0 4px 30px rgba(234,88,12,0.3)",
-                "0 0 20px rgba(234,88,12,0.15), 0 4px 15px rgba(234,88,12,0.1)",
-              ],
+          {/* Match Summary */}
+          <div
+            className="flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-[11px] text-zinc-600 flex-wrap"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid #1c1c1c",
             }}
-            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
           >
-            <button
-              onClick={() => {
-                if (!isStarting && settings.category && !insufficientPlayers)
-                  playBeginCompetitionSound();
-                onStartGame();
-              }}
-              disabled={isStarting || !settings.category || insufficientPlayers}
-              className="relative w-full h-[60px] rounded-2xl font-bold text-base flex items-center justify-center gap-2.5 transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-              style={{
-                background:
-                  "linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #ea580c 100%)",
-                backgroundSize: "200% 100%",
-                border: "1px solid rgba(249,115,22,0.35)",
-              }}
-            >
-              {/* Shimmer sweep */}
-              <motion.div
-                className="absolute inset-0 pointer-events-none"
-                animate={{ x: ["-100%", "220%"] }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 3.5,
-                  ease: "easeInOut",
-                  repeatDelay: 2,
-                }}
-                style={{
-                  background:
-                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
-                  width: "50%",
-                }}
-              />
-              {/* Top gloss */}
-              <div
-                className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(255,255,255,0.08), transparent)",
-                }}
-              />
-              {isStarting ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  <span className="text-metallic">Starting...</span>
-                </>
-              ) : (
-                <>
-                  <img src="/swords-silver.png" alt="" width={30} height={30} />
-                  <span className="text-metallic">Begin Competition</span>
-                </>
-              )}
-            </button>
-          </motion.div>
+            <span className="capitalize font-semibold text-zinc-500">
+              {settings.gameMode}
+            </span>
+            <span className="text-zinc-800">·</span>
+            <span className="capitalize">{settings.category}</span>
+            <span className="text-zinc-800">·</span>
+            <span className="capitalize">{settings.difficulty}</span>
+            <span className="text-zinc-800">·</span>
+            <span>{settings.totalQuestions} Questions</span>
+            <span className="text-zinc-800">·</span>
+            <span>{durationMins}m</span>
+          </div>
+
+          {/* Begin Competition */}
+          <button
+            onClick={() => {
+              if (!isStarting && settings.category && !insufficientPlayers)
+                playBeginCompetitionSound();
+              onStartGame();
+            }}
+            disabled={isStarting || !settings.category || insufficientPlayers}
+            className="w-full h-[60px] rounded-2xl font-bold text-base flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-br from-orange-600 to-red-600 border border-orange-500/30"
+          >
+            {isStarting ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                <span className="text-white">Starting...</span>
+              </>
+            ) : (
+              <>
+                <img src="/swords-silver.png" alt="" width={30} height={30} />
+                <span className="text-white">Begin Competition</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </motion.div>

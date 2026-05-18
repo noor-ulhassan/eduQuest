@@ -11,161 +11,248 @@ const WaitingDots = () => (
         className="w-1 h-1 rounded-full inline-block"
         style={{ background: "#3f3f46" }}
         animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-        transition={{ repeat: Infinity, duration: 1.4, delay: i * 0.22, ease: "easeInOut" }}
+        transition={{
+          repeat: Infinity,
+          duration: 1.4,
+          delay: i * 0.22,
+          ease: "easeInOut",
+        }}
       />
     ))}
   </span>
 );
 
-const ParticipantsPanel = ({ room, userId }) => (
-  <div className="rounded-2xl overflow-hidden" style={{ background: "#0c0c0c", border: "1px solid #1a1a1a" }}>
-    <div className="px-5 py-4 border-b border-zinc-900/80 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Users size={15} className="text-zinc-500" />
-        <span className="text-sm font-semibold text-metallic">Participants</span>
+const getLeagueRingColor = (level = 1) => {
+  if (level >= 75) return "linear-gradient(135deg, #a855f7, #7c3aed)"; // Master
+  if (level >= 50) return "linear-gradient(135deg, #b9f2ff, #67e8f9)"; // Diamond
+  if (level >= 25) return "linear-gradient(135deg, #e2e8f0, #94a3b8)"; // Platinum
+  if (level >= 10) return "linear-gradient(135deg, #ffd700, #f59e0b)"; // Gold
+  if (level >= 5) return "linear-gradient(135deg, #d1d5db, #9ca3af)"; // Silver
+  return "linear-gradient(135deg, #cd7f32, #a16207)"; // Bronze
+};
+
+const ParticipantsPanel = ({ room, userId }) => {
+  const players = room?.players || [];
+  const readyPlayers = players.filter((p) => p.ready).length;
+  const showReadyBar = players.length > 1;
+  const readyPct =
+    players.length > 0 ? (readyPlayers / players.length) * 100 : 0;
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ background: "#0c0c0c", border: "1px solid #1a1a1a" }}
+    >
+      <div className="px-5 py-4 border-b border-zinc-900/80 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img
+            src="/group.png"
+            height={20}
+            width={20}
+            className="text-zinc-500"
+          />
+          <span className="text-sm font-bold text-metallic">Participants</span>
+        </div>
+        <span
+          className="px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums"
+          style={{
+            background: "rgba(249,115,22,0.1)",
+            border: "1px solid rgba(249,115,22,0.22)",
+            boxShadow: "0 0 10px rgba(249,115,22,0.1)",
+          }}
+        >
+          <span className="text-metallic-orange">{players.length}</span>
+          <span className="text-zinc-600 font-normal">/20</span>
+        </span>
       </div>
-      <span
-        className="px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums"
-        style={{
-          background: "rgba(249,115,22,0.1)",
-          border: "1px solid rgba(249,115,22,0.22)",
-          boxShadow: "0 0 10px rgba(249,115,22,0.1)",
-        }}
-      >
-        <span className="text-metallic-orange">{room?.players?.length || 0}</span>
-        <span className="text-zinc-600 font-normal">/20</span>
-      </span>
-    </div>
 
-    <div className="p-3 space-y-2">
-      <AnimatePresence>
-        {room?.players?.map((player) => {
-          const isHost = player.id === room.hostId;
-          const isYou  = player.id === userId;
-
-          return (
+      {/* Ready progress bar */}
+      {showReadyBar && (
+        <div className="px-5 pt-3 pb-1">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] text-zinc-600 font-medium">
+              Players ready
+            </span>
+            <span
+              className="text-[10px] font-bold"
+              style={{ color: readyPct === 100 ? "#4ade80" : "#52525b" }}
+            >
+              {readyPlayers}/{players.length}
+            </span>
+          </div>
+          <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
             <motion.div
-              key={player.id}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 8 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-3 p-3 rounded-xl transition-all"
+              className="h-full rounded-full"
+              animate={{ width: `${readyPct}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               style={{
-                background: isHost ? "rgba(234,179,8,0.05)" : "rgba(255,255,255,0.02)",
-                border: `1px solid ${isHost ? "rgba(234,179,8,0.14)" : "#1a1a1a"}`,
+                background:
+                  readyPct === 100
+                    ? "linear-gradient(90deg, #22c55e, #16a34a)"
+                    : "linear-gradient(90deg, #f97316, #ea580c)",
               }}
-            >
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <div
-                  className="rounded-full"
-                  style={{
-                    background: isHost
-                      ? "linear-gradient(135deg, #eab308, #f59e0b)"
-                      : player.ready
-                        ? "linear-gradient(135deg, #22c55e, #16a34a)"
-                        : "transparent",
-                    boxShadow: isHost
-                      ? "0 0 14px rgba(234,179,8,0.35)"
-                      : player.ready
-                        ? "0 0 10px rgba(34,197,94,0.3)"
-                        : "none",
-                    padding: isHost || player.ready ? "2px" : "0",
-                  }}
-                >
-                  <Avatar className="h-9 w-9 block">
-                    <AvatarImage src={player.avatarUrl || "/Avatar.png"} alt={player.name} />
-                    <AvatarFallback className="bg-zinc-800 text-zinc-500 text-xs">
-                      {player.name?.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                {isHost && (
-                  <div
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{ background: "#eab308", boxShadow: "0 0 8px rgba(234,179,8,0.6)" }}
-                  >
-                    <Crown size={8} className="text-black" fill="currentColor" />
-                  </div>
-                )}
-                {!isHost && player.ready && (
-                  <div
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full border border-zinc-950 flex items-center justify-center"
-                    style={{ background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.5)" }}
-                  >
-                    <span className="text-[8px] font-black text-white">✓</span>
-                  </div>
-                )}
-              </div>
+            />
+          </div>
+        </div>
+      )}
 
-              {/* Name + status */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-metallic truncate flex items-center gap-1.5">
-                  {player.name}
-                  {isYou && (
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "#71717a" }}
+      <div className="p-3 space-y-2">
+        <AnimatePresence>
+          {players.map((player) => {
+            const isHost = player.id === room.hostId;
+            const isYou = player.id === userId;
+            const ringGradient = getLeagueRingColor(player.level || 1);
+
+            return (
+              <motion.div
+                key={player.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 8 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-3 p-3 rounded-xl transition-all"
+                style={{
+                  background: isHost
+                    ? "rgba(234,179,8,0.05)"
+                    : "rgba(255,255,255,0.02)",
+                  border: `1px solid ${isHost ? "rgba(234,179,8,0.14)" : "#1a1a1a"}`,
+                }}
+              >
+                {/* Avatar with league ring */}
+                <div className="relative shrink-0">
+                  <div
+                    className="rounded-full"
+                    style={{
+                      background: isHost
+                        ? "linear-gradient(135deg, #eab308, #f59e0b)"
+                        : player.ready
+                          ? "linear-gradient(135deg, #22c55e, #16a34a)"
+                          : ringGradient,
+                      boxShadow: isHost
+                        ? "0 0 14px rgba(234,179,8,0.35)"
+                        : player.ready
+                          ? "0 0 10px rgba(34,197,94,0.3)"
+                          : "none",
+                      padding: "2px",
+                    }}
+                  >
+                    <Avatar className="h-9 w-9 block">
+                      <AvatarImage
+                        src={player.avatarUrl || "/Avatar.png"}
+                        alt={player.name}
+                      />
+                      <AvatarFallback className="bg-zinc-800 text-zinc-500 text-xs">
+                        {player.name?.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  {isHost && (
+                    <div
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{
+                        background: "#eab308",
+                        boxShadow: "0 0 8px rgba(234,179,8,0.6)",
+                      }}
                     >
-                      YOU
+                      <Crown
+                        size={8}
+                        className="text-black"
+                        fill="currentColor"
+                      />
+                    </div>
+                  )}
+                  {!isHost && player.ready && (
+                    <div
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full border border-zinc-950 flex items-center justify-center"
+                      style={{
+                        background: "#22c55e",
+                        boxShadow: "0 0 6px rgba(34,197,94,0.5)",
+                      }}
+                    >
+                      <span className="text-[8px] font-black text-white">
+                        ✓
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Name + status */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-metallic truncate flex items-center gap-1.5">
+                    {player.name}
+                    {isYou && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                        style={{
+                          background: "rgba(255,255,255,0.06)",
+                          color: "#71717a",
+                        }}
+                      >
+                        YOU
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[10px] font-medium mt-0.5">
+                    {isHost ? (
+                      <span style={{ color: "#ca8a04" }}>Host</span>
+                    ) : player.ready ? (
+                      <span className="text-green-500">Ready ✓</span>
+                    ) : (
+                      <span className="text-zinc-600">Waiting</span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Level + Win % */}
+                <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={{
+                      background: "rgba(249,115,22,0.08)",
+                      border: "1px solid rgba(249,115,22,0.16)",
+                    }}
+                  >
+                    <span className="text-metallic-orange">
+                      Lvl {player.level || 1}
                     </span>
-                  )}
-                </p>
-                <p className="text-[10px] font-medium mt-0.5">
-                  {isHost ? (
-                    <span style={{ color: "#ca8a04" }}>Host</span>
-                  ) : player.ready ? (
-                    <span className="text-green-500">Ready ✓</span>
-                  ) : (
-                    <span className="text-zinc-600">Waiting</span>
-                  )}
-                </p>
-              </div>
+                  </span>
+                  <span className="text-[10px] text-zinc-600 font-medium">
+                    {player.winPercentage || 0}% Win
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
 
-              {/* Level + Win % */}
-              <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                  style={{
-                    background: "rgba(249,115,22,0.08)",
-                    border: "1px solid rgba(249,115,22,0.16)",
-                  }}
+          {/* Empty slots */}
+          {Array.from({ length: Math.max(0, 2 - players.length) }).map(
+            (_, i) => (
+              <motion.div
+                key={`empty-${i}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[56px]"
+                style={{ border: "1px dashed #222" }}
+              >
+                <div
+                  className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center"
+                  style={{ border: "1px dashed #2a2a2a" }}
                 >
-                  <span className="text-metallic-orange">Lvl {player.level || 1}</span>
-                </span>
-                <span className="text-[10px] text-zinc-600 font-medium">
-                  {player.winPercentage || 0}% Win
-                </span>
-              </div>
-            </motion.div>
-          );
-        })}
-
-        {/* Empty slots */}
-        {Array.from({ length: Math.max(0, 2 - (room?.players?.length || 0)) }).map((_, i) => (
-          <motion.div
-            key={`empty-${i}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-3 p-3 rounded-xl min-h-[56px]"
-            style={{ border: "1px dashed #222" }}
-          >
-            <div
-              className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center"
-              style={{ border: "1px dashed #2a2a2a" }}
-            >
-              <Users size={12} className="text-zinc-700" />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-zinc-700">Waiting for player</span>
-              <WaitingDots />
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+                  <Users size={12} className="text-zinc-700" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-zinc-700">
+                    Waiting for player
+                  </span>
+                  <WaitingDots />
+                </div>
+              </motion.div>
+            ),
+          )}
+        </AnimatePresence>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default ParticipantsPanel;

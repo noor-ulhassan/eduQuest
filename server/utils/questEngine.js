@@ -278,6 +278,8 @@ export const claimQuestReward = async (userId, questId, period) => {
     shieldAwarded = user.streakShields - before;
   }
 
+  user.questsCompleted = (user.questsCompleted || 0) + 1;
+
   await user.save();
 
   quest.claimed = true;

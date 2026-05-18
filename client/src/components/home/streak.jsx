@@ -5,6 +5,7 @@ import { Zap } from "lucide-react";
 const Streak = () => {
   const user = useSelector((state) => state.auth.user);
   const dayStreak = user?.dayStreak || 0;
+  const streakShields = user?.streakShields || 0;
 
   const days = useMemo(() => {
     const today = new Date();
@@ -83,6 +84,30 @@ const Streak = () => {
           </div>
         ))}
       </div>
+
+      {/* Streak Shield indicator */}
+      {streakShields > 0 && (
+        <div className="flex items-center justify-center gap-1.5 mt-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
+                i < streakShields
+                  ? "bg-blue-500/20 border border-blue-500/50"
+                  : "bg-zinc-800/50 border border-zinc-700/40"
+              }`}
+              title={i < streakShields ? "Streak Shield — protects your streak once" : "No shield"}
+            >
+              <span className={`text-[11px] ${i < streakShields ? "text-blue-400" : "text-zinc-700"}`}>
+                🛡
+              </span>
+            </div>
+          ))}
+          <span className="text-[10px] text-zinc-500 font-medium ml-1">
+            {streakShields === 1 ? "1 shield" : `${streakShields} shields`}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

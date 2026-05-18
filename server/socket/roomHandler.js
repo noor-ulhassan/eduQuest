@@ -2,7 +2,8 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import { generateCompetitionQuestions } from "../utils/competitionQuestions.js";
 import { CompetitionResult } from "../models/CompetitionResult.model.js";
-import { processEvent, XP_EVENTS } from "../services/GamificationService.js";
+import { processEvent, XP_EVENTS, computeXP } from "../services/GamificationService.js";
+import { addXP } from "../utils/progression.js";
 
 // In-memory room storage
 const rooms = new Map();
@@ -1543,16 +1544,30 @@ async function endGame(io, roomCode, room) {
       status: "dnf",
     });
 
-    const results = finalLeaderboard.map((p, index) => ({
-      userId: p.id,
-      roomCode: roomCode,
-      category: room.category,
-      challengeMode: room.challengeMode || "classic",
-      difficulty: room.difficulty,
-      rank: (p.finished && !p.eliminated) ? index + 1 : null,
-      score: p.score || 0,
-      status: (p.finished && !p.eliminated) ? "completed" : "dnf",
-    }));
+    const topScore = finalLeaderboard[0]?.score ?? 0;
+    const totalPlayers = finalLeaderboard.length;
+    const results = finalLeaderboard.map((p, index) => {
+      const isCompleted = p.finished && !p.eliminated;
+      const effectivePlacement = (isDraw && p.score === topScore) ? 0 : index;
+      const xpAwarded = (isCompleted && p.score > 0)
+        ? computeXP(XP_EVENTS.COMPETITION_FINISHED, {
+            placement: effectivePlacement,
+            score: p.score || 0,
+            totalPlayers,
+          })
+        : 0;
+      return {
+        userId: p.id,
+        roomCode: roomCode,
+        category: room.category,
+        challengeMode: room.challengeMode || "classic",
+        difficulty: room.difficulty,
+        rank: isCompleted ? index + 1 : null,
+        score: p.score || 0,
+        xpAwarded,
+        status: isCompleted ? "completed" : "dnf",
+      };
+    });
 
     if (results.length > 0) {
       await CompetitionResult.insertMany(results);
@@ -1678,8 +1693,17 @@ async function awardXP(io, leaderboard, room, totalPlayers = 2, isDraw = false) 
   const topScore = leaderboard[0]?.score ?? 0;
   await Promise.all(
     leaderboard.map(async (playerEntry, i) => {
-      if (playerEntry.score <= 0) return;
       if (!playerEntry.finished || playerEntry.eliminated) return; // B-13: Only reward completed players
+      // Award minimum participation XP (10) even for zero-score finishers
+      if (playerEntry.score <= 0) {
+        try {
+          const participantUser = await User.findById(playerEntry.id);
+          if (participantUser) {
+            await addXP(participantUser, 10, {}, { source: "PARTICIPATION", autoSave: true });
+          }
+        } catch (_) {}
+        return;
+      }
       try {
         const user = await User.findById(playerEntry.id);
         if (!user) return;
@@ -1689,13 +1713,15 @@ async function awardXP(io, leaderboard, room, totalPlayers = 2, isDraw = false) 
         const prevLeague = user.league;
         const prevBadgeTitles = new Set((user.badges || []).map((b) => b.title));
 
-        const totalWins = await CompetitionResult.countDocuments({
+        const dbWins = await CompetitionResult.countDocuments({
           userId: user._id,
           rank: 1,
           status: "completed",
         });
         // In a draw, all top-tied players share first-place placement so no one gets an unearned win bonus
         const effectivePlacement = (isDraw && playerEntry.score === topScore) ? 0 : i;
+        // Add 1 for the current win — result isn't in DB yet when this runs
+        const totalWins = dbWins + (effectivePlacement === 0 ? 1 : 0);
         await processEvent(user, XP_EVENTS.COMPETITION_FINISHED, {
           placement: effectivePlacement,
           score: playerEntry.score,

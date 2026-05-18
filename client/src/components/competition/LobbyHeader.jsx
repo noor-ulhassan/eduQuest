@@ -1,8 +1,9 @@
 import React from "react";
-import { ArrowLeft, Volume2, VolumeX, Swords } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
+import { motion } from "framer-motion";
 
 const LobbyHeader = ({ isHost, onLeave, isMusicMuted, onToggleMusic }) => (
-  <header className="flex items-center justify-between">
+  <header className="flex items-center justify-between pb-5 border-b border-zinc-900/60">
     <button
       onClick={onLeave}
       className="flex items-center gap-2 text-metallic hover:text-metallic-orange text-sm font-bold transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-900/80"
@@ -10,12 +11,34 @@ const LobbyHeader = ({ isHost, onLeave, isMusicMuted, onToggleMusic }) => (
       <ArrowLeft size={16} /> Exit Lobby
     </button>
 
-    <div className="hidden sm:flex items-center gap-2.5">
-      <img src="/swords-silver.png" alt="sword" height={28} width={28} />
-      <span className="text-2xl font-black tracking-tight text-metallic">
-        Competition Arena
-      </span>
-      <img src="/swords-silver.png" alt="sword" height={28} width={28} />
+    <div className="hidden sm:flex flex-col items-center gap-0.5">
+      <div className="flex items-center gap-3">
+        <motion.img
+          src="/swords-silver.png"
+          alt="sword"
+          height={30}
+          width={30}
+          animate={{ rotate: [-4, 4, -4] }}
+          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+        />
+        <div className="flex flex-col items-center">
+          <span className="text-2xl font-black tracking-tight text-metallic leading-none">
+            Competition Arena
+          </span>
+          <span className="text-[10px] text-zinc-600 font-medium tracking-[0.22em] uppercase mt-1">
+            May the best player win
+          </span>
+        </div>
+        <motion.img
+          src="/swords-silver.png"
+          alt="sword"
+          height={30}
+          width={30}
+          style={{ transform: "scaleX(-1)" }}
+          animate={{ rotate: [4, -4, 4] }}
+          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+        />
+      </div>
     </div>
 
     <div className="flex items-center gap-2">
@@ -39,7 +62,11 @@ const LobbyHeader = ({ isHost, onLeave, isMusicMuted, onToggleMusic }) => (
           boxShadow: "0 0 14px rgba(34,197,94,0.18)",
         }}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+        <motion.span
+          className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"
+          animate={{ opacity: [1, 0.3, 1] }}
+          transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+        />
         Live
       </span>
       <span

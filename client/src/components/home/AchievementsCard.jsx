@@ -151,12 +151,8 @@ const getMetricValue = (user, metric) => {
       return user.dayStreak || 0;
     case "friends":
       return (user.friends || []).length;
-    case "questsCompleted": {
-      const progress = user.achievementProgress || {};
-      return (progress.solve_master || 0) > 0
-        ? Math.floor((progress.solve_master || 0) / 2)
-        : (user.badges || []).length;
-    }
+    case "questsCompleted":
+      return user.questsCompleted || 0;
     case "totalSolved":
       return (user.achievementProgress || {}).solve_master || 0;
     case "totalWins":
