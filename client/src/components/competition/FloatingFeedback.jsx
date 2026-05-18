@@ -31,7 +31,10 @@ const FloatingFeedback = ({ result, comboCount, triggerKey }) => {
                 <span className="text-4xl md:text-5xl font-black text-green-400 drop-shadow-[0_0_20px_rgba(34,197,94,0.6)]">
                   +{result.xpGained || 50} XP
                 </span>
-                {comboCount >= 3 && (
+                {/* Small-streak pill (3-4). 5+ milestones are owned by
+                    BigMomentBanner — keep them out of here to avoid two
+                    banners screaming the same thing at the same time. */}
+                {comboCount >= 3 && comboCount < 5 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: [0, 1.3, 1] }}
@@ -39,7 +42,7 @@ const FloatingFeedback = ({ result, comboCount, triggerKey }) => {
                   >
                     <Flame size={18} className="text-yellow-200" fill="currentColor" />
                     <span className="text-white font-bold text-sm">
-                      {comboCount}x ON FIRE!
+                      {comboCount}× ON FIRE!
                     </span>
                   </motion.div>
                 )}

@@ -28,6 +28,7 @@ function scheduleLeaderboardBroadcast(io, roomCode, room) {
           score: p.score,
           currentQuestion: p.currentQuestion,
           correctAnswers: p.correctAnswers || 0,
+          comboCount: p.comboCount || 0,
           finished: p.finished,
           eliminated: p.eliminated || false,
           team: room.playerTeam ? room.playerTeam[p.id] : null,

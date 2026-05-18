@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { Lock, X, ChevronRight, Trophy } from "lucide-react";
+import { motion } from "framer-motion";
 
 const ACHIEVEMENTS = [
   {
@@ -21,6 +22,7 @@ const ACHIEVEMENTS = [
   {
     key: "legend",
     name: "Legend",
+    icon: "/achievements/legend.svg",
     description: "Reach higher levels to become a legend",
     metric: "level",
     tiers: [
@@ -34,6 +36,7 @@ const ACHIEVEMENTS = [
   {
     key: "quest_explorer",
     name: "Quest Explorer",
+    icon: "/achievements/quest-explorer.svg",
     description: "Complete quests to unlock rewards",
     metric: "questsCompleted",
     tiers: [
@@ -137,8 +140,6 @@ const ACHIEVEMENTS = [
   },
 ];
 
-/* ─── Helpers ────────────────────────────────────────────── */
-
 const getMetricValue = (user, metric) => {
   if (!user) return 0;
   switch (metric) {
@@ -195,73 +196,98 @@ const TIER_COLORS = {
   0: {
     border: "border-white/[0.08]",
     bg: "bg-white/[0.02]",
-    ring: "",
     text: "text-zinc-600",
-    fill: "bg-zinc-700",
+    glowColor: "rgba(113,113,122,0.0)",
+    fillColor: "#3f3f46",
   },
   1: {
     border: "border-amber-700/40",
     bg: "bg-amber-900/15",
-    ring: "ring-2 ring-amber-700/30",
     text: "text-amber-500",
-    fill: "bg-amber-600",
+    glowColor: "rgba(180,83,9,0.38)",
+    fillColor: "#b45309",
   },
   2: {
     border: "border-slate-400/40",
     bg: "bg-slate-500/15",
-    ring: "ring-2 ring-slate-400/30",
     text: "text-slate-300",
-    fill: "bg-slate-400",
+    glowColor: "rgba(148,163,184,0.32)",
+    fillColor: "#94a3b8",
   },
   3: {
     border: "border-yellow-500/40",
     bg: "bg-yellow-500/15",
-    ring: "ring-2 ring-yellow-500/30",
     text: "text-yellow-400",
-    fill: "bg-yellow-500",
+    glowColor: "rgba(234,179,8,0.38)",
+    fillColor: "#eab308",
   },
   4: {
     border: "border-cyan-400/40",
     bg: "bg-cyan-500/15",
-    ring: "ring-2 ring-cyan-400/30",
     text: "text-cyan-400",
-    fill: "bg-cyan-500",
+    glowColor: "rgba(6,182,212,0.38)",
+    fillColor: "#06b6d4",
   },
   5: {
     border: "border-purple-400/50",
     bg: "bg-purple-500/20",
-    ring: "ring-2 ring-purple-400/40",
     text: "text-purple-400",
-    fill: "bg-gradient-to-r from-purple-500 to-pink-500",
+    glowColor: "rgba(168,85,247,0.42)",
+    fillColor: "#a855f7",
   },
 };
 
-/* ─── Preview Circle (for compact card) ──────────────────── */
+/* ─── Compact circle (card grid) ────────────────────────── */
 const AchievementCircle = ({ achievement, user, onClick }) => {
   const value = getMetricValue(user, achievement.metric);
-  const { currentTier, isMaxed } = computeTierInfo(achievement, value);
+  const { currentTier, nextTier, isMaxed } = computeTierInfo(
+    achievement,
+    value,
+  );
   const colors = TIER_COLORS[currentTier] || TIER_COLORS[0];
   const isLocked = currentTier === 0;
 
+  let progressPct = 0;
+  if (isMaxed) {
+    progressPct = 100;
+  } else if (nextTier) {
+    const prevThreshold =
+      currentTier > 0 ? achievement.tiers[currentTier - 1].threshold : 0;
+    progressPct = Math.min(
+      100,
+      Math.round(
+        ((value - prevThreshold) / (nextTier.threshold - prevThreshold)) * 100,
+      ),
+    );
+  }
+
   return (
-    <div
-      className="flex flex-col items-center text-center group cursor-pointer"
+    <motion.div
+      className="flex flex-col items-center text-center cursor-pointer"
       onClick={onClick}
+      whileHover={{ scale: 1.07 }}
+      transition={{ type: "spring", stiffness: 320, damping: 22 }}
     >
+      {/* Circle */}
       <div
-        className={`w-14 h-14 rounded-full flex items-center justify-center mb-2.5 transition-transform group-hover:scale-105 ${
-          isLocked
-            ? "bg-white/[0.03] border border-dashed border-white/10"
-            : `${colors.bg} ${colors.ring}`
+        className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 ${
+          isLocked ? "" : !achievement.icon ? colors.bg : ""
         }`}
+        style={
+          isLocked
+            ? { background: "#0f0f0f", border: "1px dashed #2a2a2a" }
+            : !achievement.icon
+              ? { boxShadow: `0 0 22px ${colors.glowColor}` }
+              : {}
+        }
       >
         {isLocked ? (
-          <Lock className="w-5 h-5 text-zinc-600" />
+          <Lock className="w-5 h-5 text-zinc-700" />
         ) : achievement.icon ? (
           <img
             src={achievement.icon}
             alt={achievement.name}
-            className="w-10 h-10 object-contain"
+            className="w-12 h-12 object-contain"
           />
         ) : (
           <span className={`text-lg font-black ${colors.text}`}>
@@ -269,25 +295,58 @@ const AchievementCircle = ({ achievement, user, onClick }) => {
           </span>
         )}
       </div>
+
+      {/* Name */}
       <p
-        className={`text-xs font-bold truncate w-full px-1 ${
-          isLocked ? "text-zinc-500" : "text-zinc-200"
+        className={`text-[11px] font-bold truncate w-full px-1 mb-1 ${
+          isLocked ? "text-zinc-600" : "text-metallic"
         }`}
       >
         {achievement.name}
       </p>
-      {isLocked ? null : (
-        <span
-          className={`mt-0.5 text-[9px] font-bold uppercase tracking-wider ${colors.text}`}
-        >
-          {isMaxed ? "MAX" : achievement.tiers[currentTier - 1].label}
-        </span>
-      )}
-    </div>
+
+      {/* Mini progress bar */}
+      <div
+        className="w-full px-1 mb-1"
+        style={{
+          height: "3px",
+          background: "rgba(255,255,255,0.05)",
+          borderRadius: "999px",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${progressPct}%`,
+            borderRadius: "999px",
+            background: isLocked ? "#27272a" : colors.fillColor,
+            boxShadow:
+              !isLocked && progressPct > 0
+                ? `0 0 6px ${colors.glowColor}`
+                : "none",
+            transition: "width 0.5s ease",
+          }}
+        />
+      </div>
+
+      {/* Tier label */}
+      <p
+        className={`text-[9px] font-bold uppercase tracking-wider ${
+          isLocked ? "text-zinc-700" : colors.text
+        }`}
+      >
+        {isLocked
+          ? "Locked"
+          : isMaxed
+            ? "MAX"
+            : achievement.tiers[currentTier - 1]?.label}
+      </p>
+    </motion.div>
   );
 };
 
-/* ─── Detail Row (for dialog) ────────────────────────────── */
+/* ─── Detail Row (dialog) ────────────────────────────────── */
 const AchievementDetailRow = ({ achievement, user }) => {
   const value = getMetricValue(user, achievement.metric);
   const { currentTier, nextTier, isMaxed } = computeTierInfo(
@@ -315,13 +374,18 @@ const AchievementDetailRow = ({ achievement, user }) => {
     <div
       className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 ${colors.border} ${colors.bg}`}
     >
-      {/* Round icon */}
+      {/* Circle */}
       <div
         className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-          isLocked
-            ? "bg-white/[0.03] border border-dashed border-white/10"
-            : `${colors.bg} ${colors.ring}`
+          isLocked ? "" : !achievement.icon ? colors.bg : ""
         }`}
+        style={
+          isLocked
+            ? { background: "#0f0f0f", border: "1px dashed #2a2a2a" }
+            : !achievement.icon
+              ? { boxShadow: `0 0 18px ${colors.glowColor}` }
+              : {}
+        }
       >
         {isLocked ? (
           <Lock className="w-5 h-5 text-zinc-700" />
@@ -329,7 +393,7 @@ const AchievementDetailRow = ({ achievement, user }) => {
           <img
             src={achievement.icon}
             alt={achievement.name}
-            className="w-6 h-6 object-contain"
+            className="w-12 h-12 object-contain"
           />
         ) : (
           <span className={`text-base font-black ${colors.text}`}>
@@ -362,16 +426,24 @@ const AchievementDetailRow = ({ achievement, user }) => {
 
         {/* Progress bar */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+          <div
+            className="flex-1 h-1.5 rounded-full overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.05)" }}
+          >
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                isMaxed
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500"
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPct}%`,
+                background: isMaxed
+                  ? "linear-gradient(90deg, #a855f7, #ec4899)"
                   : currentTier > 0
-                    ? "bg-gradient-to-r from-orange-500 to-amber-400"
-                    : "bg-zinc-700"
-              }`}
-              style={{ width: `${progressPct}%` }}
+                    ? colors.fillColor
+                    : "#3f3f46",
+                boxShadow:
+                  currentTier > 0 && progressPct > 0
+                    ? `0 0 8px ${colors.glowColor}`
+                    : "none",
+              }}
             />
           </div>
           <span className="text-[10px] font-bold text-zinc-500 tabular-nums shrink-0">
@@ -385,16 +457,23 @@ const AchievementDetailRow = ({ achievement, user }) => {
           </span>
         </div>
 
-        {/* Tier dots */}
+        {/* Tier dots — colored per tier via inline style (fixes bg-metallic-orange bug) */}
         <div className="flex gap-1 mt-2">
           {achievement.tiers.map((tier) => (
             <div
               key={tier.level}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                currentTier >= tier.level
-                  ? "bg-metallic-orange"
-                  : "bg-white/[0.06]"
-              }`}
+              className="w-2 h-2 rounded-full transition-colors"
+              style={{
+                background:
+                  currentTier >= tier.level
+                    ? TIER_COLORS[tier.level]?.fillColor || "#f97316"
+                    : "rgba(255,255,255,0.06)",
+                boxShadow:
+                  currentTier >= tier.level &&
+                  TIER_COLORS[tier.level]?.glowColor !== "rgba(113,113,122,0.0)"
+                    ? `0 0 5px ${TIER_COLORS[tier.level]?.glowColor}`
+                    : "none",
+              }}
               title={`Tier ${tier.level}: ${tier.label} (${tier.threshold})`}
             />
           ))}
@@ -406,7 +485,6 @@ const AchievementDetailRow = ({ achievement, user }) => {
 
 /* ─── Full Dialog ────────────────────────────────────────── */
 const AchievementsDialog = ({ open, onClose, user }) => {
-  // Close on Escape
   const handleKey = useCallback(
     (e) => {
       if (e.key === "Escape") onClose();
@@ -434,22 +512,35 @@ const AchievementsDialog = ({ open, onClose, user }) => {
 
   return createPortal(
     <div className="fixed inset-0 z-[9998] flex items-center justify-center">
-      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg max-h-[85vh] mx-4 bg-[#1a1730] rounded-3xl border border-zinc-700 shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
+      <div
+        className="relative z-10 w-full max-w-lg max-h-[85vh] mx-4 rounded-2xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden"
+        style={{ background: "#1a1730", border: "1px solid #1a1a1a" }}
+      >
+        {/* Orange top accent */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent" />
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0">
+        <div
+          className="flex items-center justify-between px-6 py-4 shrink-0"
+          style={{ borderBottom: "1px solid #1a1a1a" }}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-orange-500/15 flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-orange-500" />
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{
+                background: "rgba(249,115,22,0.12)",
+                border: "1px solid rgba(249,115,22,0.25)",
+              }}
+            >
+              <Trophy className="w-4 h-4 text-orange-400" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-metallic">
+              <h3 className="text-sm font-bold text-metallic">
                 All Achievements
               </h3>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
@@ -459,7 +550,11 @@ const AchievementsDialog = ({ open, onClose, user }) => {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
           >
             <X className="w-4 h-4 text-zinc-400" />
           </button>
@@ -493,14 +588,12 @@ const AchievementsCard = () => {
     return v >= a.tiers[0].threshold;
   }).length;
 
-  // Show top 4 — prioritize unlocked, then first locked
   const sorted = [...ACHIEVEMENTS].sort((a, b) => {
     const aVal = getMetricValue(user, a.metric);
     const bVal = getMetricValue(user, b.metric);
     const aUnlocked = aVal >= a.tiers[0].threshold ? 1 : 0;
     const bUnlocked = bVal >= b.tiers[0].threshold ? 1 : 0;
     if (aUnlocked !== bUnlocked) return bUnlocked - aUnlocked;
-    // Among unlocked, sort by highest tier
     const aTier = computeTierInfo(a, aVal).currentTier;
     const bTier = computeTierInfo(b, bVal).currentTier;
     return bTier - aTier;
@@ -510,39 +603,69 @@ const AchievementsCard = () => {
 
   return (
     <>
-      <div className="bg-white dark:bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-300 dark:border-zinc-700 shadow-sm w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h4 className="font-bold text-zinc-900 dark:text-white text-base">
-            Achievements
-          </h4>
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-            {unlockedCount}/{ACHIEVEMENTS.length}
-          </span>
-        </div>
+      <div
+        className="relative rounded-2xl overflow-hidden w-full"
+        style={{ background: "#1a1730", border: "1px solid #1a1a1a" }}
+      >
+        {/* Orange top accent line */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent" />
 
-        {/* 2x2 Grid of round achievement circles */}
-        <div className="grid grid-cols-2 gap-4">
-          {preview.map((achievement) => (
-            <AchievementCircle
-              key={achievement.key}
-              achievement={achievement}
-              user={user}
-              onClick={() => setDialogOpen(true)}
-            />
-          ))}
-        </div>
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  background: "rgba(249,115,22,0.1)",
+                  border: "1px solid rgba(249,115,22,0.22)",
+                }}
+              >
+                <Trophy className="w-3.5 h-3.5 text-orange-400" />
+              </div>
+              <h4 className="text-sm font-bold text-metallic">Achievements</h4>
+            </div>
+            <span
+              className="px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums"
+              style={{
+                background: "rgba(249,115,22,0.08)",
+                border: "1px solid rgba(249,115,22,0.2)",
+              }}
+            >
+              <span className="text-metallic-orange">{unlockedCount}</span>
+              <span className="text-zinc-600 font-normal">
+                /{ACHIEVEMENTS.length}
+              </span>
+            </span>
+          </div>
 
-        {/* Show All button */}
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="w-full mt-4 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/10 text-zinc-400 text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.98]"
-        >
-          Show All <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+          {/* 2×2 grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {preview.map((achievement) => (
+              <AchievementCircle
+                key={achievement.key}
+                achievement={achievement}
+                user={user}
+                onClick={() => setDialogOpen(true)}
+              />
+            ))}
+          </div>
+
+          {/* Show All */}
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="w-full mt-4 py-2 rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-[0.98] hover:border-zinc-700"
+            style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid #1f1f1f",
+            }}
+          >
+            <span className="text-metallic">Show All</span>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+          </button>
+        </div>
       </div>
 
-      {/* Full achievements dialog */}
       <AchievementsDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}

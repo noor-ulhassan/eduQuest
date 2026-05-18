@@ -24,6 +24,8 @@ import VSScreen from "../../components/competition/VSScreen";
 import SpectatorView from "../../components/competition/SpectatorView";
 import GamePlayView from "../../components/competition/GamePlayView";
 import ClassicPlayView from "../../components/competition/ClassicPlayView";
+import useGameActivityFeed from "@/hooks/useGameActivityFeed";
+import { resetFeedbackOrchestrator } from "@/lib/feedbackOrchestrator";
 import confetti from "canvas-confetti";
 import {
   playCorrectSound,
@@ -114,6 +116,21 @@ const CompetitionLobby = () => {
   });
 
   const isHost = room?.hostId === user?._id;
+
+  // Live activity feed — derives kill-feed-style events from leaderboard diffs
+  const { events: activityEvents, pushExternal: pushActivity } =
+    useGameActivityFeed({
+      leaderboard,
+      userId: user?._id,
+      isPowerQuestion,
+      questionIndex,
+      totalQuestions,
+      gameState,
+    });
+  const pushActivityRef = useRef(pushActivity);
+  useEffect(() => {
+    pushActivityRef.current = pushActivity;
+  }, [pushActivity]);
 
   useEffect(() => {
     roomCodeRef.current = roomCode;
@@ -345,21 +362,33 @@ const CompetitionLobby = () => {
       );
     };
 
-    const onPlayerEliminatedUpdate = ({ playerName }) => {
+    const onPlayerEliminatedUpdate = ({ playerId, playerName }) => {
       toast.error(`${playerName} was eliminated! 💀`);
       setGameEvents((prev) => [
         ...prev.slice(-4),
         { type: "eliminated", name: playerName, time: Date.now() },
       ]);
+      pushActivityRef.current?.({
+        type: "eliminated",
+        name: playerName,
+        playerId,
+        isMe: playerId === user?._id,
+      });
     };
 
     // B-08: Handle player finishing so other players get immediate feedback
-    const onPlayerFinishedUpdate = ({ playerName }) => {
+    const onPlayerFinishedUpdate = ({ playerId, playerName }) => {
       toast.success(`${playerName} finished! 🏁`);
       setGameEvents((prev) => [
         ...prev.slice(-4),
         { type: "finished", name: playerName, time: Date.now() },
       ]);
+      pushActivityRef.current?.({
+        type: "finished",
+        name: playerName,
+        playerId,
+        isMe: playerId === user?._id,
+      });
     };
 
     // G-08: Rematch vote updates
@@ -369,6 +398,7 @@ const CompetitionLobby = () => {
 
     // G-06: Handle room reset — everyone goes back to lobby with fresh state
     const onRoomReset = ({ room: resetRoom }) => {
+      resetFeedbackOrchestrator();
       setRoom(resetRoom);
       setGameState("lobby");
       setFinalResults(null);
@@ -861,6 +891,9 @@ const CompetitionLobby = () => {
   // Handler: VS screen finished → transition to playing
   const handleVSComplete = () => {
     if (!vsData) return;
+    // Clean slate for the new match — drop any stale banners/sounds queued
+    // from the previous match (e.g. play-again flow).
+    resetFeedbackOrchestrator();
     const capturedRoomCode = roomCode;
     const capturedDuration = vsData.timerDuration;
     setShowVS(false);
@@ -1171,6 +1204,7 @@ const CompetitionLobby = () => {
         userFinished={userFinished}
         leaderboard={leaderboard}
         gameEvents={gameEvents}
+        activityEvents={activityEvents}
       />
     );
   }
@@ -1201,6 +1235,7 @@ const CompetitionLobby = () => {
         gameEvents={gameEvents}
         userId={user?._id}
         totalQuestions={totalQuestions}
+        activityEvents={activityEvents}
       />
     );
   }

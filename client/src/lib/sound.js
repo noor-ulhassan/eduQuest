@@ -116,11 +116,23 @@ export const playCountdownGoSound = () =>
 export const playStartGameSound = playCountdownGoSound;
 
 // ─── In-Game ───────────────────────────────────────────────
-export const playCorrectSound = () => play("/sounds/correct.mp3", 0.6);
+// All in-game sounds route through the feedback orchestrator's sound gate
+// so they cannot stack/play-over-each-other.
+import { gateSound, PRIORITY } from "./feedbackOrchestrator";
 
-export const playWrongSound = () => play("/sounds/error.mp3", 0.6);
+export const playCorrectSound = () => {
+  if (!gateSound("correct", PRIORITY.OWN, { sameKeyCooldown: 400 })) return;
+  play("/sounds/correct.mp3", 0.6);
+};
 
-export const playVictorySound = () =>
+export const playWrongSound = () => {
+  if (!gateSound("wrong", PRIORITY.OWN, { sameKeyCooldown: 400 })) return;
+  play("/sounds/error.mp3", 0.6);
+};
+
+export const playVictorySound = () => {
+  if (!gateSound("victory", PRIORITY.CRITICAL, { sameKeyCooldown: 2000 }))
+    return;
   synth(
     [
       { freq: 523.25, dur: 0.12 },
@@ -132,13 +144,33 @@ export const playVictorySound = () =>
     ],
     0.38,
   );
+};
 
-// Ticked each second when timeRemaining <= 15
-export const playTimerWarningSound = () =>
+// Ticked when timeRemaining <= 15 — gated to fire at most every ~1.5s and
+// suppressed entirely while higher-priority sounds (own answer, big moment)
+// are in flight.
+export const playTimerWarningSound = () => {
+  if (
+    !gateSound("timer-tick", PRIORITY.LOW, {
+      sameKeyCooldown: 1500,
+      minGapMs: 300,
+    })
+  )
+    return;
   synth([{ freq: 880, dur: 0.07, type: "sine", gain: 0.18 }]);
+};
 
-// Rank-change whoosh — ascending 4-note sweep
-export const playRankChangeSound = () =>
+// Rank-change whoosh — only fire when the LOCAL player's rank changed
+// (call sites pass forUser=true). Gated to 1s same-key cooldown so it
+// doesn't crash into correct/wrong sounds.
+export const playRankChangeSound = () => {
+  if (
+    !gateSound("rank-change", PRIORITY.LOW, {
+      sameKeyCooldown: 1200,
+      minGapMs: 250,
+    })
+  )
+    return;
   synth(
     [
       { freq: 440, dur: 0.08, type: "sine", gain: 0.18 },
@@ -148,6 +180,34 @@ export const playRankChangeSound = () =>
     ],
     0.2,
   );
+};
+
+// Streak milestone (3x/5x/7x) — short bright chime
+export const playStreakSound = (level = 3) => {
+  if (!gateSound(`streak-${level}`, PRIORITY.HIGH, { sameKeyCooldown: 800 }))
+    return;
+  const base = level >= 7 ? 880 : level >= 5 ? 783.99 : 659.25;
+  synth(
+    [
+      { freq: base, dur: 0.08, gain: 0.22 },
+      { freq: base * 1.5, dur: 0.14, delay: 0.08, gain: 0.2 },
+    ],
+    0.22,
+  );
+};
+
+// Lead-change ping — distinct ascending two-tone
+export const playLeadChangeSound = () => {
+  if (!gateSound("lead-change", PRIORITY.HIGH, { sameKeyCooldown: 1500 }))
+    return;
+  synth(
+    [
+      { freq: 659.25, dur: 0.1, gain: 0.22 },
+      { freq: 987.77, dur: 0.18, delay: 0.1, gain: 0.22 },
+    ],
+    0.2,
+  );
+};
 
 // ─── Gamification ──────────────────────────────────────────
 // Level-up fanfare: bass impact → ascending scale → triumphant chord

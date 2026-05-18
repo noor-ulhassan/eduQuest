@@ -11,11 +11,11 @@ const LobbyHeader = ({ isHost, onLeave, isMusicMuted, onToggleMusic }) => (
     </button>
 
     <div className="hidden sm:flex items-center gap-2.5">
-      <img src="/swords-silver.png" alt="sword" height={30} width={30} />
-      <span className="text-[30px] font-bold text-metallic">
+      <img src="/swords-silver.png" alt="sword" height={28} width={28} />
+      <span className="text-2xl font-black tracking-tight text-metallic">
         Competition Arena
       </span>
-      <img src="/swords-silver.png" alt="sword" height={30} width={30} />
+      <img src="/swords-silver.png" alt="sword" height={28} width={28} />
     </div>
 
     <div className="flex items-center gap-2">
@@ -31,7 +31,7 @@ const LobbyHeader = ({ isHost, onLeave, isMusicMuted, onToggleMusic }) => (
         {isMusicMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
       </button>
       <span
-        className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
         style={{
           background: "rgba(34,197,94,0.08)",
           border: "1px solid rgba(34,197,94,0.25)",
@@ -43,7 +43,7 @@ const LobbyHeader = ({ isHost, onLeave, isMusicMuted, onToggleMusic }) => (
         Live
       </span>
       <span
-        className="px-3 py-1 rounded-full text-sm font-bold"
+        className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
         style={{
           background: isHost ? "rgba(234,179,8,0.1)" : "rgba(255,255,255,0.04)",
           border: `1px solid ${isHost ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`,

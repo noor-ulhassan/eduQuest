@@ -49,11 +49,29 @@ function buildClassicQuizPrompt({
   topic,
   description,
   totalQuestions,
+  category,
 }) {
+  const isGeneral = category === "general";
   const topicLine = topic
     ? `Topic: ${topic}`
-    : "Topic: general technology, computer science, and programming concepts";
+    : isGeneral
+      ? "Topic: general knowledge (history, science, geography, literature, arts, sports, current events, everyday facts)"
+      : "Topic: general technology, computer science, and programming concepts";
   const descLine = description ? `Additional context: ${description}` : "";
+
+  // STRICT topic-lock for general category — Gemini otherwise drifts toward
+  // CS/programming questions even when the topic is non-technical.
+  const topicLock = isGeneral
+    ? `
+TOPIC LOCK — ABSOLUTELY CRITICAL:
+- Every question MUST be exclusively about "${topic || "general knowledge"}".
+- Do NOT use computer science, programming, software engineering, databases, algorithms, or developer scenarios UNLESS the topic itself is one of those.
+- Do NOT shoehorn tech examples ("a developer doing X", "an API that...", "a function...") into a non-tech topic.
+- Do NOT use code, function names, or technical jargon as answer choices for a non-technical topic.
+- If the topic is "Ancient Rome", every question is about Ancient Rome — not about "tech in Rome", not about "a programmer studying Rome".
+- Stay strictly within the domain implied by the topic.
+`
+    : "";
 
   return `
 You are a quiz question generator for a competitive knowledge game.
@@ -62,8 +80,8 @@ ${DIFFICULTY_TONES[difficulty] || DIFFICULTY_TONES.medium}
 
 ${topicLine}
 ${descLine}
-
-Generate ${totalQuestions} engaging multiple-choice questions.
+${topicLock}
+Generate ${totalQuestions} engaging multiple-choice questions${topic ? ` about "${topic}"` : ""}.
 
 Each question must have:
 - question: clear question text
@@ -93,11 +111,34 @@ function buildScenarioChallengePrompt({
   topic,
   description,
   totalQuestions,
+  category,
 }) {
+  const isGeneral = category === "general";
   const topicLine = topic
     ? `Domain: ${topic}`
-    : "Domain: software engineering and web development";
+    : isGeneral
+      ? "Domain: general knowledge (everyday life, history, science, professions, society)"
+      : "Domain: software engineering and web development";
   const descLine = description ? `Additional context: ${description}` : "";
+
+  // Example scenarios — category aware so the LLM doesn't anchor on CS for
+  // non-technical topics.
+  const exampleLine = isGeneral
+    ? `Example scenario style (mirror the structure, NOT the subject):
+"Marco, a vineyard owner in Tuscany, notices his grapes are ripening two weeks earlier than they did a decade ago. He's debating whether to plant a heat-tolerant variety or invest in shade nets. His agronomist visits next week to advise."`
+    : `Example scenario style:
+"Sarah, a backend developer at a fintech startup, notices their MongoDB queries are taking 3+ seconds during peak hours. The collection has 2 million user transaction documents with frequent reads on 'userId' and 'timestamp' fields. Her team lead asks her to optimize the database layer before the next sprint review."`;
+
+  const topicLock = isGeneral
+    ? `
+TOPIC LOCK — ABSOLUTELY CRITICAL:
+- Every scenario AND every question MUST be set within the domain "${topic || "general knowledge"}".
+- Do NOT use computer science, programming, software engineering, databases, algorithms, or developer scenarios UNLESS the topic itself is one of those.
+- Characters in scenarios should fit the topic (e.g., for "Ancient Rome" — senators, soldiers, merchants — NOT "a developer named Sarah").
+- Do NOT use technical jargon, code, or developer settings unless the topic is technical.
+- The scenario is a vehicle for testing knowledge of "${topic || "the topic"}", not a setting where unrelated tech happens.
+`
+    : "";
 
   return `
 You are an immersive scenario-based quiz designer. Each question must present a REALISTIC MINI-STORY before asking a question.
@@ -106,17 +147,16 @@ ${DIFFICULTY_TONES[difficulty] || DIFFICULTY_TONES.medium}
 
 ${topicLine}
 ${descLine}
-
-Generate ${totalQuestions} scenario-based multiple-choice questions.
+${topicLock}
+Generate ${totalQuestions} scenario-based multiple-choice questions${topic ? ` about "${topic}"` : ""}.
 
 RULES:
 - Each question MUST start with a vivid, real-world scenario (2-4 sentences) that sets up the problem
-- Use specific character names, company contexts, and project situations
+- Use specific character names${isGeneral ? " (names and roles appropriate to the topic)" : ", company contexts, and project situations"}
 - The question should require APPLYING knowledge to the scenario, not just recalling facts
-- Scenarios should be varied: startup decisions, debugging situations, architecture choices, team discussions, deadline pressure, etc.
+- Scenarios should be varied${isGeneral ? " in setting and stakes within the topic" : ": startup decisions, debugging situations, architecture choices, team discussions, deadline pressure, etc."}
 
-Example scenario style:
-"Sarah, a backend developer at a fintech startup, notices their MongoDB queries are taking 3+ seconds during peak hours. The collection has 2 million user transaction documents with frequent reads on 'userId' and 'timestamp' fields. Her team lead asks her to optimize the database layer before the next sprint review."
+${exampleLine}
 
 Each question must have:
 - scenario: the story/narrative setup (2-4 sentences, with character names and context)
