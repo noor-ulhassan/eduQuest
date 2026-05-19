@@ -238,11 +238,25 @@ const InteractiveProblem = ({ problem, onSolve, onAttempt, isAlreadySolved }) =>
 
       {/* ── Token bank ────────────────────────────────────────────────────── */}
       <div className="px-5 pt-5">
-        <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-3 font-semibold flex items-center gap-2">
+        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-zinc-600 mb-2">
+          Available tokens
+        </p>
+        <div className="text-[11px] text-zinc-600 mb-3 font-medium flex items-center gap-2">
           <GripHorizontal className="h-3.5 w-3.5" />
           Drag or click to place
         </div>
-        <div className="flex flex-wrap gap-2 min-h-[40px]">
+        <div
+          className="flex flex-wrap gap-2 min-h-[44px] rounded-xl p-2 transition-all"
+          style={{
+            background: "rgba(255,255,255,0.02)",
+            border: checkResult?.correct
+              ? "1px dashed rgba(44,240,157,0.30)"
+              : "1px dashed rgba(255,255,255,0.06)",
+            boxShadow: checkResult?.correct
+              ? "inset 0 0 20px rgba(44,240,157,0.06)"
+              : "none",
+          }}
+        >
           <AnimatePresence>
             {bankTokens.map((token) => (
               <motion.button
@@ -251,13 +265,13 @@ const InteractiveProblem = ({ problem, onSolve, onAttempt, isAlreadySolved }) =>
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                whileHover={{ scale: 1.06, y: -1 }}
+                whileHover={{ scale: 1.06, y: -2 }}
                 whileTap={{ scale: 0.94 }}
                 draggable
                 onDragStart={() => handleDragStart(token)}
                 onClick={() => handleTokenClick(token)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg font-mono text-[13px] font-semibold border cursor-grab active:cursor-grabbing transition-all select-none",
+                  "px-3.5 py-2 rounded-lg font-mono text-[13px] font-semibold border cursor-grab active:cursor-grabbing transition-all select-none shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
                   tokenCls(token.color),
                   selectedTokenId === token.id &&
                     "ring-2 ring-orange-400 ring-offset-2 ring-offset-zinc-950 scale-105",
@@ -268,8 +282,8 @@ const InteractiveProblem = ({ problem, onSolve, onAttempt, isAlreadySolved }) =>
             ))}
           </AnimatePresence>
           {bankTokens.length === 0 && (
-            <span className="text-[12px] text-zinc-600 italic">
-              All tokens placed
+            <span className="text-[12px] text-zinc-600 italic px-2 py-1">
+              All tokens placed — ready to check
             </span>
           )}
         </div>
@@ -302,34 +316,60 @@ const InteractiveProblem = ({ problem, onSolve, onAttempt, isAlreadySolved }) =>
       {/* ── Actions ────────────────────────────────────────────────────────── */}
       <div className="px-5 pt-4 pb-6 flex items-center gap-3">
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.02, y: -1 }}
           whileTap={{ scale: 0.97 }}
           onClick={handleCheck}
           disabled={isAlreadySolved}
           className={cn(
-            "flex-1 py-3 rounded-xl font-bold text-[14px] transition-all flex items-center justify-center gap-2",
+            "flex-1 py-3 rounded-xl font-black text-[14px] uppercase tracking-wider transition-all flex items-center justify-center gap-2",
             checkResult?.correct || isAlreadySolved
-              ? "bg-emerald-600/80 text-white cursor-default"
+              ? "text-white cursor-default"
               : allFilled
-                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:shadow-lg hover:shadow-orange-500/20"
-                : "bg-zinc-800 text-zinc-500 cursor-not-allowed",
+                ? "text-white"
+                : "text-zinc-500 cursor-not-allowed",
           )}
+          style={
+            checkResult?.correct || isAlreadySolved
+              ? {
+                  background:
+                    "linear-gradient(135deg, #2cf09d 0%, #16a34a 100%)",
+                  color: "#04140c",
+                  boxShadow: "0 6px 20px rgba(44,240,157,0.30)",
+                }
+              : allFilled
+                ? {
+                    background:
+                      "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                    boxShadow:
+                      "0 6px 20px rgba(239,68,68,0.32), inset 0 1px 0 rgba(255,255,255,0.18)",
+                  }
+                : {
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                  }
+          }
         >
           {checkResult?.correct || isAlreadySolved ? (
             <>
-              <CheckCircle className="h-4 w-4" /> Solved!
+              <CheckCircle className="h-4 w-4" /> Solved
             </>
           ) : (
-            "Check Answer →"
+            <>Check Answer →</>
           )}
         </motion.button>
-        <button
+        <motion.button
+          whileHover={{ rotate: -45 }}
+          whileTap={{ scale: 0.94 }}
           onClick={handleReset}
-          className="p-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="p-3 rounded-xl text-zinc-400 hover:text-white transition-colors"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.07)",
+          }}
           title="Reset"
         >
           <RotateCcw className="h-4 w-4" />
-        </button>
+        </motion.button>
       </div>
     </div>
   );

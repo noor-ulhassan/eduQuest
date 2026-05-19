@@ -143,21 +143,77 @@ export default function Playground() {
               coding challenges. Practice your fundamentals, earn XP, and level
               up your skills.
             </p>
+
+            {/* Stats strip */}
+            <div className="flex items-center gap-5 mt-6 flex-wrap justify-center md:justify-start">
+              {[
+                {
+                  label: "Languages",
+                  value:
+                    metadataPayload?.metadata?.length ||
+                    Object.keys(progressData).length ||
+                    "9+",
+                },
+                {
+                  label: "Enrolled",
+                  value: Object.values(progressData).filter((p) => p.enrolled)
+                    .length,
+                  color: "#2cf09d",
+                },
+                {
+                  label: "Lessons Solved",
+                  value: Object.values(progressData).reduce(
+                    (s, p) => s + (p.completed || 0),
+                    0,
+                  ),
+                  color: "#f97316",
+                },
+                {
+                  label: "Total Lessons",
+                  value:
+                    Object.values(progressData).reduce(
+                      (s, p) => s + (p.total || 0),
+                      0,
+                    ) || "500+",
+                },
+              ].map(({ label, value, color }) => (
+                <div
+                  key={label}
+                  className="flex flex-col items-start min-w-[68px]"
+                >
+                  <span
+                    className="text-2xl font-black tabular-nums leading-none"
+                    style={{ color: color || "#ffffff" }}
+                  >
+                    {value}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-[0.18em] font-bold mt-1">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Grid Area */}
       <div className="max-w-7xl mx-auto px-6 lg:px-12 pt-16">
-        <div className="flex items-center justify-between mb-10">
-          <h2
-            className="text-4xl font-hand font-bold tracking-tight text-metallic pb-2"
-            style={{
-              letterSpacing: "0.1rem",
-            }}
-          >
-            Available Languages & Frameworks
-          </h2>
+        <div className="flex items-end justify-between mb-10 gap-4 flex-wrap">
+          <div>
+            <h2
+              className="text-4xl font-hand font-bold tracking-tight text-metallic pb-2"
+              style={{
+                letterSpacing: "0.1rem",
+              }}
+            >
+              Available Languages & Frameworks
+            </h2>
+            <p className="text-sm text-zinc-500 max-w-xl">
+              Click any card to preview — enrolled languages open directly into
+              their workspace.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 justify-items-center">
@@ -165,7 +221,7 @@ export default function Playground() {
             ? Array.from({ length: 6 }, (_, i) => (
                 <div
                   key={i}
-                  className="w-full max-w-[270px] h-[340px] rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse"
+                  className="w-full max-w-[270px] h-[370px] rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse"
                 />
               ))
             : (metadataPayload?.metadata || []).map(({ language, title }) => (

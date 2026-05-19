@@ -50,6 +50,8 @@ import {
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
 import DiscussionPanel from "./components/discussion/DiscussionPanel";
+import SessionCompletionOverlay from "./components/SessionCompletionOverlay";
+
 import {
   Terminal as MagicTerminal,
   TypingAnimation,
@@ -259,9 +261,13 @@ const LanguagePlayground = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   // Capture on mount only — if navigated from a course chapter the param is set once
-  const requestedProblemIdRef = useRef(new URLSearchParams(location.search).get("problem"));
+  const requestedProblemIdRef = useRef(
+    new URLSearchParams(location.search).get("problem"),
+  );
   const user = useSelector((state) => state.auth.user);
-  const activeTask = useSelector((state) => state.playgroundTask?.activeTask ?? null);
+  const activeTask = useSelector(
+    (state) => state.playgroundTask?.activeTask ?? null,
+  );
   const [taskTestResults, setTaskTestResults] = useState([]);
   const [isRunningTask, setIsRunningTask] = useState(false);
   const [currentProblem, setCurrentProblem] = useState(null);
@@ -286,13 +292,19 @@ const LanguagePlayground = () => {
   const [isSidebarCompact, setIsSidebarCompact] = useState(true);
   const [sessionXP, setSessionXP] = useState(0);
   const [sessionSolved, setSessionSolved] = useState(0);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const completionFiredRef = useRef(false);
   const [data, setData] = useState(null);
   // Derive execution mode from the curriculum doc; fall back to language name for old docs
-  const executionMode = data?.executionMode || (
-    ["html", "css"].includes(language?.toLowerCase()) ? "livepreview" :
-    language?.toLowerCase() === "react" ? "react" :
-    language?.toLowerCase() === "dsa" ? "dsa" : "piston"
-  );
+  const executionMode =
+    data?.executionMode ||
+    (["html", "css"].includes(language?.toLowerCase())
+      ? "livepreview"
+      : language?.toLowerCase() === "react"
+        ? "react"
+        : language?.toLowerCase() === "dsa"
+          ? "dsa"
+          : "piston");
   const isLivePreview = executionMode === "livepreview";
   const isReact = executionMode === "react";
 
@@ -343,9 +355,13 @@ const LanguagePlayground = () => {
               requested = ch.problems.find((p) => p.id === reqId);
               if (requested) break;
             }
-            targetProblem = requested || firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+            targetProblem =
+              requested ||
+              firstUnsolved ||
+              curRes.curriculum.chapters[0].problems[0];
           } else {
-            targetProblem = firstUnsolved || curRes.curriculum.chapters[0].problems[0];
+            targetProblem =
+              firstUnsolved || curRes.curriculum.chapters[0].problems[0];
           }
           setCurrentProblem(targetProblem);
           setCode(
@@ -591,9 +607,10 @@ const LanguagePlayground = () => {
     // Piston execution
     let codeToRun = code;
     const pistonLang = data?.pistonLanguage || language;
-    const execLanguage = (executionMode === "dsa" || typeof currentProblem.starterCode === "object")
-      ? dsaLang
-      : pistonLang;
+    const execLanguage =
+      executionMode === "dsa" || typeof currentProblem.starterCode === "object"
+        ? dsaLang
+        : pistonLang;
 
     if (currentProblem.testFunction)
       codeToRun = code + "\n" + currentProblem.testFunction;
@@ -697,6 +714,34 @@ const LanguagePlayground = () => {
     return () => window.removeEventListener("keydown", handler);
   }, [handleRunCode, currentProblem]);
 
+  // ── Computed values ────────────────────────────────────
+  const { totalProblems, completedCount, progressPercent } = useMemo(() => {
+    const total =
+      data?.chapters?.reduce((sum, ch) => sum + ch.problems.length, 0) || 0;
+    const completed = completedProblems.size;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return {
+      totalProblems: total,
+      completedCount: completed,
+      progressPercent: percent,
+    };
+  }, [data, completedProblems]);
+
+  // Trigger session completion overlay once when the curriculum hits 100%
+  useEffect(() => {
+    if (
+      data &&
+      totalProblems > 0 &&
+      completedCount === totalProblems &&
+      !completionFiredRef.current
+    ) {
+      completionFiredRef.current = true;
+      // Delay slightly to let confetti from final solve land first
+      const t = setTimeout(() => setShowCompletion(true), 900);
+      return () => clearTimeout(t);
+    }
+  }, [data, totalProblems, completedCount]);
+
   // Interactive problem solve handler
   const handleInteractiveSolve = useCallback(async () => {
     if (!currentProblem) return;
@@ -733,9 +778,10 @@ const LanguagePlayground = () => {
     setIsRunningTask(true);
     setTaskTestResults([]);
     try {
-      const execLang = (executionMode === "dsa" || language === "dsa")
-        ? dsaLang
-        : (data?.pistonLanguage || language)?.toLowerCase();
+      const execLang =
+        executionMode === "dsa" || language === "dsa"
+          ? dsaLang
+          : (data?.pistonLanguage || language)?.toLowerCase();
       const res = await api.post("/code/run-task", {
         language: execLang,
         code,
@@ -752,19 +798,6 @@ const LanguagePlayground = () => {
   useEffect(() => {
     if (isMobile) setIsSidebarOpen(false);
   }, [isMobile]);
-
-  // ── Computed values ────────────────────────────────────
-  const { totalProblems, completedCount, progressPercent } = useMemo(() => {
-    const total =
-      data?.chapters?.reduce((sum, ch) => sum + ch.problems.length, 0) || 0;
-    const completed = completedProblems.size;
-    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return {
-      totalProblems: total,
-      completedCount: completed,
-      progressPercent: percent,
-    };
-  }, [data, completedProblems]);
 
   // Lesson number (e.g. "2.1")
   const { currentChapterIdx, currentProblemIdx } = useMemo(() => {
@@ -854,13 +887,16 @@ const LanguagePlayground = () => {
   };
 
   // ── Editor language mapping ────────────────────────────
-  const editorLang = (executionMode === "dsa" || typeof currentProblem?.starterCode === "object")
-    ? getMonacoLanguage(dsaLang)
-    : isReact
-      ? "javascript"
-      : isLivePreview
-        ? (language === "css" ? "css" : "html")
-        : getMonacoLanguage(data?.pistonLanguage || language);
+  const editorLang =
+    executionMode === "dsa" || typeof currentProblem?.starterCode === "object"
+      ? getMonacoLanguage(dsaLang)
+      : isReact
+        ? "javascript"
+        : isLivePreview
+          ? language === "css"
+            ? "css"
+            : "html"
+          : getMonacoLanguage(data?.pistonLanguage || language);
 
   // ── Loading state ──────────────────────────────────────
   if (isLoadingProgress || !currentProblem) {
@@ -881,41 +917,162 @@ const LanguagePlayground = () => {
     <div className="flex flex-col h-screen min-h-dvh bg-[#0a0a0a] text-white overflow-hidden">
       {/* ═══════════ DESKTOP NAVBAR ═══════════ */}
       {!isMobile && (
-        <header className="h-[60px] shrink-0 border-b border-white/10 bg-[#0a0a0a] flex items-center justify-between px-6 z-10">
-          <div className="flex items-center gap-3">
+        <header
+          className="h-[52px] shrink-0 flex items-center justify-between px-5 z-10 relative"
+          style={{
+            background:
+              "linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 70%, rgba(10,10,10,0.96) 100%)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          {/* hair-line accent under navbar */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-px"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, rgba(239,68,68,0.30) 35%, rgba(239,68,68,0.30) 65%, transparent 100%)",
+              opacity: 0.5,
+            }}
+          />
+
+          {/* LEFT */}
+          <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() =>
-                isMobile
-                  ? setIsSidebarOpen(!isSidebarOpen)
-                  : setIsSidebarCompact(!isSidebarCompact)
-              }
-              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-zinc-400 hover:text-white"
+              onClick={() => navigate("/playground")}
+              className="group flex items-center gap-1.5 text-zinc-500 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors"
             >
-              <Menu className="w-5 h-5" />
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <span className="hidden sm:block">Playgrounds</span>
             </button>
-            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 ml-1">
-              {getLanguageIconUrl(language) ? (
-                <img
-                  src={getLanguageIconUrl(language)}
-                  alt={language}
-                  className="w-5 h-5 object-contain drop-shadow-md"
-                />
-              ) : (
-                <Terminal className="w-5 h-5 text-white" />
-              )}
+
+            <div className="h-4 w-px bg-white/10" />
+
+            <button
+              onClick={() => setIsSidebarCompact(!isSidebarCompact)}
+              className="p-1.5 -ml-1 hover:bg-white/[0.06] rounded-lg transition-colors text-zinc-500 hover:text-white"
+              aria-label="Toggle sidebar"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+                }}
+              >
+                {getLanguageIconUrl(language) ? (
+                  <img
+                    src={getLanguageIconUrl(language)}
+                    alt={language}
+                    className="w-4 h-4 object-contain"
+                  />
+                ) : (
+                  <Terminal className="w-3.5 h-3.5 text-zinc-400" />
+                )}
+              </div>
+              <span className="text-[13px] font-bold text-white capitalize hidden sm:block tracking-tight">
+                {language}{" "}
+                <span className="text-zinc-600 font-medium">Playground</span>
+              </span>
             </div>
-            <span className="font-bold text-lg tracking-wide hidden sm:block">
-              {language.charAt(0).toUpperCase() + language.slice(1)} Playground
-            </span>
+
+            <div className="h-4 w-px bg-white/10 hidden md:block" />
+
+            <motion.span
+              key={`${currentChapterIdx}.${currentProblemIdx}`}
+              initial={{ opacity: 0, y: -2 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="hidden md:inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full"
+              style={{
+                background: "rgba(239,68,68,0.10)",
+                border: "1px solid rgba(239,68,68,0.22)",
+                color: "#f87171",
+              }}
+            >
+              <span className="w-1 h-1 rounded-full bg-red-400 animate-pulse" />
+              Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
+            </motion.span>
           </div>
 
-          {/* Navigation Links */}
+          {/* RIGHT — Session Stats */}
+          <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {sessionXP > 0 && (
+                <motion.div
+                  key={sessionXP}
+                  initial={{ scale: 1.18, opacity: 0.6 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  style={{
+                    background: "rgba(44,240,157,0.08)",
+                    border: "1px solid rgba(44,240,157,0.22)",
+                    color: "#2cf09d",
+                    boxShadow: "0 0 12px rgba(44,240,157,0.08)",
+                  }}
+                >
+                  <Zap className="w-3 h-3 fill-current" />+{sessionXP}
+                  <span className="text-[9px] opacity-70 font-black">XP</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* User actions */}
-          <div className="flex items-center gap-4">
+            {sessionSolved > 0 && (
+              <motion.div
+                key={sessionSolved}
+                initial={{ scale: 1.12 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.20)",
+                  color: "#f87171",
+                }}
+              >
+                <CheckCircle className="w-3 h-3" />
+                {sessionSolved}
+              </motion.div>
+            )}
+
+            {/* Progress strip */}
+            <div className="hidden md:flex flex-col gap-0.5 mx-1">
+              <div
+                className="w-24 h-1 rounded-full overflow-hidden"
+                style={{ background: "rgba(255,255,255,0.05)" }}
+              >
+                <motion.div
+                  className="h-full rounded-full"
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  style={{
+                    background:
+                      progressPercent === 100
+                        ? "linear-gradient(90deg, #2cf09d, #16a34a)"
+                        : "linear-gradient(90deg, #ef4444, #f97316)",
+                    boxShadow: "0 0 6px rgba(239,68,68,0.35)",
+                  }}
+                />
+              </div>
+              <span className="text-[8px] font-bold text-zinc-600 tracking-[0.18em] uppercase">
+                {progressPercent}% Path
+              </span>
+            </div>
+
             <button
               onClick={() => navigate("/profile")}
-              className="w-9 h-9 rounded-full overflow-hidden border border-white/10 flex items-center justify-center"
+              className="ml-1 w-7 h-7 rounded-full overflow-hidden shrink-0 transition-transform hover:scale-105"
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                boxShadow:
+                  "0 0 0 2px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04)",
+              }}
             >
               {user?.avatarUrl ? (
                 <img
@@ -924,8 +1081,14 @@ const LanguagePlayground = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-red-600 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+                  }}
+                >
+                  <span className="text-white text-[10px] font-black">
                     {user?.name?.charAt(0) || "U"}
                   </span>
                 </div>
@@ -1018,11 +1181,30 @@ const LanguagePlayground = () => {
                             className={cn(
                               "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
                               isActiveChapter
-                                ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/30"
+                                ? "text-red-400"
                                 : chapterDone
-                                  ? "bg-emerald-500/10 text-emerald-400"
-                                  : "bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-zinc-300",
+                                  ? "text-[#2cf09d]"
+                                  : "text-zinc-500 hover:text-zinc-300",
                             )}
+                            style={
+                              isActiveChapter
+                                ? {
+                                    background:
+                                      "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.08))",
+                                    border: "1px solid rgba(239,68,68,0.35)",
+                                    boxShadow: "0 0 14px rgba(239,68,68,0.22)",
+                                  }
+                                : chapterDone
+                                  ? {
+                                      background: "rgba(44,240,157,0.08)",
+                                      border: "1px solid rgba(44,240,157,0.18)",
+                                    }
+                                  : {
+                                      background: "rgba(255,255,255,0.03)",
+                                      border:
+                                        "1px solid rgba(255,255,255,0.06)",
+                                    }
+                            }
                           >
                             {chapterDone ? (
                               <CheckCircle className="w-4 h-4" />
@@ -1079,20 +1261,36 @@ const LanguagePlayground = () => {
 
                   {/* Progress */}
                   <div className="px-4 pb-3">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-widest font-semibold mb-2">
-                      <span className="text-zinc-500">Course Progress</span>
-                      <span className="text-[#2cf09d] font-bold">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                        Course Progress
+                      </span>
+                      <span
+                        className="text-[11px] font-black"
+                        style={{ color: "#2cf09d" }}
+                      >
                         {progressPercent}%
                       </span>
                     </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#2cf09d] rounded-full transition-all duration-500"
-                        style={{ width: `${progressPercent}%` }}
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden relative"
+                      style={{ background: "rgba(255,255,255,0.05)" }}
+                    >
+                      <motion.div
+                        className="h-full rounded-full"
+                        animate={{ width: `${progressPercent}%` }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        style={{
+                          background:
+                            progressPercent === 100
+                              ? "linear-gradient(90deg, #2cf09d, #16a34a)"
+                              : "linear-gradient(90deg, #2cf09d 0%, #34d399 100%)",
+                          boxShadow: "0 0 8px rgba(44,240,157,0.45)",
+                        }}
                       />
                     </div>
                     <span className="text-[10px] text-zinc-600 mt-2 block">
-                      {completedCount} of {totalProblems} lessons completed
+                      {completedCount}/{totalProblems} lessons
                     </span>
                   </div>
 
@@ -1156,8 +1354,25 @@ const LanguagePlayground = () => {
                               </span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
+                              <span
+                                className={cn(
+                                  "text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
+                                  chapterDone
+                                    ? "text-[#2cf09d] bg-[#2cf09d]/10"
+                                    : isActiveChapter
+                                      ? "text-red-300 bg-red-500/10"
+                                      : "text-zinc-600 bg-white/[0.04]",
+                                )}
+                              >
+                                {
+                                  chapter.problems.filter((p) =>
+                                    completedProblems.has(p.id),
+                                  ).length
+                                }
+                                /{chapter.problems.length}
+                              </span>
                               {chapterDone && (
-                                <CheckCircle className="w-4 h-4 text-[#2cf07d]" />
+                                <CheckCircle className="w-3.5 h-3.5 text-[#2cf09d]" />
                               )}
                               {isLocked && (
                                 <Lock className="w-3.5 h-3.5 text-zinc-600" />
@@ -1201,16 +1416,26 @@ const LanguagePlayground = () => {
                                         }}
                                         disabled={isProbLocked}
                                         className={cn(
-                                          "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg text-sm transition-colors",
+                                          "relative flex items-center justify-between w-full text-left py-2 pl-4 pr-3 rounded-lg text-sm transition-all",
                                           isProbActive
-                                            ? "bg-red-500/20 text-red-300 font-semibold border border-red-500/20"
-                                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                                            ? "text-red-200 font-semibold"
+                                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]",
                                           isProbLocked &&
                                             "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
                                           isProbDone &&
                                             !isProbActive &&
-                                            "text-[#2cf07d]",
+                                            "text-[#2cf09d]",
                                         )}
+                                        style={
+                                          isProbActive
+                                            ? {
+                                                background:
+                                                  "linear-gradient(90deg, rgba(239,68,68,0.18) 0%, rgba(239,68,68,0.04) 100%)",
+                                                boxShadow:
+                                                  "inset 2px 0 0 #ef4444, 0 0 16px rgba(239,68,68,0.12)",
+                                              }
+                                            : undefined
+                                        }
                                       >
                                         <span className="truncate">
                                           {prob.title}
@@ -1312,14 +1537,56 @@ const LanguagePlayground = () => {
 
               {/* Desktop: Lesson badge + XP reward */}
               {!isMobile && !activeTask && (
-                <div className="flex items-center justify-between">
-                  <span className="bg-red-500/20 text-red-400 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
-                    Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
-                  </span>
-                  <span className="text-[#2cf07d] text-sm font-bold flex items-center gap-1">
-                    <img src="/xp.svg" className="w-7 h-7 animate-bounce"></img>{" "}
-                    +{currentProblem?.xp} XP Reward
-                  </span>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5"
+                      style={{
+                        background: "rgba(239,68,68,0.10)",
+                        border: "1px solid rgba(239,68,68,0.25)",
+                        color: "#f87171",
+                      }}
+                    >
+                      <span className="w-1 h-1 rounded-full bg-red-400" />
+                      Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
+                    </span>
+                    {completedProblems.has(currentProblem?.id) && (
+                      <motion.span
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 320,
+                          damping: 20,
+                        }}
+                        className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full inline-flex items-center gap-1"
+                        style={{
+                          background: "rgba(44,240,157,0.10)",
+                          border: "1px solid rgba(44,240,157,0.25)",
+                          color: "#2cf09d",
+                        }}
+                      >
+                        <CheckCircle className="w-3 h-3" /> Solved
+                      </motion.span>
+                    )}
+                  </div>
+                  <motion.div
+                    key={currentProblem?.id}
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-1.5 text-[13px] font-black"
+                    style={{ color: "#2cf09d" }}
+                  >
+                    <img
+                      src="/xp.svg"
+                      className="w-6 h-6 drop-shadow-[0_0_8px_rgba(44,240,157,0.45)]"
+                      alt=""
+                    />
+                    +{currentProblem?.xp}{" "}
+                    <span className="text-[10px] opacity-70 tracking-widest">
+                      XP REWARD
+                    </span>
+                  </motion.div>
                 </div>
               )}
 
@@ -1364,16 +1631,64 @@ const LanguagePlayground = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="bg-[#111111]/40 border border-white/10 rounded-xl p-5 mb-2">
-                    <span className="text-red-500 text-[16px] font-bold flex items-center gap-2 mb-3">
-                      <img src="/task.svg" className="w-7 h-7"></img> Your Task:
-                    </span>
-                    <FormattedTaskText
-                      text={currentProblem?.description}
-                      isMobile={false}
-                      className="text-white text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
+                  <motion.div
+                    key={currentProblem?.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="rounded-2xl overflow-hidden mb-2 relative"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, #121212 0%, #0f0f0f 100%)",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      boxShadow:
+                        "0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.35)",
+                    }}
+                  >
+                    {/* Left edge accent */}
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-4 bottom-4 w-[2px] rounded-r-full"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, #ef4444 0%, transparent 100%)",
+                        boxShadow: "0 0 12px rgba(239,68,68,0.45)",
+                      }}
                     />
-                  </div>
+
+                    {/* Card header bar */}
+                    <div
+                      className="px-5 py-3 flex items-center gap-2.5"
+                      style={{
+                        borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, rgba(239,68,68,0.20) 0%, rgba(239,68,68,0.08) 100%)",
+                          border: "1px solid rgba(239,68,68,0.30)",
+                        }}
+                      >
+                        <img src="/task.svg" className="w-4 h-4" alt="" />
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-red-400">
+                        Your Task
+                      </span>
+                      <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-zinc-700">
+                        {currentProblem?.difficulty || "CHALLENGE"}
+                      </span>
+                    </div>
+                    {/* Card body */}
+                    <div className="px-5 py-4">
+                      <FormattedTaskText
+                        text={currentProblem?.description}
+                        isMobile={false}
+                        className="text-zinc-200 text-[14px] leading-relaxed whitespace-pre-wrap"
+                      />
+                    </div>
+                  </motion.div>
                 )}
               </div>
 
@@ -1439,47 +1754,97 @@ const LanguagePlayground = () => {
                     </AnimatePresence>
                   </div>
                 ) : (
-                  /* Desktop: tip text */
-                  <div>
-                    <p className="text-[#2cf07d] text-md font-hand">
-                      Tip: {currentProblem.hints[0]}
-                    </p>
-                    {currentProblem.hints.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setShowHints(!showHints)}
-                          className="text-amber-400 hover:text-amber-300 text-s font-bold font-hand mt-2 flex items-center"
+                  /* Desktop: collapsible hint card */
+                  <div
+                    className="rounded-xl overflow-hidden"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, #121212 0%, #0f0f0f 100%)",
+                      border: "1px solid rgba(234,179,8,0.16)",
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowHints(!showHints)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left group hover:bg-amber-500/[0.03] transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, rgba(234,179,8,0.16), rgba(234,179,8,0.04))",
+                            border: "1px solid rgba(234,179,8,0.25)",
+                          }}
                         >
                           <img
                             src="/hint2.svg"
                             alt="Hint"
-                            className="w-12 h-12 object-contain"
+                            className="w-6 h-6 object-contain"
                           />
-                          {showHints ? "Hide" : "Show"}{" "}
-                          {currentProblem.hints.length - 1} more hint
-                          {currentProblem.hints.length > 2 ? "s" : ""}
-                        </button>
-                        <AnimatePresence>
-                          {showHints && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden space-y-1.5 mt-2"
-                            >
-                              {currentProblem.hints.slice(1).map((hint, i) => (
-                                <p
-                                  key={i}
-                                  className="text-[#2cf07d] text-md font-hand"
-                                >
-                                  Tip: {hint}
-                                </p>
-                              ))}
-                            </motion.div>
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.18em] block">
+                            {showHints
+                              ? "Hide Hints"
+                              : `${currentProblem.hints.length} Hint${currentProblem.hints.length > 1 ? "s" : ""} Available`}
+                          </span>
+                          {!showHints && (
+                            <p className="text-[10px] text-zinc-600 mt-0.5">
+                              Revealing hints may reduce XP earned
+                            </p>
                           )}
-                        </AnimatePresence>
-                      </>
-                    )}
+                        </div>
+                      </div>
+                      <motion.div
+                        animate={{ rotate: showHints ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-amber-300 transition-colors" />
+                      </motion.div>
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {showHints && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: "easeOut" }}
+                          className="overflow-hidden"
+                        >
+                          <div
+                            className="px-4 pb-4 pt-1 space-y-2"
+                            style={{
+                              borderTop: "1px solid rgba(234,179,8,0.10)",
+                            }}
+                          >
+                            {currentProblem.hints.map((hint, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.06 }}
+                                className="flex items-start gap-2.5 pt-2"
+                              >
+                                <span
+                                  className="text-[9px] font-black mt-0.5 px-1.5 py-0.5 rounded shrink-0 leading-none"
+                                  style={{
+                                    background: "rgba(234,179,8,0.14)",
+                                    color: "#fbbf24",
+                                    border: "1px solid rgba(234,179,8,0.2)",
+                                  }}
+                                >
+                                  {String(i + 1).padStart(2, "0")}
+                                </span>
+                                <p className="text-[13px] text-zinc-300 leading-relaxed">
+                                  {hint}
+                                </p>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ))}
 
@@ -1496,8 +1861,10 @@ const LanguagePlayground = () => {
                         ? (correct) =>
                             trackLinkedAttempt({
                               exerciseId: currentProblem.id,
-                              courseId: currentProblem.courseChapterLink.courseId,
-                              chapterIndex: currentProblem.courseChapterLink.chapterIndex,
+                              courseId:
+                                currentProblem.courseChapterLink.courseId,
+                              chapterIndex:
+                                currentProblem.courseChapterLink.chapterIndex,
                               passed: correct,
                             }).catch(() => {})
                         : undefined
@@ -1527,7 +1894,9 @@ const LanguagePlayground = () => {
                             {fileName}
                           </div>
 
-                          {(executionMode === "dsa" || typeof currentProblem?.starterCode === "object") && (
+                          {(executionMode === "dsa" ||
+                            typeof currentProblem?.starterCode ===
+                              "object") && (
                             <select
                               value={dsaLang}
                               onChange={(e) => {
@@ -1661,13 +2030,21 @@ const LanguagePlayground = () => {
                       sandbox="allow-scripts allow-same-origin"
                     />
                     {testResult && (
-                      <div
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
                         className={cn(
-                          "px-4 py-2 border-t text-xs font-medium flex items-center gap-2",
-                          testResult.success
-                            ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
-                            : "bg-red-500/5 border-red-500/20 text-red-400",
+                          "px-4 py-2.5 border-t text-xs font-bold flex items-center gap-2.5",
                         )}
+                        style={{
+                          background: testResult.success
+                            ? "linear-gradient(90deg, rgba(44,240,157,0.08), rgba(44,240,157,0.02))"
+                            : "linear-gradient(90deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02))",
+                          borderTopColor: testResult.success
+                            ? "rgba(44,240,157,0.22)"
+                            : "rgba(239,68,68,0.22)",
+                          color: testResult.success ? "#2cf09d" : "#f87171",
+                        }}
                       >
                         {testResult.success ? (
                           <CheckCircle className="w-3.5 h-3.5" />
@@ -1675,7 +2052,7 @@ const LanguagePlayground = () => {
                           <X className="w-3.5 h-3.5" />
                         )}
                         {testResult.message}
-                      </div>
+                      </motion.div>
                     )}
                   </div>
                 )}
@@ -1704,26 +2081,36 @@ const LanguagePlayground = () => {
                     {output && !isRunning && (
                       <div className="space-y-4 my-2">
                         {output.text && (
-                          <MagicTerminal className="w-full max-w-full bg-[#111111] border-white/10 shadow-xl">
+                          <MagicTerminal
+                            key={`out-${currentProblem?.id}-${output.text.length}`}
+                            startOnView={false}
+                            className="w-full max-w-full bg-[#111111] border-white/10 shadow-xl"
+                          >
                             <AnimatedSpan className="text-zinc-400 mb-2 font-mono">
                               Output:
                             </AnimatedSpan>
                             <TypingAnimation
                               className="text-emerald-400 whitespace-pre-wrap font-mono mt-2 block"
                               duration={10}
+                              startOnView={false}
                             >
                               {output.text}
                             </TypingAnimation>
                           </MagicTerminal>
                         )}
                         {output.error && (
-                          <MagicTerminal className="w-full max-w-full bg-red-950/10 border-red-500/20 shadow-xl">
+                          <MagicTerminal
+                            key={`err-${currentProblem?.id}-${output.error.length}`}
+                            startOnView={false}
+                            className="w-full max-w-full bg-red-950/10 border-red-500/20 shadow-xl"
+                          >
                             <AnimatedSpan className="text-red-400/80 mb-2 font-mono">
                               Error:
                             </AnimatedSpan>
                             <TypingAnimation
                               className="text-red-400 whitespace-pre-wrap font-mono mt-2 block"
                               duration={10}
+                              startOnView={false}
                             >
                               {output.error}
                             </TypingAnimation>
@@ -1761,7 +2148,8 @@ const LanguagePlayground = () => {
                   >
                     {isRunningTask ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Running Tests…
+                        <Loader2 className="w-4 h-4 animate-spin" /> Running
+                        Tests…
                       </>
                     ) : (
                       <>
@@ -1790,10 +2178,17 @@ const LanguagePlayground = () => {
                             <div className="min-w-0 flex-1 space-y-0.5">
                               {r.input && (
                                 <p className="text-zinc-500">
-                                  in: <span className="text-zinc-300">{r.input}</span>
+                                  in:{" "}
+                                  <span className="text-zinc-300">
+                                    {r.input}
+                                  </span>
                                 </p>
                               )}
-                              <p className={r.passed ? "text-emerald-400" : "text-red-400"}>
+                              <p
+                                className={
+                                  r.passed ? "text-emerald-400" : "text-red-400"
+                                }
+                              >
                                 got: {r.actualOutput}
                               </p>
                               {!r.passed && (
@@ -1837,13 +2232,34 @@ const LanguagePlayground = () => {
 
               {/* ── Next problem button (after completion) ── */}
               {completedProblems.has(currentProblem?.id) && (
-                <button
-                  onClick={goToNextProblem}
-                  className="flex items-center gap-2 text-sm font-semibold text-red-300 hover:text-red-200 transition-colors group"
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.15 }}
+                  className="flex items-center justify-between gap-3 pt-3 flex-wrap"
                 >
-                  Next Problem
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+                  <span className="text-[11px] text-zinc-500 font-medium flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2cf09d] animate-pulse" />
+                    Great work! Ready for the next challenge?
+                  </span>
+                  <motion.button
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={goToNextProblem}
+                    className="flex items-center gap-2 text-sm font-black px-4 py-2 rounded-xl transition-all uppercase tracking-wider"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(44,240,157,0.18), rgba(44,240,157,0.08))",
+                      border: "1px solid rgba(44,240,157,0.35)",
+                      color: "#2cf09d",
+                      boxShadow:
+                        "0 4px 18px rgba(44,240,157,0.18), inset 0 1px 0 rgba(255,255,255,0.06)",
+                    }}
+                  >
+                    Next Lesson
+                    <ChevronRight className="w-4 h-4" />
+                  </motion.button>
+                </motion.div>
               )}
             </div>
           </div>
@@ -2137,6 +2553,22 @@ const LanguagePlayground = () => {
           </aside>
         )}
       </div>
+
+      {/* ═══════════ Session Completion Overlay ═══════════ */}
+      <AnimatePresence>
+        {showCompletion && (
+          <SessionCompletionOverlay
+            language={language}
+            totalXP={sessionXP}
+            solved={sessionSolved}
+            onClose={() => setShowCompletion(false)}
+            onNavigate={() => {
+              setShowCompletion(false);
+              navigate("/playground");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

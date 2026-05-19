@@ -77,13 +77,48 @@ const DiscussionPanel = ({ language, problemId, problemTitle }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d0f] text-white">
+    <div
+      className="flex flex-col h-full text-white"
+      style={{ background: "#0c0c0c" }}
+    >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-orange-400" />
-          <span className="text-sm font-bold text-white">Discussion</span>
-          <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-full font-bold">
+      <div
+        className="px-4 py-3 flex items-center justify-between flex-shrink-0 relative"
+        style={{
+          background: "#0a0a0a",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(249,115,22,0.30) 50%, transparent 100%)",
+            opacity: 0.5,
+          }}
+        />
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-6 h-6 rounded-lg flex items-center justify-center"
+            style={{
+              background: "rgba(249,115,22,0.12)",
+              border: "1px solid rgba(249,115,22,0.22)",
+            }}
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-orange-400" />
+          </div>
+          <span className="text-sm font-bold text-white tracking-tight">
+            Discussion
+          </span>
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded-full font-black tabular-nums"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "#a1a1aa",
+            }}
+          >
             {discussions.length}
           </span>
         </div>

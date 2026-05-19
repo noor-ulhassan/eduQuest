@@ -300,7 +300,7 @@ export default function SkillCard({
             onOpen();
           }
         }}
-        className={`group relative w-full max-w-[270px] h-[340px] rounded-2xl overflow-hidden flex flex-col bg-[#111] border border-white/[0.08] shadow-lg ${href ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+        className={`group relative w-full max-w-[270px] h-[370px] rounded-2xl overflow-hidden flex flex-col bg-[#111] border border-white/[0.08] shadow-lg ${href ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
         style={{ willChange: "transform" }}
       >
         <GlowingEffect
@@ -370,15 +370,56 @@ export default function SkillCard({
             ))}
           </div>
 
-          {/* Progress line */}
-          <div className="flex justify-between text-[9px] text-zinc-600 mb-2.5">
+          {/* Progress bar + counter */}
+          <div className="mb-2.5">
             {isLoading ? (
-              <div className="h-3 w-16 bg-white/10 rounded animate-pulse" />
+              <div className="h-3 w-full bg-white/10 rounded animate-pulse" />
             ) : (
               <>
-                <span className="font-mono">{progressPct}% done</span>
-                <span>
-                  {progress?.completed ?? 0}/{progress?.total ?? 0}
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div
+                    className="flex-1 h-1 rounded-full overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.06)" }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${progressPct}%`,
+                        background:
+                          progressPct === 100
+                            ? "linear-gradient(90deg, #2cf09d, #16a34a)"
+                            : progressPct > 0
+                              ? "linear-gradient(90deg, #ef4444, #f97316)"
+                              : "transparent",
+                        boxShadow:
+                          progressPct > 0
+                            ? progressPct === 100
+                              ? "0 0 6px rgba(44,240,157,0.45)"
+                              : "0 0 6px rgba(239,68,68,0.35)"
+                            : "none",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-mono text-zinc-600 shrink-0 tabular-nums">
+                    {progress?.completed ?? 0}/{progress?.total ?? 0}
+                  </span>
+                </div>
+                <span
+                  className="text-[8px] font-black tracking-[0.18em] uppercase"
+                  style={{
+                    color:
+                      progressPct === 100
+                        ? "#2cf09d"
+                        : progressPct > 0
+                          ? "#fb923c"
+                          : "#52525b",
+                  }}
+                >
+                  {progressPct === 100
+                    ? "Mastered"
+                    : progressPct > 0
+                      ? `${progressPct}% Complete`
+                      : "Not Started"}
                 </span>
               </>
             )}
