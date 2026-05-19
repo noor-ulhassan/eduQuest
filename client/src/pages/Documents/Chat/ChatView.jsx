@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Send, Loader2, Trash2, Sparkles } from "lucide-react";
 import MessageBubble from "./MessageBubble";
-import { chatApi } from "../../../services/ragApiService";
+import { chatApi } from "@/features/documents/ragApiService";
 
 const WELCOME_MESSAGE =
   "Hello! I'm your reading companion. Ask me anything about this document — definitions, concepts, summaries, or anything else.";

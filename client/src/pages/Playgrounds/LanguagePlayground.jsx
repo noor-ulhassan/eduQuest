@@ -49,7 +49,7 @@ import {
   clearPlaygroundCache,
 } from "../../features/playground/playgroundApi";
 import InteractiveProblem from "./components/InteractiveProblem";
-import DiscussionPanel from "@/components/playground/DiscussionPanel";
+import DiscussionPanel from "./components/discussion/DiscussionPanel";
 import {
   Terminal as MagicTerminal,
   TypingAnimation,

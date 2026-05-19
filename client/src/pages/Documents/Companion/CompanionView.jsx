@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { BookOpen, Loader2, Send, Lightbulb, FileText, Sparkles } from "lucide-react";
-import { explainApi } from "../../../services/ragApiService";
+import { explainApi } from "@/features/documents/ragApiService";
 import PdfViewer from "./PdfViewer";
 
 function renderExplanation(text) {

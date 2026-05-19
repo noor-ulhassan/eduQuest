@@ -7,12 +7,12 @@ import { useEffect, Suspense, lazy } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
 import MainLayout from "./layout/MainLayout";
-import AuthLoading from "./components/auth/AuthLoading";
+import AuthLoading from "./pages/Auth/components/AuthLoading";
 import PageLoader from "./components/ui/PageLoader";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
 import NotFoundPage from "./pages/NotFoundPage";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AdminRoute from "./components/auth/AdminRoute";
+import ProtectedRoute from "./pages/Auth/components/ProtectedRoute";
+import AdminRoute from "./pages/Auth/components/AdminRoute";
 
 // ─── Eagerly loaded (small / needed immediately) ────────────────────────────
 import HomePage from "./pages/Homepage/HomePage";

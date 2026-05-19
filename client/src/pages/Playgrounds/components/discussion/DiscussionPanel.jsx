@@ -4,7 +4,7 @@ import { MessageSquare, Send, Loader2 } from "lucide-react";
 import {
   getDiscussions,
   createDiscussion,
-} from "../../features/playground/discussionApi";
+} from "@/features/playground/discussionApi";
 import DiscussionCard from "./DiscussionCard";
 
 const DiscussionPanel = ({ language, problemId, problemTitle }) => {

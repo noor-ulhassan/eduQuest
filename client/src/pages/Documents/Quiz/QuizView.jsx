@@ -11,7 +11,7 @@ import QuestionCard from "./QuestionCard";
 import ScoreScreen from "./ScoreScreen";
 import ContextModal from "./ContextModal";
 import AttemptReviewView from "./AttemptReviewView";
-import { quizApi } from "../../../services/ragApiService";
+import { quizApi } from "@/features/documents/ragApiService";
 
 function gradeFor(pct) {
   if (pct === 100) return { label: "Perfect", color: "text-yellow-400" };
