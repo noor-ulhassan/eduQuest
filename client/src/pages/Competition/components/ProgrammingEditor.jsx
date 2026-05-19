@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
-import { executeCode } from "../../lib/piston";
+import { executeCode } from "../../../lib/piston";
 import { Button } from "@/components/ui/button";
 import { Code, Loader2, Play } from "lucide-react";
 

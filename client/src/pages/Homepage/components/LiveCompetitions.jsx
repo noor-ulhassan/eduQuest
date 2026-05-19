@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { connectSocket, getSocket } from "../../lib/socket";
-import api from "../../features/auth/authApi";
+import { connectSocket, getSocket } from "../../../lib/socket";
+import api from "../../../features/auth/authApi";
 import { playPlayerJoinedSound } from "@/lib/sound";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

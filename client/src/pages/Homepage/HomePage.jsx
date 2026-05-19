@@ -2,21 +2,21 @@ import React, { useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useScroll, useTransform } from "framer-motion";
-import HeroSection from "../../components/home/HeroSection";
-import FeaturesSection from "../../components/home/FeaturesSection";
+import HeroSection from "./components/HeroSection";
+import FeaturesSection from "./components/FeaturesSection";
 import UserStats from "@/components/user/UserStatus";
-import Streak from "../../components/home/streak";
-import DraggableCards from "../../components/home/draggableCards";
-import AchievementsCard from "../../components/home/AchievementsCard";
-// import BadgesCard from "../../components/home/BadgesCard"; // Temporarily hidden for viva
-import CompetitionStats from "@/components/home/CompetitionStats";
-import DailyQuests from "@/components/home/DailyQuests";
+import Streak from "./components/streak";
+import DraggableCards from "./components/draggableCards";
+import AchievementsCard from "./components/AchievementsCard";
+// import BadgesCard from "./components/BadgesCard"; // Temporarily hidden for viva
+import CompetitionStats from "./components/CompetitionStats";
+import DailyQuests from "./components/DailyQuests";
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { GoogleGeminiEffect } from "@/components/ui/google-gemini-effect";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards";
 import { MacbookScroll } from "@/components/ui/macbook-scroll";
 import { StickyScroll } from "@/components/ui/sticky-scroll-reveal";
-import SmartSuggestion from "@/components/home/SmartSuggestion";
+import SmartSuggestion from "./components/SmartSuggestion";
 
 const getGreeting = () => {
   const h = new Date().getHours();

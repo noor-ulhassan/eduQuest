@@ -4,7 +4,7 @@ import ProfileHeader from "./components/ProfileHeader";
 import UserStats from "./components/UserStats";
 import SectionCard from "./components/SectionCard";
 import TabNav from "./components/TabNav";
-import CompetitionStats from "@/components/home/CompetitionStats";
+import CompetitionStats from "@/pages/Homepage/components/CompetitionStats";
 import EmptyState from "./components/EmptyState";
 import EditProfileModal from "./components/EditProfileModal";
 import SkillsDialog from "./components/SkillsDialog";

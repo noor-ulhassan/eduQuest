@@ -8,7 +8,7 @@ import {
   getCompetitionLeaderboard,
   getLearnerLeaderboard,
   getWeeklyLeaderboard,
-} from "../../features/leaderboard/leaderboardApi";
+} from "../../../features/leaderboard/leaderboardApi";
 import {
   Trophy,
   Medal,

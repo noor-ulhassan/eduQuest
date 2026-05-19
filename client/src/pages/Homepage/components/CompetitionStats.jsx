@@ -4,7 +4,7 @@ import { PieChart, LineChart, BarChart } from "@mui/x-charts";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { Trophy, Swords, Target, Flame, Star, Shield } from "lucide-react";
 import { ShineBorder } from "@/components/ui/shine-border";
-import api from "../../features/auth/authApi";
+import api from "../../../features/auth/authApi";
 
 const BAR_COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899"];
 

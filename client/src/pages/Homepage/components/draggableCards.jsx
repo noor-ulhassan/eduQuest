@@ -6,7 +6,7 @@ import { Play, CheckCircle2, Lock, Star } from "lucide-react";
 import {
   getPlaygroundProgress,
   getCurriculumsMetadata,
-} from "../../features/playground/playgroundApi";
+} from "../../../features/playground/playgroundApi";
 
 export function DraggableCards() {
   const navigate = useNavigate();

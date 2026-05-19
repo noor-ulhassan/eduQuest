@@ -35,7 +35,7 @@ const CompetitionPage = lazy(
 const CompetitionLobby = lazy(
   () => import("./pages/Competition/CompetitionLobby"),
 );
-const LeaderboardPage = lazy(() => import("./components/home/leaderboard"));
+const LeaderboardPage = lazy(() => import("./pages/Homepage/components/leaderboard"));
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
 const AdminCourses = lazy(() => import("./pages/Admin/AdminCourses"));
