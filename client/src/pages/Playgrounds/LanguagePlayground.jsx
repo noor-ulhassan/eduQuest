@@ -1,840 +1,87 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import Editor from "@monaco-editor/react";
-import { executeCode, getMonacoLanguage } from "../../lib/piston";
+import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import confetti from "canvas-confetti";
-import {
-  ArrowLeft,
-  BarChart2,
-  BookOpen,
-  CheckCircle,
-  ChevronRight,
-  FileCode2,
-  GraduationCap,
-  Loader2,
-  Lock,
-  MessageCircle,
-  Play,
-  RotateCcw,
-  Star,
-  Terminal,
-  Trophy,
-  User,
-  X,
-  Menu,
-  Zap,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, MessageCircle } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { updateUserStats } from "../../features/auth/authSlice";
-import { store } from "@/store/store";
-import { emit } from "@/lib/gamificationBus";
-import { clearTask } from "../../features/playground/playgroundTaskSlice";
-import api from "../../features/auth/authApi";
-import {
-  getLanguageProgress,
-  completeProblem as completeProb,
-  trackLinkedAttempt,
-  getCurriculum,
-  enrollInPlayground,
-  clearPlaygroundCache,
-} from "../../features/playground/playgroundApi";
+import { trackLinkedAttempt } from "../../features/playground/playgroundApi";
+
+import { getLanguageIconUrl } from "./utils/playgroundUtils";
+import { usePlaygroundData } from "./hooks/usePlaygroundData";
+import { useCodeExecution } from "./hooks/useCodeExecution";
+
+import PlaygroundNavbar from "./components/PlaygroundNavbar";
+import PlaygroundSidebar from "./components/PlaygroundSidebar";
+import RightSidebar from "./components/RightSidebar";
+import MobileHeader from "./components/MobileHeader";
+import MobileBottomBar from "./components/MobileBottomBar";
+import LessonBadge from "./components/LessonBadge";
+import CourseTaskBanner from "./components/CourseTaskBanner";
+import TaskCard from "./components/TaskCard";
+import HintsPanel from "./components/HintsPanel";
+import CodeEditor from "./components/CodeEditor";
+import LivePreview from "./components/LivePreview";
+import OutputPanel from "./components/OutputPanel";
+import TaskTestResults from "./components/TaskTestResults";
+import NextLessonBanner from "./components/NextLessonBanner";
 import InteractiveProblem from "./components/InteractiveProblem";
 import DiscussionPanel from "./components/discussion/DiscussionPanel";
 import SessionCompletionOverlay from "./components/SessionCompletionOverlay";
-
-import {
-  Terminal as MagicTerminal,
-  TypingAnimation,
-  AnimatedSpan,
-} from "@/components/ui/terminal";
-
-const getLanguageIconUrl = (lang) => {
-  switch (lang?.toLowerCase()) {
-    case "python":
-      return "/python.png";
-    case "javascript":
-      return "/js.png";
-    case "react":
-      return "/react.png";
-    case "html":
-      return "/html.png";
-    case "css":
-      return "/css.png";
-    case "java":
-      return "/java.png";
-    case "dsa":
-      return "/dsa.png";
-    default:
-      return null;
-  }
-};
-
-// ─── Helper: Format Task Text ──────────────────────────────────────────────
-const FormattedTaskText = ({ text, isMobile = false, className = "" }) => {
-  if (!text) return null;
-  const codeClass = isMobile
-    ? "text-red-400 bg-red-500/10 px-1 py-0.5 rounded font-mono"
-    : "bg-white/10 text-red-300 px-1.5 py-0.5 rounded font-mono text-sm";
-  const parts = text.split(/`([^`]+)`/);
-  return (
-    <div className={className}>
-      {parts.map((part, i) =>
-        i % 2 === 1 ? (
-          <code key={i} className={codeClass}>
-            {part}
-          </code>
-        ) : (
-          <React.Fragment key={i}>{part}</React.Fragment>
-        ),
-      )}
-    </div>
-  );
-};
-
-// ─── React iframe document builder ─────────────────────────────────────────
-const buildReactDoc = (userCode, parentOrigin) => `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin><\/script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin><\/script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,sans-serif;background:#fff;color:#1a1a1a;padding:16px}button{cursor:pointer}.done{text-decoration:line-through;color:#6b7280}.error{color:#e53e3e}<\/style>
-</head><body><div id="root"><\/div>
-<script>const{useState,useEffect,useRef,useCallback,useMemo,useReducer}=React;<\/script>
-<script type="text/babel">
-${userCode}
-try{ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));}catch(e){document.getElementById("root").innerHTML='<div style="color:#c0392b;background:#fff5f5;border:1px solid #f5c6cb;border-radius:4px;padding:10px;font-family:monospace;font-size:12px;white-space:pre-wrap"><b>Error:<\/b> '+e.message+'<\/div>';}
-<\/script>
-<script>
-var __origin__="${parentOrigin}";
-window.__runTest__=function(s){try{var r=new Function("win","doc",s)(window,document);window.parent.postMessage({type:"TEST_RESULT",success:r.success,message:r.message},__origin__);}catch(e){window.parent.postMessage({type:"TEST_RESULT",success:false,message:"Test error: "+e.message},__origin__);}};
-window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
-setTimeout(function(){window.parent.postMessage({type:"IFRAME_READY"},__origin__);},250);
-<\/script></body></html>`;
-
-// ─── Error simplifier ──────────────────────────────────────────────────────
-const ERROR_HINTS = {
-  ReferenceError:
-    "Check that this variable or function is declared before you use it. Look for typos.",
-  TypeError:
-    "You're using a value the wrong way — e.g. calling something that isn't a function, or reading a property of null/undefined.",
-  SyntaxError:
-    "Your code has a formatting mistake — look for a missing bracket, parenthesis, colon, or quote near this line.",
-  RangeError:
-    "A value is out of the allowed range — common cause is infinite recursion or an invalid array size.",
-  NameError:
-    "This name doesn't exist here. Check spelling and make sure it's defined before this line.",
-  AttributeError:
-    "This object doesn't have that property or method. Check the object type and spelling.",
-  IndexError:
-    "List index out of range — your index is larger than the list length.",
-  KeyError:
-    "Key not found in dictionary — double-check the key name for typos.",
-  ValueError:
-    "Wrong value passed — e.g. passing a non-number string to int(), or an invalid argument.",
-  IndentationError:
-    "Python requires consistent indentation. Use 4 spaces per level and don't mix tabs with spaces.",
-  TabError:
-    "Mixed tabs and spaces. Stick to spaces only (4 per indent level) in Python.",
-  ZeroDivisionError:
-    "You're dividing by zero. Add a check to make sure the divisor isn't 0 before dividing.",
-  ImportError:
-    "This module couldn't be imported — it may not be available in the sandbox.",
-  ModuleNotFoundError:
-    "Module not found — this package isn't available in the sandbox.",
-  RecursionError:
-    "Too many recursive calls. Make sure your base case is reachable and correct.",
-  "cannot find symbol":
-    "You used a variable or method that hasn't been declared. Declare it before this line.",
-  "';' expected":
-    "Missing semicolon — Java requires `;` at the end of every statement.",
-  "incompatible types":
-    "Type mismatch — you're assigning or returning the wrong type. Cast it or change the type.",
-  "reached end of file":
-    "Unclosed block — a `}` is missing somewhere. Check your opening and closing braces match.",
-  "illegal start of expression":
-    "Unexpected character — check for a stray symbol or a misplaced keyword on this line.",
-  NullPointerException:
-    "You're calling a method or accessing a field on a null object. Check that the object is initialised before use.",
-  ArrayIndexOutOfBoundsException:
-    "Array index out of bounds — your index is >= the array length.",
-  StackOverflowError:
-    "Stack overflow — your recursion has no reachable base case, or it's too deep.",
-  NumberFormatException:
-    "Can't convert this string to a number — make sure the input only contains digits.",
-  ArithmeticException: "Arithmetic error — most likely division by zero.",
-  ClassCastException:
-    "Invalid cast — the object isn't the type you're trying to cast it to.",
-};
-
-function parseRawError(raw, lang) {
-  if (!raw?.trim()) return null;
-  const r = raw.trim();
-  let type = "";
-  let message = "";
-  let line = null;
-
-  if (lang === "python") {
-    const lineMatch = r.match(/line (\d+)/);
-    if (lineMatch) line = lineMatch[1];
-    const errMatch = r.match(
-      /^([A-Z]\w*(?:Error|Exception|Warning|Interrupt)):\s*(.*)$/m,
-    );
-    if (errMatch) {
-      type = errMatch[1];
-      message = errMatch[2].trim();
-    }
-  } else if (lang === "javascript") {
-    // Node paths like /usercode/main.js:5:11 or main.js:5
-    const lineMatch = r.match(/[/\\]?main\.js:(\d+)/);
-    if (lineMatch) line = lineMatch[1];
-    const errMatch = r.match(
-      /(ReferenceError|TypeError|SyntaxError|RangeError|URIError|EvalError|Error):\s*([^\n]+)/,
-    );
-    if (errMatch) {
-      type = errMatch[1];
-      message = errMatch[2].trim();
-    }
-  } else if (lang === "java") {
-    // Compile error: Main.java:5: error: cannot find symbol
-    const compileLineMatch = r.match(/\.java:(\d+):/);
-    if (compileLineMatch) line = compileLineMatch[1];
-    const compileMsg = r.match(/error:\s*([^\n]+)/);
-    if (compileMsg) {
-      type = "Compile Error";
-      message = compileMsg[1].trim();
-    }
-    // Runtime exception: Exception in thread "main" java.lang.NullPointerException
-    const rteMatch = r.match(
-      /java\.lang\.(NullPointerException|ArrayIndexOutOfBoundsException|ClassCastException|StackOverflowError|NumberFormatException|ArithmeticException|IllegalArgumentException|IllegalStateException)([:\s]+([^\n]*))?/,
-    );
-    if (rteMatch) {
-      type = rteMatch[1];
-      message = rteMatch[3]?.trim() || "";
-      const rteLineMatch = r.match(/at [^(]+\(Main\.java:(\d+)\)/);
-      if (rteLineMatch) line = rteLineMatch[1];
-    }
-  }
-
-  // Match hint by type first, then scan message for known keywords
-  const hint =
-    ERROR_HINTS[type] ||
-    Object.entries(ERROR_HINTS).find(([k]) =>
-      message.toLowerCase().includes(k.toLowerCase()),
-    )?.[1] ||
-    "Read the message carefully and inspect the line it points to.";
-
-  // If we couldn't parse anything meaningful, return the first non-stack line
-  if (!type && !line) {
-    const firstMeaningful = r
-      .split("\n")
-      .find(
-        (l) =>
-          l.trim() &&
-          !l.trim().startsWith("at ") &&
-          !l.trim().startsWith("File ") &&
-          !l.trim().match(/^\^+$/) &&
-          !l.trim().startsWith("Traceback"),
-      );
-    return firstMeaningful?.trim() || r.split("\n")[0];
-  }
-
-  const parts = [];
-  parts.push(line ? `Line ${line}  ·  ${type || "Error"}` : type || "Error");
-  if (message) parts.push(message);
-  parts.push(`\n💡 ${hint}`);
-  return parts.join("\n");
-}
 
 const LanguagePlayground = () => {
   const { language } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useDispatch();
-  // Capture on mount only — if navigated from a course chapter the param is set once
-  const requestedProblemIdRef = useRef(
-    new URLSearchParams(location.search).get("problem"),
-  );
-  const user = useSelector((state) => state.auth.user);
-  const activeTask = useSelector(
-    (state) => state.playgroundTask?.activeTask ?? null,
-  );
-  const [taskTestResults, setTaskTestResults] = useState([]);
-  const [isRunningTask, setIsRunningTask] = useState(false);
-  const [currentProblem, setCurrentProblem] = useState(null);
-  const [code, setCode] = useState("");
-  const [output, setOutput] = useState(null);
-  const [testResult, setTestResult] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
   const isMobile = useIsMobile();
+
+  const user = useSelector((state) => state.auth.user);
+  const activeTask = useSelector((state) => state.playgroundTask?.activeTask ?? null);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
-  const [completedProblems, setCompletedProblems] = useState(new Set());
-  const [showHints, setShowHints] = useState(false);
-  const [expandedChapterId, setExpandedChapterId] = useState(null);
-  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
-  const iframeRef = useRef(null);
-  const pendingTestRef = useRef(null);
-  const currentProblemRef = useRef(null);
-  const showHintsRef = useRef(false);
-  const problemStartTimeRef = useRef(null);
-  const [dsaLang, setDsaLang] = useState("javascript");
-  const reactDebounceRef = useRef(null);
-  const [showDiscussion, setShowDiscussion] = useState(false);
   const [isSidebarCompact, setIsSidebarCompact] = useState(true);
+  const [showDiscussion, setShowDiscussion] = useState(false);
+  const [dsaLang, setDsaLang] = useState("javascript");
   const [sessionXP, setSessionXP] = useState(0);
   const [sessionSolved, setSessionSolved] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
-  const completionFiredRef = useRef(false);
-  const [data, setData] = useState(null);
-  // Derive execution mode from the curriculum doc; fall back to language name for old docs
-  const executionMode =
-    data?.executionMode ||
-    (["html", "css"].includes(language?.toLowerCase())
-      ? "livepreview"
-      : language?.toLowerCase() === "react"
-        ? "react"
-        : language?.toLowerCase() === "dsa"
-          ? "dsa"
-          : "piston");
+
+  const iframeRef = useRef(null);
+
+  const {
+    data, currentProblem, completedProblems, setCompletedProblems,
+    expandedChapterId, setExpandedChapterId, isLoadingProgress, selectProblem,
+    totalProblems, completedCount, progressPercent,
+    currentChapterIdx, currentProblemIdx,
+    executionMode, editorLang, fileName,
+  } = usePlaygroundData({
+    user, language, location, dsaLang,
+    setCode: (v) => exec.setCode(v),
+    setOutput: (v) => exec.setOutput(v),
+    setTestResult: (v) => exec.setTestResult(v),
+    setShowCompletion,
+  });
+
   const isLivePreview = executionMode === "livepreview";
   const isReact = executionMode === "react";
 
-  // Fetch curriculum and progress
-  useEffect(() => {
-    let isMounted = true;
-    const initData = async () => {
-      if (!user || !language) return;
-      try {
-        setIsLoadingProgress(true);
-        const curRes = await getCurriculum(language);
-        if (!isMounted) return;
-        if (curRes.curriculum) {
-          setData(curRes.curriculum);
-          const { progress: currentProgress } =
-            await getLanguageProgress(language);
-          if (!isMounted) return;
+  const exec = useCodeExecution({
+    language, currentProblem, isLivePreview, isReact, executionMode,
+    dsaLang, data, iframeRef, activeTask,
+    setCompletedProblems, setSessionXP, setSessionSolved,
+  });
 
-          let completedSet = new Set();
-          if (currentProgress) {
-            completedSet = new Set(currentProgress.completedProblems);
-          } else {
-            try {
-              await enrollInPlayground(language);
-              clearPlaygroundCache();
-              toast.success("Enrolled! Let's begin 🚀");
-            } catch (err) {
-              console.error("[Playground] Auto-enroll failed:", err);
-            }
-          }
-          setCompletedProblems(completedSet);
+  useEffect(() => { if (isMobile) setIsSidebarOpen(false); }, [isMobile]);
 
-          let firstUnsolved = null;
-          for (const chapter of curRes.curriculum.chapters) {
-            const found = chapter.problems.find((p) => !completedSet.has(p.id));
-            if (found) {
-              firstUnsolved = found;
-              break;
-            }
-          }
+  const goToNextProblem = useCallback(() => {
+    if (!data) return;
+    const allProblems = data.chapters.flatMap((ch) => ch.problems);
+    const next = allProblems[allProblems.findIndex((p) => p.id === currentProblem?.id) + 1];
+    if (next) selectProblem(next);
+    else toast.success("You've completed all problems in this course!");
+  }, [data, currentProblem, selectProblem]);
 
-          // If navigated from a course chapter, jump straight to that problem
-          let targetProblem;
-          const reqId = requestedProblemIdRef.current;
-          if (reqId) {
-            let requested = null;
-            for (const ch of curRes.curriculum.chapters) {
-              requested = ch.problems.find((p) => p.id === reqId);
-              if (requested) break;
-            }
-            targetProblem =
-              requested ||
-              firstUnsolved ||
-              curRes.curriculum.chapters[0].problems[0];
-          } else {
-            targetProblem =
-              firstUnsolved || curRes.curriculum.chapters[0].problems[0];
-          }
-          setCurrentProblem(targetProblem);
-          setCode(
-            typeof targetProblem.starterCode === "object"
-              ? targetProblem.starterCode[dsaLang] || ""
-              : targetProblem.starterCode || "",
-          );
-          setOutput(null);
-          setTestResult(null);
-          setShowHints(false);
-
-          if (!firstUnsolved) {
-            setExpandedChapterId(curRes.curriculum.chapters[0].id);
-          }
-        } else {
-          toast.error("Curriculum not found");
-          navigate("/playground");
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        console.error("[Playground] Error loading data:", error);
-      } finally {
-        if (isMounted) setIsLoadingProgress(false);
-      }
-    };
-    initData();
-    return () => {
-      isMounted = false;
-    };
-  }, [user, language, navigate]);
-
-  const selectProblem = useCallback(
-    (prob, chapterId) => {
-      setCurrentProblem(prob);
-      if (chapterId) setExpandedChapterId(chapterId);
-      if (typeof prob.starterCode === "object") {
-        setCode(prob.starterCode[dsaLang] || "");
-      } else {
-        setCode(prob.starterCode);
-      }
-      setOutput(null);
-      setTestResult(null);
-      setShowHints(false);
-    },
-    [dsaLang],
-  );
-
-  useEffect(() => {
-    currentProblemRef.current = currentProblem;
-  }, [currentProblem]);
-
-  // Keep showHints ref in sync so stale-closure handlers can read latest value
-  useEffect(() => {
-    showHintsRef.current = showHints;
-  }, [showHints]);
-
-  // Record when the user lands on a new problem — used for speed-bonus timing
-  useEffect(() => {
-    if (currentProblem?.id) problemStartTimeRef.current = Date.now();
-  }, [currentProblem?.id]);
-
-  // Pre-load starter code when a course task is dispatched
-  useEffect(() => {
-    if (activeTask?.starterCode) {
-      setCode(activeTask.starterCode);
-      setOutput(null);
-      setTestResult(null);
-      setTaskTestResults([]);
-    }
-  }, [activeTask]);
-
-  // Live preview: update iframe when code changes
-  useEffect(() => {
-    if (isReact && iframeRef.current && currentProblem) {
-      if (reactDebounceRef.current) clearTimeout(reactDebounceRef.current);
-      reactDebounceRef.current = setTimeout(() => {
-        if (iframeRef.current)
-          iframeRef.current.srcdoc = buildReactDoc(
-            code,
-            window.location.origin,
-          );
-      }, 500);
-      return () => clearTimeout(reactDebounceRef.current);
-    }
-    if (!isLivePreview || !iframeRef.current) return;
-    const iframe = iframeRef.current;
-    const origin = window.location.origin;
-    const testBridge = `<script>
-      var __origin__="${origin}";
-      window.__runTest__=function(s){try{var r=new Function("doc",s)(document);window.parent.postMessage({type:"TEST_RESULT",success:r.success,message:r.message},__origin__);}catch(e){window.parent.postMessage({type:"TEST_RESULT",success:false,message:"Test error: "+e.message},__origin__);}};
-      window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
-      window.parent.postMessage({type:"IFRAME_READY"},__origin__);
-    <\/script>`;
-    if (language === "css") {
-      iframe.srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}${testBridge}</body></html>`;
-    } else {
-      iframe.srcdoc = `<!DOCTYPE html><html><head></head><body>${code}${testBridge}</body></html>`;
-    }
-  }, [code, currentProblem, isLivePreview, isReact, language]);
-
-  const fireBonusToasts = useCallback((response) => {
-    if (response.earnedSpeedBonus) toast.success("Speed bonus earned!");
-    if (response.chapterCompleted)
-      toast.success("Chapter complete! +100 XP bonus");
-    if (response.languageCompleted)
-      toast.success("Language mastered! +500 XP bonus");
-  }, []);
-
-  const handleGamificationReward = useCallback(
-    (response) => {
-      const prevUser = store.getState().auth.user;
-      dispatch(updateUserStats(response.user));
-      emit({ type: "xp", amount: response.xp });
-      setSessionXP((prev) => prev + (response.xp || 0));
-      setSessionSolved((prev) => prev + 1);
-      if (response.user.level > (prevUser?.level || 1)) {
-        emit({ type: "levelUp", level: response.user.level });
-      }
-      if (response.user.league !== prevUser?.league) {
-        emit({ type: "rankUp", league: response.user.league });
-      }
-      const prevBadges = prevUser?.badges || [];
-      (response.user.badges || [])
-        .filter((b) => !prevBadges.find((pb) => pb.title === b.title))
-        .forEach((b) => emit({ type: "badge", ...b }));
-    },
-    [dispatch],
-  );
-
-  // postMessage bridge for iframe-based tests (React + HTML/CSS)
-  useEffect(() => {
-    if (!isReact && !isLivePreview) return;
-    const handler = async (e) => {
-      if (e.origin !== window.location.origin) return; // Fix Bug #26
-      if (!e.data?.type) return;
-      if (e.data.type === "IFRAME_READY" && pendingTestRef.current) {
-        const fn = pendingTestRef.current;
-        pendingTestRef.current = null;
-        setTimeout(() => {
-          iframeRef.current?.contentWindow?.postMessage(
-            { type: "RUN_TEST", fn },
-            "*",
-          );
-        }, 100);
-      }
-      if (e.data.type === "TEST_RESULT") {
-        const { success, message } = e.data;
-        setTestResult({ success, message });
-        setIsRunning(false);
-        const prob = currentProblemRef.current;
-        if (!prob) return;
-        if (prob.courseChapterLink?.courseId) {
-          trackLinkedAttempt({
-            exerciseId: prob.id,
-            courseId: prob.courseChapterLink.courseId,
-            chapterIndex: prob.courseChapterLink.chapterIndex,
-            passed: success,
-          }).catch(() => {});
-        }
-        if (success) {
-          try {
-            const response = await completeProb(language, prob.id, {
-              usedHints: showHintsRef.current,
-              solveTimeMs: problemStartTimeRef.current
-                ? Date.now() - problemStartTimeRef.current
-                : null,
-            });
-            if (!response.alreadyCompleted) {
-              handleGamificationReward(response);
-              confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
-              fireBonusToasts(response);
-            } else {
-              toast.success("Problem solved! (XP already earned)");
-            }
-            setCompletedProblems((prev) => new Set([...prev, prob.id]));
-          } catch {
-            toast.error("Tests passed but failed to save progress");
-          }
-        } else {
-          toast.error(message || "Tests failed");
-        }
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [isReact, handleGamificationReward]); // fireBonusToasts omitted — stable useCallback([], [])
-
-  const resetCode = useCallback(() => {
-    if (currentProblem) {
-      if (typeof currentProblem.starterCode === "object") {
-        setCode(currentProblem.starterCode[dsaLang] || "");
-      } else {
-        setCode(currentProblem.starterCode);
-      }
-      setOutput(null);
-      setTestResult(null);
-    }
-  }, [currentProblem, dsaLang]);
-
-  const handleRunCode = useCallback(async () => {
-    if (!currentProblem || isRunning) return;
-    setIsRunning(true);
-    setOutput(null);
-    setTestResult(null);
-
-    if (isReact) {
-      if (!iframeRef.current) {
-        setIsRunning(false);
-        return;
-      }
-      pendingTestRef.current = currentProblem.testFunction;
-      iframeRef.current.srcdoc = buildReactDoc(code, window.location.origin);
-      return;
-    }
-
-    if (isLivePreview) {
-      try {
-        const iframe = iframeRef.current;
-        if (!iframe) throw new Error("Preview not ready");
-        if (currentProblem.testFunction) {
-          pendingTestRef.current = currentProblem.testFunction;
-          // Trigger IFRAME_READY -> RUN_TEST flow
-          const testBridge = `<script>
-            window.__runTest__=function(s){try{var r=new Function("doc",s)(document);window.parent.postMessage({type:"TEST_RESULT",success:r.success,message:r.message},"*");}catch(e){window.parent.postMessage({type:"TEST_RESULT",success:false,message:"Test error: "+e.message},"*");}};
-            window.addEventListener("message",function(e){if(e.data&&e.data.type==="RUN_TEST")window.__runTest__(e.data.fn);});
-            window.parent.postMessage({type:"IFRAME_READY"},"*");
-          <\/script>`;
-          if (language === "css")
-            iframe.srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body>${currentProblem?.baseHtml || ""}${testBridge}</body></html>`;
-          else
-            iframe.srcdoc = `<!DOCTYPE html><html><head></head><body>${code}${testBridge}</body></html>`;
-        } else {
-          setIsRunning(false);
-        }
-      } catch (err) {
-        setTestResult({ success: false, message: err.message });
-        toast.error("Validation error");
-        setIsRunning(false);
-      }
-      return;
-    }
-
-    // Piston execution
-    let codeToRun = code;
-    const pistonLang = data?.pistonLanguage || language;
-    const execLanguage =
-      executionMode === "dsa" || typeof currentProblem.starterCode === "object"
-        ? dsaLang
-        : pistonLang;
-
-    if (currentProblem.testFunction)
-      codeToRun = code + "\n" + currentProblem.testFunction;
-    try {
-      const result = await executeCode(execLanguage, codeToRun);
-      let displayOutput = result.output || "";
-      let parsedTest = null;
-      if (displayOutput) {
-        const lines = displayOutput.split("\n");
-        const jsonLineIdx = lines.findIndex((l) =>
-          l.trim().startsWith('{"success":'),
-        );
-        if (jsonLineIdx !== -1) {
-          try {
-            parsedTest = JSON.parse(lines[jsonLineIdx].trim());
-            const cleanLines = lines.filter(
-              (l, i) =>
-                i !== jsonLineIdx && !l.includes("--- TEST RESULTS ---"),
-            );
-            displayOutput = cleanLines.join("\n").trim();
-          } catch (e) {}
-        }
-      }
-      setOutput({
-        text:
-          displayOutput ||
-          (result.error
-            ? ""
-            : "Code executed successfully (no console output)"),
-        error: result.error ? parseRawError(result.error, execLanguage) : null,
-        success: result.success,
-      });
-      if (parsedTest) {
-        setTestResult(parsedTest);
-        if (currentProblem.courseChapterLink?.courseId) {
-          trackLinkedAttempt({
-            exerciseId: currentProblem.id,
-            courseId: currentProblem.courseChapterLink.courseId,
-            chapterIndex: currentProblem.courseChapterLink.chapterIndex,
-            passed: parsedTest.success,
-          }).catch(() => {});
-        }
-        if (parsedTest.success) {
-          try {
-            const response = await completeProb(language, currentProblem.id, {
-              usedHints: showHintsRef.current,
-              solveTimeMs: problemStartTimeRef.current
-                ? Date.now() - problemStartTimeRef.current
-                : null,
-            });
-            if (!response.alreadyCompleted) {
-              handleGamificationReward(response);
-              confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 } });
-              fireBonusToasts(response);
-            } else {
-              toast.success("Problem solved! (XP already earned)");
-            }
-            setCompletedProblems(
-              (prev) => new Set([...prev, currentProblem.id]),
-            );
-          } catch (error) {
-            console.error(
-              "[Playground] Error saving progress:",
-              error?.response?.data || error.message,
-            );
-            toast.error("Tests passed but failed to save progress");
-          }
-        } else {
-          toast.error(parsedTest.message || "Tests failed");
-        }
-      } else if (!result.success) {
-        toast.error("Execution error");
-      }
-    } catch (err) {
-      setOutput({ text: "", error: err.message, success: false });
-      toast.error("Failed to run code");
-    } finally {
-      setIsRunning(false);
-    }
-  }, [
-    code,
-    currentProblem,
-    isRunning,
-    language,
-    isLivePreview,
-    isReact,
-    fireBonusToasts,
-    handleGamificationReward,
-  ]);
-
-  // Keyboard shortcut
-  useEffect(() => {
-    const handler = (e) => {
-      if (currentProblem?.type === "interactive") return;
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        handleRunCode();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [handleRunCode, currentProblem]);
-
-  // ── Computed values ────────────────────────────────────
-  const { totalProblems, completedCount, progressPercent } = useMemo(() => {
-    const total =
-      data?.chapters?.reduce((sum, ch) => sum + ch.problems.length, 0) || 0;
-    const completed = completedProblems.size;
-    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return {
-      totalProblems: total,
-      completedCount: completed,
-      progressPercent: percent,
-    };
-  }, [data, completedProblems]);
-
-  // Trigger session completion overlay once when the curriculum hits 100%
-  useEffect(() => {
-    if (
-      data &&
-      totalProblems > 0 &&
-      completedCount === totalProblems &&
-      !completionFiredRef.current
-    ) {
-      completionFiredRef.current = true;
-      // Delay slightly to let confetti from final solve land first
-      const t = setTimeout(() => setShowCompletion(true), 900);
-      return () => clearTimeout(t);
-    }
-  }, [data, totalProblems, completedCount]);
-
-  // Interactive problem solve handler
-  const handleInteractiveSolve = useCallback(async () => {
-    if (!currentProblem) return;
-    try {
-      const response = await completeProb(language, currentProblem.id, {
-        usedHints: showHintsRef.current,
-        solveTimeMs: problemStartTimeRef.current
-          ? Date.now() - problemStartTimeRef.current
-          : null,
-      });
-      if (!response.alreadyCompleted) {
-        handleGamificationReward(response);
-        confetti({ particleCount: 130, spread: 80, origin: { y: 0.7 } });
-        fireBonusToasts(response);
-      } else {
-        toast.success("Already solved! (XP already earned)");
-      }
-      setCompletedProblems((prev) => new Set([...prev, currentProblem.id]));
-      setTestResult({ success: true, message: "Correct!" });
-    } catch {
-      toast.error("Failed to save progress");
-    }
-  }, [
-    currentProblem,
-    language,
-    dispatch,
-    fireBonusToasts,
-    handleGamificationReward,
-  ]);
-
-  // Run task test cases via backend executor
-  const handleRunTask = useCallback(async () => {
-    if (!activeTask || isRunningTask) return;
-    setIsRunningTask(true);
-    setTaskTestResults([]);
-    try {
-      const execLang =
-        executionMode === "dsa" || language === "dsa"
-          ? dsaLang
-          : (data?.pistonLanguage || language)?.toLowerCase();
-      const res = await api.post("/code/run-task", {
-        language: execLang,
-        code,
-        testCases: activeTask.testCases || [],
-      });
-      setTaskTestResults(res.testResults || []);
-    } catch (err) {
-      toast.error("Failed to run task tests");
-    } finally {
-      setIsRunningTask(false);
-    }
-  }, [activeTask, code, language, dsaLang, isRunningTask]);
-
-  useEffect(() => {
-    if (isMobile) setIsSidebarOpen(false);
-  }, [isMobile]);
-
-  // Lesson number (e.g. "2.1")
-  const { currentChapterIdx, currentProblemIdx } = useMemo(() => {
-    let cIdx = 0;
-    let pIdx = 0;
-    if (currentProblem && data) {
-      for (let ci = 0; ci < data.chapters.length; ci++) {
-        const pi = data.chapters[ci].problems.findIndex(
-          (p) => p.id === currentProblem.id,
-        );
-        if (pi !== -1) {
-          cIdx = ci;
-          pIdx = pi;
-          break;
-        }
-      }
-    }
-    return { currentChapterIdx: cIdx, currentProblemIdx: pIdx };
-  }, [currentProblem, data]);
-
-  const fileName = useMemo(() => {
-    const fileExtMap = {
-      python: "py",
-      javascript: "js",
-      html: "html",
-      css: "css",
-      react: "jsx",
-      java: "java",
-    };
-    const activeLang =
-      typeof currentProblem?.starterCode === "object"
-        ? dsaLang
-        : language?.toLowerCase();
-    return `main.${fileExtMap[activeLang] || activeLang}`;
-  }, [currentProblem, dsaLang, language]);
-
-  // ── Loading ─────────────────────────────────────────────
   if (isLoadingProgress) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white">
@@ -842,32 +89,20 @@ const LanguagePlayground = () => {
           <div className="w-16 h-16 rounded-2xl bg-[#111111] border border-white/10 flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
           </div>
-          <div>
-            <p className="text-white font-semibold text-base capitalize">
-              {language} Playground
-            </p>
-            <p className="text-zinc-500 text-sm mt-1">Loading your progress…</p>
-          </div>
+          <p className="text-white font-semibold text-base capitalize">{language} Playground</p>
+          <p className="text-zinc-500 text-sm">Loading your progress…</p>
         </div>
       </div>
     );
   }
 
-  // ── Not found ──────────────────────────────────────────
   if (!data) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white p-6">
-        <div className="w-full max-w-md border border-white/10 bg-[#111111] rounded-2xl shadow-2xl p-8 text-center space-y-4">
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
-            Language Not Found
-          </h1>
-          <p className="text-sm text-zinc-400">
-            The playground for &quot;{language}&quot; is not available yet.
-          </p>
-          <button
-            onClick={() => navigate("/playground")}
-            className="bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
-          >
+        <div className="w-full max-w-md border border-white/10 bg-[#111111] rounded-2xl p-8 text-center space-y-4">
+          <h1 className="text-2xl font-semibold text-white">Language Not Found</h1>
+          <p className="text-sm text-zinc-400">The playground for &quot;{language}&quot; is not available yet.</p>
+          <button onClick={() => navigate("/playground")} className="bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors">
             Back to Playgrounds
           </button>
         </div>
@@ -875,1337 +110,119 @@ const LanguagePlayground = () => {
     );
   }
 
-  // Go to next problem
-  const goToNextProblem = () => {
-    const allProblems = data.chapters.flatMap((ch) => ch.problems);
-    const currentIdx = allProblems.findIndex(
-      (p) => p.id === currentProblem?.id,
-    );
-    const nextProblem = allProblems[currentIdx + 1];
-    if (nextProblem) selectProblem(nextProblem);
-    else toast.success("You've completed all problems in this course!");
-  };
-
-  // ── Editor language mapping ────────────────────────────
-  const editorLang =
-    executionMode === "dsa" || typeof currentProblem?.starterCode === "object"
-      ? getMonacoLanguage(dsaLang)
-      : isReact
-        ? "javascript"
-        : isLivePreview
-          ? language === "css"
-            ? "css"
-            : "html"
-          : getMonacoLanguage(data?.pistonLanguage || language);
-
-  // ── Loading state ──────────────────────────────────────
-  if (isLoadingProgress || !currentProblem) {
+  if (!currentProblem) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-red-400" />
-          <span className="text-sm text-zinc-400">Loading workspace…</span>
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-red-400" />
       </div>
     );
   }
 
-  /* ════════════════════════════════════════════════════════
-   *  RENDER
-   * ════════════════════════════════════════════════════════ */
   return (
     <div className="flex flex-col h-screen min-h-dvh bg-[#0a0a0a] text-white overflow-hidden">
-      {/* ═══════════ DESKTOP NAVBAR ═══════════ */}
+
       {!isMobile && (
-        <header
-          className="h-[52px] shrink-0 flex items-center justify-between px-5 z-10 relative"
-          style={{
-            background:
-              "linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 70%, rgba(10,10,10,0.96) 100%)",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          {/* hair-line accent under navbar */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-0 left-0 right-0 h-px"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent 0%, rgba(239,68,68,0.30) 35%, rgba(239,68,68,0.30) 65%, transparent 100%)",
-              opacity: 0.5,
-            }}
-          />
-
-          {/* LEFT */}
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => navigate("/playground")}
-              className="group flex items-center gap-1.5 text-zinc-500 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-              <span className="hidden sm:block">Playgrounds</span>
-            </button>
-
-            <div className="h-4 w-px bg-white/10" />
-
-            <button
-              onClick={() => setIsSidebarCompact(!isSidebarCompact)}
-              className="p-1.5 -ml-1 hover:bg-white/[0.06] rounded-lg transition-colors text-zinc-500 hover:text-white"
-              aria-label="Toggle sidebar"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2 min-w-0">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
-                }}
-              >
-                {getLanguageIconUrl(language) ? (
-                  <img
-                    src={getLanguageIconUrl(language)}
-                    alt={language}
-                    className="w-4 h-4 object-contain"
-                  />
-                ) : (
-                  <Terminal className="w-3.5 h-3.5 text-zinc-400" />
-                )}
-              </div>
-              <span className="text-[13px] font-bold text-white capitalize hidden sm:block tracking-tight">
-                {language}{" "}
-                <span className="text-zinc-600 font-medium">Playground</span>
-              </span>
-            </div>
-
-            <div className="h-4 w-px bg-white/10 hidden md:block" />
-
-            <motion.span
-              key={`${currentChapterIdx}.${currentProblemIdx}`}
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="hidden md:inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full"
-              style={{
-                background: "rgba(239,68,68,0.10)",
-                border: "1px solid rgba(239,68,68,0.22)",
-                color: "#f87171",
-              }}
-            >
-              <span className="w-1 h-1 rounded-full bg-red-400 animate-pulse" />
-              Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
-            </motion.span>
-          </div>
-
-          {/* RIGHT — Session Stats */}
-          <div className="flex items-center gap-2">
-            <AnimatePresence>
-              {sessionXP > 0 && (
-                <motion.div
-                  key={sessionXP}
-                  initial={{ scale: 1.18, opacity: 0.6 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 18 }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                  style={{
-                    background: "rgba(44,240,157,0.08)",
-                    border: "1px solid rgba(44,240,157,0.22)",
-                    color: "#2cf09d",
-                    boxShadow: "0 0 12px rgba(44,240,157,0.08)",
-                  }}
-                >
-                  <Zap className="w-3 h-3 fill-current" />+{sessionXP}
-                  <span className="text-[9px] opacity-70 font-black">XP</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {sessionSolved > 0 && (
-              <motion.div
-                key={sessionSolved}
-                initial={{ scale: 1.12 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 320, damping: 18 }}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                style={{
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.20)",
-                  color: "#f87171",
-                }}
-              >
-                <CheckCircle className="w-3 h-3" />
-                {sessionSolved}
-              </motion.div>
-            )}
-
-            {/* Progress strip */}
-            <div className="hidden md:flex flex-col gap-0.5 mx-1">
-              <div
-                className="w-24 h-1 rounded-full overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.05)" }}
-              >
-                <motion.div
-                  className="h-full rounded-full"
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  style={{
-                    background:
-                      progressPercent === 100
-                        ? "linear-gradient(90deg, #2cf09d, #16a34a)"
-                        : "linear-gradient(90deg, #ef4444, #f97316)",
-                    boxShadow: "0 0 6px rgba(239,68,68,0.35)",
-                  }}
-                />
-              </div>
-              <span className="text-[8px] font-bold text-zinc-600 tracking-[0.18em] uppercase">
-                {progressPercent}% Path
-              </span>
-            </div>
-
-            <button
-              onClick={() => navigate("/profile")}
-              className="ml-1 w-7 h-7 rounded-full overflow-hidden shrink-0 transition-transform hover:scale-105"
-              style={{
-                border: "1px solid rgba(255,255,255,0.12)",
-                boxShadow:
-                  "0 0 0 2px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04)",
-              }}
-            >
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
-                  }}
-                >
-                  <span className="text-white text-[10px] font-black">
-                    {user?.name?.charAt(0) || "U"}
-                  </span>
-                </div>
-              )}
-            </button>
-          </div>
-        </header>
+        <PlaygroundNavbar
+          isSidebarCompact={isSidebarCompact} setIsSidebarCompact={setIsSidebarCompact}
+          language={language} getLanguageIconUrl={getLanguageIconUrl} user={user}
+          sessionXP={sessionXP} sessionSolved={sessionSolved}
+          currentChapterIdx={currentChapterIdx} currentProblemIdx={currentProblemIdx}
+          progressPercent={progressPercent} onBackToHub={() => navigate("/playground")}
+        />
       )}
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Mobile backdrop */}
-        <AnimatePresence>
-          {isMobile && isSidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/60"
-              onClick={() => setIsSidebarOpen(false)}
-            />
-          )}
-        </AnimatePresence>
+        <PlaygroundSidebar
+          isMobile={isMobile} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
+          isSidebarCompact={isSidebarCompact} setIsSidebarCompact={setIsSidebarCompact}
+          language={language} getLanguageIconUrl={getLanguageIconUrl} data={data}
+          progressPercent={progressPercent} completedCount={completedCount} totalProblems={totalProblems}
+          currentProblem={currentProblem} completedProblems={completedProblems}
+          expandedChapterId={expandedChapterId} setExpandedChapterId={setExpandedChapterId}
+          selectProblem={selectProblem}
+        />
 
-        {/* ═══════════ LEFT SIDEBAR ═══════════ */}
-        <AnimatePresence initial={false}>
-          {(!isMobile || isSidebarOpen) && (
-            <motion.aside
-              initial={isMobile ? { x: -280, opacity: 0 } : false}
-              animate={
-                isMobile
-                  ? { x: 0, opacity: 1 }
-                  : isSidebarCompact
-                    ? { width: 64, opacity: 1 }
-                    : { width: 250, opacity: 1 }
-              }
-              exit={isMobile ? { x: -280, opacity: 0 } : undefined}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              onMouseEnter={() => !isMobile && setIsSidebarCompact(false)}
-              onMouseLeave={() => !isMobile && setIsSidebarCompact(true)}
-              className={cn(
-                "h-full flex flex-col overflow-hidden shrink-0 bg-[#111111] border-r border-white/10",
-                isMobile
-                  ? "fixed inset-y-0 left-0 z-50 w-[280px] shadow-2xl"
-                  : "hidden md:flex",
-              )}
-            >
-              {/* ── Compact icon-only view ── */}
-              {!isMobile && isSidebarCompact ? (
-                <div className="flex flex-col items-center h-full pt-3 pb-4 gap-1.5 overflow-hidden">
-                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mb-1">
-                    {getLanguageIconUrl(language) ? (
-                      <img
-                        src={getLanguageIconUrl(language)}
-                        alt={language}
-                        className="w-5 h-5 object-contain drop-shadow-md"
-                      />
-                    ) : (
-                      <FileCode2 className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
-
-                  <div className="w-8 h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#2cf09d] rounded-full transition-all duration-500"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-
-                  <div className="h-px bg-white/10 w-8 my-0.5" />
-
-                  <div className="flex-1 flex flex-col gap-1 overflow-y-auto w-full items-center no-scrollbar">
-                    {data.chapters.map((chapter) => {
-                      const isActiveChapter = chapter.problems.some(
-                        (p) => p.id === currentProblem?.id,
-                      );
-                      const chapterDone = chapter.problems.every((p) =>
-                        completedProblems.has(p.id),
-                      );
-                      return (
-                        <div
-                          key={chapter.id}
-                          className="relative group w-full flex justify-center"
-                        >
-                          <button
-                            onClick={() => {
-                              setIsSidebarCompact(false);
-                              setExpandedChapterId(chapter.id);
-                            }}
-                            className={cn(
-                              "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
-                              isActiveChapter
-                                ? "text-red-400"
-                                : chapterDone
-                                  ? "text-[#2cf09d]"
-                                  : "text-zinc-500 hover:text-zinc-300",
-                            )}
-                            style={
-                              isActiveChapter
-                                ? {
-                                    background:
-                                      "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.08))",
-                                    border: "1px solid rgba(239,68,68,0.35)",
-                                    boxShadow: "0 0 14px rgba(239,68,68,0.22)",
-                                  }
-                                : chapterDone
-                                  ? {
-                                      background: "rgba(44,240,157,0.08)",
-                                      border: "1px solid rgba(44,240,157,0.18)",
-                                    }
-                                  : {
-                                      background: "rgba(255,255,255,0.03)",
-                                      border:
-                                        "1px solid rgba(255,255,255,0.06)",
-                                    }
-                            }
-                          >
-                            {chapterDone ? (
-                              <CheckCircle className="w-4 h-4" />
-                            ) : isActiveChapter ? (
-                              <Play className="w-3.5 h-3.5 fill-red-400" />
-                            ) : (
-                              <BookOpen className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                          {/* Tooltip */}
-                          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                            <div className="bg-[#1a1a1a] text-xs text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap border border-white/10 shadow-lg">
-                              {chapter.title}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* ── Full sidebar content ── */}
-                  {/* Course header */}
-                  <div className="p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 drop-shadow-sm">
-                      {getLanguageIconUrl(language) ? (
-                        <img
-                          src={getLanguageIconUrl(language)}
-                          alt={language}
-                          className="w-6 h-6 object-contain drop-shadow-md"
-                        />
-                      ) : (
-                        <FileCode2 className="w-5 h-5 text-red-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="font-semibold text-sm text-white truncate">
-                        {data.title}
-                      </h2>
-                      <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">
-                        {data.subtitle || "BEGINNER LEVEL"}
-                      </span>
-                    </div>
-                    {isMobile && (
-                      <button
-                        onClick={() => setIsSidebarOpen(false)}
-                        className="text-zinc-500 hover:text-zinc-300 p-1 shrink-0"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Progress */}
-                  <div className="px-4 pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
-                        Course Progress
-                      </span>
-                      <span
-                        className="text-[11px] font-black"
-                        style={{ color: "#2cf09d" }}
-                      >
-                        {progressPercent}%
-                      </span>
-                    </div>
-                    <div
-                      className="h-1.5 rounded-full overflow-hidden relative"
-                      style={{ background: "rgba(255,255,255,0.05)" }}
-                    >
-                      <motion.div
-                        className="h-full rounded-full"
-                        animate={{ width: `${progressPercent}%` }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
-                        style={{
-                          background:
-                            progressPercent === 100
-                              ? "linear-gradient(90deg, #2cf09d, #16a34a)"
-                              : "linear-gradient(90deg, #2cf09d 0%, #34d399 100%)",
-                          boxShadow: "0 0 8px rgba(44,240,157,0.45)",
-                        }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-zinc-600 mt-2 block">
-                      {completedCount}/{totalProblems} lessons
-                    </span>
-                  </div>
-
-                  <div className="h-px bg-white/10" />
-
-                  {/* Chapter list */}
-                  <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 thin-scroll">
-                    {data.chapters.map((chapter) => {
-                      const isActiveChapter = chapter.problems.some(
-                        (p) => p.id === currentProblem?.id,
-                      );
-                      const chapterDone = chapter.problems.every((p) =>
-                        completedProblems.has(p.id),
-                      );
-                      const isLocked = false;
-                      const isExpanded = expandedChapterId === chapter.id;
-
-                      return (
-                        <div key={chapter.id} className="mb-2">
-                          <button
-                            onClick={() => {
-                              if (isLocked) return;
-                              setExpandedChapterId(
-                                isExpanded ? null : chapter.id,
-                              );
-                            }}
-                            disabled={isLocked}
-                            className={cn(
-                              "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left",
-                              isActiveChapter && "text-red-300",
-                              chapterDone &&
-                                !isActiveChapter &&
-                                "text-zinc-400 hover:bg-white/5",
-                              isLocked &&
-                                "text-zinc-600 cursor-not-allowed opacity-60",
-                              !isActiveChapter &&
-                                !chapterDone &&
-                                !isLocked &&
-                                "text-zinc-300 hover:bg-white/5",
-                            )}
-                          >
-                            <div className="flex items-center gap-3 truncate">
-                              <span
-                                className={cn(
-                                  "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px]",
-                                  isActiveChapter
-                                    ? "bg-red-500/20 text-red-400"
-                                    : "bg-white/5 text-zinc-500",
-                                )}
-                              >
-                                {chapterDone ? (
-                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                                ) : isActiveChapter ? (
-                                  <Play className="w-3.5 h-3.5 text-red-400 fill-red-400" />
-                                ) : (
-                                  <BookOpen className="w-3.5 h-3.5" />
-                                )}
-                              </span>
-                              <span className="flex-1 truncate font-bold text-[14px]">
-                                {chapter.title}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span
-                                className={cn(
-                                  "text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
-                                  chapterDone
-                                    ? "text-[#2cf09d] bg-[#2cf09d]/10"
-                                    : isActiveChapter
-                                      ? "text-red-300 bg-red-500/10"
-                                      : "text-zinc-600 bg-white/[0.04]",
-                                )}
-                              >
-                                {
-                                  chapter.problems.filter((p) =>
-                                    completedProblems.has(p.id),
-                                  ).length
-                                }
-                                /{chapter.problems.length}
-                              </span>
-                              {chapterDone && (
-                                <CheckCircle className="w-3.5 h-3.5 text-[#2cf09d]" />
-                              )}
-                              {isLocked && (
-                                <Lock className="w-3.5 h-3.5 text-zinc-600" />
-                              )}
-                              {!isLocked && (
-                                <ChevronRight
-                                  className={cn(
-                                    "w-4 h-4 text-zinc-500 transition-transform",
-                                    isExpanded && "rotate-90",
-                                  )}
-                                />
-                              )}
-                            </div>
-                          </button>
-
-                          <AnimatePresence>
-                            {isExpanded && !isLocked && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="pl-11 pr-2 py-1 flex flex-col gap-1">
-                                  {chapter.problems.map((prob) => {
-                                    const isProbActive =
-                                      currentProblem?.id === prob.id;
-                                    const isProbDone = completedProblems.has(
-                                      prob.id,
-                                    );
-                                    const isProbLocked = false;
-                                    return (
-                                      <button
-                                        key={prob.id}
-                                        onClick={() => {
-                                          if (!isProbLocked) {
-                                            selectProblem(prob, chapter.id);
-                                            if (isMobile)
-                                              setIsSidebarOpen(false);
-                                          }
-                                        }}
-                                        disabled={isProbLocked}
-                                        className={cn(
-                                          "relative flex items-center justify-between w-full text-left py-2 pl-4 pr-3 rounded-lg text-sm transition-all",
-                                          isProbActive
-                                            ? "text-red-200 font-semibold"
-                                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]",
-                                          isProbLocked &&
-                                            "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
-                                          isProbDone &&
-                                            !isProbActive &&
-                                            "text-[#2cf09d]",
-                                        )}
-                                        style={
-                                          isProbActive
-                                            ? {
-                                                background:
-                                                  "linear-gradient(90deg, rgba(239,68,68,0.18) 0%, rgba(239,68,68,0.04) 100%)",
-                                                boxShadow:
-                                                  "inset 2px 0 0 #ef4444, 0 0 16px rgba(239,68,68,0.12)",
-                                              }
-                                            : undefined
-                                        }
-                                      >
-                                        <span className="truncate">
-                                          {prob.title}
-                                        </span>
-                                        {isProbDone && (
-                                          <CheckCircle className="w-3.5 h-3.5 text-[#2cf07d] shrink-0 ml-2" />
-                                        )}
-                                        {isProbLocked && (
-                                          <Lock className="w-3 h-3 text-zinc-600 shrink-0 ml-2" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </motion.aside>
-          )}
-        </AnimatePresence>
-
-        {/* ═══════════ MAIN CONTENT ═══════════ */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          {/* ── Mobile top bar ── */}
+
           {isMobile && (
-            <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="text-zinc-300 hover:text-white p-0.5"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h1 className="font-semibold text-[15px] text-white truncate">
-                  {data.title}
-                </h1>
-              </div>
-              <span className="flex items-center gap-2 bg-red-500/20 text-red-400 text-xs font-bold px-3 py-1.5 rounded-full border border-red-500/20 shrink-0">
-                <span className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
-                  <Star className="w-2.5 h-2.5 text-black fill-current" />
-                </span>
-                {currentProblem?.xp} XP
-              </span>
-            </header>
+            <MobileHeader title={data.title} xp={currentProblem?.xp} progressPercent={progressPercent} />
           )}
 
-          {/* ── Mobile progress bar ── */}
-          {isMobile && (
-            <div className="px-4 pb-3 shrink-0">
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.15em] font-bold mb-2">
-                <span className="text-red-500">Lesson Progress</span>
-                <span className="text-white">{progressPercent}%</span>
-              </div>
-              <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 rounded-full transition-all duration-500"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ── Scrollable content ── */}
           <div className="flex-1 overflow-y-auto thin-scroll">
-            <div
-              className={cn(
-                "mx-auto space-y-5",
-                isMobile ? "px-4 py-4" : "max-w-4xl px-8 py-8",
-              )}
-            >
-              {/* Course Task Banner */}
-              {activeTask && (
-                <div className="bg-indigo-950/60 border border-indigo-500/40 rounded-2xl p-5 shadow-lg shadow-indigo-500/10">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Terminal className="w-4 h-4 text-indigo-400 shrink-0" />
-                      <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                        Course Task
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => dispatch(clearTask())}
-                      className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
-                    {activeTask.instruction}
-                  </p>
-                </div>
-              )}
+            <div className={cn("mx-auto space-y-5", isMobile ? "px-4 py-4" : "max-w-4xl px-8 py-8")}>
 
-              {/* Desktop: Lesson badge + XP reward */}
+              <CourseTaskBanner activeTask={activeTask} />
+
               {!isMobile && !activeTask && (
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5"
-                      style={{
-                        background: "rgba(239,68,68,0.10)",
-                        border: "1px solid rgba(239,68,68,0.25)",
-                        color: "#f87171",
-                      }}
-                    >
-                      <span className="w-1 h-1 rounded-full bg-red-400" />
-                      Lesson {currentChapterIdx + 1}.{currentProblemIdx + 1}
-                    </span>
-                    {completedProblems.has(currentProblem?.id) && (
-                      <motion.span
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 320,
-                          damping: 20,
-                        }}
-                        className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full inline-flex items-center gap-1"
-                        style={{
-                          background: "rgba(44,240,157,0.10)",
-                          border: "1px solid rgba(44,240,157,0.25)",
-                          color: "#2cf09d",
-                        }}
-                      >
-                        <CheckCircle className="w-3 h-3" /> Solved
-                      </motion.span>
-                    )}
-                  </div>
-                  <motion.div
-                    key={currentProblem?.id}
-                    initial={{ opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-1.5 text-[13px] font-black"
-                    style={{ color: "#2cf09d" }}
-                  >
-                    <img
-                      src="/xp.svg"
-                      className="w-6 h-6 drop-shadow-[0_0_8px_rgba(44,240,157,0.45)]"
-                      alt=""
-                    />
-                    +{currentProblem?.xp}{" "}
-                    <span className="text-[10px] opacity-70 tracking-widest">
-                      XP REWARD
-                    </span>
-                  </motion.div>
-                </div>
+                <LessonBadge
+                  chapterIdx={currentChapterIdx} problemIdx={currentProblemIdx}
+                  xp={currentProblem?.xp} isSolved={completedProblems.has(currentProblem?.id)}
+                />
               )}
 
-              {/* Lesson title */}
-              <h1
-                className={cn(
-                  "font-bold text-metallic leading-tight",
-                  isMobile ? "text-xl mb-4" : "text-3xl mb-6",
-                )}
-              >
+              <h1 className={cn("font-bold text-metallic leading-tight", isMobile ? "text-xl mb-4" : "text-3xl mb-6")}>
                 {currentProblem?.title}
               </h1>
 
-              {/* ── Task Card ── */}
-              <div
-                className={cn(
-                  "rounded-[24px]",
-                  isMobile
-                    ? "bg-[#1a1a1a] border border-white/10 p-5"
-                    : "bg-transparent p-0",
-                )}
-              >
-                {isMobile ? (
-                  <>
-                    <div className="flex items-start justify-between gap-3 mb-4">
-                      <span className="inline-block bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
-                        Task
-                      </span>
-                      <div className="w-12 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                        <Terminal className="w-6 h-6 text-zinc-500" />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white mb-3">
-                        {currentProblem?.title}
-                      </h3>
-                      <FormattedTaskText
-                        text={currentProblem?.description}
-                        isMobile={true}
-                        className="text-zinc-300 text-[15px] leading-relaxed whitespace-pre-wrap font-medium"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <motion.div
-                    key={currentProblem?.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="rounded-2xl overflow-hidden mb-2 relative"
-                    style={{
-                      background:
-                        "linear-gradient(180deg, #121212 0%, #0f0f0f 100%)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                      boxShadow:
-                        "0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.35)",
-                    }}
-                  >
-                    {/* Left edge accent */}
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-4 bottom-4 w-[2px] rounded-r-full"
-                      style={{
-                        background:
-                          "linear-gradient(180deg, #ef4444 0%, transparent 100%)",
-                        boxShadow: "0 0 12px rgba(239,68,68,0.45)",
-                      }}
-                    />
+              <TaskCard currentProblem={currentProblem} isMobile={isMobile} />
 
-                    {/* Card header bar */}
-                    <div
-                      className="px-5 py-3 flex items-center gap-2.5"
-                      style={{
-                        borderBottom: "1px solid rgba(255,255,255,0.06)",
-                      }}
-                    >
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, rgba(239,68,68,0.20) 0%, rgba(239,68,68,0.08) 100%)",
-                          border: "1px solid rgba(239,68,68,0.30)",
-                        }}
-                      >
-                        <img src="/task.svg" className="w-4 h-4" alt="" />
-                      </div>
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-red-400">
-                        Your Task
-                      </span>
-                      <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-zinc-700">
-                        {currentProblem?.difficulty || "CHALLENGE"}
-                      </span>
-                    </div>
-                    {/* Card body */}
-                    <div className="px-5 py-4">
-                      <FormattedTaskText
-                        text={currentProblem?.description}
-                        isMobile={false}
-                        className="text-zinc-200 text-[14px] leading-relaxed whitespace-pre-wrap"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </div>
+              <HintsPanel
+                hints={currentProblem?.hints} showHints={exec.showHints}
+                setShowHints={exec.setShowHints} isMobile={isMobile}
+              />
 
-              {/* ── Hints ── */}
-              {currentProblem?.hints &&
-                currentProblem.hints.length > 0 &&
-                (isMobile ? (
-                  /* Mobile: hint card with toggle */
-                  <div className="bg-[#1a1a1a] border border-white/10 rounded-[24px] p-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
-                          <img
-                            src="/hint2.svg"
-                            alt="Hint"
-                            className="w-20 h-20 object-contain"
-                          />
-                        </div>
-                        <div>
-                          <h4 className="text-[17px] font-bold text-white mb-0.5">
-                            Need a hint?
-                          </h4>
-                          <p className="text-[13px] text-zinc-400">
-                            Reveal a tip to help you solve it
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowHints(!showHints)}
-                        className={cn(
-                          "w-12 h-7 rounded-full transition-colors relative shrink-0",
-                          showHints
-                            ? "bg-red-500"
-                            : "bg-red-500/20 border border-white/10",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "absolute top-1 w-5 h-5 rounded-full bg-white transition-transform shadow-md",
-                            showHints ? "translate-x-6" : "translate-x-1",
-                          )}
-                        />
-                      </button>
-                    </div>
-                    <AnimatePresence>
-                      {showHints && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden mt-4 space-y-2"
-                        >
-                          {currentProblem.hints.map((hint, i) => (
-                            <p
-                              key={i}
-                              className="text-sm text-red-200/90 pl-3 border-l-2 border-purple-500 py-1"
-                            >
-                              {hint}
-                            </p>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  /* Desktop: collapsible hint card */
-                  <div
-                    className="rounded-xl overflow-hidden"
-                    style={{
-                      background:
-                        "linear-gradient(180deg, #121212 0%, #0f0f0f 100%)",
-                      border: "1px solid rgba(234,179,8,0.16)",
-                    }}
-                  >
-                    <button
-                      onClick={() => setShowHints(!showHints)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left group hover:bg-amber-500/[0.03] transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, rgba(234,179,8,0.16), rgba(234,179,8,0.04))",
-                            border: "1px solid rgba(234,179,8,0.25)",
-                          }}
-                        >
-                          <img
-                            src="/hint2.svg"
-                            alt="Hint"
-                            className="w-6 h-6 object-contain"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.18em] block">
-                            {showHints
-                              ? "Hide Hints"
-                              : `${currentProblem.hints.length} Hint${currentProblem.hints.length > 1 ? "s" : ""} Available`}
-                          </span>
-                          {!showHints && (
-                            <p className="text-[10px] text-zinc-600 mt-0.5">
-                              Revealing hints may reduce XP earned
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <motion.div
-                        animate={{ rotate: showHints ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-amber-300 transition-colors" />
-                      </motion.div>
-                    </button>
-
-                    <AnimatePresence initial={false}>
-                      {showHints && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.25, ease: "easeOut" }}
-                          className="overflow-hidden"
-                        >
-                          <div
-                            className="px-4 pb-4 pt-1 space-y-2"
-                            style={{
-                              borderTop: "1px solid rgba(234,179,8,0.10)",
-                            }}
-                          >
-                            {currentProblem.hints.map((hint, i) => (
-                              <motion.div
-                                key={i}
-                                initial={{ opacity: 0, x: -6 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.06 }}
-                                className="flex items-start gap-2.5 pt-2"
-                              >
-                                <span
-                                  className="text-[9px] font-black mt-0.5 px-1.5 py-0.5 rounded shrink-0 leading-none"
-                                  style={{
-                                    background: "rgba(234,179,8,0.14)",
-                                    color: "#fbbf24",
-                                    border: "1px solid rgba(234,179,8,0.2)",
-                                  }}
-                                >
-                                  {String(i + 1).padStart(2, "0")}
-                                </span>
-                                <p className="text-[13px] text-zinc-300 leading-relaxed">
-                                  {hint}
-                                </p>
-                              </motion.div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-
-              {/* ── Code Editor / Interactive Problem ── */}
               {currentProblem?.type === "interactive" ? (
                 <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden p-1">
                   <InteractiveProblem
                     key={currentProblem.id}
                     problem={currentProblem}
-                    onSolve={handleInteractiveSolve}
+                    onSolve={exec.handleInteractiveSolve}
                     isAlreadySolved={completedProblems.has(currentProblem.id)}
                     onAttempt={
                       currentProblem.courseChapterLink?.courseId
-                        ? (correct) =>
-                            trackLinkedAttempt({
-                              exerciseId: currentProblem.id,
-                              courseId:
-                                currentProblem.courseChapterLink.courseId,
-                              chapterIndex:
-                                currentProblem.courseChapterLink.chapterIndex,
-                              passed: correct,
-                            }).catch(() => {})
+                        ? (correct) => trackLinkedAttempt({
+                            exerciseId: currentProblem.id,
+                            courseId: currentProblem.courseChapterLink.courseId,
+                            chapterIndex: currentProblem.courseChapterLink.chapterIndex,
+                            passed: correct,
+                          }).catch(() => {})
                         : undefined
                     }
                   />
                 </div>
               ) : (
-                <div className="bg-[#1a1a1a] rounded-2xl border border-white/10 overflow-hidden shadow-lg">
-                  {/* Editor toolbar */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#1a1a1a]/80">
-                    <div className="flex items-center gap-3 w-full">
-                      {isMobile ? (
-                        <>
-                          <div className="flex gap-2">
-                            <span className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                            <span className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                            <span className="w-3 h-3 rounded-full bg-[#27c93f]" />
-                          </div>
-                          <span className="flex-1 text-right text-[11px] text-zinc-500 font-bold uppercase tracking-[0.15em] ml-auto">
-                            {fileName}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 text-sm text-zinc-300 font-medium">
-                            <FileCode2 className="w-4 h-4 text-zinc-400" />
-                            {fileName}
-                          </div>
-
-                          {(executionMode === "dsa" ||
-                            typeof currentProblem?.starterCode ===
-                              "object") && (
-                            <select
-                              value={dsaLang}
-                              onChange={(e) => {
-                                const newLang = e.target.value;
-                                setDsaLang(newLang);
-                                setCode(
-                                  currentProblem.starterCode[newLang] || "",
-                                );
-                                setOutput(null);
-                                setTestResult(null);
-                              }}
-                              className="ml-4 bg-[#111111] border border-white/10 text-zinc-300 text-xs px-2 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
-                            >
-                              <option value="javascript">JavaScript</option>
-                              <option value="python">Python</option>
-                              <option value="java">Java</option>
-                            </select>
-                          )}
-
-                          <div className="flex items-center gap-3 ml-auto">
-                            <button
-                              onClick={resetCode}
-                              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              Reset
-                            </button>
-
-                            <div className="flex gap-2">
-                              {testResult?.success && (
-                                <button
-                                  onClick={goToNextProblem}
-                                  className="flex items-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-black font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-[#2cf07d] "
-                                >
-                                  Next Question{" "}
-                                  <ChevronRight className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button
-                                onClick={handleRunCode}
-                                disabled={isRunning || testResult?.success}
-                                className="flex items-center gap-2 bg-[#2cf07d] hover:bg-[#2cf04d] disabled:opacity-50 text-black font-bold text-sm px-5 py-2 rounded-xl transition-colors shadow-lg shadow-purple-500/20 "
-                              >
-                                {isRunning ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />{" "}
-                                    Running…
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="w-4 h-4 fill-white text-black" />{" "}
-                                    Run Code
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Monaco editor */}
-                  <div className={isMobile ? "h-[220px]" : "h-[320px]"}>
-                    <Editor
-                      height="100%"
-                      language={editorLang}
-                      value={code}
-                      onChange={(val) => setCode(val || "")}
-                      theme="vs-dark"
-                      options={{
-                        fontSize: isMobile ? 13 : 14,
-                        lineNumbers: "on",
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        padding: { top: 12, bottom: 12 },
-                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                        renderLineHighlight: "all",
-                        bracketPairColorization: { enabled: true },
-                        cursorBlinking: "smooth",
-                        smoothScrolling: true,
-                        lineDecorationsWidth: 0,
-                        overviewRulerLanes: 0,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* ── Live Preview (HTML/CSS/React) ── */}
-              {(isLivePreview || isReact) &&
-                currentProblem?.type !== "interactive" && (
-                  <div className="bg-[#1a1a1a] rounded-xl border border-white/10 overflow-hidden">
-                    {/* Browser chrome */}
-                    <div className="px-4 py-2.5 bg-[#111111] border-b border-white/10 flex items-center gap-3">
-                      <div className="flex gap-1.5 shrink-0">
-                        <span className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                        <span className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                        <span className="w-3 h-3 rounded-full bg-[#27c93f]" />
-                      </div>
-                      <div className="flex-1 flex items-center justify-center">
-                        <span className="text-[11px] text-zinc-500 font-medium bg-[#1a1a1a] px-4 py-0.5 rounded border border-white/10">
-                          preview
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {testResult && (
-                          <span
-                            className={cn(
-                              "text-[10px] font-bold px-2 py-0.5 rounded",
-                              testResult.success
-                                ? "bg-emerald-500/20 text-[#2cf07d]"
-                                : "bg-red-500/20 text-red-400",
-                            )}
-                          >
-                            {testResult.success ? "✓ PASSED" : "✗ FAILED"}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Live
-                        </span>
-                      </div>
-                    </div>
-                    <iframe
-                      ref={iframeRef}
-                      className="w-full border-0 bg-[#1a1a1a]"
-                      style={{ height: isMobile ? 180 : 250 }}
-                      title="Live Preview"
-                      sandbox="allow-scripts allow-same-origin"
-                    />
-                    {testResult && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={cn(
-                          "px-4 py-2.5 border-t text-xs font-bold flex items-center gap-2.5",
-                        )}
-                        style={{
-                          background: testResult.success
-                            ? "linear-gradient(90deg, rgba(44,240,157,0.08), rgba(44,240,157,0.02))"
-                            : "linear-gradient(90deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02))",
-                          borderTopColor: testResult.success
-                            ? "rgba(44,240,157,0.22)"
-                            : "rgba(239,68,68,0.22)",
-                          color: testResult.success ? "#2cf09d" : "#f87171",
-                        }}
-                      >
-                        {testResult.success ? (
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        ) : (
-                          <X className="w-3.5 h-3.5" />
-                        )}
-                        {testResult.message}
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-
-              {/* Hidden iframe for non-preview React */}
-              {isReact && !isLivePreview && (
-                <iframe
-                  ref={iframeRef}
-                  className="hidden"
-                  title="React Runner"
-                  sandbox="allow-scripts allow-same-origin"
+                <CodeEditor
+                  code={exec.code} setCode={exec.setCode}
+                  editorLang={editorLang} fileName={fileName}
+                  isMobile={isMobile} isRunning={exec.isRunning} testResult={exec.testResult}
+                  executionMode={executionMode} currentProblem={currentProblem}
+                  dsaLang={dsaLang} setDsaLang={setDsaLang}
+                  setOutput={exec.setOutput} setTestResult={exec.setTestResult}
+                  resetCode={exec.resetCode} handleRunCode={exec.handleRunCode}
+                  goToNextProblem={goToNextProblem}
                 />
               )}
 
-              {/* ── Output (non-preview languages) ── */}
-              {!isLivePreview &&
-                !isReact &&
-                currentProblem?.type !== "interactive" && (
-                  <div>
-                    {isRunning && (
-                      <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Executing…
-                      </div>
-                    )}
-                    {output && !isRunning && (
-                      <div className="space-y-4 my-2">
-                        {output.text && (
-                          <MagicTerminal
-                            key={`out-${currentProblem?.id}-${output.text.length}`}
-                            startOnView={false}
-                            className="w-full max-w-full bg-[#111111] border-white/10 shadow-xl"
-                          >
-                            <AnimatedSpan className="text-zinc-400 mb-2 font-mono">
-                              Output:
-                            </AnimatedSpan>
-                            <TypingAnimation
-                              className="text-emerald-400 whitespace-pre-wrap font-mono mt-2 block"
-                              duration={10}
-                              startOnView={false}
-                            >
-                              {output.text}
-                            </TypingAnimation>
-                          </MagicTerminal>
-                        )}
-                        {output.error && (
-                          <MagicTerminal
-                            key={`err-${currentProblem?.id}-${output.error.length}`}
-                            startOnView={false}
-                            className="w-full max-w-full bg-red-950/10 border-red-500/20 shadow-xl"
-                          >
-                            <AnimatedSpan className="text-red-400/80 mb-2 font-mono">
-                              Error:
-                            </AnimatedSpan>
-                            <TypingAnimation
-                              className="text-red-400 whitespace-pre-wrap font-mono mt-2 block"
-                              duration={10}
-                              startOnView={false}
-                            >
-                              {output.error}
-                            </TypingAnimation>
-                          </MagicTerminal>
-                        )}
-                        {testResult && (
-                          <div
-                            className={cn(
-                              "rounded-xl p-4 border flex items-center gap-2 text-sm font-medium",
-                              testResult.success
-                                ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
-                                : "bg-red-500/5 border-red-500/20 text-red-400",
-                            )}
-                          >
-                            {testResult.success ? (
-                              <CheckCircle className="w-4 h-4" />
-                            ) : (
-                              <X className="w-4 h-4" />
-                            )}
-                            {testResult.message}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              {/* ── Task Run Button + Results ── */}
-              {activeTask && (
-                <div className="space-y-3">
-                  <button
-                    onClick={handleRunTask}
-                    disabled={isRunningTask}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-lg shadow-indigo-500/20"
-                  >
-                    {isRunningTask ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Running
-                        Tests…
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 fill-white" /> Run Task Tests
-                      </>
-                    )}
-                  </button>
-                  {taskTestResults.length > 0 && (
-                    <div className="rounded-xl border border-white/10 overflow-hidden">
-                      <div className="px-4 py-2 bg-[#111111] border-b border-white/10 text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                        Test Results
-                      </div>
-                      <div className="divide-y divide-white/5">
-                        {taskTestResults.map((r, i) => (
-                          <div
-                            key={i}
-                            className={`flex items-start gap-3 px-4 py-3 text-xs font-mono ${r.passed ? "bg-emerald-500/5" : "bg-red-500/5"}`}
-                          >
-                            <span className="shrink-0 mt-0.5">
-                              {r.passed ? (
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                              ) : (
-                                <X className="w-3.5 h-3.5 text-red-400" />
-                              )}
-                            </span>
-                            <div className="min-w-0 flex-1 space-y-0.5">
-                              {r.input && (
-                                <p className="text-zinc-500">
-                                  in:{" "}
-                                  <span className="text-zinc-300">
-                                    {r.input}
-                                  </span>
-                                </p>
-                              )}
-                              <p
-                                className={
-                                  r.passed ? "text-emerald-400" : "text-red-400"
-                                }
-                              >
-                                got: {r.actualOutput}
-                              </p>
-                              {!r.passed && (
-                                <p className="text-zinc-500">
-                                  expected: {r.expectedOutput}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {(isLivePreview || isReact) && currentProblem?.type !== "interactive" && (
+                <LivePreview iframeRef={iframeRef} testResult={exec.testResult} isMobile={isMobile} />
               )}
 
-              {/* ── Discussion Section ── */}
+              {isReact && !isLivePreview && (
+                <iframe ref={iframeRef} className="hidden" title="React Runner" sandbox="allow-scripts allow-same-origin" />
+              )}
+
+              {!isLivePreview && !isReact && currentProblem?.type !== "interactive" && (
+                <OutputPanel output={exec.output} testResult={exec.testResult} isRunning={exec.isRunning} currentProblem={currentProblem} />
+              )}
+
+              {activeTask && (
+                <TaskTestResults
+                  handleRunTask={exec.handleRunTask}
+                  isRunningTask={exec.isRunningTask}
+                  taskTestResults={exec.taskTestResults}
+                />
+              )}
+
               <div className="mt-4">
                 <button
                   onClick={() => setShowDiscussion(!showDiscussion)}
@@ -2216,356 +233,46 @@ const LanguagePlayground = () => {
                       : "bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-white/10",
                   )}
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  Discussion
+                  <MessageCircle className="w-4 h-4" /> Discussion
                 </button>
                 {showDiscussion && (
                   <div className="mt-3 rounded-xl border border-white/10 overflow-hidden h-[500px]">
-                    <DiscussionPanel
-                      language={language}
-                      problemId={currentProblem?.id}
-                      problemTitle={currentProblem?.title}
-                    />
+                    <DiscussionPanel language={language} problemId={currentProblem?.id} problemTitle={currentProblem?.title} />
                   </div>
                 )}
               </div>
 
-              {/* ── Next problem button (after completion) ── */}
               {completedProblems.has(currentProblem?.id) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.15 }}
-                  className="flex items-center justify-between gap-3 pt-3 flex-wrap"
-                >
-                  <span className="text-[11px] text-zinc-500 font-medium flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2cf09d] animate-pulse" />
-                    Great work! Ready for the next challenge?
-                  </span>
-                  <motion.button
-                    whileHover={{ scale: 1.03, y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={goToNextProblem}
-                    className="flex items-center gap-2 text-sm font-black px-4 py-2 rounded-xl transition-all uppercase tracking-wider"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(44,240,157,0.18), rgba(44,240,157,0.08))",
-                      border: "1px solid rgba(44,240,157,0.35)",
-                      color: "#2cf09d",
-                      boxShadow:
-                        "0 4px 18px rgba(44,240,157,0.18), inset 0 1px 0 rgba(255,255,255,0.06)",
-                    }}
-                  >
-                    Next Lesson
-                    <ChevronRight className="w-4 h-4" />
-                  </motion.button>
-                </motion.div>
+                <NextLessonBanner onNext={goToNextProblem} />
               )}
             </div>
           </div>
 
-          {/* ── Mobile: Fixed RUN CODE button ── */}
           {isMobile && currentProblem?.type !== "interactive" && (
-            <div className="px-4 pb-4 pt-2 bg-[#0a0a0a] shrink-0 flex gap-3">
-              <button
-                onClick={handleRunCode}
-                disabled={isRunning || testResult?.success}
-                className="flex-1 h-[56px] bg-[#2cf07d] hover:bg-[#2cf09d] disabled:opacity-50 text-black font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-purple-900/20"
-              >
-                {isRunning ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> RUNNING…
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5 fill-current" /> RUN CODE
-                  </>
-                )}
-              </button>
-              {testResult?.success && (
-                <button
-                  onClick={goToNextProblem}
-                  className="flex-1 h-[56px] bg-[#34d399] hover:bg-[#10b981] text-black font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-emerald-900/20 animate-in slide-in-from-right-4"
-                >
-                  NEXT <ChevronRight className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* ── Mobile: Bottom navigation ── */}
-          {isMobile && (
-            <nav className="flex items-center justify-around py-3 border-t border-white/10 bg-[#111111] shrink-0">
-              {[
-                {
-                  icon: GraduationCap,
-                  label: "LEARN",
-                  active: true,
-                  action: () => setIsSidebarOpen(true),
-                },
-                {
-                  icon: Terminal,
-                  label: "PRACTICE",
-                  active: false,
-                  action: () => navigate("/playground"),
-                },
-                {
-                  icon: BarChart2,
-                  label: "RANKING",
-                  active: false,
-                  action: () => navigate("/leaderboard"),
-                },
-                {
-                  icon: User,
-                  label: "PROFILE",
-                  active: false,
-                  action: () => navigate("/profile"),
-                },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={item.action}
-                  className={cn(
-                    "flex flex-col items-center gap-1.5 text-[10px] font-bold tracking-widest transition-colors",
-                    item.active
-                      ? "text-red-400"
-                      : "text-zinc-500 hover:text-zinc-400",
-                  )}
-                >
-                  <item.icon
-                    className={cn("w-6 h-6", item.active && "fill-red-400/20")}
-                  />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
+            <MobileBottomBar
+              isRunning={exec.isRunning} testResult={exec.testResult}
+              handleRunCode={exec.handleRunCode} goToNextProblem={goToNextProblem}
+              setIsSidebarOpen={setIsSidebarOpen}
+            />
           )}
         </div>
 
-        {/* ═══════════ RIGHT SIDEBAR (desktop only) ═══════════ */}
         {!isMobile && (
-          <aside
-            className="playground-sidebar w-[256px] shrink-0 border-l border-white/10 flex flex-col overflow-hidden relative"
-            style={{
-              backgroundImage: "url('/alone.jfif')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            <div className="absolute inset-0 bg-black/78 z-0" />
-            <div className="relative z-10 flex flex-col h-full overflow-hidden">
-              {/* ── User Stats ── */}
-              <div className="p-4 border-b border-white/10">
-                {/* User row */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 ring-1 ring-amber-400/30 shrink-0">
-                    {user?.avatarUrl ? (
-                      <img
-                        src={user.avatarUrl}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-red-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">
-                          {user?.name?.charAt(0) || "U"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-extrabold text-metallic truncate">
-                      {user?.name}
-                    </p>
-                    <p className="text-[11px] font-bold text-metallic-orange">
-                      Lv.{user?.level} · {user?.league || "Bronze"}
-                    </p>
-                  </div>
-                  <Trophy className="w-4 h-4 text-metallic-orange shrink-0" />
-                </div>
-
-                {/* Stats grid */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
-                      Session XP
-                    </p>
-                    <p className="text-[15px] font-bold text-[#2cf07d] flex items-center gap-1">
-                      <Zap className="w-3 h-3" />+{sessionXP}
-                    </p>
-                  </div>
-                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
-                      Solved
-                    </p>
-                    <p className="text-[15px] font-bold text-metallic">
-                      {sessionSolved}
-                    </p>
-                  </div>
-                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
-                      Progress
-                    </p>
-                    <p className="text-[15px] font-bold text-metallic-orange">
-                      {progressPercent}%
-                    </p>
-                  </div>
-                  <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">
-                      Done
-                    </p>
-                    <p className="text-[15px] font-bold text-metallic">
-                      {completedCount}/{totalProblems}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Course Path ── */}
-              <div className="flex-1 overflow-y-auto thin-scroll">
-                <div className="p-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-metallic mb-4">
-                    Course Path
-                  </p>
-
-                  {data.chapters.map((chapter) => {
-                    const isCurrentChapter = chapter.problems.some(
-                      (p) => p.id === currentProblem?.id,
-                    );
-                    const chapterDone = chapter.problems.every((p) =>
-                      completedProblems.has(p.id),
-                    );
-                    return (
-                      <div key={chapter.id} className="mb-5">
-                        {/* Chapter label */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <div
-                            className={cn(
-                              "w-5 h-5 rounded-md flex items-center justify-center shrink-0",
-                              chapterDone
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : isCurrentChapter
-                                  ? "bg-red-500/20 text-red-400"
-                                  : "bg-white/5 text-zinc-600",
-                            )}
-                          >
-                            {chapterDone ? (
-                              <CheckCircle className="w-3 h-3" />
-                            ) : isCurrentChapter ? (
-                              <Play className="w-3 h-3 fill-red-400" />
-                            ) : (
-                              <BookOpen className="w-3 h-3" />
-                            )}
-                          </div>
-                          <span
-                            className={cn(
-                              "text-[11px] font-semibold truncate",
-                              chapterDone
-                                ? "text-emerald-400"
-                                : isCurrentChapter
-                                  ? "text-metallic"
-                                  : "text-zinc-500",
-                            )}
-                          >
-                            {chapter.title}
-                          </span>
-                        </div>
-
-                        {/* Problem nodes */}
-                        <div className="mt-1 space-y-0">
-                          {chapter.problems.map((prob, pIdx) => {
-                            const isDone = completedProblems.has(prob.id);
-                            const isCurrent = currentProblem?.id === prob.id;
-                            const isLast = pIdx === chapter.problems.length - 1;
-                            return (
-                              <div
-                                key={prob.id}
-                                className="flex items-stretch gap-2"
-                              >
-                                {/* Dot + connector */}
-                                <div className="flex flex-col items-center shrink-0 w-3">
-                                  <div
-                                    className={cn(
-                                      "w-2.5 h-2.5 rounded-full border-2 shrink-0 mt-2 transition-all",
-                                      isDone
-                                        ? "bg-[#2cf07d] border-[#2cf07d]"
-                                        : isCurrent
-                                          ? "bg-red-500 border-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]"
-                                          : "bg-[#111111] border-zinc-700",
-                                    )}
-                                  />
-                                  {!isLast && (
-                                    <div className="w-px flex-1 bg-white/10 mt-0.5 mb-0.5" />
-                                  )}
-                                </div>
-                                {/* Title button */}
-                                <button
-                                  onClick={() =>
-                                    selectProblem(prob, chapter.id)
-                                  }
-                                  className="flex-1 flex items-center gap-1.5 py-1.5 text-left group min-w-0"
-                                >
-                                  <span
-                                    className={cn(
-                                      "text-[11px] leading-tight truncate transition-colors",
-                                      isDone
-                                        ? "text-[#2cf07d]"
-                                        : isCurrent
-                                          ? "text-metallic font-semibold"
-                                          : "text-zinc-500 group-hover:text-zinc-300",
-                                    )}
-                                  >
-                                    {prob.title}
-                                  </span>
-                                  {isCurrent && (
-                                    <span className="ml-auto shrink-0 text-[8px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
-                                      NOW
-                                    </span>
-                                  )}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ── Next XP reward ── */}
-              <div className="p-3 border-t border-white/10 bg-black/60 backdrop-blur-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img src="/xp.svg" className="w-5 h-5" alt="XP" />
-                    <span className="text-xs text-metallic font-medium">
-                      Next reward
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-[#2cf07d]">
-                    {completedProblems.has(currentProblem?.id)
-                      ? "Earned!"
-                      : `+${currentProblem?.xp} XP`}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </aside>
+          <RightSidebar
+            user={user} data={data} currentProblem={currentProblem}
+            completedProblems={completedProblems} sessionXP={sessionXP} sessionSolved={sessionSolved}
+            progressPercent={progressPercent} completedCount={completedCount}
+            totalProblems={totalProblems} selectProblem={selectProblem}
+          />
         )}
       </div>
 
-      {/* ═══════════ Session Completion Overlay ═══════════ */}
       <AnimatePresence>
         {showCompletion && (
           <SessionCompletionOverlay
-            language={language}
-            totalXP={sessionXP}
-            solved={sessionSolved}
+            language={language} totalXP={sessionXP} solved={sessionSolved}
             onClose={() => setShowCompletion(false)}
-            onNavigate={() => {
-              setShowCompletion(false);
-              navigate("/playground");
-            }}
+            onNavigate={() => { setShowCompletion(false); navigate("/playground"); }}
           />
         )}
       </AnimatePresence>

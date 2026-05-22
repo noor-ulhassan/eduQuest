@@ -2,18 +2,17 @@ import React from "react";
 import {
   ArrowLeft,
   Zap,
-  CheckCircle2,
+  CheckCircle,
   Menu,
   Terminal,
-  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 export default function PlaygroundNavbar({
   isMobile,
-  isSidebarOpen,
-  setIsSidebarOpen,
+  isSidebarCompact,
+  setIsSidebarCompact,
   language,
   getLanguageIconUrl,
   user,
@@ -65,10 +64,9 @@ export default function PlaygroundNavbar({
 
         <div className="h-4 w-px bg-white/10" />
 
-        {/* Sidebar toggle */}
-        {setIsSidebarOpen && (
+        {setIsSidebarCompact && (
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onClick={() => setIsSidebarCompact(!isSidebarCompact)}
             className="p-1.5 -ml-1 hover:bg-white/[0.06] rounded-lg transition-colors text-zinc-500 hover:text-white"
             aria-label="Toggle sidebar"
           >
@@ -157,7 +155,7 @@ export default function PlaygroundNavbar({
               color: "#f87171",
             }}
           >
-            <CheckCircle2 className="w-3 h-3" />
+            <CheckCircle className="w-3 h-3" />
             {sessionSolved}
           </motion.div>
         )}
