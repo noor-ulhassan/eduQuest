@@ -96,7 +96,7 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
   // ─── Socket connection ────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
-    const s = connectSocket(localStorage.getItem("accessToken"));
+    const s = connectSocket();
     setSocket(s);
     return () => {
       const sock = getSocket();

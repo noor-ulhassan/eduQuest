@@ -29,9 +29,6 @@ export default function Login() {
         payload.adminPasscode = adminPasscode;
       }
       const res = await api.post("/auth/login", payload);
-      if (res.data.token) {
-        localStorage.setItem("accessToken", res.data.token);
-      }
       dispatch(
         authSuccess({
           user: res.data.user,

@@ -48,8 +48,7 @@ const LiveCompetitions = () => {
     fetchRooms(); // Initial load via HTTP
 
     // Subscribe to real-time room list updates via socket
-    const token = localStorage.getItem("accessToken");
-    const s = connectSocket(token);
+    const s = connectSocket();
 
     const onRoomListUpdate = ({ rooms: updatedRooms }) => {
       setRooms(updatedRooms);
@@ -88,12 +87,11 @@ const LiveCompetitions = () => {
   }, []);
 
   const handleJoinRequest = (roomCode) => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return toast.error("Please login first");
+    if (!user) return toast.error("Please login first");
 
     setRequestingRoom(roomCode);
 
-    const s = getSocket() || connectSocket(token);
+    const s = getSocket() || connectSocket();
     s.emit("requestJoin", { roomCode }, (response) => {
       setRequestingRoom(null);
       if (response.success) {
