@@ -22,6 +22,9 @@ const authSlice = createSlice({
       state.user = null;
       state.status = "unauthenticated";
     },
+    authNetworkError: (state) => {
+      state.status = "network_error";
+    },
     updateUserStats: (state, action) => {
       if (state.user) {
         // This merges the new XP, Level, and Rank into your existing user state
@@ -31,7 +34,12 @@ const authSlice = createSlice({
   },
 });
 
-export const { authLoading, authSuccess, authLogout, updateUserStats } =
-  authSlice.actions;
+export const {
+  authLoading,
+  authSuccess,
+  authLogout,
+  authNetworkError,
+  updateUserStats,
+} = authSlice.actions;
 
 export default authSlice.reducer;

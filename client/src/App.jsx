@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
 import MainLayout from "./layout/MainLayout";
 import AuthLoading from "./pages/Auth/components/AuthLoading";
+import ConnectionError from "./components/ConnectionError";
 import PageLoader from "./components/ui/PageLoader";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -215,6 +216,10 @@ function App() {
 
   if (status === "loading" || status === "idle") {
     return <AuthLoading />;
+  }
+
+  if (status === "network_error") {
+    return <ConnectionError />;
   }
 
   return (
