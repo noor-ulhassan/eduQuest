@@ -49,6 +49,7 @@ export const googleAuth = asyncHandler(async (req, res) => {
       googleId: sub,
       avatarUrl: picture,
       provider: "google",
+      emailVerified: true,
     });
   }
 
@@ -96,8 +97,8 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Password must be at least 8 characters long");
   }
 
-  const user = await User.findOne({ email });
-  if (user) {
+  const existing = await User.findOne({ email });
+  if (existing) {
     throw new ApiError(400, "User already exists");
   }
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -119,7 +120,7 @@ export const register = asyncHandler(async (req, res) => {
     .replace(/[^a-z0-9]/g, "");
   const username = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
 
-  await User.create({
+  const user = await User.create({
     name,
     email,
     username,
@@ -127,9 +128,33 @@ export const register = asyncHandler(async (req, res) => {
     provider: "local",
     role,
   });
+
+  const token = createToken(user);
+
   return res
     .status(201)
-    .json(new ApiResponse(201, null, "Account created Successfully"));
+    .cookie("token", token, cookieOptions)
+    .json(
+      new ApiResponse(
+        201,
+        {
+          token,
+          user: {
+            name: user.name,
+            email: user.email,
+            avatar: user.avatarUrl,
+            provider: user.provider,
+            xp: user.xp,
+            level: user.level,
+            league: user.league,
+            badges: user.badges,
+            dayStreak: user.dayStreak,
+            role: user.role,
+          },
+        },
+        "Account created Successfully",
+      ),
+    );
 });
 
 export const login = asyncHandler(async (req, res) => {

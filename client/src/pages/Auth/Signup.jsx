@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { authSuccess } from "@/features/auth/authSlice";
 import api from "@/features/auth/authApi";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,8 +17,8 @@ export default function Signup() {
   });
   const [logoClicks, setLogoClicks] = useState(0);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,8 +33,8 @@ export default function Signup() {
         delete payload.adminPasscode;
       }
       const res = await api.post("/auth/register", payload);
-      setSuccess(res.message);
-      setTimeout(() => navigate("/login"), 1500);
+      dispatch(authSuccess({ user: res.data.user }));
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong");
     }
@@ -87,11 +89,6 @@ export default function Signup() {
         {error && (
           <div className="mb-6 px-4 py-3 bg-red-900/30 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
             {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-6 px-4 py-3 bg-emerald-900/30 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm text-center">
-            {success}
           </div>
         )}
 
