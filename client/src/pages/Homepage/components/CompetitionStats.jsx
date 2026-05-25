@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { motion, animate } from "motion/react";
 import { PieChart, LineChart, BarChart } from "@mui/x-charts";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { Trophy, Swords, Target, Flame, Star, Shield } from "lucide-react";
 import { ShineBorder } from "@/components/ui/shine-border";
-import api from "../../../features/auth/authApi";
+import { useCompetitionStats } from "@/features/competition/useCompetition";
 
 const BAR_COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899"];
 
@@ -77,22 +77,8 @@ const darkTheme = createTheme({
 });
 
 const CompetitionStats = () => {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.get("/competition/stats");
-        if (response.success) setStats(response.data.stats);
-      } catch (error) {
-        console.error("Error fetching competition stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
+  const { data: statsData, isLoading: loading } = useCompetitionStats();
+  const stats = statsData?.data?.stats || null;
 
   if (loading) return <StatsSkeleton />;
   if (!stats || stats.totalGames === 0) return <EmptyStats />;

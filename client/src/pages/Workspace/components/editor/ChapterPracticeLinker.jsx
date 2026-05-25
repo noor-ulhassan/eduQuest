@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Gamepad2, Link, Unlink, Loader2, RefreshCw, ChevronDown, ChevronRight, Zap } from "lucide-react";
-import { getCurriculum, updateProblem, clearPlaygroundCache } from "@/features/playground/playgroundApi";
+import { useQueryClient } from "@tanstack/react-query";
+import { getCurriculum, updateProblem } from "@/features/playground/playgroundApi";
 import { toast } from "sonner";
 
 const DIFFICULTY_COLORS = {
@@ -55,6 +56,7 @@ function ProblemCard({ problem, isLinked, onToggle, toggling }) {
 }
 
 export default function ChapterPracticeLinker({ courseId, chapterIndex, linkedPlayground }) {
+  const queryClient = useQueryClient();
   const [curriculum, setCurriculum] = useState(null);
   const [loading, setLoading] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
@@ -64,7 +66,6 @@ export default function ChapterPracticeLinker({ courseId, chapterIndex, linkedPl
     if (!linkedPlayground) return;
     setLoading(true);
     try {
-      clearPlaygroundCache();
       const res = await getCurriculum(linkedPlayground);
       setCurriculum(res?.curriculum || null);
       // Auto-expand chapters that have linked problems
@@ -97,7 +98,7 @@ export default function ChapterPracticeLinker({ courseId, chapterIndex, linkedPl
         : { courseChapterLink: { courseId, chapterIndex } };
 
       await updateProblem(linkedPlayground, problem.id, payload);
-      clearPlaygroundCache();
+      queryClient.invalidateQueries({ queryKey: ["curriculum", linkedPlayground] });
       await fetchData();
       toast.success(isLinked ? "Problem unlinked" : "Problem linked to this chapter");
     } catch {

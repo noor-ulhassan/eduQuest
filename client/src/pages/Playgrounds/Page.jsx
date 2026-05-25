@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { useQuery } from "@tanstack/react-query";
 import SkillCard from "./components/SkillCard";
-import {
-  getPlaygroundProgress,
-  getCurriculumsMetadata,
-} from "../../features/playground/playgroundApi";
+import { usePlaygroundProgress, useCurriculumsMetadata } from "../../features/playground/usePlayground";
 import { Terminal } from "lucide-react";
 import { DottedGlowBackground } from "../../components/ui/dotted-glow-background";
 
@@ -34,29 +30,8 @@ export default function Playground() {
     };
   }, [activeCard]);
 
-  // enabled: !!user  →  queries only run when the user is logged in.
-  // staleTime: 5 min →  navigating away and back will NOT re-fetch within that window.
-  const {
-    data: progressPayload,
-    isLoading: progressLoading,
-    isError: progressError,
-  } = useQuery({
-    queryKey: ["playground", "progress"],
-    queryFn: getPlaygroundProgress,
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const {
-    data: metadataPayload,
-    isLoading: metadataLoading,
-    isError: metadataError,
-  } = useQuery({
-    queryKey: ["curriculum", "metadata"],
-    queryFn: getCurriculumsMetadata,
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: progressPayload, isLoading: progressLoading, isError: progressError } = usePlaygroundProgress();
+  const { data: metadataPayload, isLoading: metadataLoading, isError: metadataError } = useCurriculumsMetadata();
 
   const error =
     progressError || metadataError

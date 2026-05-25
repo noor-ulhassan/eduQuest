@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2, Lock, Star } from "lucide-react";
-import {
-  getPlaygroundProgress,
-  getCurriculumsMetadata,
-} from "../../../features/playground/playgroundApi";
+import { usePlaygroundProgress, useCurriculumsMetadata } from "../../../features/playground/usePlayground";
 
 export function DraggableCards() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const [cards, setCards] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const { data: progressPayload, isLoading: progressLoading } = usePlaygroundProgress();
+  const { data: metadataPayload, isLoading: metadataLoading } = useCurriculumsMetadata();
+  const isLoading = progressLoading || metadataLoading;
+
 
   // Language to display name and image mapping
   const languageMap = {
@@ -43,95 +44,51 @@ export function DraggableCards() {
     },
   };
 
+  const computedCards = useMemo(() => {
+    const allLanguages = ["react", "javascript", "python", "css", "html"];
+    const metadata = metadataPayload?.metadata || [];
+    const progress = user ? (progressPayload?.progress || []) : [];
+
+    const curriculumMetaMap = metadata.reduce((acc, m) => { acc[m.language] = m; return acc; }, {});
+    const progressMap = progress.reduce((acc, p) => { acc[p.language] = p; return acc; }, {});
+
+    return allLanguages
+      .map((lang, index) => {
+        const langMeta = curriculumMetaMap[lang];
+        const langInfo = languageMap[lang];
+        const userProgress = progressMap[lang];
+        if (!langMeta || !langInfo) return null;
+
+        const totalChapters = langMeta.totalChapters;
+        const lessons = langMeta.lessons;
+
+        if (userProgress) {
+          const completedChapters =
+            Math.floor(
+              (userProgress.completedProblems?.length || 0) /
+                (langMeta.totalProblems / totalChapters),
+            ) || 0;
+          const cappedCompleted = Math.min(completedChapters, totalChapters);
+          return {
+            id: index + 1, language: lang, title: langInfo.title,
+            level: `Chapter ${cappedCompleted}/${totalChapters}`,
+            img: langInfo.img, lessons, isEnrolled: true,
+            status: "Continue Learning", color: langInfo.color,
+          };
+        }
+        return {
+          id: index + 1, language: lang, title: langInfo.title,
+          level: "Beginner Friendly", img: langInfo.img, lessons,
+          isEnrolled: false, status: "Start Learning", color: langInfo.color,
+        };
+      })
+      .filter(Boolean);
+  }, [progressPayload, metadataPayload, user]);
+
+  // Initialise drag-state from query data once it resolves
   useEffect(() => {
-    const fetchPlaygroundsData = async () => {
-      // Always define all supported languages
-      const allLanguages = ["react", "javascript", "python", "css", "html"];
-      let progressMap = {};
-
-      let curriculumMetaMap = {};
-
-      try {
-        const [{ progress }, { metadata }] = await Promise.all([
-          user ? getPlaygroundProgress() : { progress: [] },
-          getCurriculumsMetadata(),
-        ]);
-
-        if (metadata) {
-          curriculumMetaMap = metadata.reduce((acc, m) => {
-            acc[m.language] = m;
-            return acc;
-          }, {});
-        }
-
-        if (progress && Array.isArray(progress)) {
-          progressMap = progress.reduce((acc, p) => {
-            acc[p.language] = p;
-            return acc;
-          }, {});
-        }
-      } catch (error) {
-        console.error("Error fetching playgrounds data:", error);
-      }
-
-      // Generate cards for ALL languages
-      const allCards = allLanguages
-        .map((lang, index) => {
-          const langMeta = curriculumMetaMap[lang];
-          const langInfo = languageMap[lang];
-          const userProgress = progressMap[lang];
-
-          if (!langMeta || !langInfo) return null;
-
-          const totalChapters = langMeta.totalChapters;
-          const lessons = langMeta.lessons;
-
-          if (userProgress) {
-            // ENROLLED STATE
-            // We just use a rough chapter count based on completed problems vs total problems
-            // Because calculating exact chapters requires the full curriculum
-            // A simple approximation for the card:
-            const completedChapters =
-              Math.floor(
-                (userProgress.completedProblems?.length || 0) /
-                  (langMeta.totalProblems / totalChapters),
-              ) || 0;
-            const cappedCompleted = Math.min(completedChapters, totalChapters);
-
-            return {
-              id: index + 1,
-              language: lang,
-              title: langInfo.title,
-              level: `Chapter ${cappedCompleted}/${totalChapters}`,
-              img: langInfo.img,
-              lessons,
-              isEnrolled: true,
-              status: "Continue Learning",
-              color: langInfo.color,
-            };
-          } else {
-            // NOT ENROLLED (RECOMMENDED) STATE
-            return {
-              id: index + 1,
-              language: lang,
-              title: langInfo.title,
-              level: "Beginner Friendly",
-              img: langInfo.img,
-              lessons,
-              isEnrolled: false,
-              status: "Start Learning",
-              color: langInfo.color,
-            };
-          }
-        })
-        .filter(Boolean);
-
-      setCards(allCards);
-      setIsLoading(false);
-    };
-
-    fetchPlaygroundsData();
-  }, [user]);
+    if (computedCards.length > 0) setCards(computedCards);
+  }, [computedCards]);
 
   const sendToBack = (id) => {
     setCards((prev) => {

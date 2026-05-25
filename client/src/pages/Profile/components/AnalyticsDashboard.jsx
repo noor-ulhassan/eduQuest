@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   BarChart,
   Bar,
@@ -15,7 +15,7 @@ import {
   Legend,
 } from "recharts";
 import { Trophy, Code, Target, Flame, Activity, Star } from "lucide-react";
-import api from "@/features/auth/authApi";
+import { useUserAnalytics } from "@/features/user/useUser";
 import { getLevelProgress } from "@/utils/levelUtils";
 
 
@@ -34,25 +34,8 @@ const COLORS = [
 ];
 
 const AnalyticsDashboard = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get("/user/analytics");
-        if (response.success) {
-          setData(response.data.analytics);
-        }
-      } catch (error) {
-        console.error("Failed to fetch analytics", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAnalytics();
-  }, []);
+  const { data: analyticsRes, isLoading: loading } = useUserAnalytics();
+  const data = analyticsRes?.data?.analytics || null;
 
   if (loading) {
     return (

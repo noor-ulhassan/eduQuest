@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
 import { useDispatch } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Zap,
   TrendingUp,
@@ -16,7 +17,8 @@ import {
   Clock,
   Calendar,
 } from "lucide-react";
-import { fetchUserQuests, claimQuestReward } from "@/features/quests/questsApi";
+import { claimQuestReward } from "@/features/quests/questsApi";
+import { useQuests } from "@/features/quests/useQuests";
 import { updateUserStats } from "@/features/auth/authSlice";
 import { store } from "@/store/store";
 import { emit } from "@/lib/gamificationBus";
@@ -184,30 +186,16 @@ const SectionHeader = ({ title, subtitle, icon: SectionIcon }) => (
 
 const DailyQuests = () => {
   const dispatch = useDispatch();
-  const [quests, setQuests] = useState(null);
-  const [shields, setShields] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [claiming, setClaiming] = useState(null);
-  const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const res = await fetchUserQuests();
-      if (res.data) {
-        setQuests({ daily: res.data.daily, weekly: res.data.weekly });
-        setShields(res.data.streakShields || 0);
-      }
-    } catch {
-      setError("Failed to load quests");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: questsData, isLoading: loading, isError, refetch: load } = useQuests();
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const quests = questsData?.data
+    ? { daily: questsData.data.daily, weekly: questsData.data.weekly }
+    : null;
+  const shields = questsData?.data?.streakShields || 0;
+  const error = isError ? "Failed to load quests" : null;
 
   const handleClaim = async (questId, period) => {
     setClaiming(questId);
@@ -216,7 +204,6 @@ const DailyQuests = () => {
       const res = await claimQuestReward(questId, period);
       if (res.data) {
         dispatch(updateUserStats(res.data.user));
-        setShields(res.data.user.streakShields || 0);
 
         if (res.data.xpAwarded)
           emit({ type: "xp", amount: res.data.xpAwarded });
@@ -231,7 +218,7 @@ const DailyQuests = () => {
           .filter((b) => !prevBadges.find((pb) => pb.title === b.title))
           .forEach((b) => emit({ type: "badge", ...b }));
 
-        await load();
+        queryClient.invalidateQueries({ queryKey: ["quests"] });
       }
     } catch (err) {
       console.error("[DailyQuests] Claim error:", err);

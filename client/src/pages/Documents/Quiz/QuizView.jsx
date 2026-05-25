@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Sparkles,
   FileText,
@@ -12,6 +13,7 @@ import ScoreScreen from "./ScoreScreen";
 import ContextModal from "./ContextModal";
 import AttemptReviewView from "./AttemptReviewView";
 import { quizApi } from "@/features/documents/ragApiService";
+import { useQuizAttempts } from "@/features/documents/useDocuments";
 
 function gradeFor(pct) {
   if (pct === 100) return { label: "Perfect", color: "text-yellow-400" };
@@ -67,21 +69,9 @@ function QuizView({ documentId, pdfUrl }) {
   const [error, setError] = useState(null);
   const [contextData, setContextData] = useState(null);
 
-  const [attempts, setAttempts] = useState([]);
-  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: attempts = [], isLoading: attemptsLoading } = useQuizAttempts(documentId);
   const [selectedAttempt, setSelectedAttempt] = useState(null);
-
-  const fetchAttempts = () => {
-    if (!documentId) return;
-    setAttemptsLoading(true);
-    quizApi
-      .getAttempts(documentId)
-      .then(({ data }) => setAttempts(data || []))
-      .catch(() => {})
-      .finally(() => setAttemptsLoading(false));
-  };
-
-  useEffect(fetchAttempts, [documentId]);
 
   const handleGenerate = async () => {
     setState("generating");
@@ -131,7 +121,7 @@ function QuizView({ documentId, pdfUrl }) {
         totalQuestions: questions.length,
         qaPairs,
       })
-      .then(() => fetchAttempts()) // refresh list
+      .then(() => queryClient.invalidateQueries({ queryKey: ["quiz-attempts", documentId] }))
       .catch((err) => console.error("Failed to save quiz attempt:", err));
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getCurriculum,
   getCurriculumsMetadata,
@@ -12,7 +13,6 @@ import {
   updateProblem,
   deleteProblem,
   generateProblems,
-  clearPlaygroundCache,
 } from "../../features/playground/playgroundApi";
 import { getAdminCourses } from "../../features/workspace/courseApi";
 import { motion, AnimatePresence } from "framer-motion";
@@ -323,6 +323,7 @@ function ChapterRow({ chapter, language, expanded, onToggle, onEdit, onDelete, o
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const AdminCurriculum = () => {
+  const queryClient = useQueryClient();
   const [selectedLanguage, setSelectedLanguage] = useState(null);
   const [curriculum, setCurriculum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -367,7 +368,7 @@ const AdminCurriculum = () => {
 
   const fetchCurriculum = async (lang) => {
     setIsLoading(true);
-    clearPlaygroundCache();
+    queryClient.invalidateQueries({ queryKey: ["curriculum", lang] });
     try {
       const res = await getCurriculum(lang);
       setCurriculum(res.curriculum || null);
@@ -470,7 +471,8 @@ const AdminCurriculum = () => {
     if (!window.confirm(`Delete the entire ${LANG_LABEL(selectedLanguage)} playground and all its chapters/problems? This cannot be undone.`)) return;
     try {
       await deleteCurriculum(selectedLanguage);
-      clearPlaygroundCache();
+      queryClient.invalidateQueries({ queryKey: ["curriculum", selectedLanguage] });
+      queryClient.invalidateQueries({ queryKey: ["curriculum", "metadata"] });
       toast.success(`${LANG_LABEL(selectedLanguage)} playground deleted`);
       const remaining = existingLanguages.filter((l) => l !== selectedLanguage);
       setExistingLanguages(remaining);

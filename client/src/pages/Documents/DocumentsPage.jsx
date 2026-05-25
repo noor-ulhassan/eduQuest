@@ -399,7 +399,9 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "@/features/auth/authApi";
+import { useDocuments, useDocument } from "@/features/documents/useDocuments";
 import UploadView from "./Upload/UploadView";
 import ChatView from "./Chat/ChatView";
 import QuizView from "./Quiz/QuizView";
@@ -448,14 +450,13 @@ function DocumentsPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [allDocs, setAllDocs] = useState([]);
-  const [selectedDoc, setSelectedDoc] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [docLoading, setDocLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: allDocs = [], isLoading: loading } = useDocuments();
+  const { data: selectedDoc, isLoading: docLoading, isError: docError } = useDocument(id);
   const [showUpload, setShowUpload] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState(null); // doc pending deletion
-  const [isDeleting, setIsDeleting] = useState(false); // delete API in flight
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /* ── Derive current view from URL ── */
   const view = (() => {
@@ -467,62 +468,15 @@ function DocumentsPage() {
     return "library";
   })();
 
-  /* ── Fetch all docs ── */
   useEffect(() => {
-    api
-      .get("/documents")
-      .then((res) => {
-        setAllDocs(
-          (res.data.data || []).map((d) => ({
-            documentId: d._id,
-            fileName: d.title,
-            totalPages: d.totalPages,
-            chunksStored: d.chunksStored,
-            uploadedAt: d.uploadedAt || d.createdAt,
-            filePath: d.filePath,
-          })),
-        );
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  /* ── Fetch selected doc ── */
-  useEffect(() => {
-    if (!id) {
-      setSelectedDoc(null);
-      return;
-    }
-    setDocLoading(true);
-    api
-      .get(`/documents/${id}`)
-      .then((res) => {
-        const d = res.data.data;
-        setSelectedDoc({
-          documentId: d._id,
-          pdfUrl: d.filePath,
-          fileName: d.title,
-          totalPages: d.totalPages,
-        });
-      })
-      .catch(() => navigate("/documents"))
-      .finally(() => setDocLoading(false));
-  }, [id, navigate]);
+    if (docError) navigate("/documents");
+  }, [docError, navigate]);
 
   /* ── Handlers ── */
   const handleSelectDoc = (doc) => navigate(`/documents/${doc.documentId}`);
 
   const handleUploadSuccess = (result) => {
-    setAllDocs((prev) => [
-      {
-        documentId: result.documentId,
-        fileName: result.fileName,
-        totalPages: result.totalPages,
-        chunksStored: result.chunksStored,
-        uploadedAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+    queryClient.invalidateQueries({ queryKey: ["documents"] });
     setShowUpload(false);
     navigate(`/documents/${result.documentId}`);
   };
@@ -533,10 +487,7 @@ function DocumentsPage() {
     setIsDeleting(true);
     try {
       await api.delete(`/documents/${deleteTarget.documentId}`);
-      // Optimistically remove from local state — no refetch needed
-      setAllDocs((prev) =>
-        prev.filter((d) => d.documentId !== deleteTarget.documentId),
-      );
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
       setDeleteTarget(null);
     } catch (err) {
       console.error("Delete failed:", err);

@@ -1,15 +1,16 @@
 import { useDispatch } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import { authLogout } from "../../features/auth/authSlice";
 import api from "../../features/auth/authApi";
-import { Button } from "@/components/ui/button";
-import { clearPlaygroundCache } from "../../features/playground/playgroundApi";
 
 export default function LogoutButton({ className }) {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");
-      clearPlaygroundCache();
+      queryClient.clear();
       dispatch(authLogout());
     } catch (err) {
       console.log(err);

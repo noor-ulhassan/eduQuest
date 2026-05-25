@@ -1,55 +1,24 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "@/features/auth/authApi";
-import { useSelector } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCourse, useEnrollmentStatus } from "@/features/workspace/useCourses";
 import CourseOverview from "./components/CourseOverview";
 import CourseLearning from "./components/CourseLearning";
 
 function CourseView() {
   const { courseId } = useParams();
-  const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
-
-  const [course, setCourse] = useState(null);
-  const [enrollment, setEnrollment] = useState(null);
-  const [loading, setLoading] = useState(!!courseId);
+  const queryClient = useQueryClient();
 
   const [currentChapterIndex, setCurrentChapterIndex] = useState(null);
 
-  const fetchCourseData = useCallback(
-    async (showLoader = true) => {
-      if (!courseId || !user?.email) return;
-      if (showLoader) setLoading(true);
-      try {
-        const res = await api.get(`/ai/get-course/${courseId}`);
-        setCourse(res.data.course);
-
-        const enrollRes = await api.get(
-          `/ai/enrollment-status?courseId=${courseId}`,
-        );
-        setEnrollment(enrollRes.data.enrollment);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        if (showLoader) setLoading(false);
-      }
-    },
-    [courseId, user?.email],
-  );
-
-  useEffect(() => {
-    if (courseId && user?.email) {
-      fetchCourseData(true);
-    } else if (!courseId) {
-      setLoading(false);
-      setCourse(null);
-      setEnrollment(null);
-    }
-  }, [courseId, user?.email, fetchCourseData]);
+  const { data: course, isLoading: courseLoading } = useCourse(courseId);
+  const { data: enrollment, isLoading: enrollmentLoading } = useEnrollmentStatus(courseId);
+  const loading = courseLoading || enrollmentLoading;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#0a0a0a] ">
+      <div className="flex items-center justify-center h-screen bg-[#0a0a0a]">
         <p className="font-space-grotesk font-bold text-3xl animate-pulse text-red-400">
           Loading Course Experience...
         </p>
@@ -87,7 +56,7 @@ function CourseView() {
       course={course}
       enrollment={enrollment}
       currentChapterIndex={resolvedChapterIndex}
-      onProgressUpdate={() => fetchCourseData(false)}
+      onProgressUpdate={() => queryClient.invalidateQueries({ queryKey: ["enrollment", courseId] })}
       onNavigate={handleNavigate}
     />
   );

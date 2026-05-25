@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Trophy, ChevronRight } from "lucide-react";
-import { getGlobalLeaderboard } from "@/features/leaderboard/leaderboardApi";
+import { useGlobalLeaderboard } from "@/features/leaderboard/useLeaderboard";
 import { cn } from "@/lib/utils";
 
 const METALLIC_ORANGE = {
@@ -47,13 +46,9 @@ const RowSkeleton = () => (
 const LeaderboardPreview = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useSelector((state) => state.auth);
-  const [entries, setEntries] = useState(null);
 
-  useEffect(() => {
-    getGlobalLeaderboard()
-      .then((res) => setEntries(res.data?.data?.slice(0, 5) ?? []))
-      .catch(() => setEntries([]));
-  }, []);
+  const { data: leaderboardData, isLoading } = useGlobalLeaderboard();
+  const entries = isLoading ? null : (leaderboardData?.data?.data?.slice(0, 5) ?? []);
 
   return (
     <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-700 shadow-sm w-full flex flex-col">
