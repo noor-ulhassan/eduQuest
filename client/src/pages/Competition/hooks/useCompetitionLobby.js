@@ -227,14 +227,7 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
     if (socket.connected) { attempt(); } else { socket.on("connect", attempt); return () => socket.off("connect", attempt); }
   }, [isSpectator, paramCode, socket]); // eslint-disable-line
 
-  // ─── Side effects (music, timers, confetti, keyboard) ────────
-  useGameSideEffects({
-    gameState, leaderboard, user, currentGameMode, userFinished,
-    questionIndex, timeRemaining, currentQuestion, isSubmitting, answerResult,
-    prevTimerRef, gameStartTimeRef, gameDurationRef, timerIntervalRef, confettiFired,
-    setBlitzQuestionTime, setTimeRemaining,
-    handleSubmitAnswer,
-  });
+
 
   // ─── Room action handlers ─────────────────────────────────────
 
@@ -480,6 +473,15 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
       }
     });
   };
+
+  // ─── Side effects (music, timers, confetti, keyboard) ────────
+  useGameSideEffects({
+    gameState, leaderboard, user, currentGameMode, userFinished,
+    questionIndex, timeRemaining, currentQuestion, isSubmitting, answerResult,
+    prevTimerRef, gameStartTimeRef, gameDurationRef, timerIntervalRef, confettiFired,
+    setBlitzQuestionTime, setTimeRemaining,
+    handleSubmitAnswer,
+  });
 
   return {
     room, roomCode, joinCode, copied, isConnecting, isHost, isSpectator,

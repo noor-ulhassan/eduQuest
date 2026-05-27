@@ -152,25 +152,31 @@ const appRouter = createBrowserRouter([
       {
         path: "competition",
         element: (
-          <ProtectedRoute>
-            <Lazy element={CompetitionPage} />
-          </ProtectedRoute>
+          <ErrorBoundary>
+            <ProtectedRoute>
+              <Lazy element={CompetitionPage} />
+            </ProtectedRoute>
+          </ErrorBoundary>
         ),
       },
       {
         path: "competition/lobby",
         element: (
-          <ProtectedRoute>
-            <Lazy element={CompetitionLobby} />
-          </ProtectedRoute>
+          <ErrorBoundary>
+            <ProtectedRoute>
+              <Lazy element={CompetitionLobby} />
+            </ProtectedRoute>
+          </ErrorBoundary>
         ),
       },
       {
         path: "competition/:roomCode",
         element: (
-          <ProtectedRoute>
-            <Lazy element={CompetitionLobby} />
-          </ProtectedRoute>
+          <ErrorBoundary>
+            <ProtectedRoute>
+              <Lazy element={CompetitionLobby} />
+            </ProtectedRoute>
+          </ErrorBoundary>
         ),
       },
       {
