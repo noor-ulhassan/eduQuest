@@ -22,7 +22,7 @@ function getModel() {
   if (!_model) {
     _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     _model = _genAI.getGenerativeModel({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3.1-flash-lite",
       generationConfig: { temperature: 0.95 },
     });
   }
@@ -433,13 +433,7 @@ function buildInteractivePrompt({
   // Distribute question types — pick randomly, ensuring variety
   // fill_blank removed: unreliable grading and poor UX
   const types = isGeneral
-    ? [
-        "drag_order",
-        "drag_match",
-        "slider_adjust",
-        "drag_order",
-        "drag_match",
-      ]
+    ? ["drag_order", "drag_match", "slider_adjust", "drag_order", "drag_match"]
     : [
         "drag_order",
         "drag_match",
@@ -552,26 +546,36 @@ function buildVisualInteractivePrompt({
   description,
   totalQuestions,
 }) {
-  const topicStr  = topic || `${language} programming`;
-  const topicLine = topic ? `Topic: ${topic}` : `Topic: ${language} programming concepts`;
-  const descLine  = description ? `Additional context: ${description}` : "";
-  const seed      = Math.floor(Math.random() * 100000);
+  const topicStr = topic || `${language} programming`;
+  const topicLine = topic
+    ? `Topic: ${topic}`
+    : `Topic: ${language} programming concepts`;
+  const descLine = description ? `Additional context: ${description}` : "";
+  const seed = Math.floor(Math.random() * 100000);
 
   // Cycle through all 6 interaction types in shuffled order for maximum variety
   const allTypes = [
     "visual_sequence", // robot grid — pointer/algorithm navigation
-    "code_trace",      // drag execution snapshots into chronological order
-    "drag_order",      // drag algorithm steps into correct sequence
-    "drag_match",      // match programming terms to definitions
-    "predict_output",  // read code and type its output
-    "slider_adjust",   // tune numeric parameters (complexity, thresholds)
+    "code_trace", // drag execution snapshots into chronological order
+    "drag_order", // drag algorithm steps into correct sequence
+    "drag_match", // match programming terms to definitions
+    "predict_output", // read code and type its output
+    "slider_adjust", // tune numeric parameters (complexity, thresholds)
   ];
   // Shuffle the cycle order so every game is different
   const shuffledBase = [...allTypes].sort(() => Math.random() - 0.5);
-  const types = Array.from({ length: totalQuestions }, (_, i) => shuffledBase[i % shuffledBase.length]);
-  const typeCounts    = types.reduce((a, t) => { a[t] = (a[t] || 0) + 1; return a; }, {});
-  const typeBreakdown = Object.entries(typeCounts).map(([t, n]) => `- ${n}x "${t}"`).join("\n");
-  const orderedList   = types.map((t, i) => `  ${i + 1}. ${t}`).join("\n");
+  const types = Array.from(
+    { length: totalQuestions },
+    (_, i) => shuffledBase[i % shuffledBase.length],
+  );
+  const typeCounts = types.reduce((a, t) => {
+    a[t] = (a[t] || 0) + 1;
+    return a;
+  }, {});
+  const typeBreakdown = Object.entries(typeCounts)
+    .map(([t, n]) => `- ${n}x "${t}"`)
+    .join("\n");
+  const orderedList = types.map((t, i) => `  ${i + 1}. ${t}`).join("\n");
 
   // Concept pool — pick varied sub-topics so no two questions are alike
   const allConcepts = [
@@ -598,8 +602,12 @@ function buildVisualInteractivePrompt({
   ];
   // Shuffle and take one per question
   const shuffledConcepts = [...allConcepts].sort(() => Math.random() - 0.5);
-  const assignedConcepts = types.map((_, i) => shuffledConcepts[i % shuffledConcepts.length]);
-  const conceptMap = types.map((t, i) => `  Q${i + 1} (${t}): "${assignedConcepts[i]}"`).join("\n");
+  const assignedConcepts = types.map(
+    (_, i) => shuffledConcepts[i % shuffledConcepts.length],
+  );
+  const conceptMap = types
+    .map((t, i) => `  Q${i + 1} (${t}): "${assignedConcepts[i]}"`)
+    .join("\n");
 
   return `
 You are a Brilliant.org-style programming puzzle designer for a competitive education platform.
@@ -969,14 +977,25 @@ const CHALLENGE_MODES = {
 function validateVisualSequencePath(q) {
   try {
     const { gridConfig, items, correctOrder } = q;
-    if (!gridConfig || !Array.isArray(items) || !Array.isArray(correctOrder)) return false;
+    if (!gridConfig || !Array.isArray(items) || !Array.isArray(correctOrder))
+      return false;
     const { startPos, startDir, goalPos, rows, cols, walls = [] } = gridConfig;
     if (!startPos || !startDir || !goalPos || !rows || !cols) return false;
 
-    const MOVE_DELTA = { right: [0, 1], left: [0, -1], up: [-1, 0], down: [1, 0] };
+    const MOVE_DELTA = {
+      right: [0, 1],
+      left: [0, -1],
+      up: [-1, 0],
+      down: [1, 0],
+    };
     const TURN_RIGHT = { right: "down", down: "left", left: "up", up: "right" };
-    const TURN_LEFT  = { right: "up",   up: "left",  left: "down", down: "right" };
-    const TURN_AROUND = { right: "left", left: "right", up: "down", down: "up" };
+    const TURN_LEFT = { right: "up", up: "left", left: "down", down: "right" };
+    const TURN_AROUND = {
+      right: "left",
+      left: "right",
+      up: "down",
+      down: "up",
+    };
 
     let pos = [...startPos];
     let dir = startDir;
@@ -1000,9 +1019,15 @@ function validateVisualSequencePath(q) {
       }
 
       // Bounds check
-      if (pos[0] < 0 || pos[0] >= rows || pos[1] < 0 || pos[1] >= cols) return false;
+      if (pos[0] < 0 || pos[0] >= rows || pos[1] < 0 || pos[1] >= cols)
+        return false;
       // Wall check
-      if (walls.some(w => Array.isArray(w) && w[0] === pos[0] && w[1] === pos[1])) return false;
+      if (
+        walls.some(
+          (w) => Array.isArray(w) && w[0] === pos[0] && w[1] === pos[1],
+        )
+      )
+        return false;
     }
 
     return pos[0] === goalPos[0] && pos[1] === goalPos[1];
@@ -1023,7 +1048,9 @@ function validateQuestion(q, index) {
 
   if (iType === "code") {
     if (!q.starterCode || !q.testCases) {
-      console.warn(`[Validation] Q${index + 1}: code question missing starterCode/testCases`);
+      console.warn(
+        `[Validation] Q${index + 1}: code question missing starterCode/testCases`,
+      );
       return false;
     }
   } else if (!iType || iType === "mcq") {
@@ -1040,21 +1067,32 @@ function validateQuestion(q, index) {
     }
   } else if (iType === "drag_order") {
     if (!Array.isArray(q.items) || !Array.isArray(q.correctOrder)) {
-      console.warn(`[Validation] Q${index + 1}: drag_order missing items/correctOrder`);
+      console.warn(
+        `[Validation] Q${index + 1}: drag_order missing items/correctOrder`,
+      );
       return false;
     }
     if (q.items.length !== q.correctOrder.length) {
-      console.warn(`[Validation] Q${index + 1}: drag_order items/correctOrder length mismatch`);
+      console.warn(
+        `[Validation] Q${index + 1}: drag_order items/correctOrder length mismatch`,
+      );
       return false;
     }
     // Reject trivially-in-order correctOrder for 4+ items (AI forgot to shuffle items)
     const doSorted = [...q.correctOrder].map(Number).sort((a, b) => a - b);
     if (doSorted.some((v, i) => v !== i)) {
-      console.warn(`[Validation] Q${index + 1}: drag_order correctOrder has invalid indices`);
+      console.warn(
+        `[Validation] Q${index + 1}: drag_order correctOrder has invalid indices`,
+      );
       return false;
     }
-    if (q.correctOrder.every((v, i) => Number(v) === i) && q.items.length >= 4) {
-      console.warn(`[Validation] Q${index + 1}: drag_order correctOrder is [0,1,2,...] — items appear unshuffled`);
+    if (
+      q.correctOrder.every((v, i) => Number(v) === i) &&
+      q.items.length >= 4
+    ) {
+      console.warn(
+        `[Validation] Q${index + 1}: drag_order correctOrder is [0,1,2,...] — items appear unshuffled`,
+      );
       return false;
     }
   } else if (iType === "drag_match") {
@@ -1085,49 +1123,78 @@ function validateQuestion(q, index) {
       return false;
     }
   } else if (iType === "visual_sequence") {
-    if (!Array.isArray(q.items) || !Array.isArray(q.correctOrder) || !q.gridConfig) {
-      console.warn(`[Validation] Q${index + 1}: visual_sequence missing items/correctOrder/gridConfig`);
+    if (
+      !Array.isArray(q.items) ||
+      !Array.isArray(q.correctOrder) ||
+      !q.gridConfig
+    ) {
+      console.warn(
+        `[Validation] Q${index + 1}: visual_sequence missing items/correctOrder/gridConfig`,
+      );
       return false;
     }
     if (q.items.length !== q.correctOrder.length) {
-      console.warn(`[Validation] Q${index + 1}: visual_sequence items/correctOrder length mismatch`);
+      console.warn(
+        `[Validation] Q${index + 1}: visual_sequence items/correctOrder length mismatch`,
+      );
       return false;
     }
-    if (!Array.isArray(q.gridConfig.startPos) || !Array.isArray(q.gridConfig.goalPos)) {
-      console.warn(`[Validation] Q${index + 1}: visual_sequence gridConfig missing startPos/goalPos`);
+    if (
+      !Array.isArray(q.gridConfig.startPos) ||
+      !Array.isArray(q.gridConfig.goalPos)
+    ) {
+      console.warn(
+        `[Validation] Q${index + 1}: visual_sequence gridConfig missing startPos/goalPos`,
+      );
       return false;
     }
     // Ensure correctOrder is a valid permutation (no duplicates, all valid indices)
     const sorted = [...q.correctOrder].map(Number).sort((a, b) => a - b);
     if (sorted.some((v, i) => v !== i || !Number.isInteger(v))) {
-      console.warn(`[Validation] Q${index + 1}: visual_sequence correctOrder is not a valid permutation`);
+      console.warn(
+        `[Validation] Q${index + 1}: visual_sequence correctOrder is not a valid permutation`,
+      );
       return false;
     }
     // Verify the robot actually reaches goalPos following correctOrder
     if (!validateVisualSequencePath(q)) {
-      console.warn(`[Validation] Q${index + 1}: visual_sequence path does not reach goalPos`);
+      console.warn(
+        `[Validation] Q${index + 1}: visual_sequence path does not reach goalPos`,
+      );
       return false;
     }
   } else if (iType === "code_trace") {
-    if (!Array.isArray(q.steps) || !Array.isArray(q.correctOrder) || !q.codeSnippet) {
-      console.warn(`[Validation] Q${index + 1}: code_trace missing steps/correctOrder/codeSnippet`);
+    if (
+      !Array.isArray(q.steps) ||
+      !Array.isArray(q.correctOrder) ||
+      !q.codeSnippet
+    ) {
+      console.warn(
+        `[Validation] Q${index + 1}: code_trace missing steps/correctOrder/codeSnippet`,
+      );
       return false;
     }
     if (q.steps.length !== q.correctOrder.length) {
-      console.warn(`[Validation] Q${index + 1}: code_trace steps/correctOrder length mismatch`);
+      console.warn(
+        `[Validation] Q${index + 1}: code_trace steps/correctOrder length mismatch`,
+      );
       return false;
     }
     // Ensure correctOrder is a valid permutation
     const ctSorted = [...q.correctOrder].map(Number).sort((a, b) => a - b);
     if (ctSorted.some((v, i) => v !== i || !Number.isInteger(v))) {
-      console.warn(`[Validation] Q${index + 1}: code_trace correctOrder is not a valid permutation`);
+      console.warn(
+        `[Validation] Q${index + 1}: code_trace correctOrder is not a valid permutation`,
+      );
       return false;
     }
     // Warn if steps appear to be in execution order (AI forgot to shuffle)
     // Only reject if 5 steps — [0,1,2,3,4] ascending is extremely unlikely to be valid
     const isInOrder = q.correctOrder.every((v, i) => Number(v) === i);
     if (isInOrder && q.steps.length >= 5) {
-      console.warn(`[Validation] Q${index + 1}: code_trace correctOrder is [0,1,2,3,4] — AI likely forgot to shuffle; discarding`);
+      console.warn(
+        `[Validation] Q${index + 1}: code_trace correctOrder is [0,1,2,3,4] — AI likely forgot to shuffle; discarding`,
+      );
       return false;
     }
   }
@@ -1177,7 +1244,10 @@ export const generateCompetitionQuestions = async ({
       const timeoutMs = challengeMode === "visual_interactive" ? 60000 : 30000;
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
-          () => reject(new Error(`Gemini API timed out after ${timeoutMs / 1000}s`)),
+          () =>
+            reject(
+              new Error(`Gemini API timed out after ${timeoutMs / 1000}s`),
+            ),
           timeoutMs,
         ),
       );
@@ -1338,7 +1408,8 @@ export const AVAILABLE_MODES = {
       id: "visual_interactive",
       name: "Visual Interactive",
       icon: "🎮",
-      description: "Brilliant-style visual puzzles — grid navigation & code tracing",
+      description:
+        "Brilliant-style visual puzzles — grid navigation & code tracing",
     },
   ],
 };
