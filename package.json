@@ -1,5 +1,11 @@
 {
+  "scripts": {
+    "graphify:watch": "graphify watch"
+  },
   "dependencies": {
     "react-icons": "^5.5.0"
+  },
+  "devDependencies": {
+    "graphifyy": "^0.9.8"
   }
 }
