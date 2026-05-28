@@ -227,6 +227,29 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
     if (socket.connected) { attempt(); } else { socket.on("connect", attempt); return () => socket.off("connect", attempt); }
   }, [isSpectator, paramCode, socket]); // eslint-disable-line
 
+  // ─── Answer submission (defined early for useGameSideEffects) ──
+  const handleSubmitAnswer = useCallback((answer) => {
+    if (!socket?.connected || isSubmitting) return;
+    setIsSubmitting(true);
+    setSelectedAnswer(answer);
+    const prevCombo = comboCount;
+    const submitTimeout = setTimeout(() => setIsSubmitting(false), 10000);
+    socket.emit("submitAnswer", { roomCode, questionIndex, answer }, (result) => {
+      clearTimeout(submitTimeout);
+      setAnswerResult(result);
+      setIsSubmitting(false);
+      if (result?.comboCount !== undefined) setComboCount(result.comboCount);
+      if (result?.isCorrect) {
+        playCorrectSound();
+        setFeedbackResult({ correct: true, xpGained: result.pointsEarned || 50 });
+      } else {
+        playWrongSound();
+        setFeedbackResult({ correct: false, streakBroken: prevCombo >= 3 ? prevCombo : 0 });
+      }
+      setFeedbackKey((prev) => prev + 1);
+    });
+  }, [socket, isSubmitting, roomCode, questionIndex, comboCount]);
+
   // ─── Side effects (music, timers, confetti, keyboard) ────────
   useGameSideEffects({
     gameState, leaderboard, user, currentGameMode, userFinished,
@@ -410,28 +433,6 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
 
   const handleCopyCode = () => copyToClipboard(roomCode);
   const handleCopyLink = () => copyToClipboard(`${window.location.origin}/competition/${roomCode}`);
-
-  const handleSubmitAnswer = (answer) => {
-    if (!socket?.connected || isSubmitting) return;
-    setIsSubmitting(true);
-    setSelectedAnswer(answer);
-    const prevCombo = comboCount;
-    const submitTimeout = setTimeout(() => setIsSubmitting(false), 10000);
-    socket.emit("submitAnswer", { roomCode, questionIndex, answer }, (result) => {
-      clearTimeout(submitTimeout);
-      setAnswerResult(result);
-      setIsSubmitting(false);
-      if (result?.comboCount !== undefined) setComboCount(result.comboCount);
-      if (result?.isCorrect) {
-        playCorrectSound();
-        setFeedbackResult({ correct: true, xpGained: result.pointsEarned || 50 });
-      } else {
-        playWrongSound();
-        setFeedbackResult({ correct: false, streakBroken: prevCombo >= 3 ? prevCombo : 0 });
-      }
-      setFeedbackKey((prev) => prev + 1);
-    });
-  };
 
   const handlePracticeNext = () => {
     if (!pendingNextQuestion.current) return;

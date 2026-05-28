@@ -123,8 +123,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
     const fetchLeaderboard = async () => {
       try {
         const response = await getGlobalLeaderboard();
-        if (response?.data) {
-          setLeaderboard(response.data.slice(0, 3));
+        const entries = response?.data?.data ?? [];
+        if (entries.length) {
+          setLeaderboard(entries.slice(0, 3));
         }
       } catch (error) {
         console.error("Failed to fetch leaderboard", error);

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { motion, animate } from "motion/react";
 import { PieChart, LineChart, BarChart } from "@mui/x-charts";
 import { ThemeProvider, createTheme } from "@mui/material/styles";

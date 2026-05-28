@@ -218,7 +218,7 @@ const CompetitionLobby = () => {
         isHost={isHost}
         rematchVotes={rematchVotes}
         onRequestRematch={handleRequestRematch}
-        onHome={() => navigate("/competition/lobby")}
+        onHome={() => navigate("/competition")}
         onPlayAgain={isHost ? handlePlayAgain : undefined}
       />
     );

@@ -83,12 +83,11 @@ const LeaderboardPreview = () => {
             return (
               <div
                 key={entry._id}
-                onClick={() => navigate(`/profile/${entry._id}`)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all",
+                  "flex items-center gap-3 px-3 py-2 rounded-xl transition-all",
                   isMe
                     ? "bg-orange-500/[0.06] border border-orange-500/20"
-                    : "hover:bg-white/[0.03] border border-transparent",
+                    : "border border-transparent",
                 )}
               >
                 <RankBadge rank={rank} />

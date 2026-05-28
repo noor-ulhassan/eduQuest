@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthButtons from "../pages/Auth/AuthButtons";
-import { Menu, ChevronDown, ChevronRight } from "lucide-react";
+import { Menu } from "lucide-react";
 import { playCompeteClickSound } from "@/lib/sound.js";
 
 const navLinks = [
@@ -30,7 +30,6 @@ const navLinks = [
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [coursesOpen, setCoursesOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
@@ -38,13 +37,11 @@ const Navbar = () => {
   // Close mobile menu on route change
   React.useEffect(() => {
     setMobileMenuOpen(false);
-    setCoursesOpen(false);
   }, [location.pathname]);
 
   const handleLinkClick = (path) => {
     navigate(path);
     setMobileMenuOpen(false);
-    setCoursesOpen(false);
   };
 
   return (
@@ -123,40 +120,6 @@ const Navbar = () => {
               </SheetHeader>
 
               <div className="mt-6 space-y-1">
-                {/* Courses accordion */}
-                <div>
-                  <button
-                    onClick={() => setCoursesOpen(!coursesOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
-                  >
-                    <span>Courses</span>
-                    {coursesOpen ? (
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-
-                  {coursesOpen && (
-                    <div className="ml-4 mt-2 mb-2 space-y-1 border-l-2 border-red-500/40 pl-4">
-                      {courses.map((course) => (
-                        <button
-                          key={course.id}
-                          onClick={() => handleLinkClick(course.path)}
-                          className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors block"
-                        >
-                          <div className="font-medium text-sm text-white">
-                            {course.name}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {course.desc}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 {/* Dynamic nav links */}
                 {navLinks.map((link) => (
                   <button
@@ -179,12 +142,6 @@ const Navbar = () => {
                       className="w-full px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
                     >
                       Profile
-                    </button>
-                    <button
-                      onClick={() => handleLinkClick("/my-learning")}
-                      className="w-full px-4 py-3 text-left rounded-lg hover:bg-white/10 transition-colors font-medium text-white"
-                    >
-                      My Learning
                     </button>
                   </div>
                 )}

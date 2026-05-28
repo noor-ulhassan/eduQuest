@@ -378,8 +378,7 @@ const Leaderboard = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1, duration: 0.25 }}
-                    onClick={() => navigate(`/profile/${top3[1]._id}`)}
-                    className="flex-1 max-w-[220px] rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
+                    className="flex-1 max-w-[220px] rounded-2xl p-6 flex flex-col items-center gap-2 transition-transform"
                     style={{ background: "#080808", border: "1px solid #1a1a1a" }}
                   >
                     <div className="relative mb-1">
@@ -411,8 +410,7 @@ const Leaderboard = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.04, duration: 0.25 }}
-                    onClick={() => navigate(`/profile/${top3[0]._id}`)}
-                    className="flex-1 max-w-[260px] rounded-2xl p-8 flex flex-col items-center gap-2 cursor-pointer relative hover:scale-[1.02] transition-transform"
+                    className="flex-1 max-w-[260px] rounded-2xl p-8 flex flex-col items-center gap-2 relative transition-transform"
                     style={{
                       background: "linear-gradient(160deg, #0f0a04 0%, #080604 100%)",
                       border: "1px solid rgba(234,88,12,0.25)",
@@ -457,8 +455,7 @@ const Leaderboard = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.16, duration: 0.25 }}
-                    onClick={() => navigate(`/profile/${top3[2]._id}`)}
-                    className="flex-1 max-w-[220px] rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
+                    className="flex-1 max-w-[220px] rounded-2xl p-6 flex flex-col items-center gap-2 transition-transform"
                     style={{ background: "#080808", border: "1px solid #1a1a1a" }}
                   >
                     <div className="relative mb-1">
@@ -525,8 +522,7 @@ const Leaderboard = () => {
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.025, duration: 0.2 }}
-                    onClick={() => navigate(`/profile/${entry._id}`)}
-                    className="grid items-center gap-3 px-4 h-[68px] rounded-xl cursor-pointer transition-all group"
+                    className="grid items-center gap-3 px-4 h-[68px] rounded-xl transition-all group"
                     style={{
                       gridTemplateColumns: "2rem 1fr 9rem 6.5rem 1.5rem",
                       background: isMe

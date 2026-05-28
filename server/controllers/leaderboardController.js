@@ -47,7 +47,7 @@ export const getPlaygroundLeaderboard = asyncHandler(async (req, res) => {
         as: "user",
       },
     },
-    { $unwind: { path: "$user", preserveNullAndEmpty: false } },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: false } },
     { $project: { ...USER_PROJECT, totalSolved: 1 } },
   ]);
 
@@ -89,7 +89,7 @@ export const getCompetitionLeaderboard = asyncHandler(async (req, res) => {
         as: "user",
       },
     },
-    { $unwind: { path: "$user", preserveNullAndEmpty: false } },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: false } },
     { $project: { ...USER_PROJECT, totalWins: 1, totalMatches: 1 } },
   ]);
 
@@ -115,7 +115,7 @@ export const getLearnerLeaderboard = asyncHandler(async (req, res) => {
         as: "user",
       },
     },
-    { $unwind: { path: "$user", preserveNullAndEmpty: false } },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: false } },
     { $project: { ...USER_PROJECT, totalChapters: 1 } },
   ]);
 
@@ -148,7 +148,7 @@ export const getWeeklyLeaderboard = asyncHandler(async (req, res) => {
         as: "user",
       },
     },
-    { $unwind: { path: "$user", preserveNullAndEmpty: false } },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: false } },
     {
       $project: {
         ...USER_PROJECT,

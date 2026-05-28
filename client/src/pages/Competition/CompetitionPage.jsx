@@ -11,6 +11,7 @@ import {
   Trophy,
   X,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 
 const MODES = [
@@ -97,6 +98,16 @@ const CompetitionPage = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-orange-500/30 flex flex-col">
+      {/* Back to Home */}
+      <div className="relative z-20 px-4 pt-4">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-200 text-sm font-medium transition-colors"
+        >
+          <ArrowLeft size={15} /> Home
+        </button>
+      </div>
+
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-orange-600/5 rounded-full blur-[180px]" />
