@@ -7,6 +7,7 @@ import { useEffect, Suspense, lazy } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { initializeAuth } from "./features/auth/authThunks";
 import MainLayout from "./layout/MainLayout";
+import AdminLayout from "./layout/AdminLayout";
 import AuthLoading from "./pages/Auth/components/AuthLoading";
 import ConnectionError from "./components/ConnectionError";
 import PageLoader from "./components/ui/PageLoader";
@@ -40,6 +41,7 @@ const LeaderboardPage = lazy(() => import("./pages/Homepage/components/leaderboa
 
 const AdminCurriculum = lazy(() => import("./pages/Admin/AdminCurriculum"));
 const AdminCourses = lazy(() => import("./pages/Admin/AdminCourses"));
+const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 
 // Wraps a lazy element in a Suspense boundary with the global spinner fallback
 const Lazy = ({ element: Element }) => (
@@ -187,23 +189,21 @@ const appRouter = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      // Admin Routes
-      {
-        path: "admin/curriculum",
-        element: (
-          <AdminRoute>
-            <Lazy element={AdminCurriculum} />
-          </AdminRoute>
-        ),
-      },
-      {
-        path: "admin/courses",
-        element: (
-          <AdminRoute>
-            <Lazy element={AdminCourses} />
-          </AdminRoute>
-        ),
-      },
+    ],
+  },
+
+  // Admin shell — own layout, no public navbar/footer
+  {
+    path: "/admin",
+    element: (
+      <AdminRoute>
+        <AdminLayout />
+      </AdminRoute>
+    ),
+    children: [
+      { index: true,          element: <Lazy element={AdminDashboard} /> },
+      { path: "courses",      element: <Lazy element={AdminCourses} /> },
+      { path: "curriculum",   element: <Lazy element={AdminCurriculum} /> },
     ],
   },
 

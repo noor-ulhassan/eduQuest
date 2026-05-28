@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import Editor from "@monaco-editor/react";
 import { Plus, Trash2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownEditor from "./MarkdownEditor";
 
 const inputCls =
   "w-full px-3 py-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500 resize-none";
@@ -19,47 +18,16 @@ function Field({ label, children }) {
 }
 
 export function TextEditor({ block, onChange }) {
-  const [tab, setTab] = useState("edit");
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-          Markdown content
-        </label>
-        <div className="flex gap-1">
-          {["edit", "preview"].map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`text-[10px] font-bold px-2 py-0.5 rounded transition-colors capitalize ${
-                tab === t
-                  ? "bg-indigo-600 text-white"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
-      {tab === "edit" ? (
-        <textarea
-          className={inputCls}
-          rows={6}
-          value={block.content || ""}
-          onChange={(e) => onChange({ ...block, content: e.target.value })}
-          placeholder="Write markdown content…"
-        />
-      ) : (
-        <div className="prose prose-zinc prose-invert max-w-none text-sm p-3 rounded-lg bg-black/30 border border-white/10 min-h-[120px]
-          prose-p:text-zinc-300 prose-headings:text-white prose-strong:text-white
-          prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:rounded
-          prose-ul:text-zinc-300 prose-li:marker:text-indigo-400">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {block.content || "_No content yet_"}
-          </ReactMarkdown>
-        </div>
-      )}
+      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+        Markdown content
+      </label>
+      <MarkdownEditor
+        value={block.content || ""}
+        onChange={(val) => onChange({ ...block, content: val })}
+        height={280}
+      />
     </div>
   );
 }
