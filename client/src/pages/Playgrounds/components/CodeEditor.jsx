@@ -10,10 +10,7 @@ export default function CodeEditor({
   isMobile,
   isRunning,
   testResult,
-  executionMode,
   currentProblem,
-  dsaLang,
-  setDsaLang,
   setOutput,
   setTestResult,
   resetCode,
@@ -42,24 +39,6 @@ export default function CodeEditor({
                 <FileCode2 className="w-4 h-4 text-zinc-400" />
                 {fileName}
               </div>
-
-              {(executionMode === "dsa" || typeof currentProblem?.starterCode === "object") && (
-                <select
-                  value={dsaLang}
-                  onChange={(e) => {
-                    const newLang = e.target.value;
-                    setDsaLang(newLang);
-                    setCode(currentProblem.starterCode[newLang] || "");
-                    setOutput(null);
-                    setTestResult(null);
-                  }}
-                  className="ml-4 bg-[#111111] border border-white/10 text-zinc-300 text-xs px-2 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
-                >
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="java">Java</option>
-                </select>
-              )}
 
               <div className="flex items-center gap-3 ml-auto">
                 <button

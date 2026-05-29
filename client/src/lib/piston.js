@@ -1,58 +1,59 @@
-// Code execution via backend proxy (avoids CORS/cert issues with Piston directly)
+// Code execution via server proxy → self-hosted Piston (Docker on port 2000)
+// The server handles language name translation (e.g. "javascript" → "node").
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
 
-// Canonical Piston language IDs + versions. Add more as needed.
+// Friendly language names used throughout the app.
+// The server translates these to Piston runtime names.
 const LANGUAGE_VERSIONS = {
-  javascript:  { language: "javascript",  version: "18.15.0" },
-  python:      { language: "python",      version: "3.10.0"  },
-  java:        { language: "java",        version: "15.0.2"  },
-  "c++":       { language: "c++",         version: "10.2.0"  },
-  cpp:         { language: "c++",         version: "10.2.0"  },
-  c:           { language: "c",           version: "10.2.0"  },
-  typescript:  { language: "typescript",  version: "5.0.3"   },
-  ts:          { language: "typescript",  version: "5.0.3"   },
-  go:          { language: "go",          version: "1.16.2"  },
-  golang:      { language: "go",          version: "1.16.2"  },
-  rust:        { language: "rust",        version: "1.50.0"  },
-  kotlin:      { language: "kotlin",      version: "1.8.20"  },
-  swift:       { language: "swift",       version: "5.3.3"   },
-  ruby:        { language: "ruby",        version: "3.0.1"   },
-  rb:          { language: "ruby",        version: "3.0.1"   },
-  php:         { language: "php",         version: "8.2.3"   },
-  csharp:      { language: "csharp",      version: "6.12.0"  },
-  "c#":        { language: "csharp",      version: "6.12.0"  },
-  cs:          { language: "csharp",      version: "6.12.0"  },
-  bash:        { language: "bash",        version: "5.2.0"   },
-  shell:       { language: "bash",        version: "5.2.0"   },
-  r:           { language: "r",           version: "4.1.1"   },
-  lua:         { language: "lua",         version: "5.4.4"   },
-  perl:        { language: "perl",        version: "5.36.0"  },
-  haskell:     { language: "haskell",     version: "9.0.1"   },
-  scala:       { language: "scala",       version: "3.2.2"   },
-  dart:        { language: "dart",        version: "2.19.6"  },
-  // DSA sub-languages (same entries, listed explicitly for clarity)
-  dsa:         { language: "javascript",  version: "18.15.0" },
+  javascript:  { language: "javascript",  version: "*" },
+  js:          { language: "javascript",  version: "*" },
+  python:      { language: "python",      version: "*" },
+  python3:     { language: "python",      version: "*" },
+  py:          { language: "python",      version: "*" },
+  typescript:  { language: "typescript",  version: "*" },
+  ts:          { language: "typescript",  version: "*" },
+  java:        { language: "java",        version: "*" },
+  "c++":       { language: "c++",         version: "*" },
+  cpp:         { language: "c++",         version: "*" },
+  c:           { language: "c",           version: "*" },
+  go:          { language: "go",          version: "*" },
+  golang:      { language: "go",          version: "*" },
+  rust:        { language: "rust",        version: "*" },
+  rs:          { language: "rust",        version: "*" },
+  kotlin:      { language: "kotlin",      version: "*" },
+  kt:          { language: "kotlin",      version: "*" },
+  swift:       { language: "swift",       version: "*" },
+  ruby:        { language: "ruby",        version: "*" },
+  rb:          { language: "ruby",        version: "*" },
+  php:         { language: "php",         version: "*" },
+  csharp:      { language: "csharp",      version: "*" },
+  "c#":        { language: "csharp",      version: "*" },
+  cs:          { language: "csharp",      version: "*" },
+  dart:        { language: "dart",        version: "*" },
 };
 
 const FILE_EXTENSIONS = {
-  javascript: "js",  typescript: "ts",  ts: "ts",
-  python: "py",      java: "java",
-  "c++": "cpp",      cpp: "cpp",        c: "c",
-  go: "go",          golang: "go",      rust: "rs",
-  kotlin: "kt",      swift: "swift",    ruby: "rb",    rb: "rb",
-  php: "php",        csharp: "cs",      "c#": "cs",    cs: "cs",
-  bash: "sh",        shell: "sh",       r: "r",        lua: "lua",
-  perl: "pl",        haskell: "hs",     scala: "scala",dart: "dart",
-  dsa: "js",
+  javascript: "js",  js: "js",          typescript: "ts",  ts: "ts",
+  python: "py",      python3: "py",     py: "py",
+  java: "java",      "c++": "cpp",      cpp: "cpp",        c: "c",
+  go: "go",          golang: "go",      rust: "rs",        rs: "rs",
+  kotlin: "kt",      kt: "kt",          swift: "swift",
+  ruby: "rb",        rb: "rb",          php: "php",
+  csharp: "cs",      "c#": "cs",        cs: "cs",          dart: "dart",
 };
 
 // Monaco editor language identifiers (differ from Piston in a few cases)
 const MONACO_LANG = {
-  "c++": "cpp",  cpp: "cpp",
-  "c#": "csharp", cs: "csharp",
+  "c++": "cpp",      cpp: "cpp",
+  "c#": "csharp",    cs: "csharp",
   golang: "go",
-  rb: "ruby",    ts: "typescript",
-  shell: "shell", bash: "shell",
+  python3: "python", py: "python",
+  js: "javascript",
+  ts: "typescript",
+  rb: "ruby",
+  rs: "rust",
+  kt: "kotlin",
+  shell: "shell",    bash: "shell",
 };
 
 export function getMonacoLanguage(lang) {

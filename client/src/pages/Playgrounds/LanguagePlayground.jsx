@@ -42,7 +42,6 @@ const LanguagePlayground = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [isSidebarCompact, setIsSidebarCompact] = useState(true);
   const [showDiscussion, setShowDiscussion] = useState(false);
-  const [dsaLang, setDsaLang] = useState("javascript");
   const [sessionXP, setSessionXP] = useState(0);
   const [sessionSolved, setSessionSolved] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
@@ -56,7 +55,7 @@ const LanguagePlayground = () => {
     currentChapterIdx, currentProblemIdx,
     executionMode, editorLang, fileName,
   } = usePlaygroundData({
-    user, language, location, dsaLang,
+    user, language, location,
     setCode: (v) => exec.setCode(v),
     setOutput: (v) => exec.setOutput(v),
     setTestResult: (v) => exec.setTestResult(v),
@@ -68,7 +67,7 @@ const LanguagePlayground = () => {
 
   const exec = useCodeExecution({
     language, currentProblem, isLivePreview, isReact, executionMode,
-    dsaLang, data, iframeRef, activeTask,
+    data, iframeRef, activeTask,
     setCompletedProblems, setSessionXP, setSessionSolved,
   });
 
@@ -196,7 +195,6 @@ const LanguagePlayground = () => {
                   editorLang={editorLang} fileName={fileName}
                   isMobile={isMobile} isRunning={exec.isRunning} testResult={exec.testResult}
                   executionMode={executionMode} currentProblem={currentProblem}
-                  dsaLang={dsaLang} setDsaLang={setDsaLang}
                   setOutput={exec.setOutput} setTestResult={exec.setTestResult}
                   resetCode={exec.resetCode} handleRunCode={exec.handleRunCode}
                   goToNextProblem={goToNextProblem}

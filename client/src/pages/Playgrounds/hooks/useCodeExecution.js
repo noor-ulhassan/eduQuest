@@ -19,7 +19,6 @@ export function useCodeExecution({
   isLivePreview,
   isReact,
   executionMode,
-  dsaLang,
   data,
   iframeRef,
   activeTask,
@@ -165,14 +164,14 @@ export function useCodeExecution({
   const resetCode = useCallback(() => {
     if (currentProblem) {
       setCode(
-        typeof currentProblem.starterCode === "object"
-          ? currentProblem.starterCode[dsaLang] || ""
-          : currentProblem.starterCode,
+        typeof currentProblem.starterCode === "string"
+          ? currentProblem.starterCode
+          : "",
       );
       setOutput(null);
       setTestResult(null);
     }
-  }, [currentProblem, dsaLang]);
+  }, [currentProblem]);
 
   const handleRunCode = useCallback(async () => {
     if (!currentProblem || isRunning) return;
@@ -214,13 +213,8 @@ export function useCodeExecution({
     }
 
     // Piston execution
+    const execLanguage = data?.pistonLanguage || language;
     let codeToRun = code;
-    const pistonLang = data?.pistonLanguage || language;
-    const execLanguage =
-      executionMode === "dsa" || typeof currentProblem.starterCode === "object"
-        ? dsaLang
-        : pistonLang;
-
     if (currentProblem.testFunction) codeToRun = code + "\n" + currentProblem.testFunction;
     try {
       const result = await executeCode(execLanguage, codeToRun);
@@ -290,7 +284,7 @@ export function useCodeExecution({
     }
   }, [
     code, currentProblem, isRunning, language, isLivePreview, isReact,
-    executionMode, dsaLang, data, iframeRef,
+    executionMode, data, iframeRef,
     setCompletedProblems, fireBonusToasts, handleGamificationReward,
   ]);
 
@@ -323,9 +317,7 @@ export function useCodeExecution({
     setTaskTestResults([]);
     try {
       const execLang =
-        executionMode === "dsa" || language === "dsa"
-          ? dsaLang
-          : (data?.pistonLanguage || language)?.toLowerCase();
+        (data?.pistonLanguage || language)?.toLowerCase();
       const res = await api.post("/code/run-task", {
         language: execLang,
         code,
@@ -337,7 +329,7 @@ export function useCodeExecution({
     } finally {
       setIsRunningTask(false);
     }
-  }, [activeTask, code, language, dsaLang, isRunningTask, executionMode, data]);
+  }, [activeTask, code, language, isRunningTask, executionMode, data]);
 
   // Keyboard shortcut Ctrl/Cmd+Enter to run code
   useEffect(() => {

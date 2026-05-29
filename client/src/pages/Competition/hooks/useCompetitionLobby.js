@@ -452,6 +452,22 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
     });
   };
 
+  const handleSubmitAnswer = useCallback((answer) => {
+    if (!socket?.connected || isSubmitting || answerResult) return;
+    setSelectedAnswer(answer);
+    setIsSubmitting(true);
+    socket.emit("submitAnswer", { roomCode, questionIndex, answer }, (response) => {
+      setIsSubmitting(false);
+      if (!response) return;
+      setAnswerResult(response);
+      setComboCount(response.comboCount || 0);
+      setFeedbackResult({ isCorrect: response.isCorrect, pointsEarned: response.pointsEarned });
+      setFeedbackKey((prev) => prev + 1);
+      if (response.isCorrect) playCorrectSound();
+      else playWrongSound();
+    });
+  }, [socket, roomCode, questionIndex, isSubmitting, answerResult]); // eslint-disable-line
+
   // ─── Side effects (music, timers, confetti, keyboard) ────────
   useGameSideEffects({
     gameState, leaderboard, user, currentGameMode, userFinished,

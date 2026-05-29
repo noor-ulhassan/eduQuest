@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, animate } from "motion/react";
 import { PieChart, LineChart, BarChart } from "@mui/x-charts";

@@ -142,12 +142,12 @@ function ProblemModal({ problem: init, language, chapterId, onClose, onSaved, co
 
           {/* Starter Code */}
           <div>
-            <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1.5">Starter Code {language === "dsa" ? "(JSON: {javascript, python, java})" : ""}</label>
+            <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1.5">Starter Code</label>
             <textarea
               className={`${inputCls} min-h-[120px] resize-y font-mono text-emerald-400`}
-              value={typeof p.starterCode === "object" ? JSON.stringify(p.starterCode, null, 2) : (p.starterCode || "")}
+              value={typeof p.starterCode === "string" ? p.starterCode : ""}
               onChange={(e) => set("starterCode", e.target.value)}
-              placeholder={language === "dsa" ? '{"javascript":"...","python":"...","java":"..."}' : "function example() { }"}
+              placeholder="// starter code shown to the student"
             />
           </div>
 
@@ -610,7 +610,7 @@ const AdminCurriculum = () => {
                         <button onClick={() => setModeEditOpen(false)} className="text-[10px] text-zinc-600 hover:text-zinc-400 ml-1">cancel</button>
                       </div>
                       {/* Piston Language ID override */}
-                      {(curriculum.executionMode === "piston" || curriculum.executionMode === "dsa" || !curriculum.executionMode) && (
+                      {(curriculum.executionMode === "piston" || !curriculum.executionMode) && (
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-zinc-500">Piston ID:</span>
                           <input
@@ -775,7 +775,7 @@ const AdminCurriculum = () => {
               </div>
 
               {/* Piston Language ID override — only for code runner modes */}
-              {(createForm.executionMode === "piston" || createForm.executionMode === "dsa") && (
+              {createForm.executionMode === "piston" && (
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1.5">
                     Piston Language ID <span className="text-zinc-600 normal-case font-normal">(optional — only if name differs)</span>
