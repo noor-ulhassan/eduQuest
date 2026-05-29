@@ -7,7 +7,7 @@ const problemSchema = new mongoose.Schema({
   xp: { type: Number, required: true },
   description: { type: String, required: true },
   hints: [{ type: String }],
-  starterCode: { type: mongoose.Schema.Types.Mixed }, // String or Object (for DSA)
+  starterCode: { type: String },
   testFunction: { type: String }, // Optional depending on problem type
   baseHtml: { type: String }, // Optional (mainly for CSS problems)
   type: { type: String }, // Optional (e.g., "interactive")
@@ -36,7 +36,7 @@ const curriculumSchema = new mongoose.Schema(
     subtitle: { type: String },
     executionMode: {
       type: String,
-      enum: ["piston", "livepreview", "react", "dsa"],
+      enum: ["piston", "livepreview", "react"],
     },
     pistonLanguage: {
       type: String,

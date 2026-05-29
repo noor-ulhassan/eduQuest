@@ -115,10 +115,8 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
   }
 
   const language = existingCourse.language || "general";
-  const includePlaygroundTask = !["general", "dsa"].includes(language);
-  const codeLanguage = ["general", "dsa"].includes(language)
-    ? "python"
-    : language;
+  const includePlaygroundTask = language !== "general";
+  const codeLanguage = language === "general" ? "python" : language;
 
   const playgroundBlockExample = includePlaygroundTask
     ? `,\n    { "id": "b7", "type": "playground-task", "language": "${language}", "instruction": "Clear coding task instruction", "starterCode": "# write your code here\\n", "testCases": [{ "input": "", "expectedOutput": "expected output here" }] }`

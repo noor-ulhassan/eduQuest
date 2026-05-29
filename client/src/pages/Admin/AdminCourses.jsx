@@ -20,7 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const LANGUAGES = ["javascript", "html", "css", "python", "react", "dsa", "general"];
+const LANGUAGES = ["javascript", "html", "css", "python", "react", "general"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 const LANGUAGE_COLORS = {
@@ -29,7 +29,6 @@ const LANGUAGE_COLORS = {
   css: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   python: "bg-green-500/20 text-green-400 border-green-500/30",
   react: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  dsa: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   general: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
 };
 

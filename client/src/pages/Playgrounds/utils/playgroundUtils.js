@@ -6,7 +6,6 @@ export const getLanguageIconUrl = (lang) => {
     case "html":        return "/html.png";
     case "css":         return "/css.png";
     case "java":        return "/java.png";
-    case "dsa":         return "/dsa.png";
     default:            return null;
   }
 };

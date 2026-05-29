@@ -16,15 +16,12 @@ import { htmlPlayground } from '../../client/src/data/playground/html.js';
 import { cssPlayground } from '../../client/src/data/playground/css.js';
 import { pythonPlayground } from '../../client/src/data/playground/python.js';
 import { reactPlayground } from '../../client/src/data/playground/react.js';
-import { dsaPlayground } from '../../client/src/data/playground/dsa.js';
-
 const curriculums = [
   { language: 'javascript', data: javascriptPlayground },
   { language: 'html', data: htmlPlayground },
   { language: 'css', data: cssPlayground },
   { language: 'python', data: pythonPlayground },
   { language: 'react', data: reactPlayground },
-  { language: 'dsa', data: dsaPlayground },
 ];
 
 const seedCurriculum = async () => {

@@ -49,7 +49,6 @@ const courseSchema = new mongoose.Schema(
     },
     language: {
       type: String,
-      enum: ["javascript", "html", "css", "python", "react", "dsa", "general"],
       default: "general",
     },
     linkedPlayground: {

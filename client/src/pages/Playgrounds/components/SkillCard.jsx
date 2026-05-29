@@ -82,21 +82,6 @@ const LANG_META = {
       "Component design",
     ],
   },
-  dsa: {
-    desc: "Ace every technical interview",
-    difficulty: "Advanced",
-    diffColor: "text-red-400",
-    tags: ["Interview", "CS Core"],
-    banner: "/tree2.jfif",
-    detail:
-      "Arrays, trees, graphs, dynamic programming. Everything you need to crack FAANG interviews and think algorithmically.",
-    learn: [
-      "Arrays, stacks & queues",
-      "Trees & graphs",
-      "Dynamic programming",
-      "Sorting algorithms",
-    ],
-  },
 };
 
 const SPRING = { type: "spring", stiffness: 300, damping: 30, mass: 0.85 };

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Gamepad2 } from "lucide-react";
 import { getCurriculumsMetadata } from "@/features/playground/playgroundApi";
 
-const LANGUAGES = ["javascript", "html", "css", "python", "react", "dsa", "general"];
+const LANGUAGES = ["javascript", "html", "css", "python", "react", "general"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 export default function CourseMetadataForm({ course, onChange }) {

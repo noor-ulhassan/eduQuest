@@ -31,15 +31,6 @@ const FLOATING_LOGOS = [
     rotate: 0,
   },
   {
-    src: "/dsa.png",
-    label: "DSA",
-    top: "76%",
-    left: "18%",
-    size: 50,
-    depth: 0.035,
-    rotate: 0,
-  },
-  {
     src: "/js1.png",
     label: "JavaScript",
     top: "12%",

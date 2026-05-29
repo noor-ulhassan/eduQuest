@@ -11,7 +11,6 @@ const LANGUAGE_IMAGES = {
   javascript: "/js2.png",
   python: "/python1.png",
   react: "/react.png",
-  dsa: "/dsa1.jpg",
   cpp: "/c.png",
   typescript: "/ts.png",
   java: "/java.png",

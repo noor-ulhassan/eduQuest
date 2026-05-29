@@ -119,7 +119,7 @@ export const createCurriculum = asyncHandler(async (req, res) => {
   const { language, title, subtitle, executionMode, pistonLanguage } = req.body;
   if (!language?.trim()) throw new ApiError(400, "Language required");
 
-  const validModes = ["piston", "livepreview", "react", "dsa"];
+  const validModes = ["piston", "livepreview", "react"];
   const mode = validModes.includes(executionMode) ? executionMode : "piston";
 
   const existing = await Curriculum.findOne({ language });
@@ -139,7 +139,7 @@ export const createCurriculum = asyncHandler(async (req, res) => {
 export const updateCurriculumSettings = asyncHandler(async (req, res) => {
   const { language } = req.params;
   const { title, subtitle, executionMode, pistonLanguage } = req.body;
-  const validModes = ["piston", "livepreview", "react", "dsa"];
+  const validModes = ["piston", "livepreview", "react"];
 
   const curriculum = await Curriculum.findOne({ language });
   if (!curriculum) throw new ApiError(404, "Curriculum not found");
@@ -216,17 +216,13 @@ export const generateProblems = asyncHandler(async (req, res) => {
 
   const mode = curriculum.executionMode || (
     ["html", "css"].includes(language) ? "livepreview" :
-    language === "react" ? "react" :
-    language === "dsa" ? "dsa" : "piston"
+    language === "react" ? "react" : "piston"
   );
   const isLivePreview = mode === "livepreview";
   const isReact = mode === "react";
-  const isDsa = mode === "dsa";
 
   let testFunctionNote = "";
-  if (isDsa) {
-    testFunctionNote = `testFunction: a string of JavaScript code appended to user's code that prints exactly one JSON line: {"success":true,"message":"..."} — the problem will also have python/java variants in starterCode.`;
-  } else if (isReact) {
+  if (isReact) {
     testFunctionNote = `testFunction: a JS string run inside an iframe that receives win and doc (React component rendered via ReactDOM into #root). Must call window.parent.postMessage({type:"TEST_RESULT",success:bool,message:"..."},"*") — or simply return {success, message}.`;
   } else if (isLivePreview) {
     const docNote = language === "css"
@@ -237,9 +233,7 @@ export const generateProblems = asyncHandler(async (req, res) => {
     testFunctionNote = `testFunction: a string of ${language} code appended to user's solution that prints exactly ONE JSON line at the end: {"success":true,"message":"Correct!"} or {"success":false,"message":"..."} — no other print statements.`;
   }
 
-  const starterNote = isDsa
-    ? `starterCode must be an object with keys "javascript", "python", "java" each containing a starter function/skeleton.`
-    : `starterCode is a plain string.`;
+  const starterNote = `starterCode is a plain string.`;
 
   const prompt = `You are a coding-education problem designer. Generate exactly ${count} distinct coding problems for a "${language}" playground (execution mode: ${mode}), chapter titled "${chapterTitle}".
 
@@ -257,7 +251,7 @@ Return ONLY raw JSON — no markdown, no explanation:
       "xp": <10-50>,
       "description": "Clear task description (use backticks for inline code e.g. \`console.log()\`)",
       "hints": ["hint 1", "hint 2"],
-      "starterCode": ${isDsa ? '{"javascript":"...","python":"...","java":"..."}' : '"..."'},
+      "starterCode": "...",
       "testFunction": "...",
       ${isLivePreview ? '"baseHtml": "...",' : ""}
       "type": "code"

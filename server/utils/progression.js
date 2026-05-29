@@ -81,8 +81,7 @@ const ACHIEVEMENTS = {
     icon: "Code2",
     rarity: "Legendary",
   },
-  lang_master_dsa: { title: "DSA Master", icon: "Code2", rarity: "Legendary" },
-  polyglot_6: { title: "Language Wizard", icon: "Globe", rarity: "Legendary" },
+polyglot_6: { title: "Language Wizard", icon: "Globe", rarity: "Legendary" },
   perfectionist: { title: "Completionist", icon: "Star", rarity: "Legendary" },
 };
 

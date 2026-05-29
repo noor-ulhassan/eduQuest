@@ -117,25 +117,6 @@ const COURSE_DEFINITIONS = [
       { chapterName: "Context API", duration: "50 min", topics: ["Prop Drilling", "createContext", "useContext", "Provider"] },
     ],
   },
-  {
-    language: "dsa",
-    name: "Data Structures & Algorithms",
-    description: "Build a strong foundation in DSA — from Big O notation to dynamic programming, with visual explanations.",
-    category: "Computer Science",
-    level: "Beginner",
-    chapters: [
-      { chapterName: "Big O Notation", duration: "40 min", topics: ["Time Complexity", "Space Complexity", "Common Complexities"] },
-      { chapterName: "Arrays & Searching", duration: "50 min", topics: ["Array Operations", "Linear Search", "Binary Search", "Two Pointers"] },
-      { chapterName: "Sorting Algorithms", duration: "55 min", topics: ["Bubble Sort", "Selection Sort", "Merge Sort", "Quick Sort"] },
-      { chapterName: "Linked Lists", duration: "50 min", topics: ["Node Structure", "Singly Linked List", "Doubly Linked List", "Operations"] },
-      { chapterName: "Stacks & Queues", duration: "45 min", topics: ["Stack (LIFO)", "Queue (FIFO)", "Implementation", "Applications"] },
-      { chapterName: "Recursion", duration: "50 min", topics: ["Base Case", "Call Stack", "Recursive Patterns", "Memoization Intro"] },
-      { chapterName: "Trees", duration: "55 min", topics: ["Tree Terminology", "Binary Trees", "Traversal (BFS/DFS)", "BST"] },
-      { chapterName: "Graphs", duration: "55 min", topics: ["Graph Representations", "BFS", "DFS", "Directed vs Undirected"] },
-      { chapterName: "Hash Tables", duration: "45 min", topics: ["Hashing", "Hash Functions", "Collision Handling", "Applications"] },
-      { chapterName: "Dynamic Programming", duration: "55 min", topics: ["Overlapping Subproblems", "Memoization", "Tabulation", "Classic Problems"] },
-    ],
-  },
 ];
 
 const generateChapterContent = async (chapter) => {

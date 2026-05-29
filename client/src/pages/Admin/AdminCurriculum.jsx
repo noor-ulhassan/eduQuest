@@ -29,7 +29,6 @@ const EXECUTION_MODES = [
   { value: "piston",      label: "Code Runner",    desc: "Python, Java, C++, Go, Rust, TS… Output printed to terminal." },
   { value: "livepreview", label: "Live Preview",   desc: "HTML / CSS — renders inside a browser iframe with live updates." },
   { value: "react",       label: "React Preview",  desc: "React/JSX — iframe with Babel + ReactDOM. Full component preview." },
-  { value: "dsa",         label: "DSA Multi-lang", desc: "Algorithms — starter code in JS + Python + Java, runs via Piston." },
 ];
 
 // Full Tailwind class strings (no template interpolation — JIT needs literal strings)
@@ -37,25 +36,21 @@ const MODE_BADGE = {
   piston:      "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
   livepreview: "text-sky-400 bg-sky-500/10 border-sky-500/30",
   react:       "text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
-  dsa:         "text-violet-400 bg-violet-500/10 border-violet-500/30",
 };
 const MODE_ACTIVE = {
   piston:      "border-emerald-500/50 bg-emerald-500/15 text-emerald-400",
   livepreview: "border-sky-500/50 bg-sky-500/15 text-sky-400",
   react:       "border-cyan-500/50 bg-cyan-500/15 text-cyan-400",
-  dsa:         "border-violet-500/50 bg-violet-500/15 text-violet-400",
 };
 const MODE_CARD_ACTIVE = {
   piston:      "border-emerald-500/60 bg-emerald-500/10",
   livepreview: "border-sky-500/60 bg-sky-500/10",
   react:       "border-cyan-500/60 bg-cyan-500/10",
-  dsa:         "border-violet-500/60 bg-violet-500/10",
 };
 const MODE_LABEL = {
   piston:      "text-emerald-400",
   livepreview: "text-sky-400",
   react:       "text-cyan-400",
-  dsa:         "text-violet-400",
 };
 
 const inputCls = "w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm";
