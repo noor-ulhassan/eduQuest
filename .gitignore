@@ -42,3 +42,8 @@ graphify-out/
 VISUAL_INTERACTIVE_CONTEXT.md
 PLAYGROUND_UI_REDESIGN_PLAN.md
 .graphify
+
+
+AUDIT_FINDINGS.md
+fix-playground-data.mjs
+migrate-legacy-courses.mjs

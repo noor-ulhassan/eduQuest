@@ -12,7 +12,16 @@ import {
 // SlideshowPlayer renders a fullscreen modal that walks through each
 // topic in the chapter one at a time, with optional text-to-speech narration.
 export default function SlideshowPlayer({ chapter, onClose }) {
-  const topics = chapter?.topics || [];
+  // Support both legacy topics and new block-based chapters
+  const rawTopics = chapter?.topics || [];
+  const topics = rawTopics.length > 0
+    ? rawTopics
+    : (chapter?.blocks || [])
+        .filter((b) => b.type === "text")
+        .map((b) => ({
+          topic: b.content?.split("\n")[0]?.replace(/^#+\s*/, "") || "Content",
+          content: b.content || "",
+        }));
   const total = topics.length;
 
   // ── State ────────────────────────────────────────────────────────────────

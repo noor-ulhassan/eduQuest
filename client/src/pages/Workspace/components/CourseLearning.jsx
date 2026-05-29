@@ -14,9 +14,6 @@ import {
   Link as LinkIcon,
   ArrowLeft,
   ArrowRight,
-  Lightbulb,
-  Server,
-  Activity,
   Loader2,
   CreditCard,
   Play,
@@ -32,7 +29,6 @@ import { emit } from "@/lib/gamificationBus";
 import FlashcardViewer from "./FlashcardViewer";
 import CourseMentor from "./CourseMentor";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
-import MermaidDiagram from "./MermaidDiagram";
 import SlideshowPlayer from "./SlideshowPlayer";
 import BlockRenderer from "./BlockRenderer";
 import { getChaptersByCourse } from "@/features/workspace/courseApi";
@@ -80,18 +76,12 @@ export default function CourseLearning({
   const chapters = courseLayout?.chapters || [];
   const currentChapter = chapters[currentChapterIndex];
 
-  // Topic and content from standard Chapter schema
-  const topics = currentChapter?.topics || [];
-
   // Calculate Progress
   const totalChapters = course?.noOfChapters || chapters.length || 1;
   const completedChaptersCount = enrollment?.completedChapters?.length || 0;
   const progressPercent = Math.round(
     (completedChaptersCount / totalChapters) * 100,
   );
-
-  // Check if content needs to be generated (if topics array contains strings instead of objects)
-  const isContentPending = topics.length > 0 && typeof topics[0] === "string";
 
   // Load Chapter blocks when course changes
   useEffect(() => {
@@ -499,108 +489,9 @@ export default function CourseLearning({
                     onOpenInPlayground={handleOpenInPlayground}
                   />
                 ) : (
-                  topics.map((topicNode, idx) => (
-                    <div key={idx} className="space-y-8">
-                      {/* Topic Title & Description */}
-                      <div className="flex flex-col gap-4">
-                        <h2 className="text-2xl font-bold text-white mb-6 font-space-grotesk flex items-center gap-4">
-                          <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-red-600/20 text-red-400 text-sm border border-red-500/30">
-                            {idx + 1}
-                          </span>
-                          {typeof topicNode === "object"
-                            ? topicNode.topic
-                            : topicNode}
-                        </h2>
-
-                        {/* Render raw HTML content from Gemini */}
-                        {topicNode.content && (
-                          <div className="prose prose-zinc prose-invert max-w-none
-                          prose-p:text-lg prose-p:leading-relaxed prose-p:text-zinc-300
-                          prose-headings:font-space-grotesk prose-headings:text-white
-                          prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
-                          prose-a:text-red-400 prose-a:no-underline hover:prose-a:underline
-                          prose-strong:text-white prose-strong:font-semibold
-                          prose-code:text-red-300 prose-code:bg-red-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-                          prose-pre:bg-[#111111] prose-pre:border prose-pre:border-white/10
-                          prose-ul:text-zinc-300 prose-li:marker:text-red-500">
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: topicNode.content,
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Pro Tip Callout */}
-                      {topicNode.proTip && (
-                        <div className="bg-gradient-to-r from-red-600/10 to-red-500/5 dark:from-red-600/15 dark:to-red-500/5 border-l-4 border-red-500 p-6 rounded-r-2xl shadow-md shadow-red-500/10">
-                          <div className="flex items-start gap-4">
-                            <Lightbulb className="text-red-400 w-8 h-8 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <h4 className="font-bold text-red-400 text-sm uppercase tracking-wider mb-1">
-                                Pro Tip
-                              </h4>
-                              <p className="text-zinc-400 ">{topicNode.proTip}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Concept Cards Grid */}
-                      {topicNode.keyConcepts?.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                          {topicNode.keyConcepts.map((concept, cidx) => (
-                            <div
-                              key={cidx}
-                              className="bg-[#111111] p-6 rounded-2xl border border-white/10 shadow-md shadow-black/50 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-red-500/30"
-                            >
-                              {cidx % 2 === 0 ? (
-                                <Server className="text-red-400 mb-3 w-6 h-6" />
-                              ) : (
-                                <Activity className="text-red-400 mb-3 w-6 h-6" />
-                              )}
-                              <h5 className="font-bold mb-2">{concept.title}</h5>
-                              <p className="text-sm text-zinc-400 ">
-                                {concept.description}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* YouTube Video Embed */}
-                      {topicNode.videoId && (
-                        <div className="bg-[#111111] rounded-2xl border border-white/10 shadow-md shadow-black/50 overflow-hidden">
-                          <p className="text-sm font-bold text-red-400 px-5 pt-5 pb-3">
-                            Watch: {topicNode.topic}
-                          </p>
-                          <div className="aspect-video w-full">
-                            <iframe
-                              src={`https://www.youtube.com/embed/${topicNode.videoId}`}
-                              title={topicNode.topic}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="w-full h-full"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Mermaid Concept Diagram */}
-                      {topicNode.diagram && (
-                        <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
-                          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
-                            Concept Diagram
-                          </p>
-                          <MermaidDiagram
-                            diagram={topicNode.diagram}
-                            id={`mermaid-cl-${currentChapterIndex}-${idx}`}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))
+                  <div className="py-16 text-center text-zinc-500 italic bg-[#0f0f0f] rounded-2xl border border-white/5">
+                    Chapter content is loading…
+                  </div>
                 )}
               </div>
 

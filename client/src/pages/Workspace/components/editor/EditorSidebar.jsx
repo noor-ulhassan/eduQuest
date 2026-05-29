@@ -12,7 +12,7 @@ export default function EditorSidebar({ chapters, selectedIndex, onSelect, cours
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {chapters.map((ch, idx) => {
           const isActive = idx === selectedIndex;
-          const topicCount = ch.topics?.length || 0;
+          const blockCount = ch.blocks?.length || ch.topics?.length || 0;
           const exerciseCount = ch.exercises?.length || 0;
 
           return (
@@ -36,7 +36,7 @@ export default function EditorSidebar({ chapters, selectedIndex, onSelect, cours
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[9px] text-zinc-500 flex items-center gap-0.5">
-                    <BookOpen className="w-2.5 h-2.5" /> {topicCount}
+                    <BookOpen className="w-2.5 h-2.5" /> {blockCount}
                   </span>
                   {exerciseCount > 0 && (
                     <span className="text-[9px] text-emerald-500 flex items-center gap-0.5">

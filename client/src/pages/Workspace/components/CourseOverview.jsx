@@ -541,7 +541,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                             {chap.chapterName}
                           </h5>
                           <p className="text-sm text-zinc-400 mt-1">
-                            {chap.topics?.length} Topics •{" "}
+                            {chap.blocks?.length || 0} Blocks •{" "}
                             {chap.duration || "15 mins"}
                           </p>
                           {isCurrent && (
