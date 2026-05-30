@@ -1,12 +1,19 @@
 export const getLanguageIconUrl = (lang) => {
   switch (lang?.toLowerCase()) {
-    case "python":      return "/python.png";
-    case "javascript":  return "/js.png";
-    case "react":       return "/react.png";
-    case "html":        return "/html.png";
-    case "css":         return "/css.png";
-    case "java":        return "/java.png";
-    default:            return null;
+    case "python":
+      return "/python.png";
+    case "javascript":
+      return "/js.png";
+    case "react":
+      return "/react.png";
+    case "html":
+      return "/html1.png";
+    case "css":
+      return "/css.png";
+    case "java":
+      return "/java.png";
+    default:
+      return null;
   }
 };
 

@@ -15,6 +15,7 @@ const getGamerRank = (wins) => {
       name: "Grand Champion",
       gradient: "from-purple-400 to-pink-600",
       text: "text-purple-400",
+
       border: "border-purple-500/50",
       shine: ["#a855f7", "#ec4899"],
     };
@@ -107,14 +108,14 @@ const CompetitionStats = () => {
     {
       title: "Matches",
       value: stats.totalGames,
-
+      icon: <Swords size={16} />,
       iconBg: "bg-blue-500/15 text-blue-400",
       numberClass: "text-metallic",
     },
     {
       title: "Wins",
       value: stats.wins,
-
+      icon: <Trophy size={16} />,
       iconBg: "bg-yellow-500/15 text-yellow-400",
       numberClass: "text-metallic-orange",
       tag: `${stats.winRate}% WR`,
@@ -122,14 +123,14 @@ const CompetitionStats = () => {
     {
       title: "Streak",
       value: stats.currentStreak,
-
+      icon: <Flame size={16} />,
       iconBg: "bg-orange-500/15 text-orange-400",
       numberClass: "text-metallic-orange",
     },
     {
       title: "Best Score",
       value: stats.bestScore,
-
+      icon: <Target size={16} />,
       iconBg: "bg-purple-500/15 text-purple-400",
       numberClass: "text-metallic",
       tag: `avg ${stats.avgScore}`,
