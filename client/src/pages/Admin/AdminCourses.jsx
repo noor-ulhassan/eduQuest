@@ -20,17 +20,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const LANGUAGES = ["javascript", "html", "css", "python", "react", "general"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
-const LANGUAGE_COLORS = {
-  javascript: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  html: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  css: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  python: "bg-green-500/20 text-green-400 border-green-500/30",
-  react: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  general: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-};
 
 const AdminCourses = () => {
   const navigate = useNavigate();
@@ -44,9 +35,7 @@ const AdminCourses = () => {
   const [form, setForm] = useState({
     name: "",
     description: "",
-    language: "general",
     level: "Beginner",
-    category: "",
     noOfChapters: 8,
   });
 
@@ -68,15 +57,15 @@ const AdminCourses = () => {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.description || !form.category) {
+    if (!form.name || !form.description) {
       toast.error("Please fill all fields");
       return;
     }
     setGenerating(true);
     try {
-      await generateCourse(form);
+      await generateCourse({ ...form, language: "general", category: form.name });
       toast.success("Course generated successfully!");
-      setForm({ name: "", description: "", language: "general", level: "Beginner", category: "", noOfChapters: 8 });
+      setForm({ name: "", description: "", level: "Beginner", noOfChapters: 8 });
       setShowForm(false);
       await fetchCourses();
     } catch (err) {
@@ -144,31 +133,17 @@ const AdminCourses = () => {
               Generate New Course with AI
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 block">
-                  Course Name
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. JavaScript Fundamentals"
-                  className="w-full px-4 py-2.5 rounded-lg bg-black/50 border border-white/10 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 block">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  placeholder="e.g. Web Development"
-                  className="w-full px-4 py-2.5 rounded-lg bg-black/50 border border-white/10 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-sm"
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 block">
+                Course Name
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. JavaScript Fundamentals"
+                className="w-full px-4 py-2.5 rounded-lg bg-black/50 border border-white/10 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-sm"
+              />
             </div>
 
             <div>
@@ -184,23 +159,7 @@ const AdminCourses = () => {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 block">
-                  Language (Playground Link)
-                </label>
-                <select
-                  value={form.language}
-                  onChange={(e) => setForm({ ...form, language: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg bg-black/50 border border-white/10 text-white focus:outline-none focus:border-indigo-500 text-sm"
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 block">
                   Difficulty Level
@@ -266,13 +225,6 @@ const AdminCourses = () => {
                   <h3 className="text-sm font-bold text-white leading-tight line-clamp-2 flex-1">
                     {course.name}
                   </h3>
-                  {course.language && (
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${LANGUAGE_COLORS[course.language] || LANGUAGE_COLORS.general}`}
-                    >
-                      {course.language}
-                    </span>
-                  )}
                 </div>
 
                 {/* Meta badges */}

@@ -156,7 +156,7 @@ export default function BlockEditorArea({ chapterIndex, courseId }) {
   if (!chapter) {
     return (
       <div className="p-6 text-sm text-zinc-500 bg-indigo-500/5 border border-indigo-500/20 rounded-xl">
-        This chapter has not been generated yet. Click <strong>Generate</strong> from the student view to create its AI content, then come back to edit blocks.
+        No blocks yet — click <strong>Generate Content</strong> above to build this chapter with AI.
       </div>
     );
   }

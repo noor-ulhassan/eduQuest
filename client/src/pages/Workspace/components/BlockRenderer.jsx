@@ -1,7 +1,6 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import ReactPlayer from "react-player";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Terminal, Lightbulb, Server, Activity } from "lucide-react";
@@ -43,8 +42,10 @@ function CodeBlock({ block }) {
   );
 }
 
-function YoutubeBlock({ block, idx }) {
+function YoutubeBlock({ block }) {
   if (!block.url) return null;
+  const videoId = block.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+  if (!videoId) return null;
   return (
     <div className="bg-[#111111] rounded-2xl border border-white/10 shadow-md shadow-black/50 overflow-hidden">
       {block.videoTitle && (
@@ -53,7 +54,14 @@ function YoutubeBlock({ block, idx }) {
         </p>
       )}
       <div className="aspect-video w-full">
-        <ReactPlayer url={block.url} width="100%" height="100%" controls />
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          width="100%"
+          height="100%"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          className="border-0"
+        />
       </div>
     </div>
   );
@@ -100,7 +108,7 @@ function ConceptCardBlock({ block, idx }) {
   );
 }
 
-function PlaygroundTaskBlock({ block, courseLanguage, onOpenInPlayground }) {
+function PlaygroundTaskBlock({ block, onOpenInPlayground }) {
   return (
     <div className="bg-[#111111] border border-indigo-500/30 rounded-2xl p-6 shadow-md shadow-black/50">
       <div className="flex items-center gap-3 mb-4">
@@ -114,7 +122,7 @@ function PlaygroundTaskBlock({ block, courseLanguage, onOpenInPlayground }) {
       </p>
       {block.starterCode && (
         <SyntaxHighlighter
-          language={courseLanguage || "python"}
+          language={block.language || "python"}
           style={oneDark}
           customStyle={{ borderRadius: 8, fontSize: 13, marginBottom: 16 }}
         >
@@ -132,7 +140,7 @@ function PlaygroundTaskBlock({ block, courseLanguage, onOpenInPlayground }) {
   );
 }
 
-export default function BlockRenderer({ blocks, chapterIndex, courseLanguage, onOpenInPlayground }) {
+export default function BlockRenderer({ blocks, chapterIndex, onOpenInPlayground }) {
   if (!blocks?.length) return null;
 
   return (
@@ -163,7 +171,6 @@ export default function BlockRenderer({ blocks, chapterIndex, courseLanguage, on
               <PlaygroundTaskBlock
                 key={block.id || idx}
                 block={block}
-                courseLanguage={courseLanguage}
                 onOpenInPlayground={onOpenInPlayground}
               />
             );

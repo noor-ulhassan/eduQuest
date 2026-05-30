@@ -12,10 +12,10 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { computeAndSave } from "../services/SuggestionEngine.js";
 
 export const geminiCourseGenerator = asyncHandler(async (req, res) => {
-  const { name, description, category, level, noOfChapters, language } =
-    req.body;
+  const { name, description, level, noOfChapters, language } = req.body;
+  const category = req.body.category || name;
 
-  if (!name || !description || !category || !level || !noOfChapters) {
+  if (!name || !description || !level || !noOfChapters) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -114,21 +114,13 @@ export const generateChapterContent = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, { data: existingChapter, cached: true }));
   }
 
-  const language = existingCourse.language || "general";
-  const includePlaygroundTask = language !== "general";
-  const codeLanguage = language === "general" ? "python" : language;
-
-  const playgroundBlockExample = includePlaygroundTask
-    ? `,\n    { "id": "b7", "type": "playground-task", "language": "${language}", "instruction": "Clear coding task instruction", "starterCode": "# write your code here\\n", "testCases": [{ "input": "", "expectedOutput": "expected output here" }] }`
-    : "";
-
   const prompt = `You are a technical course content generator for an online CS learning platform.
 Generate rich, structured chapter content for the chapter below.
 Return ONLY valid JSON — no markdown fences, no backticks, no explanation outside the JSON.
 
 Course: "${existingCourse.name}"
-Language/Technology: "${language}"
-Chapter input: ${JSON.stringify(chapter)}
+Description: "${existingCourse.description}"
+Chapter: ${JSON.stringify(chapter)}
 
 Return this exact JSON structure:
 {
@@ -136,28 +128,25 @@ Return this exact JSON structure:
   "blocks": [
     { "id": "b1", "type": "text", "content": "## Heading\\nMarkdown explanation with **bold**, bullet points, and clear structure." },
     { "id": "b2", "type": "concept-card", "title": "Key Term", "subtitle": "One-line definition of the term" },
-    { "id": "b3", "type": "code", "language": "${codeLanguage}", "code": "# real, runnable example code" },
+    { "id": "b3", "type": "code", "language": "<inferred-language>", "code": "// real, runnable example code" },
     { "id": "b4", "type": "pro-tip", "content": "A concise, practical tip the student should remember" },
     { "id": "b5", "type": "mermaid", "content": "graph TD; A[Start] --> B[Step]; B --> C[End]" },
-    { "id": "b6", "type": "youtube", "url": "", "videoTitle": "specific YouTube search query for this topic" }${playgroundBlockExample}
+    { "id": "b6", "type": "youtube", "url": "", "videoTitle": "specific YouTube search query for this topic" }
   ]
 }
 
 Rules (follow strictly):
 1. Return ONLY valid JSON. No markdown fences. No text outside the JSON object.
 2. Generate between 6 and 10 blocks total.
-3. Use "text" blocks for all Markdown explanations. Write proper Markdown: ## headings, bullet points, **bold** terms.
-4. Always include at least one "code" block with real, runnable example code.
-5. Always include at least one "pro-tip" block with a practical takeaway.
-6. Include "concept-card" blocks for key terms (title = term name, subtitle = one-line definition).
-7. Include a "mermaid" block ONLY if the topic has a clear flow, process, algorithm, or data structure. Use ONLY "graph TD" syntax. Return empty string "" for mermaid content if not applicable — but prefer omitting the block entirely.
-8. For every "youtube" block: leave "url" as empty string. Set "videoTitle" to a specific search query that finds a good tutorial video.
-9. ${
-    includePlaygroundTask
-      ? `Include exactly one "playground-task" block with: a clear instruction, working starterCode in "${language}", and at least one testCase where expectedOutput matches what the code should print/return.`
-      : `Do NOT include any "playground-task" blocks. The course language "${language}" does not support live execution tasks.`
-  }
-10. All block "id" values must be unique strings (b1, b2, b3, ...).`;
+3. Infer the programming language from the course name and description. Use it consistently in all "code" blocks (e.g. Flutter → dart, Python → python, React/JavaScript → javascript, C++ → cpp).
+4. Use "text" blocks for all Markdown explanations. Write proper Markdown: ## headings, bullet points, **bold** terms.
+5. Always include at least one "code" block with real, runnable example code.
+6. Always include at least one "pro-tip" block with a practical takeaway.
+7. Include "concept-card" blocks for key terms (title = term name, subtitle = one-line definition).
+8. Include a "mermaid" block ONLY if the topic has a clear flow, process, algorithm, or data structure. Use ONLY "graph TD" syntax. Omit the block entirely if not applicable.
+9. For every "youtube" block: leave "url" as empty string. Set "videoTitle" to a specific search query that finds a good tutorial video.
+10. Do NOT include any "playground-task" blocks. Practice tasks are linked separately by the admin.
+11. All block "id" values must be unique strings (b1, b2, b3, ...).`;
 
   const aiResponse = await callAiModel(prompt);
 

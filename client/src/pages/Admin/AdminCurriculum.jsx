@@ -336,7 +336,6 @@ const AdminCurriculum = () => {
   // Execution mode edit
   const [modeEditOpen, setModeEditOpen] = useState(false);
   const [savingMode, setSavingMode] = useState(false);
-  const [pistonLangEdit, setPistonLangEdit] = useState("");
 
   // Load metadata (all existing playgrounds) + courses
   useEffect(() => {
@@ -439,17 +438,6 @@ const AdminCurriculum = () => {
       toast.success("Execution mode updated");
       setModeEditOpen(false);
     } catch { toast.error("Failed to update mode"); }
-    finally { setSavingMode(false); }
-  };
-
-  const handleSavePistonLang = async () => {
-    setSavingMode(true);
-    try {
-      const res = await updateCurriculumSettings(selectedLanguage, { pistonLanguage: pistonLangEdit.trim() || null });
-      setCurriculum(res.curriculum);
-      toast.success("Piston language ID updated");
-      setModeEditOpen(false);
-    } catch { toast.error("Failed to update"); }
     finally { setSavingMode(false); }
   };
 
@@ -558,45 +546,25 @@ const AdminCurriculum = () => {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${MODE_BADGE[curriculum.executionMode] || MODE_BADGE.piston}`}>
                         {EXECUTION_MODES.find(m => m.value === (curriculum.executionMode || "piston"))?.label || curriculum.executionMode || "piston"}
                       </span>
-                      {curriculum.pistonLanguage && (
-                        <span className="text-[10px] text-zinc-500 font-mono">id: {curriculum.pistonLanguage}</span>
-                      )}
-                      <button onClick={() => { setModeEditOpen(true); setPistonLangEdit(curriculum.pistonLanguage || ""); }} className="text-[10px] text-zinc-500 hover:text-zinc-300 underline transition-colors">change mode</button>
+                      <button onClick={() => setModeEditOpen(true)} className="text-[10px] text-zinc-500 hover:text-zinc-300 underline transition-colors">change mode</button>
                     </>
                   ) : (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {EXECUTION_MODES.map((m) => (
-                          <button
-                            key={m.value}
-                            disabled={savingMode}
-                            onClick={() => handleSaveMode(m.value)}
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
-                              (curriculum.executionMode || "piston") === m.value
-                                ? MODE_ACTIVE[m.value]
-                                : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
-                            }`}
-                          >
-                            {savingMode ? <Loader2 size={10} className="animate-spin inline mr-1" /> : null}{m.label}
-                          </button>
-                        ))}
-                        <button onClick={() => setModeEditOpen(false)} className="text-[10px] text-zinc-600 hover:text-zinc-400 ml-1">cancel</button>
-                      </div>
-                      {/* Piston Language ID override */}
-                      {(curriculum.executionMode === "piston" || !curriculum.executionMode) && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-zinc-500">Piston ID:</span>
-                          <input
-                            className="bg-[#0a0a0a] border border-white/10 rounded-lg px-2.5 py-1 text-white text-[10px] font-mono focus:outline-none focus:border-indigo-500 w-36"
-                            value={pistonLangEdit}
-                            onChange={(e) => setPistonLangEdit(e.target.value)}
-                            placeholder={`e.g. c++, csharp`}
-                          />
-                          <button onClick={handleSavePistonLang} disabled={savingMode} className="text-[10px] font-bold px-2.5 py-1 rounded-lg border border-indigo-500/30 text-indigo-400 hover:border-indigo-500/50 disabled:opacity-50 transition-colors flex items-center gap-1">
-                            {savingMode ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />} Save
-                          </button>
-                        </div>
-                      )}
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {EXECUTION_MODES.map((m) => (
+                        <button
+                          key={m.value}
+                          disabled={savingMode}
+                          onClick={() => handleSaveMode(m.value)}
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all disabled:opacity-50 ${
+                            (curriculum.executionMode || "piston") === m.value
+                              ? MODE_ACTIVE[m.value]
+                              : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                          }`}
+                        >
+                          {savingMode ? <Loader2 size={10} className="animate-spin inline mr-1" /> : null}{m.label}
+                        </button>
+                      ))}
+                      <button onClick={() => setModeEditOpen(false)} className="text-[10px] text-zinc-600 hover:text-zinc-400 ml-1">cancel</button>
                     </div>
                   )}
                 </div>

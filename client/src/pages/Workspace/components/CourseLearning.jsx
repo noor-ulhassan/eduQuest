@@ -103,12 +103,12 @@ export default function CourseLearning({
 
   const handleOpenInPlayground = (block) => {
     dispatch(setPlaygroundTask(block));
-    navigate(`/playground/${course.language || "python"}`);
+    navigate(`/playground/${course.linkedPlayground || "python"}`);
   };
 
   const handlePracticeLinkedProblem = (problem) => {
     dispatch(setPlaygroundTask(problem));
-    navigate(`/playground/${course?.linkedPlayground || course?.language || "python"}?problem=${problem.id}`);
+    navigate(`/playground/${course?.linkedPlayground || "python"}?problem=${problem.id}`);
   };
 
   // Load ALL linked curriculum problems for this course once, grouped by chapterIndex
@@ -467,9 +467,9 @@ export default function CourseLearning({
                       <Play className="w-4 h-4" fill="currentColor" />
                       Play Chapter
                     </button>
-                    {course?.language && course.language !== "general" && (
+                    {course?.linkedPlayground && (
                       <button
-                        onClick={() => navigate(`/playground/${course.language}`)}
+                        onClick={() => navigate(`/playground/${course.linkedPlayground}`)}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-zinc-800 hover:bg-zinc-700 border border-white/10 transition-all"
                       >
                         <Terminal className="w-4 h-4" />
@@ -485,7 +485,6 @@ export default function CourseLearning({
                   <BlockRenderer
                     blocks={chapterBlocks}
                     chapterIndex={currentChapterIndex}
-                    courseLanguage={course?.language}
                     onOpenInPlayground={handleOpenInPlayground}
                   />
                 ) : (
