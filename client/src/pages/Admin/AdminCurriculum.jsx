@@ -315,6 +315,7 @@ const AdminCurriculum = () => {
   const [expandedChapter, setExpandedChapter] = useState(null);
   const [courses, setCourses] = useState([]);
   const [existingLanguages, setExistingLanguages] = useState([]);
+  const [playgroundsMetadata, setPlaygroundsMetadata] = useState([]);
 
   // Problem modal
   const [problemModal, setProblemModal] = useState(null);
@@ -342,10 +343,10 @@ const AdminCurriculum = () => {
     getAdminCourses().then((d) => setCourses(d || [])).catch(() => {});
     getCurriculumsMetadata()
       .then((res) => {
-        const langs = (res.metadata || []).map((m) => m.language);
-        setExistingLanguages(langs);
-        if (langs.length > 0) setSelectedLanguage(langs[0]);
-        else setIsLoading(false);
+        const meta = res.metadata || [];
+        setPlaygroundsMetadata(meta);
+        setExistingLanguages(meta.map((m) => m.language));
+        setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
   }, []);
@@ -360,7 +361,7 @@ const AdminCurriculum = () => {
     finally { setIsLoading(false); }
   };
 
-  useEffect(() => { fetchCurriculum(selectedLanguage); }, [selectedLanguage]);
+  useEffect(() => { if (selectedLanguage) fetchCurriculum(selectedLanguage); }, [selectedLanguage]);
 
   // ── Curriculum create ──
   const handleCreateCurriculum = async () => {
@@ -371,9 +372,10 @@ const AdminCurriculum = () => {
     try {
       await createCurriculum({ language: lang, title: createForm.title, executionMode: createForm.executionMode });
       toast.success("Playground created!");
-      const meta = await getCurriculumsMetadata();
-      const langs = (meta.metadata || []).map((m) => m.language);
-      setExistingLanguages(langs);
+      const metaRes = await getCurriculumsMetadata();
+      const meta = metaRes.metadata || [];
+      setPlaygroundsMetadata(meta);
+      setExistingLanguages(meta.map((m) => m.language));
       setCreateModal(false);
       setCreateForm({ language: "", title: "", executionMode: "piston" });
       setSelectedLanguage(lang);
@@ -451,7 +453,8 @@ const AdminCurriculum = () => {
       toast.success(`${LANG_LABEL(selectedLanguage)} playground deleted`);
       const remaining = existingLanguages.filter((l) => l !== selectedLanguage);
       setExistingLanguages(remaining);
-      setSelectedLanguage(remaining[0] || null);
+      setPlaygroundsMetadata((prev) => prev.filter((p) => p.language !== selectedLanguage));
+      setSelectedLanguage(null);
       setCurriculum(null);
     } catch { toast.error("Failed to delete playground"); }
   };
@@ -462,84 +465,110 @@ const AdminCurriculum = () => {
 
       {/* Header */}
       <div className="max-w-6xl mx-auto px-6 mb-8">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
-              <Settings className="text-indigo-500 w-8 h-8" />
-              Playground Manager
-            </h1>
-            <p className="text-zinc-400 mt-1 text-sm">Manage language playgrounds. Optionally link problems to course chapters.</p>
-          </div>
-
-          <div className="flex flex-col gap-3 items-end">
-            <div className="flex items-center gap-3">
-              {/* New Playground button — always visible */}
+            {selectedLanguage && (
               <button
-                onClick={() => { setCreateForm({ language: "", title: "", executionMode: "piston" }); setCreateModal(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-colors whitespace-nowrap"
+                onClick={() => { setSelectedLanguage(null); setCurriculum(null); }}
+                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 mb-2 transition-colors"
               >
-                <Plus size={15} /> New Playground
+                ← Playground Management
               </button>
-            </div>
-
-            {/* Language tabs — one per existing playground */}
-            {existingLanguages.length > 0 && (
-              <div className="flex gap-1 p-1 bg-[#111111] border border-white/10 rounded-xl overflow-x-auto max-w-[600px]">
-                {existingLanguages.map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setSelectedLanguage(lang)}
-                    className={`px-4 py-1.5 rounded-lg font-bold text-sm capitalize whitespace-nowrap transition-all ${
-                      selectedLanguage === lang
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {LANG_LABEL(lang)}
-                  </button>
-                ))}
-              </div>
             )}
+            <h1 className="text-3xl font-bold tracking-tight">Playground Management</h1>
+            <p className="text-zinc-400 text-sm mt-1">Create and manage language practice environments for students</p>
           </div>
+          <button
+            onClick={() => { setCreateForm({ language: "", title: "", executionMode: "piston" }); setCreateModal(true); }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-colors"
+          >
+            <Plus size={15} /> New Playground
+          </button>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6">
         {isLoading ? (
           <div className="h-64 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 border-indigo-500 animate-spin text-indigo-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
           </div>
-        ) : !curriculum ? (
-          <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-2xl gap-4">
-            <BookOpen className="w-10 h-10 text-zinc-600" />
-            <div className="text-center">
-              {existingLanguages.length === 0 ? (
-                <>
-                  <p className="font-bold text-zinc-300">No playgrounds yet</p>
-                  <p className="text-sm text-zinc-500 mt-1">Click <span className="text-indigo-400 font-bold">New Playground</span> to create your first one.</p>
-                </>
-              ) : (
-                <>
-                  <p className="font-bold text-zinc-300">No {LANG_LABEL(selectedLanguage)} playground</p>
-                  <p className="text-sm text-zinc-500 mt-1">Click <span className="text-indigo-400 font-bold">New Playground</span> in the top-right to create one.</p>
-                </>
-              )}
+        ) : !selectedLanguage ? (
+          /* ── GRID VIEW ── */
+          playgroundsMetadata.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-white/10 rounded-2xl gap-4">
+              <BookOpen className="w-12 h-12 text-zinc-600" />
+              <div className="text-center">
+                <p className="font-bold text-zinc-400">No playgrounds yet</p>
+                <p className="text-sm text-zinc-600 mt-1">Click <span className="text-indigo-400 font-bold">New Playground</span> to create your first one.</p>
+              </div>
+              <button
+                onClick={() => { setCreateForm({ language: "", title: "", executionMode: "piston" }); setCreateModal(true); }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-colors"
+              >
+                <Plus size={14} /> New Playground
+              </button>
             </div>
-            <button
-              onClick={() => { setCreateForm({ language: selectedLanguage || "", title: "", executionMode: "piston" }); setCreateModal(true); }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-colors"
-            >
-              <Plus size={14} /> New Playground
-            </button>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {playgroundsMetadata.map((pg) => (
+                <div key={pg.language} className="bg-[#111] border border-white/10 rounded-2xl p-5 flex flex-col gap-3 hover:border-white/20 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-sm font-bold text-white leading-tight">{pg.title}</h3>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 capitalize ${MODE_BADGE[pg.executionMode] || MODE_BADGE.piston}`}>
+                      {EXECUTION_MODES.find((m) => m.value === pg.executionMode)?.label || "Code Runner"}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/5">{pg.totalChapters} chapters</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/5">{pg.totalProblems} problems</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-auto pt-2">
+                    <button
+                      onClick={() => setSelectedLanguage(pg.language)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-bold transition-colors border border-white/5"
+                    >
+                      <PenLine className="w-3.5 h-3.5" /> View / Edit
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm(`Delete the ${LANG_LABEL(pg.language)} playground and all its chapters/problems? This cannot be undone.`)) return;
+                        try {
+                          await deleteCurriculum(pg.language);
+                          setPlaygroundsMetadata((prev) => prev.filter((p) => p.language !== pg.language));
+                          setExistingLanguages((prev) => prev.filter((l) => l !== pg.language));
+                          toast.success(`${LANG_LABEL(pg.language)} playground deleted`);
+                        } catch { toast.error("Failed to delete playground"); }
+                      }}
+                      className="flex items-center justify-center px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/20 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
+          /* ── DETAIL VIEW ── */
           <div className="space-y-5">
+            {!curriculum ? (
+              <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-2xl gap-4">
+                <BookOpen className="w-10 h-10 text-zinc-600" />
+                <p className="font-bold text-zinc-300">No {LANG_LABEL(selectedLanguage)} playground</p>
+                <button
+                  onClick={() => { setCreateForm({ language: selectedLanguage, title: "", executionMode: "piston" }); setCreateModal(true); }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-colors"
+                >
+                  <Plus size={14} /> New Playground
+                </button>
+              </div>
+            ) : (
+            <div className="space-y-5">
             {/* Curriculum header */}
             <div className="bg-[#111] border border-white/10 rounded-2xl p-5 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">{curriculum.title}</h2>
                 {curriculum.subtitle && <p className="text-sm text-zinc-400 mt-0.5">{curriculum.subtitle}</p>}
-                {/* Execution mode badge + change */}
                 <div className="mt-2 flex items-center gap-2">
                   {!modeEditOpen ? (
                     <>
@@ -583,7 +612,6 @@ const AdminCurriculum = () => {
                 <button
                   onClick={handleDeleteCurriculum}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 font-bold text-sm rounded-xl border border-red-500/20 transition-colors"
-                  title={`Delete ${LANG_LABEL(selectedLanguage)} playground`}
                 >
                   <Trash2 size={15} /> Delete Playground
                 </button>
@@ -621,6 +649,8 @@ const AdminCurriculum = () => {
                 />
               ))}
             </div>
+          </div>
+            )}
           </div>
         )}
       </div>

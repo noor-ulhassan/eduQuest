@@ -19,6 +19,8 @@ export default function EditorMainArea({
   onMetadataChange,
   onGenerateChapter,
   generatingChapter,
+  blockEditorRef,
+  onDirty,
 }) {
   const [activeTab, setActiveTab] = useState("blocks");
 
@@ -71,7 +73,7 @@ export default function EditorMainArea({
       <div className="flex-1 overflow-y-auto">
         {activeTab === "blocks" && (
           <div className="p-6">
-            <BlockEditorArea chapterIndex={chapterIndex} courseId={courseId} />
+            <BlockEditorArea ref={blockEditorRef} chapterIndex={chapterIndex} courseId={courseId} onDirty={onDirty} />
           </div>
         )}
 

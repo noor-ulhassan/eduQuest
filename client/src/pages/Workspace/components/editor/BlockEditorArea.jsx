@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import {
   DndContext,
   closestCenter,
@@ -12,7 +12,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { nanoid } from "nanoid";
-import { Loader2, Plus, Save } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getChaptersByCourse,
@@ -55,7 +55,7 @@ function makeBlock(type) {
   }
 }
 
-export default function BlockEditorArea({ chapterIndex, courseId }) {
+const BlockEditorArea = forwardRef(function BlockEditorArea({ chapterIndex, courseId, onDirty }, ref) {
   const [chapter, setChapter] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,27 +109,30 @@ export default function BlockEditorArea({ chapterIndex, courseId }) {
     setBlocks((prev) =>
       prev.map((b) => (b.id === updatedBlock.id ? updatedBlock : b)),
     );
-  }, []);
+    onDirty?.();
+  }, [onDirty]);
 
   const handleDelete = useCallback(
     async (blockId) => {
       if (!chapter) return;
       setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+      onDirty?.();
       try {
         await removeBlock(chapter._id, blockId);
       } catch {
         toast.error("Failed to delete block");
       }
     },
-    [chapter],
+    [chapter, onDirty],
   );
 
   const handleAddBlock = useCallback(
     (type) => {
       setBlocks((prev) => [...prev, makeBlock(type)]);
+      onDirty?.();
       setShowAddMenu(false);
     },
-    [],
+    [onDirty],
   );
 
   const handleSave = useCallback(async () => {
@@ -137,13 +140,14 @@ export default function BlockEditorArea({ chapterIndex, courseId }) {
     setSaving(true);
     try {
       await updateChapter(chapter._id, { blocks });
-      toast.success("Chapter saved");
     } catch {
-      toast.error("Save failed");
+      toast.error("Block save failed");
     } finally {
       setSaving(false);
     }
   }, [chapter, blocks]);
+
+  useImperativeHandle(ref, () => ({ save: handleSave }), [handleSave]);
 
   if (loading) {
     return (
@@ -186,19 +190,6 @@ export default function BlockEditorArea({ chapterIndex, courseId }) {
             </div>
           )}
         </div>
-        <div className="flex-1" />
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
-        >
-          {saving ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Save className="w-3.5 h-3.5" />
-          )}
-          Save
-        </button>
       </div>
 
       {/* Blocks */}
@@ -238,4 +229,6 @@ export default function BlockEditorArea({ chapterIndex, courseId }) {
       )}
     </div>
   );
-}
+});
+
+export default BlockEditorArea;

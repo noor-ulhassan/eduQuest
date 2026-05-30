@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ function EditCourse() {
   const [editedMeta, setEditedMeta] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const originalRef = useRef(null);
+  const blockEditorRef = useRef(null);
 
   useEffect(() => {
     if (courseId) fetchCourse();
@@ -72,6 +73,8 @@ function EditCourse() {
           await updateCourseChapter(courseId, i, editedChapters[i]);
         }
       }
+
+      await blockEditorRef.current?.save();
 
       originalRef.current = JSON.stringify(editedChapters);
       setHasChanges(false);
@@ -143,15 +146,11 @@ function EditCourse() {
           onMetadataChange={handleMetadataChange}
           onGenerateChapter={handleGenerateChapter}
           generatingChapter={generatingChapter}
+          blockEditorRef={blockEditorRef}
+          onDirty={() => setHasChanges(true)}
         />
       </div>
-      <SaveBar
-        onSave={handleSave}
-        onPublish={handlePublish}
-        saving={saving}
-        isPublished={course?.isPublished}
-        hasChanges={hasChanges}
-      />
+      <SaveBar onSave={handleSave} saving={saving} hasChanges={hasChanges} />
     </div>
   );
 }

@@ -11,14 +11,19 @@ const MainLayout = () => {
     location.pathname.startsWith("/playground/") &&
     location.pathname !== "/playground";
 
+  const isEditCourseRoute = location.pathname.startsWith("/workspace/edit-course/");
+
   const hideNavbar =
     isPlaygroundRoute ||
+    isEditCourseRoute ||
     location.pathname.startsWith("/competition") ||
     location.pathname === "/leaderboard" ||
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
     location.pathname.startsWith("/course/");
+
   const hideFooter =
+    isEditCourseRoute ||
     location.pathname.startsWith("/problem/") ||
     location.pathname.startsWith("/documents") ||
     location.pathname === "/workspace" ||
