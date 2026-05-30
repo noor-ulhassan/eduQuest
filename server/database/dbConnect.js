@@ -4,6 +4,7 @@ import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 
 let vectorStore;
+let chunksCollection;
 
 const connectDB = async () => {
   try {
@@ -20,6 +21,7 @@ const connectDB = async () => {
     // const collection = db.collection("vector_chunks");
     const db = client.db("eduQuest");
     const collection = db.collection("document_chunks");
+    chunksCollection = collection;
 
     const embeddings = new GoogleGenerativeAIEmbeddings({
       model: "gemini-embedding-2-preview",
@@ -39,4 +41,5 @@ const connectDB = async () => {
 };
 
 export const getVectorStore = () => vectorStore;
+export const getChunksCollection = () => chunksCollection;
 export default connectDB;

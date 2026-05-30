@@ -21,6 +21,10 @@ const documentSchema = new Schema(
       type: String,
       required: true,
     },
+    cloudinaryPublicId: {
+      type: String,
+      default: "",
+    },
     fileSize: {
       type: Number,
       required: true,

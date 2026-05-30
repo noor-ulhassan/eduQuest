@@ -1,9 +1,9 @@
 import Document from "../models/Document.js";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { getVectorStore } from "../database/dbConnect.js";
+import { getVectorStore, getChunksCollection } from "../database/dbConnect.js";
 import fs from "fs/promises";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -112,6 +112,7 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     const chaptersArr = [...new Set(Object.values(pageChapterMap))].sort((a, b) => a - b);
 
     document.filePath = cloudinaryResponse.secure_url;
+    document.cloudinaryPublicId = cloudinaryResponse.public_id;
     document.totalPages = docs.length;
     document.chunksStored = splitDocs.length;
     document.chapters = chaptersArr;
@@ -165,11 +166,38 @@ export const deleteDocument = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Not authorized");
   }
 
+  const documentId = document._id.toString();
+
+  // 1. Purge the embedded chunks from the vector collection so they don't
+  //    linger as orphaned, still-searchable vectors after the doc is gone.
+  let deletedChunks = 0;
+  try {
+    const chunks = getChunksCollection();
+    if (chunks) {
+      const result = await chunks.deleteMany({ documentId });
+      deletedChunks = result.deletedCount || 0;
+    }
+  } catch (err) {
+    console.error("Failed to delete vector chunks:", err.message);
+  }
+
+  // 2. Remove the original PDF from Cloudinary (best-effort; never blocks delete).
+  //    Prefer the stored public_id; fall back to parsing the delivery URL for
+  //    documents uploaded before that field existed.
+  await deleteFromCloudinary(document.cloudinaryPublicId || document.filePath);
+
+  // 3. Remove the document record itself.
   await document.deleteOne();
 
   return res
     .status(200)
-    .json(new ApiResponse(200, null, "Document deleted successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        { deletedChunks },
+        "Document and all associated data deleted successfully",
+      ),
+    );
 });
 
 export const updateDocument = asyncHandler(async (req, res) => {
