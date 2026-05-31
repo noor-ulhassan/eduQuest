@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const MAX_EVENTS = 5;
-const EVENT_TTL_MS = 5500;
+const EVENT_TTL_MS = 7000;
 const DEDUP_WINDOW_MS = 2200;
-const STAGGER_MS = 220; // gap between consecutive events emitted in the same tick
+const STAGGER_MS = 650; // gap between consecutive events so they breathe instead of stacking instantly
+const MAX_QUEUE = 4; // cap pending queue — newest events stay timely instead of waiting behind a long backlog
 
 let idCounter = 0;
 const nextId = () => `evt-${Date.now()}-${++idCounter}`;
@@ -50,6 +51,12 @@ export default function useGameActivityFeed({
       lastEventByKeyRef.current.set(dedupKey, now);
 
       staggerQueueRef.current.push({ id: nextId(), createdAt: now, ...evt });
+      // Keep the queue short: if a burst piles up, drop the oldest *pending*
+      // ones so the freshest events still surface promptly rather than waiting
+      // behind a long backlog.
+      if (staggerQueueRef.current.length > MAX_QUEUE) {
+        staggerQueueRef.current.splice(0, staggerQueueRef.current.length - MAX_QUEUE);
+      }
       drainStagger();
     },
     [drainStagger],

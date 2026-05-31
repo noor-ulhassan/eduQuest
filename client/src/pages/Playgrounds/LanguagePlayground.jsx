@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { Loader2, MessageCircle } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { Loader2, MessageCircle, Terminal } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { trackLinkedAttempt } from "../../features/playground/playgroundApi";
@@ -40,7 +40,7 @@ const LanguagePlayground = () => {
   const activeTask = useSelector((state) => state.playgroundTask?.activeTask ?? null);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
-  const [isSidebarCompact, setIsSidebarCompact] = useState(true);
+  const [isSidebarCompact, setIsSidebarCompact] = useState(false);
   const [showDiscussion, setShowDiscussion] = useState(false);
   const [sessionXP, setSessionXP] = useState(0);
   const [sessionSolved, setSessionSolved] = useState(0);
@@ -84,12 +84,51 @@ const LanguagePlayground = () => {
   if (isLoadingProgress) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white">
-        <div className="flex flex-col items-center gap-5 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#111111] border border-white/10 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+        <div className="flex flex-col items-center gap-6 text-center">
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center relative overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #141414, #111111)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          >
+            {getLanguageIconUrl?.(language) ? (
+              <img
+                src={getLanguageIconUrl(language)}
+                alt={language}
+                className="w-10 h-10 object-contain"
+              />
+            ) : (
+              <Terminal className="w-9 h-9 text-red-400" />
+            )}
+            {/* Animated border */}
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-2xl"
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{
+                border: "1px solid rgba(239,68,68,0.35)",
+                boxShadow: "inset 0 0 20px rgba(239,68,68,0.08)",
+              }}
+            />
           </div>
-          <p className="text-white font-semibold text-base capitalize">{language} Playground</p>
-          <p className="text-zinc-500 text-sm">Loading your progress…</p>
+          <div className="space-y-1">
+            <p className="text-metallic font-bold text-base capitalize">{language} Playground</p>
+            <p className="text-zinc-600 text-[12px] font-mono tracking-wider">Loading your progress…</p>
+          </div>
+          {/* Three-dot loader */}
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <motion.span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-red-500"
+                animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.1, 0.8] }}
+                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -101,9 +140,17 @@ const LanguagePlayground = () => {
         <div className="w-full max-w-md border border-white/10 bg-[#111111] rounded-2xl p-8 text-center space-y-4">
           <h1 className="text-2xl font-semibold text-white">Language Not Found</h1>
           <p className="text-sm text-zinc-400">The playground for &quot;{language}&quot; is not available yet.</p>
-          <button onClick={() => navigate("/playground")} className="bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors">
+          <motion.button
+            onClick={() => navigate("/playground")}
+            whileHover={{ scale: 1.03 }}
+            className="text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
+            style={{
+              background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+              boxShadow: "0 2px 14px rgba(239,68,68,0.32)",
+            }}
+          >
             Back to Playgrounds
-          </button>
+          </motion.button>
         </div>
       </div>
     );
@@ -118,7 +165,10 @@ const LanguagePlayground = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen min-h-dvh bg-[#0a0a0a] text-white overflow-hidden">
+    <div 
+      className="flex flex-col h-screen min-h-dvh text-white overflow-hidden"
+      style={{ background: "radial-gradient(circle at 50% -20%, #1a1a1a 0%, #050505 100%)" }}
+    >
 
       {!isMobile && (
         <PlaygroundNavbar
@@ -159,9 +209,15 @@ const LanguagePlayground = () => {
                 />
               )}
 
-              <h1 className={cn("font-bold text-metallic leading-tight", isMobile ? "text-xl mb-4" : "text-3xl mb-6")}>
+              <motion.h1
+                key={currentProblem?.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className={cn("font-bold text-metallic leading-tight", isMobile ? "text-xl mb-4" : "text-3xl mb-6")}
+              >
                 {currentProblem?.title}
-              </h1>
+              </motion.h1>
 
               <TaskCard currentProblem={currentProblem} isMobile={isMobile} />
 
@@ -222,19 +278,34 @@ const LanguagePlayground = () => {
               )}
 
               <div className="mt-4">
-                <button
+                <motion.button
                   onClick={() => setShowDiscussion(!showDiscussion)}
-                  className={cn(
-                    "flex items-center gap-2 text-sm font-semibold transition-colors px-4 py-2.5 rounded-xl border",
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-all px-4 py-2.5 rounded-xl border"
+                  style={
                     showDiscussion
-                      ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
-                      : "bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-white/10",
-                  )}
+                      ? {
+                          background: "rgba(249,115,22,0.10)",
+                          border: "1px solid rgba(249,115,22,0.25)",
+                          color: "#fb923c",
+                          boxShadow: "0 0 14px rgba(249,115,22,0.12)",
+                        }
+                      : {
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          color: "#71717a",
+                        }
+                  }
                 >
-                  <MessageCircle className="w-4 h-4" /> Discussion
-                </button>
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Discussion
+                </motion.button>
                 {showDiscussion && (
-                  <div className="mt-3 rounded-xl border border-white/10 overflow-hidden h-[500px]">
+                  <div
+                    className="mt-3 rounded-xl border border-white/[0.08] overflow-hidden h-[500px]"
+                    style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+                  >
                     <DiscussionPanel language={language} problemId={currentProblem?.id} problemTitle={currentProblem?.title} />
                   </div>
                 )}

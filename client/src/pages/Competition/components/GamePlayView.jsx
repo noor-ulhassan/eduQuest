@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Eye, Timer, Trophy, Zap, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Eye, Timer, Trophy, Zap, Loader2, Swords, Users, GraduationCap, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingFeedback from "./FloatingFeedback";
@@ -70,24 +70,25 @@ const GamePlayView = ({
                   Challenge {questionIndex + 1}
                 </h2>
                 {currentGameMode === "practice" && (
-                  <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    Practice
+                  <span className="inline-flex items-center gap-1 text-[9px] bg-sky-500/15 text-sky-300 border border-sky-500/25 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    <GraduationCap size={10} /> Practice
                   </span>
                 )}
                 {currentGameMode === "duel" && (
-                  <span className="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    ⚔️ Duel
+                  <span className="inline-flex items-center gap-1 text-[9px] bg-orange-500/15 text-orange-300 border border-orange-500/30 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    <Swords size={10} /> Duel
                   </span>
                 )}
                 {currentGameMode === "team" && (
                   <span
-                    className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                    className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border"
                     style={{
-                      backgroundColor: playerTeam?.[userId] === 0 ? "rgba(59,130,246,0.2)" : "rgba(239,68,68,0.2)",
+                      backgroundColor: playerTeam?.[userId] === 0 ? "rgba(59,130,246,0.15)" : "rgba(239,68,68,0.15)",
+                      borderColor: playerTeam?.[userId] === 0 ? "rgba(59,130,246,0.3)" : "rgba(239,68,68,0.3)",
                       color: playerTeam?.[userId] === 0 ? "#93c5fd" : "#fca5a5",
                     }}
                   >
-                    {playerTeam?.[userId] === 0 ? "🔵 Team Blue" : "🔴 Team Red"}
+                    <Users size={10} /> {playerTeam?.[userId] === 0 ? "Team Blue" : "Team Red"}
                   </span>
                 )}
               </div>
@@ -167,10 +168,34 @@ const GamePlayView = ({
             }`}
           >
             {isPowerQuestion && (
-              <div className="px-5 py-2 border-b border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2">
-                <Zap size={13} className="text-yellow-400" fill="currentColor" />
-                <span className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">
-                  Power Question — 2× Points!
+              <div
+                className="relative overflow-hidden px-5 py-2.5 border-b border-yellow-500/25 flex items-center gap-2.5"
+                style={{ background: "linear-gradient(90deg, rgba(234,179,8,0.18), rgba(249,115,22,0.05))" }}
+              >
+                <motion.span
+                  aria-hidden
+                  className="absolute inset-y-0 w-24 pointer-events-none"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(253,224,71,0.35), transparent)" }}
+                  animate={{ x: ["-6rem", "130%"] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.span
+                  className="relative flex items-center justify-center w-6 h-6 rounded-md bg-yellow-400/20 border border-yellow-400/40"
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Zap
+                    size={13}
+                    className="text-yellow-300"
+                    fill="currentColor"
+                    style={{ filter: "drop-shadow(0 0 4px rgba(250,204,21,0.8))" }}
+                  />
+                </motion.span>
+                <span className="relative text-[11px] font-black text-yellow-300 uppercase tracking-[0.18em]">
+                  Power Question
+                </span>
+                <span className="relative ml-auto text-[10px] font-black text-yellow-950 bg-yellow-400 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(250,204,21,0.5)]">
+                  2× Points
                 </span>
               </div>
             )}
@@ -218,7 +243,7 @@ const GamePlayView = ({
             {currentGameMode === "duel" ? (
               <Card className="bg-zinc-900 border-zinc-800 p-4 space-y-3 h-fit sticky top-5">
                 <h3 className="font-bold text-xs text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>⚔️</span> Duel
+                  <Swords size={13} className="text-orange-400" /> Duel
                 </h3>
                 {(() => {
                   const me = leaderboard.find((p) => p.id === userId);
@@ -235,8 +260,14 @@ const GamePlayView = ({
                         <span className="text-lg font-black text-zinc-300">{opp?.score ?? 0}</span>
                       </div>
                       {opp && (
-                        <div className="text-[10px] text-zinc-500 text-center">
-                          {opp.finished ? "Opponent finished ✓" : `Opponent on Q${(opp.currentQuestion || 0) + 1}`}
+                        <div className="text-[10px] text-zinc-500 text-center flex items-center justify-center gap-1">
+                          {opp.finished ? (
+                            <>
+                              <Check size={10} className="text-emerald-400" /> Opponent finished
+                            </>
+                          ) : (
+                            `Opponent on Q${(opp.currentQuestion || 0) + 1}`
+                          )}
                         </div>
                       )}
                     </div>

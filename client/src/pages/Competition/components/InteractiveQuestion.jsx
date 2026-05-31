@@ -74,7 +74,7 @@ const Feedback = ({ result, correctAnswerData }) => {
         </motion.div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <p className={`font-black text-xl italic tracking-tight uppercase ${
+            <p className={`font-black text-xl tracking-tight uppercase ${
               isCorrect
                 ? "text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
                 : "text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]"
@@ -86,7 +86,7 @@ const Feedback = ({ result, correctAnswerData }) => {
                 initial={{ scale: 0, y: 10 }}
                 animate={{ scale: 1, y: 0 }}
                 transition={{ type: "spring", delay: 0.2, stiffness: 300 }}
-                className="flex items-center gap-1 text-sm font-black text-yellow-400 bg-yellow-500/20 px-3 py-0.5 rounded-full border border-yellow-500/30 italic"
+                className="flex items-center gap-1 text-sm font-black text-yellow-400 bg-yellow-500/20 px-3 py-0.5 rounded-full border border-yellow-500/30"
               >
                 <Zap size={14} className="fill-yellow-400" />+{result.pointsEarned} XP
               </motion.span>

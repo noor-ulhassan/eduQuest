@@ -2,7 +2,12 @@ import React from "react";
 import { ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function HintsPanel({ hints, showHints, setShowHints, isMobile }) {
+export default function HintsPanel({
+  hints,
+  showHints,
+  setShowHints,
+  isMobile,
+}) {
   if (!hints || hints.length === 0) return null;
 
   if (isMobile) {
@@ -10,12 +15,18 @@ export default function HintsPanel({ hints, showHints, setShowHints, isMobile })
       <div className="bg-[#1a1a1a] border border-white/10 rounded-[24px] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
-              <img src="/hint2.svg" alt="Hint" className="w-20 h-20 object-contain" />
-            </div>
+            <img
+              src="/hint2.svg"
+              alt="Hint"
+              className="w-10 h-10 object-contain drop-shadow-md"
+            />
             <div>
-              <h4 className="text-[17px] font-bold text-white mb-0.5">Need a hint?</h4>
-              <p className="text-[13px] text-zinc-400">Reveal a tip to help you solve it</p>
+              <h4 className="text-[17px] font-bold text-white mb-0.5">
+                Need a hint?
+              </h4>
+              <p className="text-[13px] text-zinc-400">
+                Reveal a tip to help you solve it
+              </p>
             </div>
           </div>
           <button
@@ -40,7 +51,10 @@ export default function HintsPanel({ hints, showHints, setShowHints, isMobile })
               className="overflow-hidden mt-4 space-y-2"
             >
               {hints.map((hint, i) => (
-                <p key={i} className="text-sm text-red-200/90 pl-3 border-l-2 border-purple-500 py-1">
+                <p
+                  key={i}
+                  className="text-sm text-red-200/90 pl-3 border-l-2 border-red-500 py-1"
+                >
                   {hint}
                 </p>
               ))}
@@ -56,33 +70,39 @@ export default function HintsPanel({ hints, showHints, setShowHints, isMobile })
       className="rounded-xl overflow-hidden"
       style={{
         background: "linear-gradient(180deg, #121212 0%, #0f0f0f 100%)",
-        border: "1px solid rgba(234,179,8,0.16)",
+        border: `1px solid ${showHints ? "rgba(234,179,8,0.30)" : "rgba(234,179,8,0.22)"}`,
+        transition: "border-color 0.2s ease",
       }}
     >
       <button
         onClick={() => setShowHints(!showHints)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left group hover:bg-amber-500/[0.03] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-left group hover:bg-amber-500/[0.06] transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            style={{
-              background: "linear-gradient(135deg, rgba(234,179,8,0.16), rgba(234,179,8,0.04))",
-              border: "1px solid rgba(234,179,8,0.25)",
-            }}
-          >
-            <img src="/hint2.svg" alt="Hint" className="w-6 h-6 object-contain" />
-          </div>
+          <motion.img
+            src="/hint2.svg"
+            alt="Hint"
+            className="w-8 h-8 object-contain drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+            animate={{ rotate: showHints ? [0, -5, 5, 0] : [0, 5, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          />
           <div>
-            <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.18em] block">
-              {showHints ? "Hide Hints" : `${hints.length} Hint${hints.length > 1 ? "s" : ""} Available`}
+            <span className="text-[11px] font-black text-metallic uppercase tracking-[0.18em] block">
+              {showHints
+                ? "Hide Hints"
+                : `${hints.length} Hint${hints.length > 1 ? "s" : ""} Available`}
             </span>
             {!showHints && (
-              <p className="text-[10px] text-zinc-600 mt-0.5">Revealing hints may reduce XP earned</p>
+              <p className="text-[10px] text-metallic-orange mt-0.5">
+                Revealing hints may reduce XP earned
+              </p>
             )}
           </div>
         </div>
-        <motion.div animate={{ rotate: showHints ? 90 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.div
+          animate={{ rotate: showHints ? 90 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
           <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-amber-300 transition-colors" />
         </motion.div>
       </button>
@@ -114,11 +134,14 @@ export default function HintsPanel({ hints, showHints, setShowHints, isMobile })
                       background: "rgba(234,179,8,0.14)",
                       color: "#fbbf24",
                       border: "1px solid rgba(234,179,8,0.2)",
+                      boxShadow: "0 0 6px rgba(234,179,8,0.12)",
                     }}
                   >
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <p className="text-[13px] text-zinc-300 leading-relaxed">{hint}</p>
+                  <p className="text-[13px] text-zinc-200 leading-relaxed">
+                    {hint}
+                  </p>
                 </motion.div>
               ))}
             </div>
