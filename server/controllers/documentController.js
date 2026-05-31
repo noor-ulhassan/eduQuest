@@ -8,26 +8,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-function detectChapterFromText(text) {
-  const patterns = [
-    /\bChapter\s+(\d+)/i,
-    /\bCh[\.\s]+(\d+)/i,
-    /^(\d+)\.\s+[A-Z]/m,
-    /\bUnit\s+(\d+)/i,
-    /\bModule\s+(\d+)/i,
-    /\bPart\s+(\d+)/i,
-    /\bSection\s+(\d+)/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      return parseInt(match[1], 10);
-    }
-  }
-  return null;
-}
-
 // Detects non-content chunks: title page, table of contents, alphabetical
 // index, bibliography, acknowledgement name-lists. These are keyword-dense
 // fragments with no real sentences — they otherwise outrank actual prose in
@@ -69,18 +49,6 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     const loader = new PDFLoader(filePath);
     const docs = await loader.load();
 
-    let currentChapter = 1;
-    const pageChapterMap = {};
-    for (const doc of docs) {
-      const pageNum =
-        doc.metadata?.loc?.pageNumber ??
-        (doc.metadata?.page != null ? doc.metadata.page + 1 : null) ??
-        1;
-      const detected = detectChapterFromText(doc.pageContent);
-      if (detected !== null) currentChapter = detected;
-      pageChapterMap[pageNum] = currentChapter;
-    }
-
     console.log("Step 2: Splitting text into chunks...");
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 700,
@@ -96,7 +64,10 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     );
 
     if (contentDocs.length === 0) {
-      throw new ApiError(400, "No readable text found in this PDF.");
+      throw new ApiError(
+        400,
+        "No readable text found. Scanned or image-only PDFs aren't supported — please upload a text-based PDF.",
+      );
     }
     if (contentDocs.length > MAX_CHUNKS) {
       throw new ApiError(
@@ -124,7 +95,6 @@ export const uploadDocument = asyncHandler(async (req, res) => {
         documentId: document._id.toString(),
         chunkIndex: index,
         pageNumber: pageNum,
-        chapterNumber: pageChapterMap[pageNum] || 1,
         fileName: req.file.originalname,
       };
     });
@@ -160,13 +130,10 @@ export const uploadDocument = asyncHandler(async (req, res) => {
       }
     }
 
-    const chaptersArr = [...new Set(Object.values(pageChapterMap))].sort((a, b) => a - b);
-
     document.filePath = cloudinaryResponse.secure_url;
     document.cloudinaryPublicId = cloudinaryResponse.public_id;
     document.totalPages = docs.length;
     document.chunksStored = contentDocs.length;
-    document.chapters = chaptersArr;
     document.status = "ready";
     await document.save();
 

@@ -40,7 +40,6 @@ export const uploadApi = {
         fileName: doc.title,
         totalPages: doc.totalPages,
         chunksStored: doc.chunksStored,
-        chapters: doc.chapters || [],
         uploadedAt: doc.createdAt,
       };
     } catch (err) {

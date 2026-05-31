@@ -105,10 +105,9 @@ function MessageBubble({ message, isUser, sources = [], isError = false }) {
               <div className="mt-2 space-y-1.5">
                 {sources.map((s, i) => (
                   <div key={i} className="bg-[#0a0a0a] border border-white/8 rounded-xl px-3 py-2 text-xs">
-                    {(s.page || s.chapter) && (
+                    {s.page && (
                       <div className="flex items-center gap-2 mb-1">
-                        {s.page    && <span className="text-red-400/80 font-medium">Pg {s.page}</span>}
-                        {s.chapter && <span className="text-zinc-600">· Ch {s.chapter}</span>}
+                        <span className="text-red-400/80 font-medium">Pg {s.page}</span>
                       </div>
                     )}
                     <p className="text-zinc-600 italic leading-relaxed">{s.text}</p>

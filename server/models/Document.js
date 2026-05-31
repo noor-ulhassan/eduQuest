@@ -37,10 +37,6 @@ const documentSchema = new Schema(
       type: Number,
       default: 0,
     },
-    chapters: {
-      type: [Number],
-      default: [],
-    },
     uploadDate: { type: Date, default: Date.now },
     lastAccess: { type: Date, default: Date.now },
     status: {

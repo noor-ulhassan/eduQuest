@@ -97,14 +97,6 @@ function UploadView({ onUploadSuccess }) {
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Chunks Stored</p>
                 <p className="text-sm font-medium text-gray-900 mt-1">{uploadResult.chunksStored}</p>
               </div>
-              {uploadResult.chapters && uploadResult.chapters.length > 0 && (
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Chapters Detected</p>
-                  <p className="text-sm font-medium text-gray-900 mt-1">
-                    {uploadResult.chapters.join(', ')} ({uploadResult.chapters.length} total)
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 

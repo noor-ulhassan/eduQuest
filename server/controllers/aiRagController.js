@@ -72,7 +72,6 @@ Student's Question: ${message}`,
       sources: results.map((d) => ({
         text: d.pageContent.substring(0, 120) + "...",
         page: d.metadata?.pageNumber,
-        chapter: d.metadata?.chapterNumber,
       })),
     }),
   );
@@ -130,14 +129,14 @@ export const explainText = asyncHandler(async (req, res) => {
           documentId,
           pageNumber: { $in: [page - 1, page, page + 1] },
         })
-        .project({ text: 1, pageNumber: 1, chapterNumber: 1 })
+        .project({ text: 1, pageNumber: 1 })
         .toArray();
 
       for (const doc of nearby) {
         if (!seenTexts.has(doc.text)) {
           allChunks.push({
             pageContent: doc.text,
-            metadata: { pageNumber: doc.pageNumber, chapterNumber: doc.chapterNumber },
+            metadata: { pageNumber: doc.pageNumber },
           });
           seenTexts.add(doc.text);
         }
@@ -170,7 +169,6 @@ Explain what the highlighted text means.
       sources: allChunks.map((d) => ({
         text: d.pageContent.substring(0, 120) + "...",
         page: d.metadata?.pageNumber,
-        chapter: d.metadata?.chapterNumber,
       })),
     }),
   );
