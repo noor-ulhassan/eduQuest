@@ -575,7 +575,7 @@ const AchievementsDialog = ({ open, onClose, user }) => {
 /* ─── Main Compact Card ──────────────────────────────────── */
 const PREVIEW_COUNT = 4;
 
-const AchievementsCard = () => {
+const AchievementsCard = ({ className = "" }) => {
   const user = useSelector((state) => state.auth.user);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -600,8 +600,8 @@ const AchievementsCard = () => {
   return (
     <>
       <div
-        className="relative rounded-2xl overflow-hidden w-full"
-        style={{ background: "#1a1730", border: "1px solid #1a1a1a" }}
+        className={`relative rounded-2xl overflow-hidden w-full ${className || "border border-[#1a1a1a]"}`}
+        style={!className ? { background: "#1a1730" } : undefined}
       >
         {/* Orange top accent line */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent" />

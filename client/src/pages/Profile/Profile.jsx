@@ -119,7 +119,6 @@ const Profile = () => {
             />
             <SkillsDialog skills={skills} />
 
-            <Achievements userBadges={user.badges || []} />
           </div>
         </div>
         {/* 🔹 Edit Profile Modal */}
