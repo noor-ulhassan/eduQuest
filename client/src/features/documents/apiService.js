@@ -29,18 +29,25 @@ export const uploadApi = {
     formData.append('file', file);
     formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
 
-    const res = await api.post('/documents/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    try {
+      const res = await api.post('/documents/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-    const doc = res.data.data;
-    return {
-      documentId: doc._id,
-      fileName: doc.title,
-      totalPages: null,
-      chunksStored: null,
-      chapters: [],
-      uploadedAt: doc.createdAt,
-    };
+      const doc = res.data.data;
+      return {
+        documentId: doc._id,
+        fileName: doc.title,
+        totalPages: doc.totalPages,
+        chunksStored: doc.chunksStored,
+        chapters: doc.chapters || [],
+        uploadedAt: doc.createdAt,
+      };
+    } catch (err) {
+      // Surface the server's message (rate-limit / too-large / etc.) to the UI.
+      throw new Error(
+        err.response?.data?.message || err.message || 'Upload failed. Please try again.',
+      );
+    }
   },
 };

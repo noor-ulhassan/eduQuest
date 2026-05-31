@@ -28,23 +28,42 @@ function detectChapterFromText(text) {
   return null;
 }
 
+// Detects non-content chunks: title page, table of contents, alphabetical
+// index, bibliography, acknowledgement name-lists. These are keyword-dense
+// fragments with no real sentences — they otherwise outrank actual prose in
+// vector search and pollute chat/quiz/explain. Real prose almost always has at
+// least one sentence-ending period per ~570-char chunk; these lists have none.
+function isLowValueChunk(text) {
+  const t = (text || "").trim();
+  if (t.length < 50) return true;
+
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length < 12) return true;
+
+  const sentenceEnders = (t.match(/[.!?](\s|$)/g) || []).length;
+  if (sentenceEnders > 0) return false;
+
+  const commaRatio = (t.match(/,/g) || []).length / words.length;
+  const digitRatio = (t.match(/\d/g) || []).length / t.length;
+  return commaRatio >= 0.08 || digitRatio >= 0.1;
+}
+
+// Free-tier embedding budget is ~100 requests/minute, counted PER TEXT. So a
+// batch of <=90 texts fits inside one minute's window; bigger docs are paced
+// one batch per minute. MAX_CHUNKS keeps a single upload to a few minutes.
+const BATCH_SIZE = 90;
+const MAX_CHUNKS = 270; // ~3 batches ≈ ≤2 min upload
+const PACE_MS = 60000; // wait out the per-minute window between batches
+
 export const uploadDocument = asyncHandler(async (req, res) => {
+  let document = null;
+
   try {
     if (!req.file) throw new ApiError(400, "Please upload a PDF file");
-
-    let filePath = req.file.path;
     const { title } = req.body;
-
     if (!title) throw new ApiError(400, "Please provide a document title");
 
-    const document = await Document.create({
-      userId: req.user._id,
-      title,
-      fileName: req.file.originalname,
-      filePath: "pending",
-      fileSize: req.file.size,
-      status: "processing",
-    });
+    const filePath = req.file.path;
 
     console.log("Step 1: Loading PDF with LangChain...");
     const loader = new PDFLoader(filePath);
@@ -52,16 +71,13 @@ export const uploadDocument = asyncHandler(async (req, res) => {
 
     let currentChapter = 1;
     const pageChapterMap = {};
-
     for (const doc of docs) {
       const pageNum =
         doc.metadata?.loc?.pageNumber ??
         (doc.metadata?.page != null ? doc.metadata.page + 1 : null) ??
         1;
       const detected = detectChapterFromText(doc.pageContent);
-      if (detected !== null) {
-        currentChapter = detected;
-      }
+      if (detected !== null) currentChapter = detected;
       pageChapterMap[pageNum] = currentChapter;
     }
 
@@ -72,7 +88,33 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     });
     const splitDocs = await splitter.splitDocuments(docs);
 
-    splitDocs.forEach((doc, index) => {
+    // Drop non-content chunks (title/TOC/index/bibliography/acknowledgements)
+    // so they don't pollute retrieval across chat, quiz, and explain.
+    const contentDocs = splitDocs.filter((d) => !isLowValueChunk(d.pageContent));
+    console.log(
+      `Filtered ${splitDocs.length - contentDocs.length} low-value chunks; ${contentDocs.length} remain.`,
+    );
+
+    if (contentDocs.length === 0) {
+      throw new ApiError(400, "No readable text found in this PDF.");
+    }
+    if (contentDocs.length > MAX_CHUNKS) {
+      throw new ApiError(
+        413,
+        `This PDF is too large for the demo's free-tier limit (${contentDocs.length} chunks; max ${MAX_CHUNKS}). Please upload a shorter document.`,
+      );
+    }
+
+    document = await Document.create({
+      userId: req.user._id,
+      title,
+      fileName: req.file.originalname,
+      filePath: "pending",
+      fileSize: req.file.size,
+      status: "processing",
+    });
+
+    contentDocs.forEach((doc, index) => {
       const pageNum =
         doc.metadata?.loc?.pageNumber ??
         (doc.metadata?.page != null ? doc.metadata.page + 1 : null) ??
@@ -89,23 +131,32 @@ export const uploadDocument = asyncHandler(async (req, res) => {
 
     console.log("Step 3: Uploading to Cloudinary...");
     const cloudinaryResponse = await uploadOnCloudinary(filePath);
+    if (!cloudinaryResponse) throw new ApiError(500, "Failed to upload file to storage.");
 
-    if (!cloudinaryResponse) {
-      throw new Error("Failed to upload to Cloudinary");
-    }
-
-    console.log("Step 4: Storing chunks in Vector DB...");
+    console.log("Step 4: Embedding + storing chunks...");
     const vectorStore = getVectorStore();
-    const BATCH_SIZE = 50;
+    const totalBatches = Math.ceil(contentDocs.length / BATCH_SIZE);
 
-    for (let i = 0; i < splitDocs.length; i += BATCH_SIZE) {
-      const batch = splitDocs.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < contentDocs.length; i += BATCH_SIZE) {
+      const batch = contentDocs.slice(i, i + BATCH_SIZE);
+      console.log(`⏳ Embedding batch ${Math.floor(i / BATCH_SIZE) + 1} of ${totalBatches} (${batch.length} chunks)...`);
 
-      console.log(`⏳ Embedding batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(splitDocs.length / BATCH_SIZE)}...`);
-      await vectorStore.addDocuments(batch);
+      // Embed explicitly so a rate-limit (429) surfaces instead of being
+      // silently stored as empty vectors (LangChain returns [] on failure).
+      const vectors = await vectorStore.embeddings.embedDocuments(
+        batch.map((d) => d.pageContent),
+      );
+      if (vectors.some((v) => !v || v.length === 0)) {
+        throw new ApiError(
+          429,
+          "Embedding rate limit reached. Your document was not saved — please wait about a minute and try again.",
+        );
+      }
+      await vectorStore.addVectors(vectors, batch);
 
-      if (i + BATCH_SIZE < splitDocs.length) {
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+      // Pace under the free-tier per-minute limit before the next batch.
+      if (i + BATCH_SIZE < contentDocs.length) {
+        await new Promise((resolve) => setTimeout(resolve, PACE_MS));
       }
     }
 
@@ -114,7 +165,7 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     document.filePath = cloudinaryResponse.secure_url;
     document.cloudinaryPublicId = cloudinaryResponse.public_id;
     document.totalPages = docs.length;
-    document.chunksStored = splitDocs.length;
+    document.chunksStored = contentDocs.length;
     document.chapters = chaptersArr;
     document.status = "ready";
     await document.save();
@@ -122,6 +173,23 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     return res
       .status(201)
       .json(new ApiResponse(201, { data: document }, "Document uploaded successfully."));
+  } catch (err) {
+    // Roll everything back so we never leave a stuck "processing" document or
+    // orphaned/empty chunks: purge chunks, the Cloudinary file, and the record.
+    if (document?._id) {
+      const id = document._id.toString();
+      try {
+        const chunks = getChunksCollection();
+        if (chunks) await chunks.deleteMany({ documentId: id });
+      } catch (e) {
+        console.error("Rollback: chunk cleanup failed:", e.message);
+      }
+      if (document.cloudinaryPublicId || (document.filePath && document.filePath !== "pending")) {
+        await deleteFromCloudinary(document.cloudinaryPublicId || document.filePath);
+      }
+      await Document.deleteOne({ _id: document._id }).catch(() => {});
+    }
+    throw err;
   } finally {
     try {
       if (req.file?.path) {
