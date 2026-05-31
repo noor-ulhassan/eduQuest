@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callAiModel } from "../config/aiProvider.js";
 
 // ─── PROMPT INPUT SANITIZATION ────────────────────────────
 const ALLOWED_PROMPT_CHARS = /[^a-zA-Z0-9 .,'!?:()\-_#@&+/]/g;
@@ -13,20 +13,6 @@ function sanitizePromptInput(str, maxLen = 200) {
     .replace(INJECTION_PATTERNS, "")
     .trim()
     .slice(0, maxLen);
-}
-
-// ─── GEMINI CLIENT SINGLETON ──────────────────────────────
-let _genAI = null;
-let _model = null;
-function getModel() {
-  if (!_model) {
-    _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    _model = _genAI.getGenerativeModel({
-      model: "gemini-3.1-flash-lite",
-      generationConfig: { temperature: 0.95 },
-    });
-  }
-  return _model;
 }
 
 // ─── DIFFICULTY TONE MAPPING ──────────────────────────────
@@ -294,122 +280,6 @@ Schema:
 `;
 }
 
-function buildCodeRefactorPrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-}) {
-  const topicLine = topic ? `Focus area: ${topic}` : "";
-  const descLine = description ? `Additional context: ${description}` : "";
-
-  return `
-You are a "Code Refactor" challenge designer. Present WORKING but POORLY WRITTEN code that needs improvement.
-
-${DIFFICULTY_TONES[difficulty] || DIFFICULTY_TONES.medium}
-
-Language: ${language}
-${topicLine}
-${descLine}
-
-Generate ${totalQuestions} code refactoring challenges.
-
-RULES:
-- Each challenge shows functioning but messy/inefficient code (8-15 lines)
-- Include a narrative: "This code was written during a hackathon and now needs to be production-ready..."
-- Issues can be: poor naming, God functions, magic numbers, missing error handling, O(n²) when O(n) is possible, callback hell, etc.
-- Present 4 options for the BEST refactored version or approach
-- The code must WORK but be clearly improvable
-
-Each question must have:
-- scenario: context about why this code needs refactoring (1-2 sentences)
-- question: "Which refactoring best improves this code?" or similar
-- buggyCode: the working-but-messy code (as a string, use \\\\n for newlines)  
-- options: array of EXACTLY 4 refactoring approaches
-- correctAnswer: must match one option EXACTLY
-- explanation: why this refactoring is the best choice
-- difficulty: "${difficulty}"
-
-Return ONLY valid JSON. No markdown. No backticks.
-Schema:
-{
-  "questions": [
-    {
-      "scenario": "",
-      "question": "",
-      "buggyCode": "",
-      "options": ["", "", "", ""],
-      "correctAnswer": "",
-      "explanation": "",
-      "difficulty": ""
-    }
-  ]
-}
-`;
-}
-
-function buildMissingLinkPrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-  category,
-}) {
-  const topicLine = topic ? `Domain: ${topic}` : "";
-  const descLine = description ? `Additional context: ${description}` : "";
-  const isGeneral = category === "general";
-
-  const focusArea = isGeneral
-    ? `Generate questions about connecting concepts: "Given this database schema, what API endpoint design would be correct?" or "Given this user requirement, which architecture pattern fits?"`
-    : `Generate questions about connecting different parts of a ${language} full-stack application: "Given this MongoDB schema and React component, write the missing Express controller" or "Given this API response, what should the frontend state look like?"`;
-
-  return `
-You are a "Missing Link" challenge designer. Present PARTIAL context and ask the competitor to identify or complete the MISSING PIECE.
-
-${DIFFICULTY_TONES[difficulty] || DIFFICULTY_TONES.medium}
-
-Language: ${language}
-${topicLine}
-${descLine}
-
-${focusArea}
-
-Generate ${totalQuestions} "missing link" challenges.
-
-RULES:
-- Show two connected pieces of a system with the bridge between them missing
-- Include a narrative: "The frontend team built this component, the database team designed this schema. What Express route connects them?"
-- The question tests understanding of how different parts of a system INTEGRATE
-- Present 4 options for the missing piece
-
-Each question must have:
-- scenario: narrative about the system and what exists (2-3 sentences)
-- question: "What is the missing piece?" or "Which implementation correctly connects these?"
-- contextCode: the existing code/schema that provides context (as a string, use \\\\n for newlines). For general category, this can be a text description of the architecture.
-- options: array of EXACTLY 4 possible missing pieces
-- correctAnswer: must match one option EXACTLY
-- explanation: why this piece correctly connects the system
-- difficulty: "${difficulty}"
-
-Return ONLY valid JSON. No markdown. No backticks.
-Schema:
-{
-  "questions": [
-    {
-      "scenario": "",
-      "question": "",
-      "contextCode": "",
-      "options": ["", "", "", ""],
-      "correctAnswer": "",
-      "explanation": "",
-      "difficulty": ""
-    }
-  ]
-}
-`;
-}
 
 // ─── INTERACTIVE MODE ─────────────────────────────────────
 function buildInteractivePrompt({
@@ -937,7 +807,6 @@ Schema:
 
 // ─── CHALLENGE MODE REGISTRY ──────────────────────────────
 const CHALLENGE_MODES = {
-  // General category modes
   classic: {
     general: buildClassicQuizPrompt,
     programming: buildClassicProgrammingPrompt,
@@ -953,18 +822,6 @@ const CHALLENGE_MODES = {
   outage: {
     general: buildProductionOutagePrompt,
     programming: buildProductionOutagePrompt,
-  },
-  refactor: {
-    general: buildCodeRefactorPrompt,
-    programming: buildCodeRefactorPrompt,
-  },
-  missing: {
-    general: buildMissingLinkPrompt,
-    programming: buildMissingLinkPrompt,
-  },
-  interactive: {
-    general: buildInteractivePrompt,
-    programming: buildInteractivePrompt,
   },
   visual_interactive: {
     general: buildInteractivePrompt,
@@ -1212,8 +1069,6 @@ export const generateCompetitionQuestions = async ({
   description = "",
   totalQuestions = 5,
 }) => {
-  const model = getModel();
-
   const safeTopic = sanitizePromptInput(topic);
   const safeDescription = sanitizePromptInput(description, 400);
 
@@ -1235,65 +1090,33 @@ export const generateCompetitionQuestions = async ({
     `[Questions] Generating: mode=${challengeMode}, category=${category}, difficulty=${difficulty}, count=${totalQuestions}`,
   );
 
-  // Visual interactive needs more retries — path validation is strict
+  // visual_interactive needs more retries — path validation is strict
   const MAX_RETRIES = challengeMode === "visual_interactive" ? 5 : 3;
+  const TIMEOUT_MS = challengeMode === "visual_interactive" ? 60000 : 30000;
+  const wait = (attempt) =>
+    new Promise((r) => setTimeout(r, Math.pow(2, attempt - 1) * 1000));
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const timeoutMs = challengeMode === "visual_interactive" ? 60000 : 30000;
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
-          () =>
-            reject(
-              new Error(`Gemini API timed out after ${timeoutMs / 1000}s`),
-            ),
-          timeoutMs,
+          () => reject(new Error(`AI timed out after ${TIMEOUT_MS / 1000}s`)),
+          TIMEOUT_MS,
         ),
       );
 
-      const result = await Promise.race([
-        model.generateContent(prompt),
+      // callAiModel handles JSON parsing + Groq fallback on rate-limit internally
+      const parsed = await Promise.race([
+        callAiModel(prompt, { json: true, model: "gemini-3.1-flash-lite" }),
         timeoutPromise,
       ]);
 
-      const text = (await result.response).text();
-
-      const cleanedText = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      let parsed;
-      try {
-        parsed = JSON.parse(cleanedText);
-      } catch (e) {
-        console.error(
-          `[CompetitionQuestions] Attempt ${attempt}: Failed to parse Gemini response:`,
-          e,
-        );
-        console.error(
-          "[CompetitionQuestions] Raw text:",
-          cleanedText.substring(0, 500),
-        );
-        lastError = new Error("Failed to parse AI response as JSON");
-        if (attempt < MAX_RETRIES) {
-          const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
-          console.log(`[CompetitionQuestions] Retrying in ${delay}ms...`);
-          await new Promise((r) => setTimeout(r, delay));
-          continue;
-        }
-        throw lastError;
-      }
-
-      if (!parsed.questions || !Array.isArray(parsed.questions)) {
+      if (!parsed?.questions || !Array.isArray(parsed.questions)) {
         lastError = new Error("Invalid question format from AI");
         if (attempt < MAX_RETRIES) {
-          const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(
-            `[CompetitionQuestions] Invalid format, retrying in ${delay}ms...`,
-          );
-          await new Promise((r) => setTimeout(r, delay));
+          console.log(`[CompetitionQuestions] Invalid format, retrying...`);
+          await wait(attempt);
           continue;
         }
         throw lastError;
@@ -1310,57 +1133,37 @@ export const generateCompetitionQuestions = async ({
           .join(""),
       );
 
-      // Validate each question before returning
       const validQuestions = parsed.questions.filter((q, i) =>
         validateQuestion(q, i),
       );
       if (validQuestions.length === 0) {
         lastError = new Error("All generated questions failed validation");
         if (attempt < MAX_RETRIES) {
-          const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(
-            `[CompetitionQuestions] All questions invalid, retrying in ${delay}ms...`,
-          );
-          await new Promise((r) => setTimeout(r, delay));
+          console.log(`[CompetitionQuestions] All questions invalid, retrying...`);
+          await wait(attempt);
           continue;
         }
         throw lastError;
       }
       if (validQuestions.length < parsed.questions.length) {
         console.warn(
-          `[Questions] ${parsed.questions.length - validQuestions.length} questions filtered out by validation`,
+          `[Questions] ${parsed.questions.length - validQuestions.length} questions filtered out`,
         );
       }
 
       return validQuestions;
     } catch (err) {
       lastError = err;
-      if (err.status === 429) {
-        console.error(
-          `[CompetitionQuestions] Quota exceeded (429) — skipping retries`,
-        );
+      // If both Gemini and Groq are quota-exhausted, bail immediately
+      if (err.status === 429 || err.message?.includes("QUOTA_EXCEEDED")) {
         throw new Error("QUOTA_EXCEEDED");
       }
-      if (err.name === "AbortError") {
-        console.error(
-          `[CompetitionQuestions] Attempt ${attempt}: Timed out after 30s`,
-        );
-      } else {
-        console.error(
-          `[CompetitionQuestions] Attempt ${attempt}: ${err.message}`,
-        );
-      }
-      if (attempt < MAX_RETRIES) {
-        const delay = Math.pow(2, attempt - 1) * 1000;
-        console.log(`[CompetitionQuestions] Retrying in ${delay}ms...`);
-        await new Promise((r) => setTimeout(r, delay));
-      }
+      console.error(`[CompetitionQuestions] Attempt ${attempt}: ${err.message}`);
+      if (attempt < MAX_RETRIES) await wait(attempt);
     }
   }
 
-  throw (
-    lastError || new Error("Failed to generate questions after all retries")
-  );
+  throw lastError || new Error("Failed to generate questions after all retries");
 };
 
 // ─── AVAILABLE MODES PER CATEGORY ─────────────────────────

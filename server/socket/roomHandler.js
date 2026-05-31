@@ -368,7 +368,7 @@ export function initializeSocket(io) {
 
       // Validate and apply settings with allow-lists and bounds
       const validCategories = ["programming", "general"];
-      const validModes = ["classic", "scenario", "debug", "outage", "refactor", "missing", "interactive", "visual_interactive"];
+      const validModes = ["classic", "scenario", "debug", "outage", "visual_interactive"];
       const validGameModes = ["classic", "survival", "blitz", "team", "duel", "practice"];
       const validDifficulties = ["easy", "medium", "hard"];
 
