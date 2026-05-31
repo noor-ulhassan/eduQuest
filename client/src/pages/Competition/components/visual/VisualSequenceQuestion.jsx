@@ -24,6 +24,7 @@ import {
   RotateCcw,
   Check,
   X,
+  Loader2,
   ArrowUpRight,
   ArrowDownRight,
   ArrowDownLeft,
@@ -541,13 +542,7 @@ export default function VisualSequenceQuestion({
                   exit={{ opacity: 0, y: -4 }}
                   className="px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 bg-orange-500/15 text-orange-300 border border-orange-500/30 font-mono"
                 >
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-                    className="inline-block"
-                  >
-                    ⚙
-                  </motion.span>
+                  <Loader2 size={11} className="animate-spin" />
                   Step {Math.max(1, executingStep + 1)} / {order.length}
                 </motion.div>
               ) : localResult ? (
@@ -665,13 +660,7 @@ export default function VisualSequenceQuestion({
               )}
               {isAnimating ? (
                 <>
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="inline-block"
-                  >
-                    ⚙
-                  </motion.span>
+                  <Loader2 size={15} className="animate-spin" />
                   Running…
                 </>
               ) : (

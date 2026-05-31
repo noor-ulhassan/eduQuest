@@ -62,7 +62,7 @@ export default function VisualResultOverlay({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
             <p
-              className={`font-black text-lg sm:text-xl italic uppercase tracking-tight leading-none ${
+              className={`font-black text-lg sm:text-xl uppercase tracking-tight leading-none ${
                 ok
                   ? "text-emerald-300 drop-shadow-[0_0_10px_rgba(16,185,129,0.45)]"
                   : "text-rose-300 drop-shadow-[0_0_10px_rgba(244,63,94,0.45)]"
@@ -75,7 +75,7 @@ export default function VisualResultOverlay({
                 initial={{ scale: 0, y: 6 }}
                 animate={{ scale: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 320, delay: 0.18 }}
-                className="flex items-center gap-1 text-xs sm:text-sm font-black text-yellow-300 bg-yellow-500/15 px-2.5 py-0.5 rounded-full border border-yellow-500/30 italic"
+                className="flex items-center gap-1 text-xs sm:text-sm font-black text-yellow-300 bg-yellow-500/15 px-2.5 py-0.5 rounded-full border border-yellow-500/30"
               >
                 <Zap size={12} className="fill-yellow-400" />+
                 {result.pointsEarned} XP

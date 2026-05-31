@@ -6,7 +6,7 @@ export default function MobileHeader({ title, xp, progressPercent }) {
   const navigate = useNavigate();
   return (
     <>
-      <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-white/[0.07] shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <button onClick={() => navigate(-1)} className="text-zinc-300 hover:text-white p-0.5">
             <ArrowLeft className="w-5 h-5" />

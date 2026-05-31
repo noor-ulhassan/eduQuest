@@ -190,3 +190,18 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
+
+/* ── Playground thin scrollbar ── */
+.playground-sidebar::-webkit-scrollbar {
+  width: 3px;
+}
+.playground-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.playground-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+}
+.playground-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+}

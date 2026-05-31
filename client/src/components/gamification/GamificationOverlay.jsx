@@ -198,6 +198,32 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
         />
       ))}
 
+      {/* ── Rotating sunburst rays ── */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          width: 540,
+          height: 540,
+          left: "50%",
+          top: "50%",
+          x: "-50%",
+          y: "-50%",
+          background:
+            "repeating-conic-gradient(from 0deg, rgba(251,191,36,0.18) 0deg 7deg, transparent 7deg 22deg)",
+          maskImage:
+            "radial-gradient(circle, #000 0%, #000 36%, transparent 68%)",
+          WebkitMaskImage:
+            "radial-gradient(circle, #000 0%, #000 36%, transparent 68%)",
+        }}
+        initial={{ opacity: 0, scale: 0.6, rotate: 0 }}
+        animate={{ opacity: [0, 0.9, 0.5], scale: 1, rotate: 360 }}
+        transition={{
+          opacity: { delay: 0.12, duration: 0.7, times: [0, 0.4, 1] },
+          scale: { delay: 0.12, duration: 0.7, ease: "easeOut" },
+          rotate: { duration: 16, repeat: Infinity, ease: "linear" },
+        }}
+      />
+
       {/* ── Central glow bloom ── */}
       <motion.div
         className="absolute rounded-full pointer-events-none"

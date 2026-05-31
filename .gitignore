@@ -48,3 +48,5 @@ AUDIT_FINDINGS.md
 fix-playground-data.mjs
 migrate-legacy-courses.mjs
 ADMIN_DASHBOARD_SESSION_CONTEXT.md
+RAG_PIPELINE_REVIEW.md
+rag-review-evidence/

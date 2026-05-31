@@ -95,12 +95,41 @@ const ClassicPlayView = ({
         </div>
 
         {isPowerQuestion && (
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
-            <Zap size={13} className="text-yellow-400" fill="currentColor" />
-            <span className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">
-              Power Question — 2× Points!
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-yellow-500/30"
+            style={{
+              background: "linear-gradient(90deg, rgba(234,179,8,0.16), rgba(249,115,22,0.05))",
+              boxShadow: "0 0 18px rgba(234,179,8,0.12)",
+            }}
+          >
+            <motion.span
+              aria-hidden
+              className="absolute inset-y-0 w-24 pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(253,224,71,0.35), transparent)" }}
+              animate={{ x: ["-6rem", "130%"] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.span
+              className="relative flex items-center justify-center w-6 h-6 rounded-md bg-yellow-400/20 border border-yellow-400/40"
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Zap
+                size={13}
+                className="text-yellow-300"
+                fill="currentColor"
+                style={{ filter: "drop-shadow(0 0 4px rgba(250,204,21,0.8))" }}
+              />
+            </motion.span>
+            <span className="relative text-[11px] font-black text-yellow-300 uppercase tracking-[0.18em]">
+              Power Question
             </span>
-          </div>
+            <span className="relative ml-auto text-[10px] font-black text-yellow-950 bg-yellow-400 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(250,204,21,0.5)]">
+              2× Points
+            </span>
+          </motion.div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-130px)]">

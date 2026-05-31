@@ -88,7 +88,7 @@ export default function SessionCompletionOverlay({
               damping: 18,
               delay: 0.2,
             }}
-            className="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center relative"
+            className="w-28 h-28 rounded-full mx-auto mb-6 flex items-center justify-center relative"
             style={{
               background:
                 "radial-gradient(circle, rgba(44,240,157,0.16) 0%, rgba(44,240,157,0.05) 60%, transparent 100%)",
@@ -96,6 +96,37 @@ export default function SessionCompletionOverlay({
               boxShadow: "0 0 48px rgba(44,240,157,0.35)",
             }}
           >
+            {/* Breathing outer ring */}
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-full pointer-events-none"
+              animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.1, 0.4] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              style={{ border: "2px solid rgba(44,240,157,0.4)" }}
+            />
+
+            {/* Particle burst */}
+            {[...Array(8)].map((_, i) => (
+              <motion.span
+                key={i}
+                aria-hidden
+                className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
+                style={{
+                  background: i % 2 === 0 ? "#2cf09d" : "#ef4444",
+                  top: "50%",
+                  left: "50%",
+                }}
+                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                animate={{
+                  x: Math.cos((i / 8) * Math.PI * 2) * 60,
+                  y: Math.sin((i / 8) * Math.PI * 2) * 60,
+                  opacity: 0,
+                  scale: 0,
+                }}
+                transition={{ duration: 0.8, delay: 0.3 + i * 0.03, ease: "easeOut" }}
+              />
+            ))}
+
             <motion.div
               animate={{ rotate: [0, -10, 10, -6, 6, 0] }}
               transition={{ duration: 1.1, delay: 0.5 }}
@@ -126,7 +157,7 @@ export default function SessionCompletionOverlay({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="text-3xl font-black text-white mb-3 capitalize tracking-tight"
+            className="text-3xl font-black text-metallic mb-3 capitalize tracking-tight"
           >
             {language || "Language"} Mastered
           </motion.h2>
@@ -193,9 +224,11 @@ export default function SessionCompletionOverlay({
             >
               Stay here
             </button>
-            <button
+            <motion.button
               onClick={onNavigate}
-              className="flex-1 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex-1 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all"
               style={{
                 background:
                   "linear-gradient(135deg, #2cf09d 0%, #16a34a 100%)",
@@ -205,7 +238,7 @@ export default function SessionCompletionOverlay({
             >
               All Languages
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </motion.button>
           </motion.div>
         </div>
       </motion.div>

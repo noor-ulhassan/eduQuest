@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { executeCode } from "../../../lib/piston";
 import { Button } from "@/components/ui/button";
-import { Code, Loader2, Play } from "lucide-react";
+import { Code, Loader2, Play, Check, X, Zap } from "lucide-react";
 
 const ProgrammingEditor = ({ question, language, onSubmit, isSubmitting, answerResult }) => {
   const [code, setCode] = useState(question?.starterCode || "");
@@ -113,19 +113,28 @@ const ProgrammingEditor = ({ question, language, onSubmit, isSubmitting, answerR
           )}
           {output.testResult && (
             <div
-              className={`mt-2 text-xs font-semibold p-2 rounded border ${
+              className={`mt-2 text-xs font-semibold p-2 rounded border flex items-center gap-2 ${
                 output.testResult.success
                   ? "text-green-400 bg-green-500/10 border-green-500/20"
                   : "text-red-400 bg-red-500/10 border-red-500/20"
               }`}
             >
-              {output.testResult.success
-                ? "✓ All tests passed successfully!"
-                : `✗ ${output.testResult.message || "Tests failed"}`}
+              {output.testResult.success ? (
+                <>
+                  <Check size={13} strokeWidth={3} className="shrink-0" />
+                  All tests passed
+                </>
+              ) : (
+                <>
+                  <X size={13} strokeWidth={3} className="shrink-0" />
+                  {output.testResult.message || "Tests failed"}
+                </>
+              )}
             </div>
           )}
           {answerResult && (
-            <div className="mt-2 text-xs font-semibold text-green-400 p-2 rounded bg-green-500/10 border border-green-500/20">
+            <div className="mt-2 text-xs font-bold text-green-400 p-2 rounded bg-green-500/10 border border-green-500/20 flex items-center gap-1.5">
+              <Zap size={13} className="fill-green-400 shrink-0" />
               +{answerResult.pointsEarned} XP Earned!
             </div>
           )}

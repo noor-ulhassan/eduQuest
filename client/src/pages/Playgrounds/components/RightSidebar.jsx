@@ -1,5 +1,6 @@
 import React from "react";
 import { CheckCircle, Play, BookOpen, Trophy, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export default function RightSidebar({
@@ -16,14 +17,12 @@ export default function RightSidebar({
 }) {
   return (
     <aside
-      className="playground-sidebar w-[256px] shrink-0 border-l border-white/10 flex flex-col overflow-hidden relative"
+      className="playground-sidebar w-[256px] shrink-0 flex flex-col overflow-hidden relative"
       style={{
-        backgroundImage: "url('/alone.jfif')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        background: "linear-gradient(180deg, #111111 0%, #0d0d0d 100%)",
+        borderLeft: "1px solid rgba(255,255,255,0.07)",
       }}
     >
-      <div className="absolute inset-0 bg-black/78 z-0" />
       <div className="relative z-10 flex flex-col h-full overflow-hidden">
 
         {/* User Stats */}
@@ -39,31 +38,68 @@ export default function RightSidebar({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-extrabold text-metallic truncate">{user?.name}</p>
+              <p className="text-[13px] font-extrabold text-metallic truncate">{user?.name}</p>
               <p className="text-[11px] font-bold text-metallic-orange">
                 Lv.{user?.level} · {user?.league || "Bronze"}
               </p>
             </div>
-            <Trophy className="w-4 h-4 text-metallic-orange shrink-0" />
+            <Trophy
+              className="w-4 h-4 text-metallic-orange shrink-0"
+              style={{ filter: "drop-shadow(0 0 6px rgba(251,191,36,0.5))" }}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">Session XP</p>
-              <p className="text-[15px] font-bold text-[#2cf07d] flex items-center gap-1">
+            <div
+              className="rounded-xl p-3"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(255,255,255,0.08)",
+                boxShadow: "0 0 18px rgba(44,240,157,0.08) inset",
+              }}
+            >
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold mb-1">Session XP</p>
+              <motion.p
+                key={sessionXP}
+                initial={{ scale: 1.2, color: "#ffffff" }}
+                animate={{ scale: 1, color: "#2cf07d" }}
+                className="text-[15px] font-bold flex items-center gap-1"
+              >
                 <Zap className="w-3 h-3" />+{sessionXP}
-              </p>
+              </motion.p>
             </div>
-            <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">Solved</p>
+            <div
+              className="rounded-xl p-3"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold mb-1">Solved</p>
               <p className="text-[15px] font-bold text-metallic">{sessionSolved}</p>
             </div>
-            <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">Progress</p>
+            <div
+              className="rounded-xl p-3"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold mb-1">Progress</p>
               <p className="text-[15px] font-bold text-metallic-orange">{progressPercent}%</p>
             </div>
-            <div className="bg-black/55 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <p className="text-[9px] text-metallic uppercase tracking-wider font-bold mb-1">Done</p>
+            <div
+              className="rounded-xl p-3"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold mb-1">Done</p>
               <p className="text-[15px] font-bold text-metallic">{completedCount}/{totalProblems}</p>
             </div>
           </div>
@@ -72,7 +108,13 @@ export default function RightSidebar({
         {/* Course Path */}
         <div className="flex-1 overflow-y-auto thin-scroll">
           <div className="p-4">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-metallic mb-4">Course Path</p>
+            <div className="mb-4">
+              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-1">Course Path</p>
+              <div
+                className="h-px w-8"
+                style={{ background: "linear-gradient(90deg, rgba(239,68,68,0.5), transparent)" }}
+              />
+            </div>
             {data.chapters.map((chapter) => {
               const isCurrentChapter = chapter.problems.some((p) => p.id === currentProblem?.id);
               const chapterDone = chapter.problems.every((p) => completedProblems.has(p.id));
@@ -88,6 +130,13 @@ export default function RightSidebar({
                             ? "bg-red-500/20 text-red-400"
                             : "bg-white/5 text-zinc-600",
                       )}
+                      style={
+                        isCurrentChapter
+                          ? { boxShadow: "0 0 10px rgba(239,68,68,0.20)" }
+                          : chapterDone
+                            ? { boxShadow: "0 0 10px rgba(44,240,157,0.15)" }
+                            : undefined
+                      }
                     >
                       {chapterDone ? (
                         <CheckCircle className="w-3 h-3" />
@@ -121,9 +170,19 @@ export default function RightSidebar({
                                 isDone
                                   ? "bg-[#2cf07d] border-[#2cf07d]"
                                   : isCurrent
-                                    ? "bg-red-500 border-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+                                    ? "bg-red-500 border-red-500"
                                     : "bg-[#111111] border-zinc-700",
                               )}
+                              style={
+                                isCurrent
+                                  ? {
+                                      boxShadow:
+                                        "0 0 8px rgba(239,68,68,0.6), 0 0 2px rgba(239,68,68,0.8)",
+                                    }
+                                  : isDone
+                                    ? { boxShadow: "0 0 6px rgba(44,240,157,0.5)" }
+                                    : undefined
+                              }
                             />
                             {!isLast && <div className="w-px flex-1 bg-white/10 mt-0.5 mb-0.5" />}
                           </div>
@@ -144,9 +203,13 @@ export default function RightSidebar({
                               {prob.title}
                             </span>
                             {isCurrent && (
-                              <span className="ml-auto shrink-0 text-[8px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                              <motion.span
+                                animate={{ opacity: [0.7, 1, 0.7] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                                className="ml-auto shrink-0 text-[8px] font-black text-red-400 bg-red-500/12 px-1.5 py-0.5 rounded-sm border border-red-500/25 tracking-widest"
+                              >
                                 NOW
-                              </span>
+                              </motion.span>
                             )}
                           </button>
                         </div>
@@ -160,15 +223,34 @@ export default function RightSidebar({
         </div>
 
         {/* Next XP reward */}
-        <div className="p-3 border-t border-white/10 bg-black/60 backdrop-blur-sm">
+        <div
+          className="p-3"
+          style={{
+            background: "linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7))",
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/xp.svg" className="w-5 h-5" alt="XP" />
-              <span className="text-xs text-metallic font-medium">Next reward</span>
+              <img
+                src="/xp.svg"
+                className="w-5 h-5"
+                alt="XP"
+                style={{ filter: "drop-shadow(0 0 8px rgba(44,240,157,0.4))" }}
+              />
+              <span className="text-xs text-zinc-400 font-medium">Next reward</span>
             </div>
-            <span className="text-sm font-bold text-[#2cf07d]">
-              {completedProblems.has(currentProblem?.id) ? "Earned!" : `+${currentProblem?.xp} XP`}
-            </span>
+            {completedProblems.has(currentProblem?.id) ? (
+              <motion.span
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+                className="text-sm font-bold text-[#2cf07d]"
+              >
+                Earned!
+              </motion.span>
+            ) : (
+              <span className="text-sm font-bold text-[#2cf07d]">+{currentProblem?.xp} XP</span>
+            )}
           </div>
         </div>
 

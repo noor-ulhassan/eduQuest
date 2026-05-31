@@ -11,9 +11,7 @@ export default function TaskCard({ currentProblem, isMobile }) {
           <span className="inline-block bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
             Task
           </span>
-          <div className="w-12 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-            <Terminal className="w-6 h-6 text-zinc-500" />
-          </div>
+          <Terminal className="w-8 h-8 text-zinc-400 drop-shadow-md" />
         </div>
         <div>
           <h3 className="text-xl font-bold text-white mb-3">{currentProblem?.title}</h3>
@@ -35,18 +33,19 @@ export default function TaskCard({ currentProblem, isMobile }) {
       transition={{ duration: 0.3 }}
       className="rounded-2xl overflow-hidden mb-2 relative"
       style={{
-        background: "linear-gradient(180deg, #121212 0%, #0f0f0f 100%)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.35)",
+        background: "linear-gradient(180deg, #131313 0%, #0e0e0e 100%)",
+        border: "1px solid rgba(255,255,255,0.09)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset",
       }}
     >
       {/* Left edge accent */}
       <span
         aria-hidden
-        className="absolute left-0 top-4 bottom-4 w-[2px] rounded-r-full"
+        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-r-full"
         style={{
           background: "linear-gradient(180deg, #ef4444 0%, transparent 100%)",
           boxShadow: "0 0 12px rgba(239,68,68,0.45)",
+          filter: "blur(1px)",
         }}
       />
       {/* Card header */}
@@ -54,28 +53,33 @@ export default function TaskCard({ currentProblem, isMobile }) {
         className="px-5 py-3 flex items-center gap-2.5"
         style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden"
-          style={{
-            background: "linear-gradient(135deg, rgba(239,68,68,0.20) 0%, rgba(239,68,68,0.08) 100%)",
-            border: "1px solid rgba(239,68,68,0.30)",
-          }}
-        >
-          <img src="/task.svg" className="w-4 h-4" alt="" />
-        </div>
-        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-red-400">
+        <motion.img 
+          src="/task.svg" 
+          className="w-6 h-6 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]" 
+          alt="Task Icon" 
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <span className="text-[11px] font-black uppercase tracking-[0.25em] text-red-400">
           Your Task
         </span>
-        <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-zinc-700">
-          {currentProblem?.difficulty || "CHALLENGE"}
+        <span
+          className="ml-auto text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "#71717a",
+          }}
+        >
+          {currentProblem?.difficulty || "EASY"}
         </span>
       </div>
       {/* Card body */}
-      <div className="px-5 py-4">
+      <div className="px-6 py-4">
         <FormattedTaskText
           text={currentProblem?.description}
           isMobile={false}
-          className="text-zinc-200 text-[14px] leading-relaxed whitespace-pre-wrap"
+          className="text-zinc-300 text-[14px] leading-relaxed whitespace-pre-wrap"
         />
       </div>
     </motion.div>

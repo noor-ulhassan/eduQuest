@@ -181,7 +181,7 @@ function UploadView({ onUploadSuccess }) {
                 <p className="text-sm text-gray-600">
                   <span className="font-medium text-indigo-6000">Click to browse</span> or drag & drop
                 </p>
-                <p className="text-xs text-gray-400 mt-1">PDF files only, up to 50MB</p>
+                <p className="text-xs text-gray-400 mt-1">PDF files only · shorter documents work best (free-tier limit)</p>
               </div>
             )}
           </div>
@@ -211,7 +211,7 @@ function UploadView({ onUploadSuccess }) {
               <div className="w-full py-3 bg-indigo-100 rounded-xl flex items-center justify-center gap-3">
                 <Loader2 size={18} className="animate-spin text-indigo-600" />
                 <span className="text-sm text-indigo-700 font-medium">
-                  Processing PDF... Extracting text, chunking & embedding.
+                  Processing PDF… extracting, chunking &amp; embedding. Larger files may take up to ~2 minutes — please keep this tab open.
                 </span>
               </div>
             </div>

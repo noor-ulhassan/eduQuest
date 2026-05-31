@@ -1,4 +1,4 @@
-import { getVectorStore } from "../database/dbConnect.js";
+import { getVectorStore, getChunksCollection } from "../database/dbConnect.js";
 import { callAiModel } from "../config/aiProvider.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -22,26 +22,26 @@ export const chatWithDocument = asyncHandler(async (req, res) => {
   );
   const searchQuery = message + "\n" + rewriteResponse.trim();
 
-  let results;
+  let results = [];
   try {
     const rawResults = await vectorStore.similaritySearchWithScore(
       searchQuery,
       8,
       filter,
     );
-
-    // --- ADDED LOGGING HERE ---
-    console.log(`\n[chatWithDocument] RAG Search found ${rawResults.length} relevant chunks.`);
-    rawResults.forEach(([doc, score], index) => {
-      console.log(
-        `  -> Chunk ${index} | Page: ${doc.metadata?.pageNumber || "N/A"} | Score: ${score.toFixed(4)} | Snippet: "${doc.pageContent.substring(0, 40).replace(/\n/g, " ")}..."`
-      );
-    });
-    // --------------------------
-
     results = rawResults.map(([doc]) => doc);
   } catch (filterErr) {
     console.warn("Filtered search failed:", filterErr.message);
+  }
+
+  if (results.length === 0) {
+    return res.json(
+      new ApiResponse(200, {
+        answer:
+          "I couldn't find anything relevant in this document to answer that. Try rephrasing your question, or ask about a topic the document covers.",
+        sources: [],
+      }),
+    );
   }
 
   const context = results.map((d) => d.pageContent).join("\n\n");
@@ -107,39 +107,40 @@ export const explainText = asyncHandler(async (req, res) => {
       semanticFilter,
     );
 
-    // --- ADDED LOGGING HERE ---
-    console.log(`\n[explainText] Initial semantic search found ${rawResults.length} chunks.`);
-    rawResults.forEach(([doc, score], index) => {
-      console.log(`  -> Chunk ${index} | Page: ${doc.metadata?.pageNumber || "N/A"} | Score: ${score.toFixed(4)}`);
-    });
-    // --------------------------
-
     semanticResults = rawResults.map(([doc]) => doc);
   } catch (filterErr) {
-    const raw = await vectorStore.similaritySearchWithScore(expandedQuery, 6);
-    semanticResults = raw.map(([doc]) => doc);
+    // Fail closed — do NOT fall back to an unfiltered search (it would return
+    // other users' documents). Leave semanticResults empty and degrade gracefully.
+    console.warn("Filtered semantic search failed:", filterErr.message);
   }
 
   const allChunks = [...semanticResults];
   const seenTexts = new Set(semanticResults.map((d) => d.pageContent));
 
-  if (page) {
-    const nearbyPages = [page - 1, page, page + 1];
+  // Pull the chunks physically around the highlighted page straight from the
+  // collection. A vector search filtered to a single page returns nothing on
+  // Atlas (ANN explores a candidate pool before filtering, and a page's 2-3
+  // chunks fall outside it), so this is a plain metadata lookup instead.
+  if (page && documentId) {
+    const chunks = getChunksCollection();
+    if (chunks) {
+      const nearby = await chunks
+        .find({
+          userId: req.user._id.toString(),
+          documentId,
+          pageNumber: { $in: [page - 1, page, page + 1] },
+        })
+        .project({ text: 1, pageNumber: 1, chapterNumber: 1 })
+        .toArray();
 
-    for (const p of nearbyPages) {
-      const pFilter = { userId: req.user._id.toString(), pageNumber: p };
-      if (documentId) pFilter.documentId = documentId;
-
-      try {
-        const r = await vectorStore.similaritySearch(selectedText, 2, pFilter);
-        for (const doc of r) {
-          if (!seenTexts.has(doc.pageContent)) {
-            allChunks.push(doc);
-            seenTexts.add(doc.pageContent);
-          }
+      for (const doc of nearby) {
+        if (!seenTexts.has(doc.text)) {
+          allChunks.push({
+            pageContent: doc.text,
+            metadata: { pageNumber: doc.pageNumber, chapterNumber: doc.chapterNumber },
+          });
+          seenTexts.add(doc.text);
         }
-      } catch {
-        // this page has no chunks, skip
       }
     }
   }
@@ -202,8 +203,8 @@ export const generateQuiz = asyncHandler(async (req, res) => {
       );
       results = rawResults.map(([doc]) => doc);
     } catch (filterErr) {
-      const raw = await vectorStore.similaritySearchWithScore(searchQuery, 10);
-      results = raw.map(([doc]) => doc);
+      // Fail closed — no unfiltered fallback (cross-user leak). results stays [].
+      console.warn("Filtered quiz search failed:", filterErr.message);
     }
   } else {
     try {
@@ -212,24 +213,11 @@ export const generateQuiz = asyncHandler(async (req, res) => {
         { k: 12, fetchK: 80, filter }
       );
     } catch (filterErr) {
-      results = await vectorStore.maxMarginalRelevanceSearch(
-        "key concepts definitions principles mechanisms examples",
-        { k: 12, fetchK: 80 }
-      );
+      // Fail closed — no unfiltered fallback (cross-user leak). results stays [].
+      console.warn("Filtered quiz MMR search failed:", filterErr.message);
     }
   }
 
-  // --- ADDED LOGGING HERE ---
-  console.log(`\n[generateQuiz] Search completed. Retrieved ${results.length} chunks.`);
-  console.log(`[generateQuiz] Search Strategy Used: ${topic ? "Similarity Search (Topic-based)" : "MMR Search (Broad coverage)"}`);
-  
-  results.forEach((doc, index) => {
-    console.log(
-      `  -> Chunk ${index} | Page: ${doc.metadata?.pageNumber || "N/A"} | Chapter: ${doc.metadata?.chapterNumber || "N/A"}`
-    );
-  });
-  console.log("\n");
-  // --------------------------
   if (results.length === 0) {
     throw new ApiError(404, "No document content found. Please upload a document first.");
   }

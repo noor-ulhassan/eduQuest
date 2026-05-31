@@ -18,7 +18,8 @@ export default function MobileBottomBar({ isRunning, testResult, handleRunCode, 
       <div className="px-4 pb-4 pt-2 bg-[#0a0a0a] shrink-0 flex gap-3">
         <button
           onClick={handleRunCode} disabled={isRunning || testResult?.success}
-          className="flex-1 h-[56px] bg-[#2cf07d] hover:bg-[#2cf09d] disabled:opacity-50 text-black font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors"
+          className="flex-1 h-[56px] disabled:opacity-50 text-black font-bold text-[17px] tracking-wide rounded-[20px] flex items-center justify-center gap-2.5 transition-colors shadow-[0_2px_14px_rgba(44,240,157,0.25)]"
+          style={{ background: "linear-gradient(135deg, #2cf09d 0%, #16b870 100%)" }}
         >
           {isRunning ? <><Loader2 className="w-5 h-5 animate-spin" /> RUNNING…</> : <><Play className="w-5 h-5 fill-current" /> RUN CODE</>}
         </button>

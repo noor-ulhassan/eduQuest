@@ -18,7 +18,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Send, Terminal, Play, Check } from "lucide-react";
+import { GripVertical, Send, Terminal, Play, Check, Loader2 } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import VisualResultOverlay from "./VisualResultOverlay";
@@ -294,13 +294,7 @@ export default function CodeTraceQuestion({
           <div className="flex-1" />
           {isPreviewing && (
             <span className="flex items-center gap-1.5 text-[10px] font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 rounded-full px-2 py-0.5">
-              <motion.span
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="inline-block"
-              >
-                ⚙
-              </motion.span>
+              <Loader2 size={10} className="animate-spin" />
               Tracing
             </span>
           )}
@@ -411,13 +405,7 @@ export default function CodeTraceQuestion({
             )}
             {isSubmitting ? (
               <>
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="inline-block"
-                >
-                  ⏳
-                </motion.span>
+                <Loader2 size={14} className="animate-spin" />
                 Checking…
               </>
             ) : (
