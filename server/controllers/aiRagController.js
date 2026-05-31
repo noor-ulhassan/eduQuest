@@ -22,17 +22,26 @@ export const chatWithDocument = asyncHandler(async (req, res) => {
   );
   const searchQuery = message + "\n" + rewriteResponse.trim();
 
-  let results;
+  let results = [];
   try {
     const rawResults = await vectorStore.similaritySearchWithScore(
       searchQuery,
       8,
       filter,
     );
-
     results = rawResults.map(([doc]) => doc);
   } catch (filterErr) {
     console.warn("Filtered search failed:", filterErr.message);
+  }
+
+  if (results.length === 0) {
+    return res.json(
+      new ApiResponse(200, {
+        answer:
+          "I couldn't find anything relevant in this document to answer that. Try rephrasing your question, or ask about a topic the document covers.",
+        sources: [],
+      }),
+    );
   }
 
   const context = results.map((d) => d.pageContent).join("\n\n");
@@ -100,8 +109,9 @@ export const explainText = asyncHandler(async (req, res) => {
 
     semanticResults = rawResults.map(([doc]) => doc);
   } catch (filterErr) {
-    const raw = await vectorStore.similaritySearchWithScore(expandedQuery, 6);
-    semanticResults = raw.map(([doc]) => doc);
+    // Fail closed — do NOT fall back to an unfiltered search (it would return
+    // other users' documents). Leave semanticResults empty and degrade gracefully.
+    console.warn("Filtered semantic search failed:", filterErr.message);
   }
 
   const allChunks = [...semanticResults];
@@ -193,8 +203,8 @@ export const generateQuiz = asyncHandler(async (req, res) => {
       );
       results = rawResults.map(([doc]) => doc);
     } catch (filterErr) {
-      const raw = await vectorStore.similaritySearchWithScore(searchQuery, 10);
-      results = raw.map(([doc]) => doc);
+      // Fail closed — no unfiltered fallback (cross-user leak). results stays [].
+      console.warn("Filtered quiz search failed:", filterErr.message);
     }
   } else {
     try {
@@ -203,10 +213,8 @@ export const generateQuiz = asyncHandler(async (req, res) => {
         { k: 12, fetchK: 80, filter }
       );
     } catch (filterErr) {
-      results = await vectorStore.maxMarginalRelevanceSearch(
-        "key concepts definitions principles mechanisms examples",
-        { k: 12, fetchK: 80 }
-      );
+      // Fail closed — no unfiltered fallback (cross-user leak). results stays [].
+      console.warn("Filtered quiz MMR search failed:", filterErr.message);
     }
   }
 

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { MongoClient } from "mongodb";
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { ApiError } from "../utils/ApiError.js";
 
 let vectorStore;
 let chunksCollection;
@@ -36,10 +37,21 @@ const connectDB = async () => {
     });
     console.log("LangChain Vector Store initialized");
   } catch (error) {
-    console.log("Error connecting database", error);
+    // Fail loud: without the DB / vector store every RAG route is broken, so
+    // don't let the server boot in a half-dead state.
+    console.error("FATAL: failed to connect to database / vector store:", error);
+    process.exit(1);
   }
 };
 
-export const getVectorStore = () => vectorStore;
-export const getChunksCollection = () => chunksCollection;
+export const getVectorStore = () => {
+  if (!vectorStore)
+    throw new ApiError(503, "Vector store not initialized yet. Please retry in a moment.");
+  return vectorStore;
+};
+export const getChunksCollection = () => {
+  if (!chunksCollection)
+    throw new ApiError(503, "Database not initialized yet. Please retry in a moment.");
+  return chunksCollection;
+};
 export default connectDB;
