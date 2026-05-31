@@ -54,15 +54,18 @@ export const chatWithDocument = asyncHandler(async (req, res) => {
     .join("\n");
 
   const answer = await callAiModel(
-    `You are a helpful reading assistant for this textbook.
-Answer based on the document context below. If the context contains related information,
-use it to give the best possible answer. Only say you couldn't find it if the context
-is completely unrelated to the question.
-${historyText ? `Previous conversation:\n${historyText}\n` : ""}
-Document Context:
+    `You are a reading assistant for a single document. Below are excerpts from that document.
+
+How to respond:
+- If the student is greeting you, making small talk, or asking what you can do (e.g. "hi", "hello", "thanks", "who are you"), reply briefly and warmly in 1–2 sentences and invite them to ask about the document. Ignore the excerpts for this.
+- If they ask for a summary or overview (e.g. "what is this about", "summarize this"), summarize what the excerpts below cover, and note it is based on the available excerpts.
+- For any specific question, answer ONLY from the excerpts below — do not use outside knowledge. If the answer is not in the excerpts, clearly say you couldn't find it in this document and suggest they rephrase or point to the relevant section.
+- Be concise. Never invent facts, numbers, or page references that are not in the excerpts.
+${historyText ? `\nPrevious conversation:\n${historyText}\n` : ""}
+Document excerpts:
 ${context}
 
-Student's Question: ${message}`,
+Student's question: ${message}`,
     { json: false },
   );
 
