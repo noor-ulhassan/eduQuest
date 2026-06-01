@@ -194,7 +194,7 @@ const Leaderboard = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col min-h-screen bg-[#030305] text-white font-inter overflow-hidden">
+    <div className="min-h-screen bg-[#030305] text-white font-inter">
 
       {/* Ambient glow blobs */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -204,14 +204,14 @@ const Leaderboard = () => {
 
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <div className="relative z-10 flex-1 overflow-y-auto thin-scroll pb-28">
-        <div className="max-w-[960px] mx-auto px-4 sm:px-6 pt-10">
+      <div className="relative z-10 pb-28">
+        <div className="max-w-[960px] mx-auto px-4 sm:px-6 pt-6">
 
           {/* Page header */}
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 mb-10">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-6">
             <div>
               <div
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-4"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-2"
                 style={{
                   background: "rgba(234,88,12,0.08)",
                   border: "1px solid rgba(234,88,12,0.2)",
@@ -259,7 +259,7 @@ const Leaderboard = () => {
 
           {/* ── Podium — global tab only ────────────────────────────────────── */}
           {activeTab === "global" && !loading && top3.length > 0 && (
-            <div className="flex flex-col md:flex-row items-end justify-center gap-3 mb-12">
+            <div className="flex flex-col md:flex-row items-end justify-center gap-3 mb-6">
 
               {/* 2nd place */}
               {top3[1] && (() => {
