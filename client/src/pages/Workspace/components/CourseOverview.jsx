@@ -222,6 +222,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
           <div className="p-8 flex gap-8">
             {/* Left Column: Path & Progress */}
             <div className="flex-1 space-y-8">
+              {/* Welcome Banner — top of workspace overview */}
+              {!course && <WelcomeBanner />}
+
               {activeCourse ? (
                 <>
                   {/* Progress Header Card */}
@@ -314,15 +317,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     <p className="text-sm sm:text-sm text-zinc-400 font-medium">
                       Total Experience
                     </p>
-                    <div
-                      className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0"
-                      style={{ animation: "pulseGlow 2s ease-in-out infinite" }}
-                    >
-                      <Zap
-                        className="w-4 h-4 text-emerald-500"
-                        fill="currentColor"
-                      />
-                    </div>
+                    <img src="/xp.svg" alt="" width={30} height={30} />
                   </div>
                   <div className="flex items-baseline gap-2 text-metallic">
                     <h4 className="text-xl sm:text-2xl font-bold">
@@ -360,17 +355,8 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     <p className="text-sm text-zinc-400 font-medium">
                       Current Streak
                     </p>
-                    <div
-                      className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0"
-                      style={{
-                        animation: "orangeGlow 2s ease-in-out infinite",
-                      }}
-                    >
-                      <Flame
-                        className="w-4 h-4 text-orange-500"
-                        fill="currentColor"
-                      />
-                    </div>
+
+                    <img src="/Duoxp.svg" alt="" height={37} width={37} />
                   </div>
                   <h4 className="text-xl sm:text-2xl font-bold text-metallic">
                     {streak} <span className="text-orange-400">Days</span>
@@ -413,13 +399,10 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                     <p className="text-sm text-zinc-400 font-medium">
                       Global Ranking
                     </p>
-                    <div
-                      className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0 text-base"
-                      style={{ animation: "goldGlow 2s ease-in-out infinite" }}
-                    >
+                    <div className="w-8 h-8  flex items-center justify-center shrink-0 text-base">
                       <img
                         src="https://twemoji.maxcdn.com/v/latest/72x72/1f3c5.png"
-                        className="w-5 h-5"
+                        className="w-7 h-7"
                         alt="medal"
                       />
                     </div>
@@ -448,8 +431,9 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                       ),
                     )}
                   </div>
-                  <p className="text-xs text-zinc-400 mt-3 sm:mt-4 tracking-wider">
-                    ⭐ Lvl {user?.level || 1}
+                  <p className="text-xs text-zinc-400 mt-3 sm:mt-4 tracking-wider flex items-center gap-2">
+                    <img src="/xp.svg" alt="" height={12} width={12} /> Lvl{" "}
+                    {user?.level || 1}
                   </p>
                 </div>
               </div>
@@ -535,8 +519,7 @@ export default function CourseOverview({ course, enrollment, onResume }) {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-8 z-0 w-full overflow-hidden">
-                  <WelcomeBanner />
+                <div className="z-0 w-full overflow-hidden">
                   <CourseList />
                 </div>
               )}

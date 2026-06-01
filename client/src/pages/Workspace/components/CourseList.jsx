@@ -8,8 +8,8 @@ function CourseList() {
   if (isLoading) return null;
 
   return (
-    <div className="w-full mt-10">
-      <h2 className="font-jersey text-3xl mb-5">Course List</h2>
+    <div className="w-full">
+      <h2 className="font-jersey text-3xl mb-5 text-metallic">Course List</h2>
       {courseList.length === 0 ? (
         <div className="flex p-7 items-center justify-center flex-col border-2 border-dashed border-white/10 rounded-lg">
           <img src="/start-up.png" alt="duck" height={100} width={100} />
