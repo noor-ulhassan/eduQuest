@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Trophy, Target, Home, Eye, Zap } from "lucide-react";
+import Lottie from "lottie-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -53,23 +54,27 @@ const ResultsScreen = ({
                 initial={{ scale: 0 }}
                 animate={{ scale: [0, 1.2, 1] }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-red-500/20 to-red-800/20 border-2 border-red-500/40"
+                className="mx-auto mb-1"
               >
-                <span className="text-4xl">💀</span>
+                <Lottie path="/lottie/defeat.json" loop={false} autoplay style={{ width: 110, height: 110 }} className="pointer-events-none" />
               </motion.div>
               <h1 className="text-3xl font-bold text-red-400">Eliminated!</h1>
               <p className="text-zinc-400 mt-1 text-sm">You answered incorrectly in Survival mode</p>
             </>
           ) : (
             <>
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border-2 border-orange-500/30">
-                {finishData.rank === 1 ? (
-                  <Trophy size={40} className="text-yellow-400" />
-                ) : (
+              {finishData.rank === 1 ? (
+                <Lottie path="/lottie/trophy.json" loop={false} autoplay style={{ width: 120, height: 120 }} className="mx-auto mb-1 pointer-events-none" />
+              ) : finishData.rank === 2 ? (
+                <Lottie path="/lottie/silver.json" loop={false} autoplay style={{ width: 100, height: 100 }} className="mx-auto mb-1 pointer-events-none" />
+              ) : finishData.rank === 3 ? (
+                <Lottie path="/lottie/bronze.json" loop={false} autoplay style={{ width: 100, height: 100 }} className="mx-auto mb-1 pointer-events-none" />
+              ) : (
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border-2 border-orange-500/30">
                   <Target size={40} className="text-orange-400" />
-                )}
-              </div>
-              <h1 className="text-3xl font-bold">
+                </div>
+              )}
+              <h1 className={`text-3xl font-bold ${finishData.rank === 1 ? "text-metallic-orange" : "text-metallic"}`}>
                 {currentGameMode === "blitz"
                   ? finishData.rank === 1 ? "⚡ Lightning Fast!" : "⚡ Blitz Complete"
                   : currentGameMode === "duel"
@@ -88,7 +93,7 @@ const ResultsScreen = ({
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-zinc-900/60 border-zinc-800 p-4 text-center">
-            <div className={`text-2xl font-bold ${isEliminated ? "text-red-400" : "text-orange-400"}`}>
+            <div className={`text-2xl font-bold ${isEliminated ? "text-red-400" : "text-metallic-orange"}`}>
               {finishData.score}
             </div>
             <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-1">Total XP</div>
@@ -177,13 +182,13 @@ const ResultsScreen = ({
                 <span className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${i === 0 ? "bg-yellow-500 text-black" : i === 1 ? "bg-zinc-300 text-black" : i === 2 ? "bg-orange-700 text-white" : "bg-zinc-800 text-zinc-500"}`}>
                   {i + 1}
                 </span>
-                <span className={`flex-1 truncate ${p.id === userId ? "text-orange-400 font-medium" : "text-zinc-300"}`}>
+                <span className={`flex-1 truncate ${p.id === userId ? "text-metallic-orange font-medium" : "text-metallic"}`}>
                   {p.name} {p.id === userId && "(You)"}
                 </span>
                 <span className="text-xs text-zinc-500">
                   {p.eliminated ? "💀" : p.finished ? "✓" : `Q${p.currentQuestion}`}
                 </span>
-                <span className="text-xs font-bold text-orange-400">{p.score}</span>
+                <span className="text-xs font-bold text-metallic-orange">{p.score}</span>
               </div>
             ))}
           </div>

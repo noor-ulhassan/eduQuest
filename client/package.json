@@ -49,6 +49,7 @@
     "date-fns": "^4.1.0",
     "env": "^0.0.2",
     "framer-motion": "^12.23.24",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.552.0",
     "mermaid": "^11.14.0",
     "mini-svg-data-uri": "^1.4.4",

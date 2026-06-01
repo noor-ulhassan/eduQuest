@@ -8,7 +8,6 @@ import {
 } from "@/lib/feedbackOrchestrator";
 import { playStreakSound, playLeadChangeSound } from "@/lib/sound";
 
-// Mapping of activity event type → banner config (tone, sound, priority)
 const BIG_TYPES = {
   firstBlood: { tone: "red", priority: PRIORITY.HIGH, duration: 1900 },
   leadTaken: { tone: "yellow", priority: PRIORITY.HIGH, duration: 1900 },

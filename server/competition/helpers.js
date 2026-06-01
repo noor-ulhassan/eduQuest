@@ -90,9 +90,27 @@ export function safeRoomPayload(room) {
 // Strips server-only fields (correctOrder, correctAnswer, etc.) before sending to client.
 export function sanitizeQuestion(question, category, challengeMode = "classic", room = null, questionIndex = 0) {
   if (category === "general" || challengeMode !== "classic") {
+    // Shuffle MCQ options once per room per question to eliminate LLM answer-position
+    // bias (models consistently place the correct answer at index 1 / option B).
+    // Scoring compares answer text, not index, so this is safe.
+    let options = question.options;
+    if (Array.isArray(options) && (!question.interactionType || question.interactionType === "mcq") && room) {
+      if (!room._shuffleMaps) room._shuffleMaps = {};
+      const mapKey = `q${questionIndex}_mcq`;
+      if (!room._shuffleMaps[mapKey]) {
+        const idx = options.map((_, i) => i);
+        for (let i = idx.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [idx[i], idx[j]] = [idx[j], idx[i]];
+        }
+        room._shuffleMaps[mapKey] = idx;
+      }
+      options = room._shuffleMaps[mapKey].map(i => question.options[i]);
+    }
+
     const base = {
       question:        question.question,
-      options:         question.options,
+      options,
       difficulty:      question.difficulty,
       interactionType: question.interactionType,
     };

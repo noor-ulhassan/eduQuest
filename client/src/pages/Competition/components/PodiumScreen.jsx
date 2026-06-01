@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Crown, Trophy, ArrowLeft, Play } from "lucide-react";
+import Lottie from "lottie-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -28,15 +29,11 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
           <motion.h1
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className={`text-4xl md:text-5xl font-black bg-clip-text text-transparent ${
-              topTied
-                ? "bg-gradient-to-r from-zinc-300 via-zinc-100 to-zinc-300"
-                : "bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600"
-            }`}
+            className={`text-4xl md:text-5xl font-black ${topTied ? "text-metallic" : "text-metallic-orange"}`}
           >
             {topTied ? "🤝 It's a Draw!" : isWinner ? "🏆 Victory!" : "Competition Ended"}
           </motion.h1>
-          <p className="text-zinc-400 text-lg">Final standings</p>
+          <p className="text-metallic text-lg">Final standings</p>
         </div>
 
         {/* Podium */}
@@ -48,6 +45,7 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
               transition={{ delay: 0.4 }}
               className="flex flex-col items-center"
             >
+              <Lottie path="/lottie/silver.json" loop={false} autoplay style={{ width: 90, height: 72 }} className="-mb-3 pointer-events-none" />
               <div className="relative mb-2">
                 <img
                   src={second.avatarUrl || "/Avatar.png"}
@@ -56,9 +54,9 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
                 />
                 <span className="absolute -top-2 -right-2 w-7 h-7 bg-zinc-300 text-black rounded-full flex items-center justify-center text-xs font-black shadow-md">2</span>
               </div>
-              <span className="text-sm font-semibold text-zinc-300 truncate max-w-[80px] mb-1">{second.name}</span>
+              <span className="text-sm font-semibold text-metallic truncate max-w-[80px] mb-1">{second.name}</span>
               <div className="w-24 md:w-28 bg-gradient-to-t from-zinc-700 to-zinc-600 rounded-t-xl flex flex-col items-center justify-end h-[100px] md:h-[120px] border-t-4 border-zinc-400">
-                <span className="text-lg font-bold text-zinc-200 mb-3">{second.score}</span>
+                <span className="text-lg font-bold text-metallic mb-3">{second.score}</span>
               </div>
             </motion.div>
           )}
@@ -70,6 +68,7 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
               transition={{ delay: 0.2 }}
               className="flex flex-col items-center -mt-4"
             >
+              <Lottie path="/lottie/1st.json" loop={false} autoplay style={{ width: 130, height: 100 }} className="-mb-4 pointer-events-none" />
               <motion.div
                 animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -84,10 +83,10 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
                   <Crown size={28} className="text-yellow-400 drop-shadow-lg" fill="currentColor" />
                 </div>
               </motion.div>
-              <span className="text-base font-bold text-yellow-300 truncate max-w-[100px] mb-1">{winner.name}</span>
+              <span className="text-base font-bold text-metallic-orange truncate max-w-[100px] mb-1">{winner.name}</span>
               <div className="w-28 md:w-32 bg-gradient-to-t from-yellow-700/80 to-yellow-600/60 rounded-t-xl flex flex-col items-center justify-end h-[140px] md:h-[170px] border-t-4 border-yellow-500 shadow-xl">
                 <Trophy size={24} className="text-yellow-400 mb-1" />
-                <span className="text-2xl font-black text-yellow-200 mb-3">{winner.score}</span>
+                <span className="text-2xl font-black text-metallic-orange mb-3">{winner.score}</span>
               </div>
             </motion.div>
           )}
@@ -99,6 +98,7 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
               transition={{ delay: 0.6 }}
               className="flex flex-col items-center"
             >
+              <Lottie path="/lottie/bronze.json" loop={false} autoplay style={{ width: 80, height: 64 }} className="-mb-2 pointer-events-none" />
               <div className="relative mb-2">
                 <img
                   src={third.avatarUrl || "/Avatar.png"}
@@ -107,9 +107,9 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
                 />
                 <span className="absolute -top-2 -right-2 w-7 h-7 bg-orange-700 text-white rounded-full flex items-center justify-center text-xs font-black shadow-md">3</span>
               </div>
-              <span className="text-sm font-semibold text-orange-300 truncate max-w-[80px] mb-1">{third.name}</span>
+              <span className="text-sm font-semibold text-metallic-orange truncate max-w-[80px] mb-1">{third.name}</span>
               <div className="w-24 md:w-28 bg-gradient-to-t from-orange-900/60 to-orange-800/40 rounded-t-xl flex flex-col items-center justify-end h-[80px] md:h-[100px] border-t-4 border-orange-700">
-                <span className="text-lg font-bold text-orange-300 mb-3">{third.score}</span>
+                <span className="text-lg font-bold text-metallic-orange mb-3">{third.score}</span>
               </div>
             </motion.div>
           )}
@@ -133,7 +133,7 @@ const PodiumScreen = ({ leaderboard, isDraw, userId, isHost, onHome, onPlayAgain
                       <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded ml-1">YOU</span>
                     )}
                   </span>
-                  <span className="font-mono font-bold text-orange-400 text-sm">{p.score} XP</span>
+                  <span className="font-mono font-bold text-metallic-orange text-sm">{p.score} XP</span>
                 </div>
               ))}
             </div>

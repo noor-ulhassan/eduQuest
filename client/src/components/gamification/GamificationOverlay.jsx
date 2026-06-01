@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy } from "lucide-react";
+import Lottie from "lottie-react";
 import { onEvent } from "@/lib/gamificationBus";
 import {
   playLevelUpSound,
@@ -52,59 +53,138 @@ const RANK_STYLE = {
   Grandmaster: { text: "text-red-300", glow: "rgba(248,113,113,0.9)" },
 };
 
-const STARS = [
-  { x: -74, y: -54, delay: 0.36, size: 20 },
-  { x: 78, y: -50, delay: 0.43, size: 16 },
-  { x: -90, y: 16, delay: 0.51, size: 13 },
-  { x: 92, y: 20, delay: 0.39, size: 15 },
-  { x: -60, y: 64, delay: 0.56, size: 19 },
-  { x: 64, y: 70, delay: 0.47, size: 13 },
+
+// Precomputed spark positions — radially spread from center
+const SPARKS = [
+  { tx: -64, ty: -14 }, { tx: 66, ty: -10 },
+  { tx: -50, ty: 38 },  { tx: 52, ty: 34 },
+  { tx: -80, ty:  8 },  { tx: 82, ty: 12 },
+  { tx: -20, ty: -58 }, { tx: 22, ty: -56 },
+  { tx:  -4, ty:  64 }, { tx:  8, ty:  66 },
 ];
 
 const XPFloat = ({ amount, eventKey }) => (
   <motion.div
     key={eventKey}
-    className="absolute bottom-[38%] left-0 right-0 flex justify-center pointer-events-none"
-    initial={{ opacity: 0, y: 0, scale: 0.55 }}
-    animate={{ opacity: [0, 1, 1, 0], y: -110, scale: [0.55, 1.08, 1, 0.92] }}
-    transition={{ duration: 1.7, ease: "easeOut", times: [0, 0.08, 0.55, 1] }}
+    className="absolute bottom-[32%] left-0 right-0 flex justify-center pointer-events-none"
+    // Outer: fade in/out + slow upward drift
+    initial={{ opacity: 0, y: 0 }}
+    animate={{ opacity: [0, 1, 1, 0], y: [0, 0, -22, -92] }}
+    transition={{ duration: 2.1, times: [0, 0.06, 0.60, 1], ease: "easeIn" }}
   >
-    {/* Ambient glow bloom */}
-    <div className="absolute inset-0 rounded-full bg-yellow-400/60 blur-2xl scale-[2.5]" />
+    {/* Inner: slam physics — drops from above with squish/stretch bounce */}
+    <motion.div
+      className="relative flex flex-col items-center select-none"
+      initial={{ y: -54, scaleY: 1.38, scaleX: 0.76 }}
+      animate={{ y: 0, scaleY: [null, 0.80, 1.10, 0.97, 1], scaleX: [null, 1.16, 0.94, 1.02, 1] }}
+      transition={{ duration: 0.38, times: [0, 0.26, 0.56, 0.80, 1], ease: "easeOut" }}
+    >
+      {/* Radial spark burst */}
+      {SPARKS.map((s, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width:  i % 2 === 0 ? 4 : 3,
+            height: i % 2 === 0 ? 4 : 9,
+            top: "46%", left: "50%",
+            marginLeft: i % 2 === 0 ? -2 : -1.5,
+            marginTop:  i % 2 === 0 ? -2 : -4.5,
+            background: i % 3 === 0
+              ? "linear-gradient(to bottom, #fde68a, #f97316)"
+              : i % 3 === 1
+              ? "linear-gradient(to bottom, #fb923c, #dc2626)"
+              : "#fcd34d",
+          }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+          animate={{ x: s.tx, y: s.ty, opacity: 0, scale: 0.15 }}
+          transition={{ delay: 0.04 + i * 0.011, duration: 0.52, ease: "easeOut" }}
+        />
+      ))}
 
-    {/* Pill chip */}
-    <div className="relative flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-amber-500 border-2 border-yellow-200/80 px-5 py-2.5 rounded-full shadow-[0_0_45px_rgba(250,204,21,0.9),0_0_90px_rgba(250,204,21,0.4),0_2px_0_rgba(255,255,255,0.25)_inset] backdrop-blur-sm">
-      <motion.span
-        className="text-base leading-none select-none"
-        animate={{ rotate: [0, 20, -10, 0], scale: [1, 1.3, 1] }}
-        transition={{ duration: 0.5, delay: 0.05 }}
-      >
-        ✦
-      </motion.span>
-      <span className="text-[22px] font-black text-white tracking-tight leading-none select-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
-        +{amount} XP
-      </span>
-    </div>
+      {/* Shockwave ring — expands from the number on impact */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          inset: "-14px",
+          borderRadius: "10px",
+          border: "1.5px solid rgba(249,115,22,0.7)",
+          boxShadow: "0 0 14px rgba(251,146,60,0.45)",
+        }}
+        initial={{ scale: 0.55, opacity: 0.9 }}
+        animate={{ scale: 2.8, opacity: 0 }}
+        transition={{ delay: 0.04, duration: 0.62, ease: "easeOut" }}
+      />
+
+      {/* Number row */}
+      <div className="relative flex items-end gap-2 px-2">
+        {/* + prefix — large but subordinate */}
+        <span
+          className="text-[34px] font-black text-metallic-orange leading-none mb-3"
+          style={{ letterSpacing: "-0.02em" }}
+        >
+          +
+        </span>
+
+        {/* Hero number — the centerpiece */}
+        <div className="relative overflow-hidden">
+          {/* Diagonal light sweep on impact */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none z-10"
+            style={{
+              background:
+                "linear-gradient(110deg, transparent 18%, rgba(255,255,255,0.48) 50%, transparent 82%)",
+            }}
+            initial={{ x: "-130%" }}
+            animate={{ x: "200%" }}
+            transition={{ delay: 0.07, duration: 0.27, ease: "easeIn" }}
+          />
+          <span
+            className="relative text-[84px] font-black text-metallic-orange leading-none"
+            style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em" }}
+          >
+            {amount}
+          </span>
+        </div>
+
+        {/* XP label — stacked, offset into the baseline */}
+        <div className="mb-[18px] flex flex-col items-start gap-[3px]">
+          <span className="text-[14px] font-black text-metallic tracking-[0.30em] uppercase leading-none">
+            XP
+          </span>
+          <span className="text-[8px] font-bold text-white/28 tracking-[0.20em] uppercase leading-none">
+            EARNED
+          </span>
+        </div>
+      </div>
+
+      {/* Impact underline — sweeps in from center */}
+      <motion.div
+        className="rounded-full"
+        style={{
+          height: 3,
+          width: "86%",
+          background:
+            "linear-gradient(90deg, transparent, #fb923c 22%, #fde68a 50%, #fb923c 78%, transparent)",
+          boxShadow: "0 0 10px rgba(251,146,60,0.65)",
+        }}
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: [0, 1, 0.45] }}
+        transition={{ delay: 0.06, duration: 0.30, times: [0, 0.32, 1] }}
+      />
+    </motion.div>
   </motion.div>
 );
 
 const LevelUpCeremony = ({ level, onDismiss }) => {
   useEffect(() => {
-    // Staggered confetti bursts — center, left, right
     const t1 = setTimeout(() => {
       confetti({
         particleCount: 150,
         spread: 360,
         startVelocity: 34,
         origin: { x: 0.5, y: 0.46 },
-        colors: [
-          "#FFD700",
-          "#FFA500",
-          "#FFF8DC",
-          "#FF6B35",
-          "#FFEFD5",
-          "#FFC0CB",
-        ],
+        colors: ["#FFD700", "#FFA500", "#FFF8DC", "#FF6B35", "#FFEFD5", "#FFC0CB"],
         ticks: 95,
         scalar: 0.88,
         gravity: 0.62,
@@ -114,34 +194,11 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
     }, 310);
 
     const t2 = setTimeout(() => {
-      confetti({
-        particleCount: 60,
-        angle: 58,
-        spread: 54,
-        startVelocity: 60,
-        origin: { x: 0.06, y: 0.52 },
-        colors: ["#FFD700", "#FFA500", "#FF6B35"],
-        ticks: 80,
-        scalar: 0.8,
-        zIndex: 10000,
-      });
-      confetti({
-        particleCount: 60,
-        angle: 122,
-        spread: 54,
-        startVelocity: 60,
-        origin: { x: 0.94, y: 0.52 },
-        colors: ["#FFD700", "#FFA500", "#FF6B35"],
-        ticks: 80,
-        scalar: 0.8,
-        zIndex: 10000,
-      });
+      confetti({ particleCount: 60, angle: 58, spread: 54, startVelocity: 60, origin: { x: 0.06, y: 0.52 }, colors: ["#FFD700", "#FFA500", "#FF6B35"], ticks: 80, scalar: 0.8, zIndex: 10000 });
+      confetti({ particleCount: 60, angle: 122, spread: 54, startVelocity: 60, origin: { x: 0.94, y: 0.52 }, colors: ["#FFD700", "#FFA500", "#FF6B35"], ticks: 80, scalar: 0.8, zIndex: 10000 });
     }, 490);
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   return (
@@ -153,7 +210,7 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22 }}
     >
-      {/* ── White screen flash ── */}
+      {/* White screen flash */}
       <motion.div
         className="absolute inset-0 bg-white pointer-events-none"
         initial={{ opacity: 0.7 }}
@@ -161,178 +218,62 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
         transition={{ duration: 0.35, ease: "easeOut" }}
       />
 
-      {/* ── Radial dark backdrop ── */}
+      {/* Dark radial backdrop */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(251,191,36,0.25) 0%, rgba(0,0,0,0.92) 60%)",
-        }}
+        style={{ background: "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(251,191,36,0.18) 0%, rgba(0,0,0,0.93) 65%)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.28, delay: 0.06 }}
       />
 
-      {/* ── Expanding pulse rings ── */}
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            width: 220,
-            height: 220,
-            left: "50%",
-            top: "50%",
-            x: "-50%",
-            y: "-50%",
-            border: `2px solid rgba(251,191,36,${0.7 - i * 0.08})`,
-            boxShadow: `0 0 15px rgba(251,191,36,${0.4 - i * 0.05}), inset 0 0 15px rgba(251,191,36,${0.2 - i * 0.03})`,
-          }}
-          initial={{ scale: 0.25, opacity: 1 }}
-          animate={{ scale: 6, opacity: 0 }}
-          transition={{
-            delay: 0.1 + i * 0.13,
-            duration: 1.2,
-            ease: "easeOut",
-          }}
-        />
-      ))}
-
-      {/* ── Rotating sunburst rays ── */}
+      {/* Main content */}
       <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          width: 540,
-          height: 540,
-          left: "50%",
-          top: "50%",
-          x: "-50%",
-          y: "-50%",
-          background:
-            "repeating-conic-gradient(from 0deg, rgba(251,191,36,0.18) 0deg 7deg, transparent 7deg 22deg)",
-          maskImage:
-            "radial-gradient(circle, #000 0%, #000 36%, transparent 68%)",
-          WebkitMaskImage:
-            "radial-gradient(circle, #000 0%, #000 36%, transparent 68%)",
-        }}
-        initial={{ opacity: 0, scale: 0.6, rotate: 0 }}
-        animate={{ opacity: [0, 0.9, 0.5], scale: 1, rotate: 360 }}
-        transition={{
-          opacity: { delay: 0.12, duration: 0.7, times: [0, 0.4, 1] },
-          scale: { delay: 0.12, duration: 0.7, ease: "easeOut" },
-          rotate: { duration: 16, repeat: Infinity, ease: "linear" },
-        }}
-      />
-
-      {/* ── Central glow bloom ── */}
-      <motion.div
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          width: 400,
-          height: 400,
-          left: "50%",
-          top: "50%",
-          x: "-50%",
-          y: "-50%",
-          background:
-            "radial-gradient(circle, rgba(251,191,36,0.55) 0%, rgba(249,115,22,0.2) 40%, transparent 70%)",
-        }}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: [0, 1.8, 1.2], opacity: [0, 1, 0.35] }}
-        transition={{ delay: 0.08, duration: 0.75, ease: "easeOut" }}
-      />
-
-      {/* ── Main content card ── */}
-      <motion.div
-        className="relative z-10 flex flex-col items-center gap-3.5 select-none"
-        initial={{ scale: 0.32, y: 55, opacity: 0 }}
+        className="relative z-10 flex flex-col items-center gap-2 select-none"
+        initial={{ scale: 0.7, y: 40, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.68, opacity: 0, y: -24 }}
-        transition={{
-          type: "spring",
-          damping: 15,
-          stiffness: 265,
-          delay: 0.05,
-        }}
+        exit={{ scale: 0.75, opacity: 0, y: -20 }}
+        transition={{ type: "spring", damping: 18, stiffness: 280, delay: 0.08 }}
       >
-        {/* LEVEL UP label — expands letter-spacing on entrance */}
+        {/* LEVEL UP label */}
         <motion.p
           className="text-[13px] font-black uppercase text-yellow-300 text-center"
           style={{ textShadow: "0 0 20px rgba(250,204,21,0.8), 0 0 40px rgba(250,204,21,0.4)", textIndent: "0.55em" }}
           initial={{ opacity: 0, letterSpacing: "0.15em" }}
           animate={{ opacity: 1, letterSpacing: "0.55em" }}
-          transition={{ delay: 0.2, duration: 0.38 }}
+          transition={{ delay: 0.22, duration: 0.38 }}
         >
           Level Up!
         </motion.p>
 
-        <div className="relative flex items-center justify-center">
-          {/* Glow fog behind number */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-44 bg-yellow-400/40 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-28 bg-amber-300/30 rounded-full blur-2xl pointer-events-none" />
-
-          {/* Number — slams in from large blurry to sharp */}
+        {/* Lottie animation with level number overlay */}
+        <div className="relative flex items-center justify-center -my-2">
+          <Lottie
+            path="/lottie/level%20up.json"
+            loop={false}
+            autoplay
+            style={{ width: 340, height: 340 }}
+          />
           <motion.p
-            className="relative font-black text-white leading-none z-10"
+            className="absolute font-black text-white leading-none pointer-events-none"
             style={{
-              fontSize: 120,
-              textShadow:
-                "0 0 60px rgba(251,191,36,0.9), 0 0 120px rgba(251,191,36,0.5), 0 0 200px rgba(251,191,36,0.2)",
+              fontSize: 88,
+              textShadow: "0 0 50px rgba(251,191,36,1), 0 0 100px rgba(251,191,36,0.6), 0 0 180px rgba(251,191,36,0.3)",
             }}
-            initial={{ scale: 2.3, opacity: 0, filter: "blur(18px)" }}
+            initial={{ scale: 2, opacity: 0, filter: "blur(16px)" }}
             animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-            transition={{
-              type: "spring",
-              damping: 19,
-              stiffness: 340,
-              delay: 0.13,
-            }}
+            transition={{ type: "spring", damping: 20, stiffness: 320, delay: 0.35 }}
           >
             {level}
           </motion.p>
-
-          {/* Orbiting sparkle ✦ */}
-          {STARS.map((s, i) => (
-            <motion.span
-              key={i}
-              className="absolute text-yellow-200 pointer-events-none z-20"
-              style={{
-                fontSize: s.size,
-                top: `calc(50% + ${s.y}px)`,
-                left: `calc(50% + ${s.x}px)`,
-                marginTop: -(s.size / 2),
-                marginLeft: -(s.size / 2),
-                filter: "drop-shadow(0 0 8px rgba(250,204,21,1)) drop-shadow(0 0 16px rgba(250,204,21,0.6))",
-                lineHeight: 1,
-                width: s.size,
-                height: s.size,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              initial={{ opacity: 0, scale: 0, rotate: 0 }}
-              animate={{
-                opacity: [0, 1, 1, 0],
-                scale: [0, 1.35, 1, 0],
-                rotate: [0, 28, -12, 22],
-              }}
-              transition={{
-                delay: s.delay,
-                duration: 1.85,
-                times: [0, 0.14, 0.65, 1],
-              }}
-            >
-              ✦
-            </motion.span>
-          ))}
         </div>
 
-        {/* XP fill bar — represents the bar hitting 100% */}
+        {/* XP fill bar */}
         <motion.div
           className="w-52"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.26 }}
+          transition={{ delay: 0.3 }}
         >
           <div className="h-[6px] w-full bg-white/20 rounded-full overflow-hidden">
             <motion.div
@@ -343,36 +284,24 @@ const LevelUpCeremony = ({ level, onDismiss }) => {
               }}
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
-              transition={{
-                delay: 0.48,
-                duration: 0.88,
-                ease: [0.34, 1.56, 0.64, 1],
-              }}
+              transition={{ delay: 0.52, duration: 0.88, ease: [0.34, 1.56, 0.64, 1] }}
             />
           </div>
         </motion.div>
 
-        {/* "New rewards unlocked" badge + shimmer sweep */}
+        {/* New rewards badge */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{
-            delay: 0.36,
-            type: "spring",
-            damping: 18,
-            stiffness: 280,
-          }}
-          className="relative overflow-hidden text-sm font-bold text-yellow-300 bg-yellow-400/20 border border-yellow-400/50 px-8 py-2.5 rounded-full shadow-[0_0_20px_rgba(250,204,21,0.3)]"
+          transition={{ delay: 0.4, type: "spring", damping: 18, stiffness: 280 }}
+          className="relative overflow-hidden text-sm font-bold text-metallic-orange bg-yellow-400/20 border border-yellow-400/50 px-8 py-2.5 rounded-full shadow-[0_0_20px_rgba(250,204,21,0.3)]"
         >
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)",
-            }}
+            style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)" }}
             initial={{ x: "-115%" }}
             animate={{ x: "215%" }}
-            transition={{ delay: 0.62, duration: 0.72, ease: "easeInOut" }}
+            transition={{ delay: 0.65, duration: 0.72, ease: "easeInOut" }}
           />
           New rewards unlocked ✦
         </motion.div>
@@ -390,12 +319,11 @@ const BadgeToast = ({ badge, onRemove }) => {
 
   return (
     <motion.div
-      layout
       initial={{ x: 140, opacity: 0, scale: 0.88 }}
       animate={{ x: 0, opacity: 1, scale: 1 }}
       exit={{ x: 140, opacity: 0, scale: 0.88, transition: { duration: 0.2 } }}
       transition={{ type: "spring", damping: 22, stiffness: 290 }}
-      className={`relative overflow-hidden flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-gradient-to-r ${s.bg} border ${s.border} ${s.glow} backdrop-blur-md shadow-2xl cursor-pointer max-w-[285px] pointer-events-auto`}
+      className={`absolute bottom-6 right-6 overflow-hidden flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-gradient-to-r ${s.bg} border ${s.border} ${s.glow} backdrop-blur-md shadow-2xl cursor-pointer max-w-[285px] pointer-events-auto`}
       onClick={onRemove}
     >
       {/* Shimmer sweep on appear */}
@@ -540,42 +468,81 @@ const RankUpBanner = ({ league, eventKey, onDismiss }) => {
   );
 };
 
-export default function GamificationOverlay() {
-  const [xpEvent, setXpEvent] = useState(null); // { key, amount }
-  const [levelUp, setLevelUp] = useState(null); // { key, level }
-  const [badges, setBadges] = useState([]); // [{ id, title, icon, rarity }]
-  const [rankUp, setRankUp] = useState(null); // { key, league }
+// How long each event stays visible before auto-advancing (ms)
+const DURATION = { xp: 1900, levelUp: 5500, badge: 4200, rankUp: 3500 };
 
-  // Rapid XP events within 90ms are accumulated into one display
-  const xpAccRef = useRef(0);
-  const xpTimerRef = useRef(null);
+function soundFor(ev) {
+  switch (ev.type) {
+    case "xp":    playXPGainSound(); break;
+    case "levelUp": playLevelUpSound(); break;
+    case "badge": playBadgeEarnedSound(ev.rarity || "Common"); break;
+    case "rankUp": playRankChangeSound(); break;
+  }
+}
+
+export default function GamificationOverlay() {
+  const [activeEvent, setActiveEvent] = useState(null);
+
+  const queueRef    = useRef([]);   // pending events
+  const runningRef  = useRef(false); // true while queue is being drained
+  const autoTimer   = useRef(null);
+  const startTimer  = useRef(null);
+  const xpAccRef    = useRef(0);
+  const xpTimer     = useRef(null);
+
+  // advanceRef always holds the latest closure so setTimeout callbacks never go stale
+  const advanceRef = useRef(null);
+  advanceRef.current = () => {
+    clearTimeout(autoTimer.current);
+    if (queueRef.current.length === 0) {
+      runningRef.current = false;
+      setActiveEvent(null);
+      return;
+    }
+    const next = queueRef.current.shift();
+    setActiveEvent(next);
+    soundFor(next);
+    autoTimer.current = setTimeout(() => advanceRef.current(), DURATION[next.type] ?? 3500);
+  };
 
   const handle = useCallback((ev) => {
     switch (ev.type) {
       case "xp": {
+        // Accumulate rapid XP bursts, then unshift so XP always shows BEFORE
+        // the level-up it triggered (both arrive on the same socket event).
         xpAccRef.current += ev.amount;
-        clearTimeout(xpTimerRef.current);
-        xpTimerRef.current = setTimeout(() => {
-          setXpEvent({ key: Date.now(), amount: xpAccRef.current });
+        clearTimeout(xpTimer.current);
+        xpTimer.current = setTimeout(() => {
+          queueRef.current.unshift({ type: "xp", amount: xpAccRef.current, key: Date.now() });
           xpAccRef.current = 0;
-          playXPGainSound();
-        }, 90);
+          if (!runningRef.current) {
+            runningRef.current = true;
+            // Small delay so any same-tick events finish queuing first
+            startTimer.current = setTimeout(() => advanceRef.current(), 80);
+          }
+        }, 0);
         break;
       }
       case "levelUp":
-        setLevelUp({ key: Date.now(), level: ev.level });
-        playLevelUpSound();
+        queueRef.current.push({ type: "levelUp", level: ev.level, key: Date.now() });
+        if (!runningRef.current) {
+          runningRef.current = true;
+          startTimer.current = setTimeout(() => advanceRef.current(), 80);
+        }
         break;
-      case "badge": {
-        const id = Date.now() + Math.random();
-        setBadges((p) => [...p, { id, ...ev }]);
-        playBadgeEarnedSound(ev.rarity || "Common");
-        setTimeout(() => setBadges((p) => p.filter((b) => b.id !== id)), 4400);
+      case "badge":
+        queueRef.current.push({ type: "badge", ...ev, key: Date.now() + Math.random() });
+        if (!runningRef.current) {
+          runningRef.current = true;
+          startTimer.current = setTimeout(() => advanceRef.current(), 80);
+        }
         break;
-      }
       case "rankUp":
-        setRankUp({ key: Date.now(), league: ev.league });
-        playRankChangeSound();
+        queueRef.current.push({ type: "rankUp", league: ev.league, key: Date.now() });
+        if (!runningRef.current) {
+          runningRef.current = true;
+          startTimer.current = setTimeout(() => advanceRef.current(), 80);
+        }
         break;
       default:
         break;
@@ -583,84 +550,28 @@ export default function GamificationOverlay() {
   }, []);
 
   useEffect(() => onEvent(handle), [handle]);
+  useEffect(() => () => {
+    clearTimeout(autoTimer.current);
+    clearTimeout(startTimer.current);
+    clearTimeout(xpTimer.current);
+  }, []);
 
-  useEffect(() => () => clearTimeout(xpTimerRef.current), []);
-
-  useEffect(() => {
-    if (!xpEvent) return;
-    const { key } = xpEvent;
-    const t = setTimeout(
-      () => setXpEvent((p) => (p?.key === key ? null : p)),
-      2100,
-    );
-    return () => clearTimeout(t);
-  }, [xpEvent?.key]);
-
-  // Level-up auto-dismiss
-  useEffect(() => {
-    if (!levelUp) return;
-    const k = levelUp.key;
-    const t = setTimeout(
-      () => setLevelUp((p) => (p?.key === k ? null : p)),
-      4900,
-    );
-    return () => clearTimeout(t);
-  }, [levelUp?.key]);
-
-  // Rank-up auto-dismiss
-  useEffect(() => {
-    if (!rankUp) return;
-    const k = rankUp.key;
-    const t = setTimeout(
-      () => setRankUp((p) => (p?.key === k ? null : p)),
-      3300,
-    );
-    return () => clearTimeout(t);
-  }, [rankUp?.key]);
+  const dismiss = useCallback(() => advanceRef.current(), []);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999]">
-      {/* XP Float — hidden while level-up ceremony is active */}
       <AnimatePresence>
-        {xpEvent && !levelUp && (
-          <XPFloat amount={xpEvent.amount} eventKey={xpEvent.key} />
+        {activeEvent?.type === "xp" && (
+          <XPFloat key={activeEvent.key} amount={activeEvent.amount} eventKey={activeEvent.key} />
         )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {levelUp && (
-          <LevelUpCeremony
-            key={levelUp.key}
-            level={levelUp.level}
-            onDismiss={() => setLevelUp(null)}
-          />
+        {activeEvent?.type === "levelUp" && (
+          <LevelUpCeremony key={activeEvent.key} level={activeEvent.level} onDismiss={dismiss} />
         )}
-      </AnimatePresence>
-
-      {/* Badge Stack — bottom-right, stacks upward */}
-      <div className="absolute bottom-6 right-6 flex flex-col-reverse gap-3 items-end">
-        <AnimatePresence mode="popLayout">
-          {badges.map((badge) => (
-            <BadgeToast
-              key={badge.id}
-              badge={badge}
-              onRemove={() =>
-                setBadges((p) => p.filter((b) => b.id !== badge.id))
-              }
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Rank-Up Banner — drops from top */}
-      <AnimatePresence>
-        {rankUp && (
-          <RankUpBanner
-            key={rankUp.key}
-            league={rankUp.league}
-            eventKey={rankUp.key}
-            onDismiss={() => setRankUp(null)}
-          />
+        {activeEvent?.type === "badge" && (
+          <BadgeToast key={activeEvent.key} badge={activeEvent} onRemove={dismiss} />
+        )}
+        {activeEvent?.type === "rankUp" && (
+          <RankUpBanner key={activeEvent.key} league={activeEvent.league} eventKey={activeEvent.key} onDismiss={dismiss} />
         )}
       </AnimatePresence>
     </div>

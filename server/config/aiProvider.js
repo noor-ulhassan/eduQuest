@@ -20,7 +20,7 @@ function getGroqClient() {
 
 const GROQ_MODEL_MAP = {
   "gemini-flash-latest": "llama-3.3-70b-versatile",
-  "gemini-3.1-flash-lite-preview": "llama-3.1-8b-instant",
+  "gemini-3.5-flash-lite": "llama-3.1-8b-instant",
 };
 
 // Safety fallback only — strict JSON is enforced via native JSON mode in Gemini (responseMimeType) and Groq (response_format)
@@ -55,7 +55,8 @@ async function callGemini(prompt, model, json) {
 
 async function callGroq(prompt, geminiModelName, json) {
   const groq = getGroqClient();
-  const groqModel = GROQ_MODEL_MAP[geminiModelName] || "llama-3.3-70b-versatile";
+  const groqModel =
+    GROQ_MODEL_MAP[geminiModelName] || "llama-3.3-70b-versatile";
 
   const completion = await groq.chat.completions.create({
     messages: [{ role: "user", content: prompt }],
