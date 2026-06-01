@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { Trophy } from "lucide-react";
 import { useScroll, useTransform } from "framer-motion";
 import HeroSection from "./components/HeroSection";
 import FeaturesSection from "./components/FeaturesSection";
@@ -141,6 +142,16 @@ const HomePage = () => {
               <div className="w-full max-w-[340px] space-y-4">
                 <UserStats />
                 <Streak />
+                <button
+                  onClick={() => navigate("/leaderboard")}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-yellow-950/30 to-[#111] border border-yellow-500/30 text-sm font-bold text-white hover:border-yellow-500/60 hover:from-yellow-950/50 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    Leaderboard
+                  </span>
+                  <span className="text-yellow-500 text-sm">→</span>
+                </button>
               </div>
             </div>
 
@@ -153,6 +164,7 @@ const HomePage = () => {
             <div className="w-full lg:w-auto flex flex-col gap-6 items-center lg:items-start shrink-0">
               <div className="w-full max-w-[340px] space-y-4">
                 <AchievementsCard />
+                <SmartSuggestion />
               </div>
             </div>
           </div>
@@ -161,13 +173,6 @@ const HomePage = () => {
           <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 mt-8">
             <DailyQuests />
           </div>
-
-          <div className="flex flex-col lg:flex-row gap-4 items-start">
-          <div className="w-full lg:w-80 shrink-0">
-            <SmartSuggestion />
-          </div>
-          
-        </div>
           {/* Competition Stats */}
 
           {/* Hall of Fame */}

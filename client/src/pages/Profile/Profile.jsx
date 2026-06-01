@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { Trophy } from "lucide-react";
 import ProfileHeader from "./components/ProfileHeader";
 import UserStats from "./components/UserStats";
 import SectionCard from "./components/SectionCard";
@@ -118,6 +119,16 @@ const Profile = () => {
               dayStreak={user.dayStreak || 0}
             />
             <SkillsDialog skills={skills} />
+            <button
+              onClick={() => navigate("/leaderboard")}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-yellow-950/30 to-[#111] border border-yellow-500/30 text-sm font-bold text-white hover:border-yellow-500/60 hover:from-yellow-950/50 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                Leaderboard
+              </span>
+              <span className="text-yellow-500 text-sm">→</span>
+            </button>
 
           </div>
         </div>
