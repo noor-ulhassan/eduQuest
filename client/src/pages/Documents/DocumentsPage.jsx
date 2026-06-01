@@ -115,24 +115,14 @@ function DocumentsPage() {
       >
         <button
           onClick={goBack}
-          className="flex items-center gap-1.5 transition-colors"
-          style={{ color: "rgba(255,255,255,0.4)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = "rgba(255,255,255,0.4)")
-          }
+          className="flex items-center gap-1.5 transition-colors text-white/40 hover:text-[#d2a05a]"
         >
           <ArrowLeft size={14} /> Back
         </button>
         <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.15)" }} />
         <span
-          className="cursor-pointer transition-colors"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          className="cursor-pointer transition-colors text-white/[0.35] hover:text-[#d2a05a]"
           onClick={() => navigate("/documents")}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = "rgba(255,255,255,0.35)")
-          }
         >
           Library
         </span>
@@ -144,16 +134,12 @@ function DocumentsPage() {
             />
             <span
               className="cursor-pointer transition-colors truncate max-w-sm"
+              className="transition-colors text-white/60 hover:text-[#d2a05a]"
               style={{
-                color: "rgba(255,255,255,0.6)",
                 fontFamily: "'Lora', Georgia, serif",
                 fontSize: "0.8rem",
               }}
               onClick={() => navigate(`/documents/${id}`)}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(255,255,255,0.6)")
-              }
             >
               {selectedDoc.fileName}
             </span>
@@ -201,12 +187,7 @@ function DocumentsPage() {
             >
               <button
                 onClick={() => setShowUpload(false)}
-                className="flex items-center gap-1.5 transition-colors"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "rgba(255,255,255,0.4)")
-                }
+                className="flex items-center gap-1.5 transition-colors text-white/40 hover:text-[#d2a05a]"
               >
                 <ArrowLeft size={14} /> Back
               </button>
@@ -357,10 +338,7 @@ function DocumentsPage() {
                       fontSize: "13px",
                       boxShadow: "0 4px 18px rgba(200,137,30,0.28)",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.opacity = "0.88")
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                    className="hover:opacity-[0.88] transition-opacity"
                   >
                     <Plus size={16} />
                     Upload new PDF
@@ -373,20 +351,10 @@ function DocumentsPage() {
             <button
               onClick={() => setSidebarOpen((o) => !o)}
               title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-              className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
+              className="doc-sidebar-toggle flex-shrink-0 flex items-center justify-center"
               style={{
                 width: "22px",
-                background: "rgba(210,160,90,0.06)",
                 borderRight: "1px solid rgba(210,160,90,0.1)",
-                color: "rgba(210,160,90,0.5)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(210,160,90,0.12)";
-                e.currentTarget.style.color = "#d2a05a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(210,160,90,0.06)";
-                e.currentTarget.style.color = "rgba(210,160,90,0.5)";
               }}
             >
               {sidebarOpen ? (
@@ -459,14 +427,7 @@ function DocumentsPage() {
                       color: "#d2a05a",
                       fontSize: "13px",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(210,160,90,0.18)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(210,160,90,0.1)")
-                    }
+                    className="doc-upload-btn"
                   >
                     <Plus size={15} /> Upload a PDF
                   </button>
@@ -483,26 +444,10 @@ function DocumentsPage() {
                         key={doc.documentId}
                         onClick={() => handleSelectDoc(doc)}
                         className="group text-left rounded-2xl overflow-hidden flex flex-col transition-all duration-200"
+                        className="doc-card"
                         style={{
                           background: "rgba(255,255,255,0.03)",
                           border: "1px solid rgba(255,255,255,0.07)",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(210,160,90,0.07)";
-                          e.currentTarget.style.border =
-                            "1px solid rgba(210,160,90,0.28)";
-                          e.currentTarget.style.transform = "translateY(-3px)";
-                          e.currentTarget.style.boxShadow =
-                            "0 16px 48px rgba(0,0,0,0.45)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(255,255,255,0.03)";
-                          e.currentTarget.style.border =
-                            "1px solid rgba(255,255,255,0.07)";
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "none";
                         }}
                       >
                         {/* Thumbnail */}
@@ -617,16 +562,8 @@ function DocumentsPage() {
                                   e.stopPropagation(); // prevent card navigation
                                   setDeleteTarget(doc);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg"
+                                className="doc-trash-btn opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg"
                                 style={{ background: "rgba(220,80,80,0.1)" }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.background =
-                                    "rgba(220,80,80,0.28)")
-                                }
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.background =
-                                    "rgba(220,80,80,0.1)")
-                                }
                               >
                                 <Trash2
                                   size={13}

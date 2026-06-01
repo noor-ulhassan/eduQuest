@@ -91,34 +91,6 @@ export default function CourseOverview({ course, enrollment, onResume }) {
   const [showXPParticle, setShowXPParticle] = useState(false);
 
   useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes floatUp {
-        0%   { opacity: 1; transform: translateY(0px); }
-        100% { opacity: 0; transform: translateY(-40px); }
-      }
-      @keyframes pulseGlow {
-        0%, 100% { box-shadow: 0 0 8px 2px rgba(16,185,129,0.3); }
-        50%       { box-shadow: 0 0 20px 6px rgba(16,185,129,0.6); }
-      }
-      @keyframes orangeGlow {
-        0%, 100% { box-shadow: 0 0 8px 2px rgba(249,115,22,0.3); }
-        50%       { box-shadow: 0 0 20px 6px rgba(249,115,22,0.6); }
-      }
-      @keyframes goldGlow {
-        0%, 100% { box-shadow: 0 0 8px 2px rgba(234,179,8,0.3); }
-        50%       { box-shadow: 0 0 20px 6px rgba(234,179,8,0.6); }
-      }
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
-
-  useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
         const response = await getGlobalLeaderboard();
