@@ -153,6 +153,7 @@ const HomePage = () => {
             <div className="w-full lg:w-auto flex flex-col gap-6 items-center lg:items-start shrink-0">
               <div className="w-full max-w-[340px] space-y-4">
                 <AchievementsCard />
+                <SmartSuggestion />
               </div>
             </div>
           </div>
@@ -161,13 +162,6 @@ const HomePage = () => {
           <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 mt-8">
             <DailyQuests />
           </div>
-
-          <div className="flex flex-col lg:flex-row gap-4 items-start">
-          <div className="w-full lg:w-80 shrink-0">
-            <SmartSuggestion />
-          </div>
-          
-        </div>
           {/* Competition Stats */}
 
           {/* Hall of Fame */}

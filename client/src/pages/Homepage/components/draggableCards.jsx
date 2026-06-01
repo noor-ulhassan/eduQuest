@@ -5,6 +5,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2, Lock, Star } from "lucide-react";
 import { usePlaygroundProgress, useCurriculumsMetadata } from "../../../features/playground/usePlayground";
 
+const CARD_COLORS = [
+  "bg-yellow-400",
+  "bg-cyan-500",
+  "bg-green-500",
+  "bg-blue-500",
+  "bg-orange-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-teal-500",
+  "bg-red-500",
+];
+
 export function DraggableCards() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -14,78 +27,38 @@ export function DraggableCards() {
   const { data: metadataPayload, isLoading: metadataLoading } = useCurriculumsMetadata();
   const isLoading = progressLoading || metadataLoading;
 
-
-  // Language to display name and image mapping
-  const languageMap = {
-    react: {
-      title: "React",
-      img: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
-      color: "bg-cyan-500",
-    },
-    javascript: {
-      title: "JavaScript",
-      img: "/javascript.png",
-      color: "bg-yellow-400",
-    },
-    python: {
-      title: "Python",
-      img: "/python1.png",
-      color: "bg-green-500",
-    },
-    css: {
-      title: "CSS",
-      img: "/csss.png",
-      color: "bg-blue-500",
-    },
-    html: {
-      title: "HTML",
-      img: "/html1.png",
-      color: "bg-orange-500",
-    },
-  };
-
   const computedCards = useMemo(() => {
-    const allLanguages = ["react", "javascript", "python", "css", "html"];
     const metadata = metadataPayload?.metadata || [];
     const progress = user ? (progressPayload?.progress || []) : [];
-
-    const curriculumMetaMap = metadata.reduce((acc, m) => { acc[m.language] = m; return acc; }, {});
     const progressMap = progress.reduce((acc, p) => { acc[p.language] = p; return acc; }, {});
 
-    return allLanguages
-      .map((lang, index) => {
-        const langMeta = curriculumMetaMap[lang];
-        const langInfo = languageMap[lang];
-        const userProgress = progressMap[lang];
-        if (!langMeta || !langInfo) return null;
+    return metadata.map((langMeta, index) => {
+      const { language, title, totalProblems, totalChapters, lessons } = langMeta;
+      const userProgress = progressMap[language];
+      const color = CARD_COLORS[index % CARD_COLORS.length];
 
-        const totalChapters = langMeta.totalChapters;
-        const lessons = langMeta.lessons;
-
-        if (userProgress) {
-          const completedChapters =
-            Math.floor(
-              (userProgress.completedProblems?.length || 0) /
-                (langMeta.totalProblems / totalChapters),
-            ) || 0;
-          const cappedCompleted = Math.min(completedChapters, totalChapters);
-          return {
-            id: index + 1, language: lang, title: langInfo.title,
-            level: `Chapter ${cappedCompleted}/${totalChapters}`,
-            img: langInfo.img, lessons, isEnrolled: true,
-            status: "Continue Learning", color: langInfo.color,
-          };
-        }
+      if (userProgress) {
+        const completedChapters =
+          Math.floor(
+            (userProgress.completedProblems?.length || 0) /
+              (totalProblems / totalChapters),
+          ) || 0;
+        const cappedCompleted = Math.min(completedChapters, totalChapters);
         return {
-          id: index + 1, language: lang, title: langInfo.title,
-          level: "Beginner Friendly", img: langInfo.img, lessons,
-          isEnrolled: false, status: "Start Learning", color: langInfo.color,
+          id: index + 1, language, title,
+          level: `Chapter ${cappedCompleted}/${totalChapters}`,
+          lessons, isEnrolled: true,
+          status: "Continue Learning", color,
         };
-      })
-      .filter(Boolean);
+      }
+      return {
+        id: index + 1, language, title,
+        level: "Beginner Friendly", lessons,
+        isEnrolled: false, status: "Start Learning", color,
+      };
+    });
   }, [progressPayload, metadataPayload, user]);
 
-  // Initialise drag-state from query data once it resolves
   useEffect(() => {
     if (computedCards.length > 0) setCards(computedCards);
   }, [computedCards]);
@@ -105,8 +78,6 @@ export function DraggableCards() {
       </div>
     );
   }
-
-  // NOTE: No empty state check anymore since we always show cards
 
   return (
     <div className="relative flex h-[520px] w-[450px] items-center justify-center">
@@ -170,18 +141,16 @@ export function DraggableCards() {
                     </p>
                   </div>
 
-                  <div className="flex-1 flex items-center justify-center mb-3 overflow-hidden">
-                    <motion.img
+                  <div className="flex-1 flex items-center justify-center mb-3">
+                    <motion.div
                       whileHover={{ scale: 1.05, rotate: 2 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20,
-                      }}
-                      src={card.img}
-                      alt="Course Illustration"
-                      className="max-h-24 w-24 object-contain rounded-3xl"
-                    />
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className={`w-20 h-20 rounded-2xl ${card.color} bg-opacity-80 flex items-center justify-center shadow-lg`}
+                    >
+                      <span className="text-white text-3xl font-black tracking-tight select-none">
+                        {card.title.charAt(0).toUpperCase()}
+                      </span>
+                    </motion.div>
                   </div>
 
                   <div className="space-y-2 mb-4 z-10 relative">
@@ -191,7 +160,6 @@ export function DraggableCards() {
                         className="flex items-center justify-between group px-2"
                       >
                         <div className="flex items-center gap-3">
-                          {/* Visual indicator for lessons */}
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
                               card.isEnrolled && idx === 0
