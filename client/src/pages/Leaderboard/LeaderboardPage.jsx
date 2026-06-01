@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   getGlobalLeaderboard,
@@ -11,6 +10,7 @@ import {
 } from "../../features/leaderboard/leaderboardApi";
 import {
   Trophy,
+  Crown,
   Code2,
   BookOpen,
   Swords,
@@ -142,7 +142,6 @@ const RowSkeleton = () => (
 
 const Leaderboard = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("global");
   const [tabData, setTabData] = useState({});
@@ -203,77 +202,6 @@ const Leaderboard = () => {
         <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[400px] bg-purple-900/8 rounded-full blur-[160px]" />
       </div>
 
-      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
-      <header
-        className="relative z-20 h-[60px] shrink-0 flex items-center justify-between px-6"
-        style={{
-          background: "rgba(3,3,5,0.85)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        {/* Left: logo + nav */}
-        <div className="flex items-center gap-10 h-full">
-          <div
-            className="flex items-center gap-2.5 cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <div className="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-black text-white tracking-widest">EQ</span>
-            </div>
-            <span className="text-sm font-black tracking-wide hidden sm:block">
-              <span style={METALLIC}>Edu</span>
-              <span style={METALLIC_ORANGE}>Quest</span>
-            </span>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6 h-full">
-            {[
-              { label: "Dashboard",   path: "/"           },
-              { label: "Challenges",  path: "/playground" },
-              { label: "Leaderboard", path: "/leaderboard"},
-              { label: "Profile",     path: "/profile"    },
-            ].map(({ label, path }) => {
-              const isActive = label === "Leaderboard";
-              return (
-                <button
-                  key={label}
-                  onClick={() => navigate(path)}
-                  className={cn(
-                    "h-full px-1 text-[13px] font-semibold transition-colors relative flex items-center",
-                    isActive
-                      ? "text-orange-400"
-                      : "text-zinc-500 hover:text-zinc-200",
-                  )}
-                >
-                  {label}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-t-full" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Right: avatar */}
-        <button
-          onClick={() => navigate("/profile")}
-          className="w-8 h-8 rounded-full overflow-hidden border border-zinc-800 hover:border-orange-500/40 transition-colors flex items-center justify-center bg-zinc-900"
-        >
-          {currentUser?.avatarUrl || currentUser?.imageUrl ? (
-            <img
-              src={currentUser.avatarUrl || currentUser.imageUrl}
-              alt="me"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="w-full h-full bg-orange-900/40 text-orange-400 font-bold text-xs flex items-center justify-center">
-              {currentUser?.name?.charAt(0) || "U"}
-            </span>
-          )}
-        </button>
-      </header>
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
       <div className="relative z-10 flex-1 overflow-y-auto thin-scroll pb-28">

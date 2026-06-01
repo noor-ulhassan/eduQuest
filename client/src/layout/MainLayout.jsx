@@ -17,7 +17,6 @@ const MainLayout = () => {
     isPlaygroundRoute ||
     isEditCourseRoute ||
     location.pathname.startsWith("/competition") ||
-    location.pathname === "/leaderboard" ||
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
     location.pathname.startsWith("/course/");
