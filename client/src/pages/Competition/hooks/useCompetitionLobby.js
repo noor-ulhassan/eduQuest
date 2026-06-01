@@ -258,6 +258,8 @@ export function useCompetitionLobby({ paramCode, searchParams, user, dispatch, n
         setRoomCode(response.roomCode);
         setRoom({ ...response.room, hostId: user._id });
         setPendingRequests([]);
+        // Sync default category to server so settingsUpdated never sends null back
+        socket.emit("updateSettings", { roomCode: response.roomCode, settings: { category: "general" } });
         toast.success(`Room ${response.roomCode} created!`);
       } else {
         toast.error("Failed to create room");

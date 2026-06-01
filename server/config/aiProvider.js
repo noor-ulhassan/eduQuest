@@ -37,6 +37,7 @@ function isRateLimitError(error) {
     msg.includes("429") ||
     msg.includes("rate limit") ||
     msg.includes("quota") ||
+    msg.includes("high demand") ||
     msg.includes("resource exhausted") ||
     msg.includes("heavy traffic") ||
     msg.includes("overloaded")
