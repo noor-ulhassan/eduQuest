@@ -1,21 +1,6 @@
-import { callAiModel } from "../config/aiProvider.js";
+// All AI prompt builder functions for each challenge mode.
+// Each function receives the game settings and returns the prompt string.
 
-// ─── PROMPT INPUT SANITIZATION ────────────────────────────
-const ALLOWED_PROMPT_CHARS = /[^a-zA-Z0-9 .,'!?:()\-_#@&+/]/g;
-const INJECTION_PATTERNS =
-  /\b(ignore|forget|disregard|override|system prompt|instruction)\b/gi;
-
-function sanitizePromptInput(str, maxLen = 200) {
-  if (!str || typeof str !== "string") return "";
-  return str
-    .replace(/[\r\n\t]/g, " ")
-    .replace(ALLOWED_PROMPT_CHARS, "")
-    .replace(INJECTION_PATTERNS, "")
-    .trim()
-    .slice(0, maxLen);
-}
-
-// ─── DIFFICULTY TONE MAPPING ──────────────────────────────
 const DIFFICULTY_TONES = {
   easy: `Tone: Beginner-friendly and encouraging. Use simple, clear language.
 Focus on: syntax basics, fundamental concepts, simple logic puzzles.
@@ -28,15 +13,7 @@ Focus on: system design, performance optimization, complex integrations, edge ca
 Style: Think of a principal engineer conducting a technical interview.`,
 };
 
-// ─── CHALLENGE MODE PROMPTS ───────────────────────────────
-
-function buildClassicQuizPrompt({
-  difficulty,
-  topic,
-  description,
-  totalQuestions,
-  category,
-}) {
+function buildClassicQuizPrompt({ difficulty, topic, description, totalQuestions, category }) {
   const isGeneral = category === "general";
   const topicLine = topic
     ? `Topic: ${topic}`
@@ -45,10 +22,7 @@ function buildClassicQuizPrompt({
       : "Topic: general technology, computer science, and programming concepts";
   const descLine = description ? `Additional context: ${description}` : "";
 
-  // STRICT topic-lock for general category — Gemini otherwise drifts toward
-  // CS/programming questions even when the topic is non-technical.
-  const topicLock = isGeneral
-    ? `
+  const topicLock = isGeneral ? `
 TOPIC LOCK — ABSOLUTELY CRITICAL:
 - Every question MUST be exclusively about "${topic || "general knowledge"}".
 - Do NOT use computer science, programming, software engineering, databases, algorithms, or developer scenarios UNLESS the topic itself is one of those.
@@ -56,8 +30,7 @@ TOPIC LOCK — ABSOLUTELY CRITICAL:
 - Do NOT use code, function names, or technical jargon as answer choices for a non-technical topic.
 - If the topic is "Ancient Rome", every question is about Ancient Rome — not about "tech in Rome", not about "a programmer studying Rome".
 - Stay strictly within the domain implied by the topic.
-`
-    : "";
+` : "";
 
   return `
 You are a quiz question generator for a competitive knowledge game.
@@ -92,13 +65,7 @@ Schema:
 `;
 }
 
-function buildScenarioChallengePrompt({
-  difficulty,
-  topic,
-  description,
-  totalQuestions,
-  category,
-}) {
+function buildScenarioChallengePrompt({ difficulty, topic, description, totalQuestions, category }) {
   const isGeneral = category === "general";
   const topicLine = topic
     ? `Domain: ${topic}`
@@ -107,24 +74,20 @@ function buildScenarioChallengePrompt({
       : "Domain: software engineering and web development";
   const descLine = description ? `Additional context: ${description}` : "";
 
-  // Example scenarios — category aware so the LLM doesn't anchor on CS for
-  // non-technical topics.
   const exampleLine = isGeneral
     ? `Example scenario style (mirror the structure, NOT the subject):
 "Marco, a vineyard owner in Tuscany, notices his grapes are ripening two weeks earlier than they did a decade ago. He's debating whether to plant a heat-tolerant variety or invest in shade nets. His agronomist visits next week to advise."`
     : `Example scenario style:
 "Sarah, a backend developer at a fintech startup, notices their MongoDB queries are taking 3+ seconds during peak hours. The collection has 2 million user transaction documents with frequent reads on 'userId' and 'timestamp' fields. Her team lead asks her to optimize the database layer before the next sprint review."`;
 
-  const topicLock = isGeneral
-    ? `
+  const topicLock = isGeneral ? `
 TOPIC LOCK — ABSOLUTELY CRITICAL:
 - Every scenario AND every question MUST be set within the domain "${topic || "general knowledge"}".
 - Do NOT use computer science, programming, software engineering, databases, algorithms, or developer scenarios UNLESS the topic itself is one of those.
 - Characters in scenarios should fit the topic (e.g., for "Ancient Rome" — senators, soldiers, merchants — NOT "a developer named Sarah").
 - Do NOT use technical jargon, code, or developer settings unless the topic is technical.
 - The scenario is a vehicle for testing knowledge of "${topic || "the topic"}", not a setting where unrelated tech happens.
-`
-    : "";
+` : "";
 
   return `
 You are an immersive scenario-based quiz designer. Each question must present a REALISTIC MINI-STORY before asking a question.
@@ -169,13 +132,7 @@ Schema:
 `;
 }
 
-function buildDebugDetectivePrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-}) {
+function buildDebugDetectivePrompt({ difficulty, language, topic, description, totalQuestions }) {
   const topicLine = topic ? `Focus area: ${topic}` : "";
   const descLine = description ? `Additional context: ${description}` : "";
 
@@ -224,16 +181,8 @@ Schema:
 `;
 }
 
-function buildProductionOutagePrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-}) {
-  const topicLine = topic
-    ? `System type: ${topic}`
-    : "System type: MERN stack web application";
+function buildProductionOutagePrompt({ difficulty, language, topic, description, totalQuestions }) {
+  const topicLine = topic ? `System type: ${topic}` : "System type: MERN stack web application";
   const descLine = description ? `Additional context: ${description}` : "";
 
   return `
@@ -280,16 +229,7 @@ Schema:
 `;
 }
 
-
-// ─── INTERACTIVE MODE ─────────────────────────────────────
-function buildInteractivePrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-  category,
-}) {
+function buildInteractivePrompt({ difficulty, language, topic, description, totalQuestions, category }) {
   const isGeneral = category === "general";
   const topicLine = topic
     ? `Topic: ${topic}`
@@ -297,51 +237,22 @@ function buildInteractivePrompt({
       ? "Topic: general technology, science, and computer science concepts"
       : `Topic: ${language} programming`;
   const descLine = description ? `Additional context: ${description}` : "";
-  const topicForInstruction =
-    topic || (isGeneral ? "general knowledge" : language + " programming");
+  const topicForInstruction = topic || (isGeneral ? "general knowledge" : language + " programming");
 
-  // Distribute question types — pick randomly, ensuring variety
-  // fill_blank removed: unreliable grading and poor UX
   const types = isGeneral
     ? ["drag_order", "drag_match", "slider_adjust", "drag_order", "drag_match"]
-    : [
-        "drag_order",
-        "drag_match",
-        "predict_output",
-        "slider_adjust",
-        "drag_order",
-        "drag_match",
-      ];
+    : ["drag_order", "drag_match", "predict_output", "slider_adjust", "drag_order", "drag_match"];
 
-  // Build distribution then SHUFFLE so order is random each game
   const typeDistribution = [];
-  for (let i = 0; i < totalQuestions; i++) {
-    typeDistribution.push(types[i % types.length]);
-  }
-  // Fisher-Yates shuffle
+  for (let i = 0; i < totalQuestions; i++) typeDistribution.push(types[i % types.length]);
   for (let i = typeDistribution.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [typeDistribution[i], typeDistribution[j]] = [
-      typeDistribution[j],
-      typeDistribution[i],
-    ];
+    [typeDistribution[i], typeDistribution[j]] = [typeDistribution[j], typeDistribution[i]];
   }
 
-  const typeCounts = typeDistribution.reduce((acc, t) => {
-    acc[t] = (acc[t] || 0) + 1;
-    return acc;
-  }, {});
-
-  const typeBreakdown = Object.entries(typeCounts)
-    .map(([type, count]) => `- ${count}x "${type}"`)
-    .join("\n");
-
-  // Build the ordered list so AI generates them in shuffled order
-  const orderedList = typeDistribution
-    .map((t, i) => `  ${i + 1}. ${t}`)
-    .join("\n");
-
-  // Unique seed for anti-caching
+  const typeCounts = typeDistribution.reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {});
+  const typeBreakdown = Object.entries(typeCounts).map(([type, count]) => `- ${count}x "${type}"`).join("\n");
+  const orderedList = typeDistribution.map((t, i) => `  ${i + 1}. ${t}`).join("\n");
   const seed = Math.floor(Math.random() * 100000);
 
   return `
@@ -384,16 +295,12 @@ User adjusts sliders to find correct numeric values. Good for tuning parameters,
 Schema: { "interactionType": "slider_adjust", "question": "...", "sliders": [{"label": "...", "unit": "...", "min": 0, "max": 100, "step": 1, "correctValue": 42, "tolerance": 2}], "explanation": "...", "difficulty": "${difficulty}" }
 Rules: 1-3 sliders. correctValue must NOT be min, max, or exact midpoint. tolerance=0 means exact match.
 
-${
-  !isGeneral
-    ? `
+${!isGeneral ? `
 === predict_output ===
 User reads code and types what it outputs. Good for tracing logic, understanding execution.
 Schema: { "interactionType": "predict_output", "question": "...", "codeSnippet": "...", "acceptedAnswers": ["format1", "format2"], "explanation": "...", "difficulty": "${difficulty}" }
 Rules: Include 3-5 accepted format variations. Keep outputs SHORT (single line).
-`
-    : ""
-}
+` : ""}
 
 FINAL REMINDERS:
 - Return ONLY valid JSON. No markdown. No backticks.
@@ -408,46 +315,20 @@ Return JSON:
 `;
 }
 
-// ─── VISUAL INTERACTIVE MODE (Programming only) ───────────
-function buildVisualInteractivePrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-}) {
+function buildVisualInteractivePrompt({ difficulty, language, topic, description, totalQuestions }) {
   const topicStr = topic || `${language} programming`;
-  const topicLine = topic
-    ? `Topic: ${topic}`
-    : `Topic: ${language} programming concepts`;
+  const topicLine = topic ? `Topic: ${topic}` : `Topic: ${language} programming concepts`;
   const descLine = description ? `Additional context: ${description}` : "";
   const seed = Math.floor(Math.random() * 100000);
 
-  // Cycle through all 6 interaction types in shuffled order for maximum variety
-  const allTypes = [
-    "visual_sequence", // robot grid — pointer/algorithm navigation
-    "code_trace", // drag execution snapshots into chronological order
-    "drag_order", // drag algorithm steps into correct sequence
-    "drag_match", // match programming terms to definitions
-    "predict_output", // read code and type its output
-    "slider_adjust", // tune numeric parameters (complexity, thresholds)
-  ];
-  // Shuffle the cycle order so every game is different
+  const allTypes = ["visual_sequence", "code_trace", "drag_order", "drag_match", "predict_output", "slider_adjust"];
   const shuffledBase = [...allTypes].sort(() => Math.random() - 0.5);
-  const types = Array.from(
-    { length: totalQuestions },
-    (_, i) => shuffledBase[i % shuffledBase.length],
-  );
-  const typeCounts = types.reduce((a, t) => {
-    a[t] = (a[t] || 0) + 1;
-    return a;
-  }, {});
-  const typeBreakdown = Object.entries(typeCounts)
-    .map(([t, n]) => `- ${n}x "${t}"`)
-    .join("\n");
+  const types = Array.from({ length: totalQuestions }, (_, i) => shuffledBase[i % shuffledBase.length]);
+
+  const typeCounts = types.reduce((a, t) => { a[t] = (a[t] || 0) + 1; return a; }, {});
+  const typeBreakdown = Object.entries(typeCounts).map(([t, n]) => `- ${n}x "${t}"`).join("\n");
   const orderedList = types.map((t, i) => `  ${i + 1}. ${t}`).join("\n");
 
-  // Concept pool — pick varied sub-topics so no two questions are alike
   const allConcepts = [
     `array index traversal (iterating through elements in ${language})`,
     `stack push/pop sequence (LIFO data structure in ${language})`,
@@ -470,14 +351,9 @@ function buildVisualInteractivePrompt({
     `garbage collection reachability walk`,
     `regex backtracking steps`,
   ];
-  // Shuffle and take one per question
   const shuffledConcepts = [...allConcepts].sort(() => Math.random() - 0.5);
-  const assignedConcepts = types.map(
-    (_, i) => shuffledConcepts[i % shuffledConcepts.length],
-  );
-  const conceptMap = types
-    .map((t, i) => `  Q${i + 1} (${t}): "${assignedConcepts[i]}"`)
-    .join("\n");
+  const assignedConcepts = types.map((_, i) => shuffledConcepts[i % shuffledConcepts.length]);
+  const conceptMap = types.map((t, i) => `  Q${i + 1} (${t}): "${assignedConcepts[i]}"`).join("\n");
 
   return `
 You are a Brilliant.org-style programming puzzle designer for a competitive education platform.
@@ -506,10 +382,10 @@ A grid represents a memory/data structure. A robot (pointer/cursor/algorithm hea
 The user arranges command blocks into the correct execution order to make the algorithm complete.
 
 RULES:
-• Grid: rows 2–4, cols 2–4. startPos ≠ goalPos. Choose DIFFERENT configs each time.
+• Grid: rows 2-4, cols 2-4. startPos ≠ goalPos. Choose DIFFERENT configs each time.
 • startDir: "right" | "left" | "up" | "down"  — vary this across questions.
 • Command strings: ONLY use "Move Forward" | "Turn Left" | "Turn Right" | "Move Backward"
-• items: 3–7 commands in SHUFFLED order (NOT execution order)
+• items: 3-7 commands in SHUFFLED order (NOT execution order)
 • correctOrder[i] = index into items array that executes at position i
 • MANDATORY PATH VERIFICATION — trace every step before writing correctOrder:
     pos = startPos, dir = startDir
@@ -519,7 +395,7 @@ RULES:
       if pos goes out of bounds → INVALID, redesign
       if pos hits a wall → INVALID, redesign
     final pos MUST equal goalPos
-• walls: array of [row, col] blocked cells — add 0–2 walls for variety
+• walls: array of [row, col] blocked cells — add 0-2 walls for variety
 
 MOVEMENT RULES:
 • "Move Forward"  → pos += delta[dir]   (right:[0,+1], left:[0,-1], up:[-1,0], down:[+1,0])
@@ -576,14 +452,14 @@ TYPE: code_trace
 User sees a code snippet and drags execution snapshot cards into chronological order.
 
 RULES:
-• codeSnippet: 4–10 lines of REAL ${language} code for the assigned concept. Use:
+• codeSnippet: 4-10 lines of REAL ${language} code for the assigned concept. Use:
   - for/while loops with accumulator or counter variables
   - if/else branches that change variable values
   - function calls with meaningful return values
   - array or object mutations (push, pop, splice, etc.)
   - Nested operations (loop inside condition, function modifying array, etc.)
   NEVER use trivial patterns like x=5; y=x*2; z=y-3
-• steps: 3–5 snapshot objects in GENUINELY SHUFFLED order (NOT execution order — shuffle them)
+• steps: 3-5 snapshot objects in GENUINELY SHUFFLED order (NOT execution order — shuffle them)
 • Each step: { "lineLabel": "exact code line", "variables": { all vars currently in scope with current values } }
   For loop iterations: show the variable state at EACH iteration as a separate step
 • correctOrder[i] = index into steps that executes at step i
@@ -599,7 +475,6 @@ steps (shuffled): [
   { "lineLabel": "total += i", "variables": { "i": 2, "total": 3 } }
 ]
 correctOrder: [1, 2, 4, 0, 3]
-← step[1]="total=0" first, step[2]="total+=1(i=1)" second, step[4]="total+=2(i=2)" third, step[0]="total+=3(i=3)" fourth, step[3]="print" last
 
 EXAMPLE B — Conditional branch (do NOT copy):
 codeSnippet: "arr = [4, 2, 7]\\nmax_val = arr[0]\\nfor x in arr:\\n    if x > max_val:\\n        max_val = x\\nreturn max_val"
@@ -633,15 +508,9 @@ TYPE: drag_order
 User drags items into the correct sequential order. Use for algorithm steps, process flows, sorting phases, lifecycle events.
 
 RULES:
-• items: 4–6 steps/concepts in SHUFFLED order (NOT the correct order)
+• items: 4-6 steps/concepts in SHUFFLED order (NOT the correct order)
 • correctOrder[i] = index into items that should be at position i
 • items MUST be genuinely shuffled — not in correct order
-
-EXAMPLE (do NOT copy):
-question: "Arrange the steps of the merge sort algorithm in correct order"
-items (shuffled): ["Merge sorted halves", "Divide array in half", "Recursively sort right half", "Recursively sort left half", "Return base case (len≤1)"]
-correctOrder: [4, 1, 3, 2, 0]
-← step0=items[4]="Return base case", step1=items[1]="Divide", step2=items[3]="Sort left", step3=items[2]="Sort right", step4=items[0]="Merge"
 
 Schema:
 {
@@ -660,15 +529,6 @@ User matches left-column terms to right-column definitions. Use for term/concept
 
 RULES:
 • EXACTLY 4 pairs. pairs[i].left matches pairs[i].right.
-• Terms should be from the assigned concept — specific, unambiguous
-
-EXAMPLE (do NOT copy):
-pairs: [
-  { "left": "O(1) space", "right": "In-place sorting algorithm" },
-  { "left": "O(n log n)", "right": "Merge sort time complexity" },
-  { "left": "Stable sort", "right": "Preserves order of equal elements" },
-  { "left": "Pivot element", "right": "Used in quicksort partitioning" }
-]
 
 Schema:
 {
@@ -690,13 +550,9 @@ TYPE: predict_output
 User reads a code snippet and types what it prints/returns. Use for output tracing.
 
 RULES:
-• codeSnippet: 4–8 lines of ${language} with a CLEAR, deterministic single-line output
-• acceptedAnswers: 3–5 variations of the correct output (different whitespace, quote styles, etc.)
+• codeSnippet: 4-8 lines of ${language} with a CLEAR, deterministic single-line output
+• acceptedAnswers: 3-5 variations of the correct output
 • Output must be SHORT (one line). No complex multi-line outputs.
-
-EXAMPLE (do NOT copy):
-codeSnippet: "def count_vowels(s):\\n    return sum(1 for c in s if c in 'aeiou')\\nprint(count_vowels('algorithm'))"
-acceptedAnswers: ["3", "3\\n"]
 
 Schema:
 {
@@ -714,15 +570,8 @@ TYPE: slider_adjust
 User adjusts sliders to find correct numeric values. Use for complexity parameters, thresholds, performance tuning.
 
 RULES:
-• 1–2 sliders. Each has: label, unit, min, max, step, correctValue, tolerance
+• 1-2 sliders. Each has: label, unit, min, max, step, correctValue, tolerance
 • correctValue must NOT be at min, max, or exact midpoint
-• tolerance: how close the user must get (0 = exact, >0 = within range)
-
-EXAMPLE (do NOT copy):
-sliders: [
-  { "label": "Time complexity exponent", "unit": "", "min": 1, "max": 4, "step": 1, "correctValue": 2, "tolerance": 0 },
-  { "label": "Cache hit rate threshold", "unit": "%", "min": 0, "max": 100, "step": 5, "correctValue": 75, "tolerance": 5 }
-]
 
 Schema:
 {
@@ -750,18 +599,9 @@ Return JSON:
 `;
 }
 
-// ─── PROGRAMMING CLASSIC MODE ─────────────────────────────
-function buildClassicProgrammingPrompt({
-  difficulty,
-  language,
-  topic,
-  description,
-  totalQuestions,
-}) {
+function buildClassicProgrammingPrompt({ difficulty, language, topic, description, totalQuestions }) {
   const progTopicLine = topic ? `\nFocus the challenges on: ${topic}` : "";
-  const progDescLine = description
-    ? `\nAdditional context: ${description}`
-    : "";
+  const progDescLine = description ? `\nAdditional context: ${description}` : "";
 
   return `
 You are a competitive programming question generator.
@@ -774,7 +614,7 @@ Each challenge must have:
 - title: short problem name
 - description: clear problem statement with examples
 - starterCode: function signature with comments
-- testCases: a test script that calls the function with inputs and prints a JSON result like {"success": true/false, "message": "..."} 
+- testCases: a test script that calls the function with inputs and prints a JSON result like {"success": true/false, "message": "..."}
   The test script should test at least 3 cases. It should be appended AFTER the user's code.
 - correctAnswer: a reference solution (DO NOT send to players)
 - difficulty: "${difficulty}"
@@ -805,414 +645,11 @@ Schema:
 `;
 }
 
-// ─── CHALLENGE MODE REGISTRY ──────────────────────────────
-const CHALLENGE_MODES = {
-  classic: {
-    general: buildClassicQuizPrompt,
-    programming: buildClassicProgrammingPrompt,
-  },
-  scenario: {
-    general: buildScenarioChallengePrompt,
-    programming: buildScenarioChallengePrompt,
-  },
-  debug: {
-    general: buildDebugDetectivePrompt,
-    programming: buildDebugDetectivePrompt,
-  },
-  outage: {
-    general: buildProductionOutagePrompt,
-    programming: buildProductionOutagePrompt,
-  },
-  visual_interactive: {
-    general: buildInteractivePrompt,
-    programming: buildVisualInteractivePrompt,
-  },
-};
-
-// ─── SERVER-SIDE ROBOT PATH VALIDATOR ────────────────────
-// Mirrors the logic in client/src/components/competition/visual/robotSimulator.js
-function validateVisualSequencePath(q) {
-  try {
-    const { gridConfig, items, correctOrder } = q;
-    if (!gridConfig || !Array.isArray(items) || !Array.isArray(correctOrder))
-      return false;
-    const { startPos, startDir, goalPos, rows, cols, walls = [] } = gridConfig;
-    if (!startPos || !startDir || !goalPos || !rows || !cols) return false;
-
-    const MOVE_DELTA = {
-      right: [0, 1],
-      left: [0, -1],
-      up: [-1, 0],
-      down: [1, 0],
-    };
-    const TURN_RIGHT = { right: "down", down: "left", left: "up", up: "right" };
-    const TURN_LEFT = { right: "up", up: "left", left: "down", down: "right" };
-    const TURN_AROUND = {
-      right: "left",
-      left: "right",
-      up: "down",
-      down: "up",
-    };
-
-    let pos = [...startPos];
-    let dir = startDir;
-
-    for (const idx of correctOrder) {
-      if (idx < 0 || idx >= items.length) return false;
-      const cmd = String(items[idx]).toLowerCase();
-
-      if (cmd.includes("forward")) {
-        const [dr, dc] = MOVE_DELTA[dir] || [0, 0];
-        pos = [pos[0] + dr, pos[1] + dc];
-      } else if (cmd.includes("turn right") || cmd.includes("rotate right")) {
-        dir = TURN_RIGHT[dir] || dir;
-      } else if (cmd.includes("turn left") || cmd.includes("rotate left")) {
-        dir = TURN_LEFT[dir] || dir;
-      } else if (cmd.includes("backward") || cmd.includes("back")) {
-        const [dr, dc] = MOVE_DELTA[dir] || [0, 0];
-        pos = [pos[0] - dr, pos[1] - dc];
-      } else if (cmd.includes("turn around") || cmd.includes("u-turn")) {
-        dir = TURN_AROUND[dir] || dir;
-      }
-
-      // Bounds check
-      if (pos[0] < 0 || pos[0] >= rows || pos[1] < 0 || pos[1] >= cols)
-        return false;
-      // Wall check
-      if (
-        walls.some(
-          (w) => Array.isArray(w) && w[0] === pos[0] && w[1] === pos[1],
-        )
-      )
-        return false;
-    }
-
-    return pos[0] === goalPos[0] && pos[1] === goalPos[1];
-  } catch {
-    return false;
-  }
-}
-
-// ─── QUESTION VALIDATION ──────────────────────────────────
-function validateQuestion(q, index) {
-  // Every question must have text content
-  if (!q.question && !q.title) {
-    console.warn(`[Validation] Q${index + 1}: Missing question text`);
-    return false;
-  }
-
-  const iType = q.interactionType;
-
-  if (iType === "code") {
-    if (!q.starterCode || !q.testCases) {
-      console.warn(
-        `[Validation] Q${index + 1}: code question missing starterCode/testCases`,
-      );
-      return false;
-    }
-  } else if (!iType || iType === "mcq") {
-    // Fallback: if it looks like a code question but missing interactionType
-    if (q.starterCode && q.testCases) return true;
-    // MCQ: must have options array with correctAnswer in it
-    if (!Array.isArray(q.options) || q.options.length < 2) {
-      console.warn(`[Validation] Q${index + 1}: MCQ missing options`);
-      return false;
-    }
-    if (q.correctAnswer !== undefined && !q.options.includes(q.correctAnswer)) {
-      console.warn(`[Validation] Q${index + 1}: correctAnswer not in options`);
-      return false;
-    }
-  } else if (iType === "drag_order") {
-    if (!Array.isArray(q.items) || !Array.isArray(q.correctOrder)) {
-      console.warn(
-        `[Validation] Q${index + 1}: drag_order missing items/correctOrder`,
-      );
-      return false;
-    }
-    if (q.items.length !== q.correctOrder.length) {
-      console.warn(
-        `[Validation] Q${index + 1}: drag_order items/correctOrder length mismatch`,
-      );
-      return false;
-    }
-    // Reject trivially-in-order correctOrder for 4+ items (AI forgot to shuffle items)
-    const doSorted = [...q.correctOrder].map(Number).sort((a, b) => a - b);
-    if (doSorted.some((v, i) => v !== i)) {
-      console.warn(
-        `[Validation] Q${index + 1}: drag_order correctOrder has invalid indices`,
-      );
-      return false;
-    }
-    if (
-      q.correctOrder.every((v, i) => Number(v) === i) &&
-      q.items.length >= 4
-    ) {
-      console.warn(
-        `[Validation] Q${index + 1}: drag_order correctOrder is [0,1,2,...] — items appear unshuffled`,
-      );
-      return false;
-    }
-  } else if (iType === "drag_match") {
-    if (!Array.isArray(q.pairs) || q.pairs.length < 2) {
-      console.warn(`[Validation] Q${index + 1}: drag_match missing pairs`);
-      return false;
-    }
-    if (q.pairs.some((p) => !p.left || !p.right)) {
-      console.warn(
-        `[Validation] Q${index + 1}: drag_match pair missing left/right`,
-      );
-      return false;
-    }
-  } else if (iType === "fill_blank") {
-    if (!q.codeTemplate || !Array.isArray(q.blanks) || q.blanks.length === 0) {
-      console.warn(
-        `[Validation] Q${index + 1}: fill_blank missing codeTemplate/blanks`,
-      );
-      return false;
-    }
-  } else if (iType === "slider_adjust") {
-    if (!Array.isArray(q.sliders) || q.sliders.length === 0) {
-      console.warn(`[Validation] Q${index + 1}: slider_adjust missing sliders`);
-      return false;
-    }
-    if (q.sliders.some((s) => s.correctValue === undefined)) {
-      console.warn(`[Validation] Q${index + 1}: slider missing correctValue`);
-      return false;
-    }
-  } else if (iType === "visual_sequence") {
-    if (
-      !Array.isArray(q.items) ||
-      !Array.isArray(q.correctOrder) ||
-      !q.gridConfig
-    ) {
-      console.warn(
-        `[Validation] Q${index + 1}: visual_sequence missing items/correctOrder/gridConfig`,
-      );
-      return false;
-    }
-    if (q.items.length !== q.correctOrder.length) {
-      console.warn(
-        `[Validation] Q${index + 1}: visual_sequence items/correctOrder length mismatch`,
-      );
-      return false;
-    }
-    if (
-      !Array.isArray(q.gridConfig.startPos) ||
-      !Array.isArray(q.gridConfig.goalPos)
-    ) {
-      console.warn(
-        `[Validation] Q${index + 1}: visual_sequence gridConfig missing startPos/goalPos`,
-      );
-      return false;
-    }
-    // Ensure correctOrder is a valid permutation (no duplicates, all valid indices)
-    const sorted = [...q.correctOrder].map(Number).sort((a, b) => a - b);
-    if (sorted.some((v, i) => v !== i || !Number.isInteger(v))) {
-      console.warn(
-        `[Validation] Q${index + 1}: visual_sequence correctOrder is not a valid permutation`,
-      );
-      return false;
-    }
-    // Verify the robot actually reaches goalPos following correctOrder
-    if (!validateVisualSequencePath(q)) {
-      console.warn(
-        `[Validation] Q${index + 1}: visual_sequence path does not reach goalPos`,
-      );
-      return false;
-    }
-  } else if (iType === "code_trace") {
-    if (
-      !Array.isArray(q.steps) ||
-      !Array.isArray(q.correctOrder) ||
-      !q.codeSnippet
-    ) {
-      console.warn(
-        `[Validation] Q${index + 1}: code_trace missing steps/correctOrder/codeSnippet`,
-      );
-      return false;
-    }
-    if (q.steps.length !== q.correctOrder.length) {
-      console.warn(
-        `[Validation] Q${index + 1}: code_trace steps/correctOrder length mismatch`,
-      );
-      return false;
-    }
-    // Ensure correctOrder is a valid permutation
-    const ctSorted = [...q.correctOrder].map(Number).sort((a, b) => a - b);
-    if (ctSorted.some((v, i) => v !== i || !Number.isInteger(v))) {
-      console.warn(
-        `[Validation] Q${index + 1}: code_trace correctOrder is not a valid permutation`,
-      );
-      return false;
-    }
-    // Warn if steps appear to be in execution order (AI forgot to shuffle)
-    // Only reject if 5 steps — [0,1,2,3,4] ascending is extremely unlikely to be valid
-    const isInOrder = q.correctOrder.every((v, i) => Number(v) === i);
-    if (isInOrder && q.steps.length >= 5) {
-      console.warn(
-        `[Validation] Q${index + 1}: code_trace correctOrder is [0,1,2,3,4] — AI likely forgot to shuffle; discarding`,
-      );
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// ─── MAIN EXPORT ──────────────────────────────────────────
-export const generateCompetitionQuestions = async ({
-  category,
-  challengeMode = "classic",
-  difficulty = "medium",
-  language = "javascript",
-  topic = "",
-  description = "",
-  totalQuestions = 5,
-}) => {
-  const safeTopic = sanitizePromptInput(topic);
-  const safeDescription = sanitizePromptInput(description, 400);
-
-  // Resolve which prompt builder to use
-  const modeBuilders =
-    CHALLENGE_MODES[challengeMode] || CHALLENGE_MODES.classic;
-  const buildPrompt = modeBuilders[category] || modeBuilders.general;
-
-  const prompt = buildPrompt({
-    difficulty,
-    language,
-    topic: safeTopic,
-    description: safeDescription,
-    totalQuestions,
-    category,
-  });
-
-  console.log(
-    `[Questions] Generating: mode=${challengeMode}, category=${category}, difficulty=${difficulty}, count=${totalQuestions}`,
-  );
-
-  // visual_interactive needs more retries — path validation is strict
-  const MAX_RETRIES = challengeMode === "visual_interactive" ? 5 : 3;
-  const TIMEOUT_MS = challengeMode === "visual_interactive" ? 60000 : 30000;
-  const wait = (attempt) =>
-    new Promise((r) => setTimeout(r, Math.pow(2, attempt - 1) * 1000));
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`AI timed out after ${TIMEOUT_MS / 1000}s`)),
-          TIMEOUT_MS,
-        ),
-      );
-
-      // callAiModel handles JSON parsing + Groq fallback on rate-limit internally
-      const parsed = await Promise.race([
-        callAiModel(prompt, { json: true, model: "gemini-3.1-flash-lite" }),
-        timeoutPromise,
-      ]);
-
-      if (!parsed?.questions || !Array.isArray(parsed.questions)) {
-        lastError = new Error("Invalid question format from AI");
-        if (attempt < MAX_RETRIES) {
-          console.log(`[CompetitionQuestions] Invalid format, retrying...`);
-          await wait(attempt);
-          continue;
-        }
-        throw lastError;
-      }
-
-      // Debug: log question types and first 60 chars of each question
-      console.log(
-        `[Questions] Generated ${parsed.questions.length} questions:`,
-        parsed.questions
-          .map(
-            (q, i) =>
-              `\n  ${i + 1}. [${q.interactionType || "mcq"}] ${(q.question || q.title || "").substring(0, 60)}`,
-          )
-          .join(""),
-      );
-
-      const validQuestions = parsed.questions.filter((q, i) =>
-        validateQuestion(q, i),
-      );
-      if (validQuestions.length === 0) {
-        lastError = new Error("All generated questions failed validation");
-        if (attempt < MAX_RETRIES) {
-          console.log(`[CompetitionQuestions] All questions invalid, retrying...`);
-          await wait(attempt);
-          continue;
-        }
-        throw lastError;
-      }
-      if (validQuestions.length < parsed.questions.length) {
-        console.warn(
-          `[Questions] ${parsed.questions.length - validQuestions.length} questions filtered out`,
-        );
-      }
-
-      return validQuestions;
-    } catch (err) {
-      lastError = err;
-      // If both Gemini and Groq are quota-exhausted, bail immediately
-      if (err.status === 429 || err.message?.includes("QUOTA_EXCEEDED")) {
-        throw new Error("QUOTA_EXCEEDED");
-      }
-      console.error(`[CompetitionQuestions] Attempt ${attempt}: ${err.message}`);
-      if (attempt < MAX_RETRIES) await wait(attempt);
-    }
-  }
-
-  throw lastError || new Error("Failed to generate questions after all retries");
-};
-
-// ─── AVAILABLE MODES PER CATEGORY ─────────────────────────
-export const AVAILABLE_MODES = {
-  general: [
-    {
-      id: "classic",
-      name: "Classic Quiz",
-      icon: "📝",
-      description: "Standard multiple-choice questions",
-    },
-    {
-      id: "scenario",
-      name: "Scenario Challenge",
-      icon: "🎭",
-      description: "Real-world narrative-based problems",
-    },
-  ],
-  programming: [
-    {
-      id: "classic",
-      name: "Classic Coding",
-      icon: "💻",
-      description: "Write code to solve challenges",
-    },
-    {
-      id: "scenario",
-      name: "Scenario Challenge",
-      icon: "🎭",
-      description: "Real-world narrative-based problems",
-    },
-    {
-      id: "debug",
-      name: "Debug Detective",
-      icon: "🔍",
-      description: "Find and fix bugs in code snippets",
-    },
-    {
-      id: "outage",
-      name: "Production Outage",
-      icon: "🚨",
-      description: "High-pressure incident response",
-    },
-    {
-      id: "visual_interactive",
-      name: "Visual Interactive",
-      icon: "🎮",
-      description:
-        "Brilliant-style visual puzzles — grid navigation & code tracing",
-    },
-  ],
+// Maps challengeMode → { general: builderFn, programming: builderFn }
+export const CHALLENGE_MODES = {
+  classic:          { general: buildClassicQuizPrompt,      programming: buildClassicProgrammingPrompt },
+  scenario:         { general: buildScenarioChallengePrompt, programming: buildScenarioChallengePrompt },
+  debug:            { general: buildDebugDetectivePrompt,    programming: buildDebugDetectivePrompt },
+  outage:           { general: buildProductionOutagePrompt,  programming: buildProductionOutagePrompt },
+  visual_interactive: { general: buildInteractivePrompt,    programming: buildVisualInteractivePrompt },
 };

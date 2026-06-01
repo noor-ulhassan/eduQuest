@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { getRooms } from "../socket/roomHandler.js";
+import { getRooms } from "../competition/store.js";
 import { CompetitionResult } from "../models/CompetitionResult.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";

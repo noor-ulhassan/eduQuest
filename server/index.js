@@ -16,7 +16,7 @@ import competitionRoutes from "./routes/competitionRoutes.js";
 import codeRoute from "./routes/codeRoutes.js";
 import chapterRoute from "./routes/chapterRoutes.js";
 import discussionRoutes from "./routes/discussionRoutes.js";
-import { initializeSocket } from "./socket/roomHandler.js";
+import { initializeSocket } from "./competition/socketHandler.js";
 import quizAttemptRoute from "./routes/quizAttemptRoutes.js";
 import questRoute from "./routes/questRoutes.js";
 import skillRoute from "./routes/skillRoute.js";
