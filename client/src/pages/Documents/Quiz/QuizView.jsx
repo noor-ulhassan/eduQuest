@@ -175,11 +175,8 @@ function QuizView({ documentId, pdfUrl }) {
         {/* Quiz generator card */}
         <div className="flex justify-center px-4 pt-6 pb-4">
           <div className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-8 text-center">
-            <div className="relative w-16 h-16 mx-auto mb-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 to-orange-500/20 rounded-2xl blur-lg" />
-              <div className="relative w-16 h-16 bg-gradient-to-br from-red-600/20 to-orange-500/20 rounded-2xl border border-red-500/20 flex items-center justify-center">
-                <Sparkles size={28} className="text-red-400" />
-              </div>
+            <div className="w-16 h-16 mx-auto mb-6 bg-red-600/10 border border-red-500/20 rounded-2xl flex items-center justify-center">
+              <Sparkles size={28} className="text-red-400" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Document Quiz</h2>
             <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
@@ -201,7 +198,7 @@ function QuizView({ documentId, pdfUrl }) {
             )}
             <button
               onClick={handleGenerate}
-              className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
             >
               <Sparkles size={16} /> Generate Quiz
             </button>
@@ -372,7 +369,7 @@ function QuizView({ documentId, pdfUrl }) {
         <div className="flex justify-end flex-shrink-0">
           <button
             onClick={handleNext}
-            className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 text-sm"
+            className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-colors text-sm"
           >
             {currentIndex < questions.length - 1
               ? "Next Question →"

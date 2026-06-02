@@ -74,7 +74,7 @@ function ChatView({ documentId }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+          <div className="w-7 h-7 rounded-lg bg-red-600 flex items-center justify-center">
             <Sparkles size={14} className="text-white" />
           </div>
           <span className="text-sm font-bold text-white">Document Assistant</span>
@@ -131,7 +131,7 @@ function ChatView({ documentId }) {
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="w-8 h-8 bg-gradient-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center text-white hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-red-500/20"
+            className="w-8 h-8 bg-red-600 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>

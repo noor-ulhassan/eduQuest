@@ -30,14 +30,7 @@ function getPdfThumbnail(url) {
 /* ── Numbered step badge ─────────────────────────────── */
 function StepBadge({ n }) {
   return (
-    <span
-      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-      style={{
-        background: "linear-gradient(135deg, #c8891e, #e8b86d)",
-        color: "#0d0b07",
-        boxShadow: "0 2px 10px rgba(200,137,30,0.35)",
-      }}
-    >
+    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-red-600/15 border border-red-500/25 text-red-400">
       {n}
     </span>
   );
@@ -109,51 +102,26 @@ function DocumentsPage() {
   /* ── Breadcrumb ── */
   function Breadcrumb() {
     return (
-      <div
-        className="flex items-center gap-2.5 px-6 py-3 flex-shrink-0 text-sm"
-        style={{ borderBottom: "1px solid rgba(210,160,90,0.1)" }}
-      >
+      <div className="flex items-center gap-2.5 px-6 py-3 flex-shrink-0 text-sm border-b border-white/[0.06]">
         <button
           onClick={goBack}
-          className="flex items-center gap-1.5 transition-colors"
-          style={{ color: "rgba(255,255,255,0.4)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = "rgba(255,255,255,0.4)")
-          }
+          className="flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition-colors"
         >
           <ArrowLeft size={14} /> Back
         </button>
-        <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.15)" }} />
+        <ChevronRight size={12} className="text-white/15" />
         <span
-          className="cursor-pointer transition-colors"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          className="cursor-pointer text-zinc-600 hover:text-red-400 transition-colors"
           onClick={() => navigate("/documents")}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = "rgba(255,255,255,0.35)")
-          }
         >
           Library
         </span>
         {selectedDoc && (
           <>
-            <ChevronRight
-              size={12}
-              style={{ color: "rgba(255,255,255,0.15)" }}
-            />
+            <ChevronRight size={12} className="text-white/15" />
             <span
-              className="cursor-pointer transition-colors truncate max-w-sm"
-              style={{
-                color: "rgba(255,255,255,0.6)",
-                fontFamily: "'Lora', Georgia, serif",
-                fontSize: "0.8rem",
-              }}
+              className="cursor-pointer text-zinc-400 hover:text-red-400 transition-colors truncate max-w-sm text-[13px]"
               onClick={() => navigate(`/documents/${id}`)}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(255,255,255,0.6)")
-              }
             >
               {selectedDoc.fileName}
             </span>
@@ -161,18 +129,8 @@ function DocumentsPage() {
         )}
         {featureLabel && (
           <>
-            <ChevronRight
-              size={12}
-              style={{ color: "rgba(255,255,255,0.15)" }}
-            />
-            <span
-              className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-              style={{
-                color: "#d2a05a",
-                background: "rgba(210,160,90,0.12)",
-                border: "1px solid rgba(210,160,90,0.22)",
-              }}
-            >
+            <ChevronRight size={12} className="text-white/15" />
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-red-400 bg-red-600/10 border border-red-500/20">
               {featureLabel}
             </span>
           </>
@@ -186,8 +144,8 @@ function DocumentsPage() {
   ════════════════════════════════════════════════════ */
   return (
     <div
-      className="text-white flex flex-col overflow-hidden"
-      style={{ background: "#0d0b07", height: "calc(100vh - 56px)" }}
+      className="text-white flex flex-col overflow-hidden font-space-grotesk"
+      style={{ background: "#0a0a0a", height: "calc(100vh - 56px)" }}
     >
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* ══════════════════════════════════════════════
@@ -195,38 +153,17 @@ function DocumentsPage() {
         ══════════════════════════════════════════════ */}
         {showUpload && (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div
-              className="flex items-center gap-2.5 px-6 py-3 flex-shrink-0 text-sm"
-              style={{ borderBottom: "1px solid rgba(210,160,90,0.1)" }}
-            >
+            <div className="flex items-center gap-2.5 px-6 py-3 flex-shrink-0 text-sm border-b border-white/[0.06]">
               <button
                 onClick={() => setShowUpload(false)}
-                className="flex items-center gap-1.5 transition-colors"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#d2a05a")}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "rgba(255,255,255,0.4)")
-                }
+                className="flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition-colors"
               >
                 <ArrowLeft size={14} /> Back
               </button>
-              <ChevronRight
-                size={12}
-                style={{ color: "rgba(255,255,255,0.15)" }}
-              />
-              <span style={{ color: "rgba(255,255,255,0.35)" }}>Library</span>
-              <ChevronRight
-                size={12}
-                style={{ color: "rgba(255,255,255,0.15)" }}
-              />
-              <span
-                className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                style={{
-                  color: "#d2a05a",
-                  background: "rgba(210,160,90,0.12)",
-                  border: "1px solid rgba(210,160,90,0.22)",
-                }}
-              >
+              <ChevronRight size={12} className="text-white/15" />
+              <span className="text-zinc-600">Library</span>
+              <ChevronRight size={12} className="text-white/15" />
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-red-400 bg-red-600/10 border border-red-500/20">
                 Upload
               </span>
             </div>
@@ -246,47 +183,23 @@ function DocumentsPage() {
               className="flex-shrink-0 flex flex-col transition-all duration-300 overflow-hidden"
               style={{
                 width: sidebarOpen ? "288px" : "0px",
-                borderRight: sidebarOpen
-                  ? "1px solid rgba(210,160,90,0.1)"
-                  : "none",
+                borderRight: sidebarOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
                 opacity: sidebarOpen ? 1 : 0,
               }}
             >
               <div
                 className="flex flex-col h-full"
-                style={{
-                  width: "288px",
-                  padding: "24px 20px 20px",
-                  gap: "16px",
-                }}
+                style={{ width: "288px", padding: "24px 20px 20px", gap: "16px" }}
               >
                 {/* Brand */}
                 <div>
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-                    style={{
-                      background: "linear-gradient(135deg, #c8891e, #e8b86d)",
-                      boxShadow: "0 4px 16px rgba(200,137,30,0.3)",
-                    }}
-                  >
-                    <BookOpen size={18} className="text-black" />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-red-600/15 border border-red-500/20">
+                    <BookOpen size={18} className="text-red-400" />
                   </div>
-                  <h1
-                    className="text-lg font-semibold leading-tight mb-1"
-                    style={{
-                      color: "#e8d5b0",
-                      fontFamily: "'Lora', Georgia, serif",
-                    }}
-                  >
+                  <h1 className="text-lg font-bold leading-tight mb-1 text-metallic">
                     Your Library
                   </h1>
-                  <p
-                    style={{
-                      color: "rgba(255,255,255,0.3)",
-                      fontSize: "12px",
-                      lineHeight: "1.5",
-                    }}
-                  >
+                  <p className="text-zinc-600 text-xs leading-relaxed">
                     Upload PDFs to read, chat, and quiz with AI.
                   </p>
                 </div>
@@ -294,52 +207,18 @@ function DocumentsPage() {
                 {/* Steps */}
                 <div className="flex flex-col gap-2.5">
                   {[
-                    {
-                      n: 1,
-                      label: "Select a document",
-                      sub: "Pick from library or upload a PDF",
-                    },
-                    {
-                      n: 2,
-                      label: "Choose a mode",
-                      sub: "Chat, quiz, or read with AI",
-                    },
-                    {
-                      n: 3,
-                      label: "Explore insights",
-                      sub: "Ask, test, and annotate freely",
-                    },
+                    { n: 1, label: "Select a document", sub: "Pick from library or upload a PDF" },
+                    { n: 2, label: "Choose a mode",     sub: "Chat, quiz, or read with AI" },
+                    { n: 3, label: "Explore insights",  sub: "Ask, test, and annotate freely" },
                   ].map(({ n, label, sub }) => (
                     <div
                       key={n}
-                      className="flex items-start gap-3 rounded-xl"
-                      style={{
-                        padding: "12px 14px",
-                        background: "rgba(255,255,255,0.02)",
-                        border: "1px solid rgba(255,255,255,0.06)",
-                      }}
+                      className="flex items-start gap-3 rounded-xl p-3 bg-white/[0.02] border border-white/[0.06]"
                     >
                       <StepBadge n={n} />
-                      <div style={{ paddingTop: "1px" }}>
-                        <p
-                          className="text-sm font-medium"
-                          style={{
-                            color: "#e8d5b0",
-                            fontFamily: "'Lora', Georgia, serif",
-                            marginBottom: "2px",
-                          }}
-                        >
-                          {label}
-                        </p>
-                        <p
-                          style={{
-                            color: "rgba(255,255,255,0.28)",
-                            fontSize: "11px",
-                            lineHeight: "1.5",
-                          }}
-                        >
-                          {sub}
-                        </p>
+                      <div className="pt-px">
+                        <p className="text-sm font-semibold text-white mb-0.5">{label}</p>
+                        <p className="text-[11px] text-zinc-600 leading-relaxed">{sub}</p>
                       </div>
                     </div>
                   ))}
@@ -349,18 +228,7 @@ function DocumentsPage() {
                 <div className="mt-auto">
                   <button
                     onClick={() => setShowUpload(true)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl font-semibold transition-all"
-                    style={{
-                      padding: "12px",
-                      background: "linear-gradient(135deg, #c8891e, #e8b86d)",
-                      color: "#0d0b07",
-                      fontSize: "13px",
-                      boxShadow: "0 4px 18px rgba(200,137,30,0.28)",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.opacity = "0.88")
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl font-semibold transition-all py-3 bg-red-600 hover:bg-red-500 text-white text-[13px]"
                   >
                     <Plus size={16} />
                     Upload new PDF
@@ -373,20 +241,10 @@ function DocumentsPage() {
             <button
               onClick={() => setSidebarOpen((o) => !o)}
               title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-              className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
+              className="flex-shrink-0 flex items-center justify-center transition-all duration-200 doc-sidebar-toggle"
               style={{
                 width: "22px",
-                background: "rgba(210,160,90,0.06)",
-                borderRight: "1px solid rgba(210,160,90,0.1)",
-                color: "rgba(210,160,90,0.5)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(210,160,90,0.12)";
-                e.currentTarget.style.color = "#d2a05a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(210,160,90,0.06)";
-                e.currentTarget.style.color = "rgba(210,160,90,0.5)";
+                borderRight: "1px solid rgba(255,255,255,0.06)",
               }}
             >
               {sidebarOpen ? (
@@ -404,12 +262,7 @@ function DocumentsPage() {
                   {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
-                      className="rounded-2xl animate-pulse"
-                      style={{
-                        height: "240px",
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.06)",
-                      }}
+                      className="rounded-2xl animate-pulse h-[240px] bg-white/[0.03] border border-white/[0.06]"
                     />
                   ))}
                 </div>
@@ -418,55 +271,20 @@ function DocumentsPage() {
               {/* Empty state */}
               {!loading && allDocs.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center gap-5 text-center">
-                  <div
-                    className="w-20 h-20 rounded-3xl flex items-center justify-center"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <FileText
-                      size={36}
-                      style={{ color: "rgba(210,160,90,0.35)" }}
-                    />
+                  <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-white/[0.03] border border-white/[0.06]">
+                    <FileText size={36} className="text-red-400/30" />
                   </div>
                   <div>
-                    <p
-                      className="text-base font-medium mb-1"
-                      style={{
-                        color: "rgba(232,213,176,0.6)",
-                        fontFamily: "'Lora', Georgia, serif",
-                      }}
-                    >
+                    <p className="text-base font-medium text-zinc-400 mb-1">
                       No documents yet
                     </p>
-                    <p
-                      style={{
-                        color: "rgba(255,255,255,0.25)",
-                        fontSize: "13px",
-                      }}
-                    >
+                    <p className="text-zinc-600 text-[13px]">
                       Upload your first PDF to get started
                     </p>
                   </div>
                   <button
                     onClick={() => setShowUpload(true)}
-                    className="flex items-center gap-2 rounded-xl font-medium transition-all"
-                    style={{
-                      padding: "10px 20px",
-                      background: "rgba(210,160,90,0.1)",
-                      border: "1px solid rgba(210,160,90,0.25)",
-                      color: "#d2a05a",
-                      fontSize: "13px",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(210,160,90,0.18)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(210,160,90,0.1)")
-                    }
+                    className="flex items-center gap-2 rounded-xl font-medium transition-all px-5 py-2.5 bg-red-600/10 border border-red-500/25 text-red-400 text-[13px] hover:bg-red-600/15"
                   >
                     <Plus size={15} /> Upload a PDF
                   </button>
@@ -482,36 +300,24 @@ function DocumentsPage() {
                       <button
                         key={doc.documentId}
                         onClick={() => handleSelectDoc(doc)}
-                        className="group text-left rounded-2xl overflow-hidden flex flex-col transition-all duration-200"
+                        className="doc-card group text-left rounded-2xl overflow-hidden flex flex-col"
                         style={{
-                          background: "rgba(255,255,255,0.03)",
+                          background: "rgba(255,255,255,0.02)",
                           border: "1px solid rgba(255,255,255,0.07)",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(210,160,90,0.07)";
-                          e.currentTarget.style.border =
-                            "1px solid rgba(210,160,90,0.28)";
-                          e.currentTarget.style.transform = "translateY(-3px)";
-                          e.currentTarget.style.boxShadow =
-                            "0 16px 48px rgba(0,0,0,0.45)";
+                          e.currentTarget.style.background = "rgba(239,68,68,0.05)";
+                          e.currentTarget.style.borderColor = "rgba(239,68,68,0.25)";
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(255,255,255,0.03)";
-                          e.currentTarget.style.border =
-                            "1px solid rgba(255,255,255,0.07)";
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "none";
+                          e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+                          e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
                         }}
                       >
                         {/* Thumbnail */}
                         <div
                           className="w-full flex-shrink-0 flex items-center justify-center overflow-hidden"
-                          style={{
-                            height: "155px",
-                            background: "rgba(0,0,0,0.35)",
-                          }}
+                          style={{ height: "155px", background: "rgba(0,0,0,0.35)" }}
                         >
                           {thumb ? (
                             <img
@@ -520,8 +326,7 @@ function DocumentsPage() {
                               className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {
                                 e.currentTarget.style.display = "none";
-                                e.currentTarget.nextSibling.style.display =
-                                  "flex";
+                                e.currentTarget.nextSibling.style.display = "flex";
                               }}
                             />
                           ) : null}
@@ -529,47 +334,19 @@ function DocumentsPage() {
                             className="w-full h-full flex-col gap-2 items-center justify-center"
                             style={{ display: thumb ? "none" : "flex" }}
                           >
-                            <FileText
-                              size={38}
-                              style={{ color: "rgba(210,160,90,0.2)" }}
-                            />
-                            <span
-                              style={{
-                                fontSize: "9px",
-                                color: "rgba(255,255,255,0.15)",
-                                letterSpacing: "0.12em",
-                                textTransform: "uppercase",
-                                fontFamily: "monospace",
-                              }}
-                            >
+                            <FileText size={38} className="text-red-400/20" />
+                            <span className="text-[9px] text-white/15 tracking-[0.12em] uppercase font-mono">
                               PDF
                             </span>
                           </div>
                         </div>
 
                         {/* Divider */}
-                        <div
-                          style={{
-                            height: "1px",
-                            background: "rgba(210,160,90,0.1)",
-                            flexShrink: 0,
-                          }}
-                        />
+                        <div className="h-px bg-white/[0.06] flex-shrink-0" />
 
                         {/* Card info */}
-                        <div
-                          className="flex flex-col flex-1"
-                          style={{ padding: "14px 16px 16px", gap: "8px" }}
-                        >
-                          <p
-                            className="line-clamp-2 leading-snug"
-                            style={{
-                              color: "#e8d5b0",
-                              fontFamily: "'Lora', Georgia, serif",
-                              fontSize: "13px",
-                              fontWeight: 500,
-                            }}
-                          >
+                        <div className="flex flex-col flex-1 px-4 pt-3.5 pb-4 gap-2">
+                          <p className="line-clamp-2 leading-snug text-[13px] font-medium text-white">
                             {doc.fileName}
                           </p>
 
@@ -577,68 +354,33 @@ function DocumentsPage() {
                             {/* Left: page count + date */}
                             <div className="flex items-center gap-2">
                               {doc.totalPages && (
-                                <span
-                                  style={{
-                                    fontSize: "10px",
-                                    padding: "2px 7px",
-                                    borderRadius: "5px",
-                                    background: "rgba(255,255,255,0.05)",
-                                    color: "rgba(255,255,255,0.3)",
-                                    border: "1px solid rgba(255,255,255,0.07)",
-                                    fontFamily: "monospace",
-                                  }}
-                                >
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.07] text-zinc-500 font-mono">
                                   {doc.totalPages} pp
                                 </span>
                               )}
                               {doc.uploadedAt && (
-                                <span
-                                  style={{
-                                    color: "rgba(255,255,255,0.22)",
-                                    fontSize: "11px",
-                                  }}
-                                >
-                                  {new Date(doc.uploadedAt).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                    },
-                                  )}
+                                <span className="text-zinc-600 text-[11px]">
+                                  {new Date(doc.uploadedAt).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
                                 </span>
                               )}
                             </div>
 
                             {/* Right: delete + open */}
                             <div className="flex items-center gap-2">
-                              {/* Delete button — appears on hover */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteTarget(doc);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg"
-                                style={{ background: "rgba(220,80,80,0.1)" }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.background =
-                                    "rgba(220,80,80,0.28)")
-                                }
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.background =
-                                    "rgba(220,80,80,0.1)")
-                                }
+                                className="doc-trash-btn opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg bg-red-500/10"
                               >
-                                <Trash2
-                                  size={13}
-                                  style={{ color: "#e05555" }}
-                                />
+                                <Trash2 size={13} className="text-red-400" />
                               </button>
 
-                              {/* Open chevron */}
-                              <span
-                                className="flex items-center gap-0.5 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                                style={{ color: "#d2a05a", fontSize: "11px" }}
-                              >
+                              <span className="flex items-center gap-0.5 font-medium opacity-0 group-hover:opacity-100 transition-opacity text-red-400 text-[11px]">
                                 Open <ChevronRight size={12} />
                               </span>
                             </div>
@@ -660,41 +402,19 @@ function DocumentsPage() {
           <>
             <Breadcrumb />
             {docLoading ? (
-              <div
-                className="flex-1 flex items-center justify-center text-sm"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
+              <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
                 Loading document…
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-10">
                 <div className="text-center mb-10">
-                  <p
-                    className="text-sm mb-2"
-                    style={{
-                      color: "rgba(255,255,255,0.35)",
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontStyle: "italic",
-                    }}
-                  >
+                  <p className="text-sm mb-2 text-zinc-500 italic">
                     {selectedDoc?.fileName}
                   </p>
-                  <h2
-                    className="text-2xl font-semibold"
-                    style={{
-                      color: "#e8d5b0",
-                      fontFamily: "'Lora', Georgia, serif",
-                    }}
-                  >
+                  <h2 className="text-2xl font-bold text-metallic">
                     What would you like to do?
                   </h2>
-                  <p
-                    style={{
-                      color: "rgba(255,255,255,0.3)",
-                      fontSize: "13px",
-                      marginTop: "6px",
-                    }}
-                  >
+                  <p className="text-zinc-600 text-[13px] mt-1.5">
                     Choose a mode to start working with this document
                   </p>
                 </div>
@@ -704,90 +424,58 @@ function DocumentsPage() {
                     {
                       fid: "chat",
                       label: "Chat",
-                      description:
-                        "Ask questions and get instant answers from your document",
+                      description: "Ask questions and get instant answers from your document",
                       icon: MessageSquare,
                       accent: "#6b8de8",
-                      glow: "rgba(107,141,232,0.12)",
+                      glow: "rgba(107,141,232,0.08)",
                     },
                     {
                       fid: "quiz",
                       label: "Quiz",
-                      description:
-                        "Test your knowledge with AI-generated questions",
+                      description: "Test your knowledge with AI-generated questions",
                       icon: HelpCircle,
                       accent: "#6ab87a",
-                      glow: "rgba(106,184,122,0.12)",
+                      glow: "rgba(106,184,122,0.08)",
                     },
                     {
                       fid: "companion",
                       label: "Explain",
-                      description:
-                        "Read the PDF with live AI explanations alongside",
+                      description: "Read the PDF with live AI explanations alongside",
                       icon: BookOpen,
-                      accent: "#d2a05a",
-                      glow: "rgba(210,160,90,0.12)",
+                      accent: "#f87171",
+                      glow: "rgba(248,113,113,0.08)",
                     },
-                  ].map(
-                    ({ fid, label, description, icon: Icon, accent, glow }) => (
-                      <button
-                        key={fid}
-                        onClick={() => navigate(`/documents/${id}/${fid}`)}
-                        className="flex flex-col items-center text-center rounded-2xl transition-all duration-200"
-                        style={{
-                          padding: "32px 24px",
-                          background: "rgba(255,255,255,0.02)",
-                          border: "1px solid rgba(255,255,255,0.07)",
-                          gap: "20px",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = glow;
-                          e.currentTarget.style.border = `1px solid ${accent}44`;
-                          e.currentTarget.style.transform = "translateY(-4px)";
-                          e.currentTarget.style.boxShadow =
-                            "0 20px 48px rgba(0,0,0,0.5)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(255,255,255,0.02)";
-                          e.currentTarget.style.border =
-                            "1px solid rgba(255,255,255,0.07)";
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "none";
-                        }}
+                  ].map(({ fid, label, description, icon: Icon, accent, glow }) => (
+                    <button
+                      key={fid}
+                      onClick={() => navigate(`/documents/${id}/${fid}`)}
+                      className="flex flex-col items-center text-center rounded-2xl transition-all duration-200 bg-[#111111] border border-white/10"
+                      style={{ padding: "32px 24px", gap: "20px" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = glow;
+                        e.currentTarget.style.borderColor = `${accent}33`;
+                        e.currentTarget.style.transform = "translateY(-4px)";
+                        e.currentTarget.style.boxShadow = "0 20px 48px rgba(0,0,0,0.5)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#111111";
+                        e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    >
+                      <div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                        style={{ background: glow, border: `1px solid ${accent}25` }}
                       >
-                        <div
-                          className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                          style={{
-                            background: glow,
-                            border: `1px solid ${accent}33`,
-                          }}
-                        >
-                          <Icon size={28} style={{ color: accent }} />
-                        </div>
-                        <div>
-                          <p
-                            className="text-base font-semibold mb-1.5"
-                            style={{
-                              color: "#e8d5b0",
-                              fontFamily: "'Lora', Georgia, serif",
-                            }}
-                          >
-                            {label}
-                          </p>
-                          <p
-                            style={{
-                              color: "rgba(255,255,255,0.35)",
-                              fontSize: "12px",
-                              lineHeight: "1.6",
-                            }}
-                          >
-                            {description}
-                          </p>
-                        </div>
-                      </button>
-                    ),
-                  )}
+                        <Icon size={28} style={{ color: accent }} />
+                      </div>
+                      <div>
+                        <p className="text-base font-bold mb-1.5 text-white">{label}</p>
+                        <p className="text-zinc-500 text-xs leading-relaxed">{description}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -800,10 +488,7 @@ function DocumentsPage() {
         {!showUpload && ["chat", "quiz", "companion"].includes(view) && (
           <>
             <Breadcrumb />
-            <div
-              className="flex-1 overflow-hidden flex flex-col min-h-0"
-              style={{ padding: "16px" }}
-            >
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-4">
               {view === "chat" && <ChatView documentId={id} />}
               {view === "quiz" && (
                 <QuizView documentId={id} pdfUrl={selectedDoc?.pdfUrl} />
@@ -821,53 +506,25 @@ function DocumentsPage() {
         {deleteTarget && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{
-              background: "rgba(0,0,0,0.75)",
-              backdropFilter: "blur(6px)",
-            }}
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
             onClick={() => !isDeleting && setDeleteTarget(null)}
           >
             <div
-              className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-5"
-              style={{
-                background: "#1a1507",
-                border: "1px solid rgba(210,160,90,0.2)",
-                boxShadow: "0 24px 64px rgba(0,0,0,0.7)",
-              }}
+              className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-5 bg-[#111111] border border-white/10 shadow-2xl shadow-black/70"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Icon */}
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: "rgba(220,80,80,0.1)",
-                  border: "1px solid rgba(220,80,80,0.2)",
-                }}
-              >
-                <Trash2 size={22} style={{ color: "#e05555" }} />
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-red-500/10 border border-red-500/20">
+                <Trash2 size={22} className="text-red-400" />
               </div>
 
               {/* Text */}
               <div>
-                <h3
-                  className="text-base font-semibold mb-1.5"
-                  style={{
-                    color: "#e8d5b0",
-                    fontFamily: "'Lora', Georgia, serif",
-                  }}
-                >
+                <h3 className="text-base font-bold mb-1.5 text-white">
                   Delete document?
                 </h3>
-                <p
-                  style={{
-                    color: "rgba(255,255,255,0.35)",
-                    fontSize: "13px",
-                    lineHeight: "1.6",
-                  }}
-                >
-                  <span style={{ color: "rgba(232,213,176,0.7)" }}>
-                    {deleteTarget.fileName}
-                  </span>{" "}
+                <p className="text-zinc-500 text-[13px] leading-relaxed">
+                  <span className="text-zinc-300">{deleteTarget.fileName}</span>{" "}
                   will be permanently deleted. This cannot be undone.
                 </p>
               </div>
@@ -877,19 +534,7 @@ function DocumentsPage() {
                 <button
                   onClick={() => setDeleteTarget(null)}
                   disabled={isDeleting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "rgba(255,255,255,0.5)",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isDeleting)
-                      e.currentTarget.style.color = "rgba(255,255,255,0.9)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "rgba(255,255,255,0.5)";
-                  }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all bg-white/[0.05] border border-white/10 text-zinc-400 hover:text-white"
                 >
                   Cancel
                 </button>
@@ -897,31 +542,22 @@ function DocumentsPage() {
                 <button
                   onClick={handleDeleteConfirm}
                   disabled={isDeleting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all text-white"
                   style={{
-                    background: isDeleting
-                      ? "rgba(220,80,80,0.35)"
-                      : "rgba(220,80,80,0.85)",
-                    color: "#fff",
+                    background: isDeleting ? "rgba(220,80,80,0.4)" : "rgba(220,80,80,0.85)",
                     cursor: isDeleting ? "not-allowed" : "pointer",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isDeleting)
-                      e.currentTarget.style.background = "rgba(220,80,80,1)";
+                    if (!isDeleting) e.currentTarget.style.background = "rgba(220,80,80,1)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isDeleting)
-                      e.currentTarget.style.background = "rgba(220,80,80,0.85)";
+                    if (!isDeleting) e.currentTarget.style.background = "rgba(220,80,80,0.85)";
                   }}
                 >
                   {isDeleting ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" /> Deleting…
-                    </>
+                    <><Loader2 size={14} className="animate-spin" /> Deleting…</>
                   ) : (
-                    <>
-                      <Trash2 size={14} /> Delete
-                    </>
+                    <><Trash2 size={14} /> Delete</>
                   )}
                 </button>
               </div>

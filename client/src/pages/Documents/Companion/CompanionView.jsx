@@ -72,8 +72,8 @@ function CompanionView({ documentId, pdfUrl }) {
         {/* Input card */}
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5 flex-shrink-0">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-lg bg-violet-600/20 flex items-center justify-center">
-              <BookOpen size={13} className="text-violet-400" />
+            <div className="w-6 h-6 rounded-lg bg-red-600/15 flex items-center justify-center">
+              <BookOpen size={13} className="text-red-400" />
             </div>
             <h3 className="text-sm font-bold text-white">Explain Selected Text</h3>
           </div>
@@ -84,7 +84,7 @@ function CompanionView({ documentId, pdfUrl }) {
             placeholder="Select text in the PDF or type here…"
             rows={4}
             className={`w-full px-3 py-2.5 bg-[#1a1a1a] border rounded-xl resize-none text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors ${
-              selectedText ? 'border-violet-500/40' : 'border-white/10 focus:border-violet-500/40'
+              selectedText ? 'border-red-500/40' : 'border-white/10 focus:border-red-500/40'
             }`}
           />
 
@@ -106,7 +106,7 @@ function CompanionView({ documentId, pdfUrl }) {
             <button
               onClick={handleExplain}
               disabled={!selectedText.trim() || isLoading}
-              className="px-5 py-1.5 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex items-center gap-1.5 shadow-lg shadow-violet-500/20"
+              className="px-5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
               {isLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
               Explain
@@ -164,7 +164,7 @@ function CompanionView({ documentId, pdfUrl }) {
             <div className="text-center">
               <FileText size={28} className="mx-auto mb-2 text-zinc-700" />
               <p className="text-xs text-zinc-600">
-                Select text in the PDF, then click <span className="text-violet-400 font-semibold">Explain</span>
+                Select text in the PDF, then click <span className="text-red-400 font-semibold">Explain</span>
               </p>
             </div>
           </div>

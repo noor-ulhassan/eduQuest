@@ -5,6 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, CheckCircle2, Lock, Star } from "lucide-react";
 import { usePlaygroundProgress, useCurriculumsMetadata } from "../../../features/playground/usePlayground";
 
+const LANGUAGE_IMAGES = {
+  html: "/html1.png",
+  css: "/css1.png",
+  javascript: "/js2.png",
+  python: "/python1.png",
+  react: "/react.png",
+  cpp: "/c.png",
+  typescript: "/ts.png",
+  java: "/java.png",
+};
+
 const CARD_COLORS = [
   "bg-yellow-400",
   "bg-cyan-500",
@@ -145,11 +156,24 @@ export function DraggableCards() {
                     <motion.div
                       whileHover={{ scale: 1.05, rotate: 2 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      className={`w-20 h-20 rounded-2xl ${card.color} bg-opacity-80 flex items-center justify-center shadow-lg`}
+                      className={`w-32 h-32 rounded-2xl flex items-center justify-center ${
+                        LANGUAGE_IMAGES[card.language]
+                          ? ""
+                          : `${card.color} bg-opacity-80 shadow-lg`
+                      }`}
                     >
-                      <span className="text-white text-3xl font-black tracking-tight select-none">
-                        {card.title.charAt(0).toUpperCase()}
-                      </span>
+                      {LANGUAGE_IMAGES[card.language] ? (
+                        <img
+                          src={LANGUAGE_IMAGES[card.language]}
+                          alt={card.title}
+                          className="w-28 h-28 object-contain select-none"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="text-white text-4xl font-black tracking-tight select-none">
+                          {card.title.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </motion.div>
                   </div>
 

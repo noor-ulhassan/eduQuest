@@ -71,31 +71,31 @@ function UploadView({ onUploadSuccess }) {
   // ─── Success State ───────────────────────────────────
   if (uploadResult) {
     return (
-      <div className="h-[calc(100vh-180px)] flex items-center justify-center animate-fade-in">
+      <div className="h-[calc(100vh-180px)] flex items-center justify-center">
         <div className="text-center max-w-lg">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={40} className="text-green-600" />
+          <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle size={40} className="text-emerald-400" />
           </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-3">Upload Successful!</h2>
-          <p className="text-gray-600 mb-6">Your document has been processed and is ready for use.</p>
+          <h2 className="text-2xl font-bold text-white mb-3">Upload Successful!</h2>
+          <p className="text-zinc-400 mb-6">Your document has been processed and is ready for use.</p>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 text-left">
+          <div className="bg-[#111111] rounded-xl border border-white/10 p-6 mb-6 text-left">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Document</p>
-                <p className="text-sm font-medium text-gray-900 mt-1">{uploadResult.fileName}</p>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Document</p>
+                <p className="text-sm font-medium text-white">{uploadResult.fileName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Document ID</p>
-                <p className="text-sm font-mono text-gray-700 mt-1 truncate">{uploadResult.documentId}</p>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Document ID</p>
+                <p className="text-sm font-mono text-zinc-400 truncate">{uploadResult.documentId}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Pages</p>
-                <p className="text-sm font-medium text-gray-900 mt-1">{uploadResult.totalPages}</p>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Pages</p>
+                <p className="text-sm font-medium text-white">{uploadResult.totalPages}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Chunks Stored</p>
-                <p className="text-sm font-medium text-gray-900 mt-1">{uploadResult.chunksStored}</p>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Chunks Stored</p>
+                <p className="text-sm font-medium text-white">{uploadResult.chunksStored}</p>
               </div>
             </div>
           </div>
@@ -103,7 +103,7 @@ function UploadView({ onUploadSuccess }) {
           <div className="flex gap-3 justify-center">
             <button
               onClick={handleReset}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 bg-white/[0.05] border border-white/10 text-zinc-300 rounded-xl font-medium hover:bg-white/[0.08] transition-colors"
             >
               Upload Another
             </button>
@@ -119,11 +119,11 @@ function UploadView({ onUploadSuccess }) {
       <div className="max-w-lg mx-auto py-6">
         <div>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Upload size={32} className="text-indigo-600" />
+            <div className="w-16 h-16 bg-red-600/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Upload size={28} className="text-red-400" />
             </div>
-            <h2 className="text-2xl font-semibold text-indigo-600 mb-2">Upload Document</h2>
-            <p className="text-gray-600">
+            <h2 className="text-2xl font-bold text-white mb-2">Upload Document</h2>
+            <p className="text-zinc-400 text-sm">
               Upload a PDF to start chatting, taking quizzes, and getting explanations.
             </p>
           </div>
@@ -136,10 +136,10 @@ function UploadView({ onUploadSuccess }) {
             onClick={() => !selectedFile && fileInputRef.current?.click()}
             className={`relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
               isDragging
-                ? 'border-indigo-500 bg-indigo-50'
+                ? 'border-red-500/60 bg-red-500/5'
                 : selectedFile
-                ? 'border-green-300 bg-green-50'
-                : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'
+                ? 'border-emerald-500/40 bg-emerald-500/5'
+                : 'border-white/10 hover:border-red-500/30 hover:bg-white/[0.02]'
             }`}
           >
             <input
@@ -152,35 +152,32 @@ function UploadView({ onUploadSuccess }) {
 
             {selectedFile ? (
               <div>
-                <FileText size={40} className="mx-auto mb-3 text-green-600" />
-                <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <FileText size={40} className="mx-auto mb-3 text-emerald-400" />
+                <p className="text-sm font-medium text-white">{selectedFile.name}</p>
+                <p className="text-xs text-zinc-500 mt-1">
                   {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                 </p>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReset();
-                  }}
-                  className="mt-3 text-xs text-red-600 hover:text-red-700 flex items-center gap-1 mx-auto"
+                  onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                  className="mt-3 text-xs text-red-400 hover:text-red-300 flex items-center gap-1 mx-auto transition-colors"
                 >
                   <X size={14} /> Remove
                 </button>
               </div>
             ) : (
               <div>
-                <Upload size={40} className="mx-auto mb-3 text-gray-400" />
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium text-indigo-6000">Click to browse</span> or drag & drop
+                <Upload size={40} className="mx-auto mb-3 text-zinc-600" />
+                <p className="text-sm text-zinc-400">
+                  <span className="font-semibold text-red-400">Click to browse</span> or drag &amp; drop
                 </p>
-                <p className="text-xs text-gray-400 mt-1">PDF files only · shorter documents work best (free-tier limit)</p>
+                <p className="text-xs text-zinc-600 mt-1">PDF files only · shorter documents work best (free-tier limit)</p>
               </div>
             )}
           </div>
 
           {/* Error */}
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700 text-sm">
+            <div className="mt-4 p-3 bg-red-900/20 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400 text-sm">
               <AlertCircle size={16} className="flex-shrink-0" />
               {error}
             </div>
@@ -190,19 +187,19 @@ function UploadView({ onUploadSuccess }) {
           {selectedFile && !isUploading && (
             <button
               onClick={handleUpload}
-              className="mt-6 w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+              className="mt-6 w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
             >
               <Upload size={18} />
-              Upload & Process
+              Upload &amp; Process
             </button>
           )}
 
           {/* Uploading State */}
           {isUploading && (
             <div className="mt-6 text-center">
-              <div className="w-full py-3 bg-indigo-100 rounded-xl flex items-center justify-center gap-3">
-                <Loader2 size={18} className="animate-spin text-indigo-600" />
-                <span className="text-sm text-indigo-700 font-medium">
+              <div className="w-full py-3 bg-red-600/10 border border-red-500/20 rounded-xl flex items-center justify-center gap-3">
+                <Loader2 size={18} className="animate-spin text-red-400" />
+                <span className="text-sm text-zinc-300 font-medium">
                   Processing PDF… extracting, chunking &amp; embedding. Larger files may take up to ~2 minutes — please keep this tab open.
                 </span>
               </div>

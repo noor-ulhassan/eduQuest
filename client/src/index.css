@@ -227,23 +227,23 @@
 
 /* ── DocumentsPage hover classes ── */
 .doc-sidebar-toggle {
-  background: rgba(210,160,90,0.06);
-  color: rgba(210,160,90,0.5);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.3);
   transition: background 0.2s, color 0.2s;
 }
 .doc-sidebar-toggle:hover {
-  background: rgba(210,160,90,0.12);
-  color: #d2a05a;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
 }
 .doc-upload-btn:hover {
-  background: rgba(210,160,90,0.18) !important;
+  background: rgba(239,68,68,0.15) !important;
 }
 .doc-card {
   transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 .doc-card:hover {
-  background: rgba(210,160,90,0.07) !important;
-  border-color: rgba(210,160,90,0.28) !important;
+  background: rgba(239,68,68,0.05) !important;
+  border-color: rgba(239,68,68,0.25) !important;
   transform: translateY(-3px);
   box-shadow: 0 16px 48px rgba(0,0,0,0.45);
 }

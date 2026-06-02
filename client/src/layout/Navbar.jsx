@@ -24,7 +24,7 @@ import { playCompeteClickSound } from "@/lib/sound.js";
 const navLinks = [
   { label: "Compete", path: "/competition" },
   { label: "Playground", path: "/playground" },
-  { label: "Create & Learn", path: "/workspace" },
+  { label: "Courses", path: "/workspace" },
   { label: "Documents", path: "/documents" },
 ];
 
@@ -67,7 +67,9 @@ const Navbar = () => {
             {navLinks.map((link) => (
               <NavigationMenuItem
                 key={link.path}
-                onClick={link.label === "Compete" ? playCompeteClickSound : undefined}
+                onClick={
+                  link.label === "Compete" ? playCompeteClickSound : undefined
+                }
               >
                 <NavigationMenuLink asChild>
                   <Link
