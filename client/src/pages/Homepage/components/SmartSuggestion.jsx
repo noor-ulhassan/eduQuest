@@ -54,7 +54,7 @@ const SmartSuggestion = () => {
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (suggestion === undefined) {
     return (
-      <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-700 shadow-sm w-full animate-pulse">
+      <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-white/[0.07] shadow-sm w-full animate-pulse">
         <div className="h-3.5 w-28 bg-white/5 rounded mb-4" />
         <div className="h-4 w-full bg-white/5 rounded mb-2" />
         <div className="h-4 w-3/4 bg-white/5 rounded mb-6" />
@@ -66,7 +66,7 @@ const SmartSuggestion = () => {
   // ── Error state ─────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-700 shadow-sm w-full flex flex-col items-center justify-center gap-3 text-center min-h-[160px]">
+      <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-white/[0.07] shadow-sm w-full flex flex-col items-center justify-center gap-3 text-center min-h-[160px]">
         <p className="text-sm text-zinc-500">Could not load suggestion</p>
         <button
           onClick={load}
@@ -81,7 +81,7 @@ const SmartSuggestion = () => {
   // ── Empty state ─────────────────────────────────────────────────────────
   if (!suggestion) {
     return (
-      <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-700 shadow-sm w-full flex flex-col items-center justify-center gap-3 text-center min-h-[160px]">
+      <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-white/[0.07] shadow-sm w-full flex flex-col items-center justify-center gap-3 text-center min-h-[160px]">
         <CheckCircle2 className="w-8 h-8 text-[#2cf07d]" />
         <div>
           <p className="text-sm font-bold text-zinc-200">You're all caught up!</p>
@@ -97,12 +97,12 @@ const SmartSuggestion = () => {
   const typeInfo = TYPE_CONFIG[suggestion.type] ?? TYPE_CONFIG.next_chapter;
 
   return (
-    <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-700 shadow-sm w-full flex flex-col gap-4">
+    <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-white/[0.07] shadow-sm w-full flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Lightbulb className="w-4 h-4 text-orange-400" />
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-zinc-400">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-metallic">
             Smart Suggestion
           </span>
         </div>
@@ -122,7 +122,7 @@ const SmartSuggestion = () => {
       <button
         onClick={handleCTA}
         disabled={acting}
-        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[12px] font-black uppercase tracking-widest transition-all duration-150 active:scale-[0.98] disabled:opacity-60 shadow-lg shadow-orange-500/15"
+        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-[12px] font-black uppercase tracking-widest transition-all duration-150 active:scale-[0.98] disabled:opacity-60"
       >
         {acting ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />

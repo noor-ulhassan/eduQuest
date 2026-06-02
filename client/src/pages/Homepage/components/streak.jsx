@@ -19,18 +19,18 @@ const Streak = () => {
   }, [dayStreak]);
 
   return (
-    <div className="bg-white dark:bg-[#1a1730] rounded-[2rem] p-6 border border-zinc-300 dark:border-zinc-700 border-b-4 shadow-sm w-full max-w-[340px]">
+    <div className="bg-[#1a1730] rounded-[2rem] p-6 border border-white/[0.07] shadow-sm w-full max-w-[340px]">
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-1">
           <span
             key={dayStreak}
-            className="text-4xl font-bold text-black dark:text-white leading-tight "
+            className="text-4xl font-bold text-metallic leading-tight"
           >
             {dayStreak}
           </span>
           <img src="./Duoxp.svg" alt="streak" height={40} width={40} />
         </div>
-        <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+        <span className="text-xs font-black text-metallic-orange uppercase tracking-wider">
           Day Streak
         </span>
       </div>

@@ -144,13 +144,13 @@ const HomePage = () => {
                 <Streak />
                 <button
                   onClick={() => navigate("/leaderboard")}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-yellow-950/30 to-[#111] border border-yellow-500/30 text-sm font-bold text-white hover:border-yellow-500/60 hover:from-yellow-950/50 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#111] border border-yellow-500/25 text-sm font-black hover:border-yellow-500/50 transition-colors"
                 >
-                  <span className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
+                  <span className="flex items-center gap-2 text-metallic">
+                    <img src="/swordgold.png" alt="" width={30} height={30} />
                     Leaderboard
                   </span>
-                  <span className="text-yellow-500 text-sm">→</span>
+                  <span className="text-metallic-orange text-sm">→</span>
                 </button>
               </div>
             </div>

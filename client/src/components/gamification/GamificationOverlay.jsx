@@ -13,32 +13,36 @@ import confetti from "canvas-confetti";
 
 const RARITY = {
   Common: {
-    bg: "from-zinc-600 to-zinc-800",
-    border: "border-zinc-400/70",
-    label: "text-zinc-100",
-    glow: "shadow-[0_0_20px_rgba(200,200,200,0.25)]",
-    shimmer: "rgba(255,255,255,0.35)",
+    border: "border-white/[0.07]",
+    accent: "#71717a",
+    glow: "0 8px 32px rgba(0,0,0,0.7)",
+    shimmer: "rgba(255,255,255,0.08)",
+    pill: { color: "#a1a1aa", border: "rgba(113,113,122,0.3)", bg: "rgba(113,113,122,0.06)" },
+    strip: "bg-zinc-500/60",
   },
   Rare: {
-    bg: "from-blue-500 to-blue-900",
-    border: "border-blue-300/80",
-    label: "text-blue-50",
-    glow: "shadow-[0_0_40px_rgba(59,130,246,0.8),0_0_80px_rgba(59,130,246,0.3)]",
-    shimmer: "rgba(147,197,253,0.45)",
+    border: "border-blue-500/25",
+    accent: "#3b82f6",
+    glow: "0 8px 32px rgba(0,0,0,0.7), 0 0 24px rgba(59,130,246,0.18)",
+    shimmer: "rgba(147,197,253,0.12)",
+    pill: { color: "#93c5fd", border: "rgba(59,130,246,0.3)", bg: "rgba(59,130,246,0.07)" },
+    strip: "bg-blue-500/70",
   },
   Epic: {
-    bg: "from-purple-500 to-purple-900",
-    border: "border-purple-300/80",
-    label: "text-purple-50",
-    glow: "shadow-[0_0_40px_rgba(168,85,247,0.8),0_0_80px_rgba(168,85,247,0.35)]",
-    shimmer: "rgba(216,180,254,0.45)",
+    border: "border-purple-500/25",
+    accent: "#a855f7",
+    glow: "0 8px 32px rgba(0,0,0,0.7), 0 0 28px rgba(168,85,247,0.2)",
+    shimmer: "rgba(216,180,254,0.12)",
+    pill: { color: "#d8b4fe", border: "rgba(168,85,247,0.3)", bg: "rgba(168,85,247,0.07)" },
+    strip: "bg-purple-500/70",
   },
   Legendary: {
-    bg: "from-amber-400 to-orange-800",
-    border: "border-amber-300/90",
-    label: "text-amber-50",
-    glow: "shadow-[0_0_50px_rgba(245,158,11,0.9),0_0_100px_rgba(245,158,11,0.4)]",
-    shimmer: "rgba(253,230,138,0.5)",
+    border: "border-amber-500/35",
+    accent: "#f59e0b",
+    glow: "0 8px 40px rgba(0,0,0,0.7), 0 0 36px rgba(245,158,11,0.28)",
+    shimmer: "rgba(253,230,138,0.14)",
+    pill: { color: "#fcd34d", border: "rgba(245,158,11,0.35)", bg: "rgba(245,158,11,0.08)" },
+    strip: "bg-amber-500/80",
   },
 };
 
@@ -319,13 +323,17 @@ const BadgeToast = ({ badge, onRemove }) => {
 
   return (
     <motion.div
-      initial={{ x: 140, opacity: 0, scale: 0.88 }}
+      initial={{ x: 140, opacity: 0, scale: 0.9 }}
       animate={{ x: 0, opacity: 1, scale: 1 }}
-      exit={{ x: 140, opacity: 0, scale: 0.88, transition: { duration: 0.2 } }}
+      exit={{ x: 140, opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
       transition={{ type: "spring", damping: 22, stiffness: 290 }}
-      className={`absolute bottom-6 right-6 overflow-hidden flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-gradient-to-r ${s.bg} border ${s.border} ${s.glow} backdrop-blur-md shadow-2xl cursor-pointer max-w-[285px] pointer-events-auto`}
+      className={`absolute bottom-6 right-6 overflow-hidden flex items-center gap-4 pl-0 pr-5 py-4 rounded-2xl bg-[#0d0d0d] border ${s.border} cursor-pointer max-w-[300px] pointer-events-auto`}
+      style={{ boxShadow: s.glow }}
       onClick={onRemove}
     >
+      {/* Left rarity accent strip */}
+      <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl ${s.strip}`} />
+
       {/* Shimmer sweep on appear */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
@@ -341,38 +349,44 @@ const BadgeToast = ({ badge, onRemove }) => {
       {badge.rarity === "Legendary" && (
         <motion.div
           className="absolute inset-0 rounded-2xl pointer-events-none"
-          style={{ border: "2px solid rgba(245,158,11,0.85)", boxShadow: "0 0 15px rgba(245,158,11,0.4)" }}
-          animate={{ opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            border: "1px solid rgba(245,158,11,0.45)",
+            boxShadow: "inset 0 0 16px rgba(245,158,11,0.06)",
+          }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
         />
       )}
 
       {/* Badge icon — pops in */}
       <motion.span
-        className="text-[38px] leading-none shrink-0 relative z-10 flex items-center justify-center"
-        style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.4))", width: 44, height: 44 }}
-        initial={{ scale: 0, rotate: -24 }}
+        className="text-[34px] leading-none shrink-0 relative z-10 flex items-center justify-center ml-5"
+        style={{ width: 42, height: 42 }}
+        initial={{ scale: 0, rotate: -20 }}
         animate={{ scale: 1, rotate: 0 }}
-        transition={{
-          delay: 0.08,
-          type: "spring",
-          damping: 13,
-          stiffness: 290,
-        }}
+        transition={{ delay: 0.08, type: "spring", damping: 13, stiffness: 290 }}
       >
         {badge.icon}
       </motion.span>
 
       {/* Text */}
-      <div className="relative z-10 min-w-0">
-        <p className="text-[9px] uppercase tracking-[0.22em] font-bold text-white/65 mb-0.5">
-          Badge Earned · {badge.rarity}
+      <div className="relative z-10 min-w-0 flex flex-col gap-0.5">
+        <p className="text-[9px] uppercase tracking-[0.22em] font-black text-metallic leading-none">
+          Badge Earned
         </p>
-        <p
-          className={`text-[13.5px] font-bold leading-tight truncate ${s.label}`}
-        >
+        <p className="text-[13px] font-black leading-tight truncate text-metallic-orange">
           {badge.title}
         </p>
+        <span
+          className="inline-block w-fit text-[8px] font-black uppercase tracking-widest mt-0.5 px-1.5 py-[2px] rounded-full border"
+          style={{
+            color: s.pill.color,
+            borderColor: s.pill.border,
+            background: s.pill.bg,
+          }}
+        >
+          {badge.rarity}
+        </span>
       </div>
     </motion.div>
   );

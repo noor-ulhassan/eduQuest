@@ -131,7 +131,7 @@ const AchievementCircle = ({ achievement, user, onClick }) => {
     >
       {/* Circle */}
       <div
-        className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 ${
+        className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${
           isLocked ? "" : !achievement.icon ? colors.bg : ""
         }`}
         style={
@@ -148,7 +148,7 @@ const AchievementCircle = ({ achievement, user, onClick }) => {
           <img
             src={achievement.icon}
             alt={achievement.name}
-            className="w-12 h-12 object-contain"
+            className="w-[60px] h-[60px] object-contain"
           />
         ) : (
           <span className={`text-lg font-black ${colors.text}`}>
@@ -237,7 +237,7 @@ const AchievementDetailRow = ({ achievement, user }) => {
     >
       {/* Circle */}
       <div
-        className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+        className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${
           isLocked ? "" : !achievement.icon ? colors.bg : ""
         }`}
         style={
@@ -254,7 +254,7 @@ const AchievementDetailRow = ({ achievement, user }) => {
           <img
             src={achievement.icon}
             alt={achievement.name}
-            className="w-12 h-12 object-contain"
+            className="w-[52px] h-[52px] object-contain"
           />
         ) : (
           <span className={`text-base font-black ${colors.text}`}>

@@ -30,7 +30,7 @@ export const ACHIEVEMENTS = [
   {
     key: "quest_explorer",
     name: "Quest Explorer",
-    icon: "/achievements/quest-explorer.svg",
+    icon: "/achievements/08-quest-explorer-done-fixed.svg",
     description: "Complete quests to unlock rewards",
     metric: "questsCompleted",
     tiers: [
@@ -70,6 +70,7 @@ export const ACHIEVEMENTS = [
   {
     key: "competitor",
     name: "Competitor",
+    icon: "/badges/wizard.png",
     description: "Win competition matches",
     metric: "totalWins",
     tiers: [

@@ -192,9 +192,15 @@ const UserStats = () => {
                   <div className="flex-1 min-w-0">
                     <motion.h3
                       layoutId={`title-${id}`}
-                      className="text-2xl text-zinc-900 dark:text-white font-black truncate tracking-tight"
+                      className="text-2xl text-metallic font-black tracking-tight flex items-center gap-2"
                     >
-                      {name}
+                      <span className="truncate">{name}</span>
+                      <img
+                        src="/badges/wizard.png"
+                        alt="wizard"
+                        className="w-7 h-7 object-contain shrink-0"
+                        draggable={false}
+                      />
                     </motion.h3>
                     <motion.div
                       layoutId={`level-${id}`}
@@ -204,7 +210,7 @@ const UserStats = () => {
                         className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold text-white shadow-sm"
                         style={{
                           background:
-                            "linear-gradient(135deg, #eab308 0%, #d97706 100%)",
+                            "#d97706",
                         }}
                       >
                         Level {level}
@@ -273,7 +279,7 @@ const UserStats = () => {
       <motion.div
         layoutId={`card-${id}`}
         onClick={() => setActive(!active)}
-        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm group relative bg-white dark:bg-[#1a1730] cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-600"
+        className="w-full max-w-md mx-auto mb-4 overflow-hidden border border-white/[0.07] rounded-2xl shadow-sm relative bg-[#1a1730] cursor-pointer transition-all hover:border-white/[0.12]"
       >
         <div className="p-6 relative z-10 pointer-events-none">
           <div className="flex items-center gap-5">
@@ -296,9 +302,15 @@ const UserStats = () => {
             <div className="flex-1 min-w-0">
               <motion.h3
                 layoutId={`title-${id}`}
-                className="text-xl text-zinc-900 dark:text-white font-black truncate tracking-tight"
+                className="text-xl text-metallic font-black tracking-tight flex items-center gap-1.5"
               >
-                {name}
+                <span className="truncate">{name}</span>
+                <img
+                  src="/badges/wizard.png"
+                  alt="wizard"
+                  className="w-6 h-6 object-contain shrink-0"
+                  draggable={false}
+                />
               </motion.h3>
               <motion.div
                 layoutId={`level-${id}`}

@@ -121,32 +121,26 @@ export function DraggableCards() {
                 className="absolute inset-0 cursor-grab active:cursor-grabbing hover:-translate-y-2 transition-transform duration-300 ease-out"
                 style={{ zIndex: index }}
               >
-                <div className="w-full h-full bg-white dark:bg-[#1a1730] rounded-[2rem] p-6 flex flex-col border border-zinc-200 dark:border-zinc-800 shadow-[0_10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4)] overflow-hidden relative group">
-                  <div
-                    className={`absolute -top-32 -right-32 w-64 h-64 ${card.color} opacity-10 dark:opacity-20 rounded-full blur-[80px] pointer-events-none group-hover:opacity-20 transition-all duration-700`}
-                  />
-                  <div
-                    className={`absolute -bottom-32 -left-32 w-64 h-64 ${card.color} opacity-10 dark:opacity-20 rounded-full blur-[80px] pointer-events-none group-hover:opacity-20 transition-all duration-700`}
-                  />
+                <div className="w-full h-full bg-[#1a1730] rounded-[2rem] p-6 flex flex-col border border-white/[0.07] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative">
 
                   <div className="flex justify-between items-start mb-4 relative z-10">
                     {card.isEnrolled ? (
-                      <span className="text-[10px] font-bold text-white uppercase bg-indigo-600 tracking-tight border border-indigo-400 rounded-full px-2 py-0.5">
+                      <span className="text-[10px] font-black text-metallic uppercase tracking-widest border border-white/[0.12] bg-white/[0.04] rounded-full px-2.5 py-0.5">
                         In Progress
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-white uppercase bg-purple-600 tracking-tight border border-purple-400 rounded-full px-2 py-0.5 flex w-fit items-center gap-1">
-                        <Star size={10} fill="white" /> Recommended
+                      <span className="text-[10px] font-black text-metallic-orange uppercase tracking-widest border border-orange-500/25 bg-orange-500/[0.06] rounded-full px-2.5 py-0.5 flex w-fit items-center gap-1">
+                        <Star size={9} className="fill-orange-500 text-orange-500" /> Recommended
                       </span>
                     )}
                   </div>
 
                   <div className="text-center mb-3">
-                    <h3 className="text-xl font-black text-zinc-900 dark:text-white leading-tight tracking-tight">
+                    <h3 className="text-xl font-black text-metallic leading-tight tracking-tight">
                       {card.title}
                     </h3>
                     <p
-                      className={`font-medium text-xs mt-1 ${card.isEnrolled ? "text-indigo-500" : "text-zinc-500 dark:text-zinc-400"}`}
+                      className={`font-bold text-xs mt-1 ${card.isEnrolled ? "text-metallic-orange" : "text-zinc-500"}`}
                     >
                       {card.level}
                     </p>
@@ -187,20 +181,20 @@ export function DraggableCards() {
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
                               card.isEnrolled && idx === 0
-                                ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/30"
-                                : "border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800"
+                                ? "border-orange-500/50 bg-orange-500/10"
+                                : "border-zinc-700/50 bg-transparent"
                             }`}
                           >
                             {card.isEnrolled && idx === 0 ? (
-                              <div className="w-2 h-2 bg-indigo-500 rounded-sm rotate-45 animate-pulse" />
+                              <div className="w-2 h-2 bg-orange-500 rounded-sm rotate-45 animate-pulse" />
                             ) : card.isEnrolled ? (
-                              <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                              <CheckCircle2 className="w-4 h-4 text-orange-500/60" />
                             ) : (
-                              <Lock className="w-3 h-3 text-zinc-400" />
+                              <Lock className="w-3 h-3 text-zinc-600" />
                             )}
                           </div>
                           <span
-                            className={`text-sm font-bold transition-colors ${card.isEnrolled && idx === 0 ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-500"}`}
+                            className={`text-sm font-bold transition-colors ${card.isEnrolled && idx === 0 ? "text-metallic" : "text-zinc-600"}`}
                           >
                             {lesson}
                           </span>
@@ -211,17 +205,16 @@ export function DraggableCards() {
 
                   <button
                     onClick={() => navigate(`/playground/${card.language}`)}
-                    className={`w-full font-bold mt-auto py-3 rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-wide group transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md z-10
-                        ${
-                          card.isEnrolled
-                            ? "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-400 hover:to-orange-400 text-black border-none"
-                            : "bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 dark:text-black text-white border-none"
-                        }`}
+                    className={`w-full font-black mt-auto py-3 rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-widest group transition-all duration-200 z-10 ${
+                      card.isEnrolled
+                        ? "border border-orange-500/40 bg-orange-500/[0.08] hover:bg-orange-500/15 hover:border-orange-500/60 text-metallic-orange"
+                        : "border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 text-metallic"
+                    }`}
                   >
-                    <span className="relative z-10 flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       {card.status}
                       <Play
-                        className={`w-3 h-3 transition-transform group-hover:translate-x-1 ${card.isEnrolled ? "fill-black" : "fill-white dark:fill-black"}`}
+                        className={`w-3 h-3 transition-transform group-hover:translate-x-1 ${card.isEnrolled ? "fill-orange-500" : "fill-white/60"}`}
                       />
                     </span>
                   </button>
